@@ -251,7 +251,6 @@ values
   ('city', '北海道', '標津町', '標津町', 178, true),
   ('city', '北海道', '羅臼町', '羅臼町', 179, true),
   ('city', '北海道', '色丹村', '色丹村', 180, true),
-  ('city', '北海道', '泊村', '泊村', 181, true),
   ('city', '北海道', '留夜別村', '留夜別村', 182, true),
   ('city', '北海道', '留別村', '留別村', 183, true),
   ('city', '北海道', '紗那村', '紗那村', 184, true),
@@ -423,13 +422,13 @@ values
   ('city', '山形县', '饭丰町', '饭丰町', 32, true),
   ('city', '山形县', '三川町', '三川町', 33, true),
   ('city', '山形县', '庄内町', '庄内町', 34, true),
-  ('city', '山形县', '遊佐町', '遊佐町', 35, true)
+  ('city', '山形县', '遊佐町', '遊佐町', 35, true),
+  ('city', '福岛县', '福岛市', '福岛市', 1, true)
 on conflict(option_type, parent_value, value)
 do update set label = excluded.label, sort_order = excluded.sort_order, is_active = true, updated_at = now();
 
 insert into public.query_field_options(option_type, parent_value, value, label, sort_order, is_active)
 values
-  ('city', '福岛县', '福岛市', '福岛市', 1, true),
   ('city', '福岛县', '会津若松市', '会津若松市', 2, true),
   ('city', '福岛县', '郡山市', '郡山市', 3, true),
   ('city', '福岛县', 'いわき市', 'いわき市', 4, true),
@@ -828,13 +827,13 @@ values
   ('city', '新潟县', '弥彦村', '弥彦村', 22, true),
   ('city', '新潟县', '田上町', '田上町', 23, true),
   ('city', '新潟县', '阿贺町', '阿贺町', 24, true),
-  ('city', '新潟县', '出雲崎町', '出雲崎町', 25, true)
+  ('city', '新潟县', '出雲崎町', '出雲崎町', 25, true),
+  ('city', '新潟县', '湯泽町', '湯泽町', 26, true)
 on conflict(option_type, parent_value, value)
 do update set label = excluded.label, sort_order = excluded.sort_order, is_active = true, updated_at = now();
 
 insert into public.query_field_options(option_type, parent_value, value, label, sort_order, is_active)
 values
-  ('city', '新潟县', '湯泽町', '湯泽町', 26, true),
   ('city', '新潟县', '津南町', '津南町', 27, true),
   ('city', '新潟县', '刈羽村', '刈羽村', 28, true),
   ('city', '新潟县', '关川村', '关川村', 29, true),
@@ -1233,13 +1232,13 @@ values
   ('city', '大阪府', '大阪狭山市', '大阪狭山市', 32, true),
   ('city', '大阪府', '阪南市', '阪南市', 33, true),
   ('city', '大阪府', '岛本町', '岛本町', 34, true),
-  ('city', '大阪府', '丰能町', '丰能町', 35, true)
+  ('city', '大阪府', '丰能町', '丰能町', 35, true),
+  ('city', '大阪府', '能勢町', '能勢町', 36, true)
 on conflict(option_type, parent_value, value)
 do update set label = excluded.label, sort_order = excluded.sort_order, is_active = true, updated_at = now();
 
 insert into public.query_field_options(option_type, parent_value, value, label, sort_order, is_active)
 values
-  ('city', '大阪府', '能勢町', '能勢町', 36, true),
   ('city', '大阪府', '忠冈町', '忠冈町', 37, true),
   ('city', '大阪府', '熊取町', '熊取町', 38, true),
   ('city', '大阪府', '田尻町', '田尻町', 39, true),
@@ -1638,13 +1637,13 @@ values
   ('city', '佐贺县', '大町町', '大町町', 17, true),
   ('city', '佐贺县', '江北町', '江北町', 18, true),
   ('city', '佐贺县', '白石町', '白石町', 19, true),
-  ('city', '佐贺县', '太良町', '太良町', 20, true)
+  ('city', '佐贺县', '太良町', '太良町', 20, true),
+  ('city', '长崎县', '长崎市', '长崎市', 1, true)
 on conflict(option_type, parent_value, value)
 do update set label = excluded.label, sort_order = excluded.sort_order, is_active = true, updated_at = now();
 
 insert into public.query_field_options(option_type, parent_value, value, label, sort_order, is_active)
 values
-  ('city', '长崎县', '长崎市', '长崎市', 1, true),
   ('city', '长崎县', '佐世保市', '佐世保市', 2, true),
   ('city', '长崎县', '岛原市', '岛原市', 3, true),
   ('city', '长崎县', '諫早市', '諫早市', 4, true),

@@ -121,6 +121,17 @@ function uniqueSorted(items) {
   });
 }
 
+function uniqueSqlRows(rows) {
+  const seen = new Set();
+  return rows.filter((item) => {
+    const match = item.match(/^\('((?:''|[^'])*)', '((?:''|[^'])*)', '((?:''|[^'])*)'/);
+    const key = match ? `${match[1]}\u0000${match[2]}\u0000${match[3]}` : item;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function sqlValue(value) {
   return `'${String(value ?? "").replaceAll("'", "''")}'`;
 }
@@ -236,7 +247,8 @@ for (const key of Object.keys(fieldOptions.cities)) fieldOptions.cities[key] = u
 for (const key of Object.keys(fieldOptions.wards)) fieldOptions.wards[key] = uniqueSorted(fieldOptions.wards[key]);
 
 await fs.writeFile(path.join(root, "web", "field-options.json"), `${JSON.stringify(fieldOptions, null, 2)}\n`);
-await fs.writeFile(path.join(root, "backend", "sql", "supabase_field_options.sql"), buildSql(uniqueSorted(sqlRows)));
+const dedupedSqlRows = uniqueSqlRows(sqlRows);
+await fs.writeFile(path.join(root, "backend", "sql", "supabase_field_options.sql"), buildSql(dedupedSqlRows));
 
 console.log(
   JSON.stringify(
@@ -245,7 +257,7 @@ console.log(
       cities: Object.values(fieldOptions.cities).reduce((sum, items) => sum + items.length, 0),
       wardCities: Object.keys(fieldOptions.wards).length,
       wards: Object.values(fieldOptions.wards).reduce((sum, items) => sum + items.length, 0),
-      sqlRows: uniqueSorted(sqlRows).length,
+      sqlRows: dedupedSqlRows.length,
     },
     null,
     2,

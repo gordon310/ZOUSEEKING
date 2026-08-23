@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: zouseeking-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: INIT_SCHEMA
+        value: "true"
+      - key: ALLOWED_ORIGINS
+        value: "https://gordon310.github.io,http://127.0.0.1:8790,http://localhost:8790"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: zouseeking-postgres
+          property: connectionString
+
+databases:
+  - name: zouseeking-postgres
+    plan: free
+

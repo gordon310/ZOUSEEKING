@@ -95,24 +95,21 @@ window.ZOUSEEKING_SUPABASE_ANON_KEY = "你的 anon public key";
 
 1. `Authentication` -> `Providers`
 2. 确认 `Email` 已启用
-3. `Authentication` -> `URL Configuration`
-4. `Site URL` 填：
+3. 关闭 `Confirm email` / `Email confirmations`
+4. `Authentication` -> `URL Configuration`
+5. `Site URL` 填：
 
 ```text
 https://gordon310.github.io/ZOUSEEKING/
 ```
 
-5. `Redirect URLs` 加：
+6. `Redirect URLs` 加：
 
 ```text
 https://gordon310.github.io/ZOUSEEKING/**
 ```
 
-如果开启邮箱确认，用户注册后需要先点邮件里的确认链接，再登录。
-
-网站注册时会把当前页面地址作为 `redirect_to` 发给 Supabase；用户点确认链接回来后，前端会读取 URL hash 里的登录 token 并自动登录。
-
-如果确认邮件失败，重点检查：
+当前阶段先关闭邮箱确认，注册后直接登录。后面如果要重新开启邮箱确认，重点检查：
 
 - `Site URL` 是否是 `https://gordon310.github.io/ZOUSEEKING/`
 - `Redirect URLs` 是否包含 `https://gordon310.github.io/ZOUSEEKING/**`

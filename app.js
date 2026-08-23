@@ -1041,7 +1041,7 @@ async function register(event) {
         saveSession(session);
         setMessage("注册成功，已登录。可以搜房了，钱包先深呼吸。", "success");
       } else {
-        setMessage("注册成功。请先去邮箱点确认链接，再回来登录。", "success");
+        setMessage("注册成功，但后台还开着邮箱确认。请在 Supabase 关闭 Confirm email，然后用邮箱密码登录。", "success");
       }
       render();
       return;
@@ -1111,7 +1111,7 @@ async function login(event) {
       if (message.includes("Invalid login credentials")) {
         setMessage("邮箱或密码不对。别慌，人生经常这样。", "error");
       } else if (message.includes("Email not confirmed")) {
-        setMessage("邮箱还没确认。先去邮箱点一下确认链接。", "error");
+        setMessage("后台还开着邮箱确认。请在 Supabase 关闭 Confirm email 后再登录。", "error");
       } else {
         setMessage(`登录失败：${message}`, "error");
       }

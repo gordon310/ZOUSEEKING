@@ -37,6 +37,21 @@ backend/sql/supabase_schema.sql
 - `property_reports`：生成后的房产数据和 Markdown
 - `data_sources`：数据源记录
 
+如果表已经建好，只想补查询索引，复制并执行：
+
+```text
+backend/sql/supabase_indexes.sql
+```
+
+索引覆盖：
+
+- 查询条件：都道府县 / 市 / 区 / 房型 / 年 / 月
+- 历史命中：`query_key`
+- 详情页：`slug`
+- 最近数据：`created_at`
+- 模糊查询：标题和 Markdown 正文
+- JSON 数据：`summary`、`raw_record`
+
 ## 3. 前端连接 Supabase
 
 把 `web/config.js` 改成：

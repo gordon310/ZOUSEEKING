@@ -310,8 +310,8 @@ function cloneDefaultFieldOptions() {
   return JSON.parse(JSON.stringify(DEFAULT_FIELD_OPTIONS));
 }
 
-function normalizeFieldOptions(rows = []) {
-  const options = cloneDefaultFieldOptions();
+function normalizeFieldOptions(rows = [], baseOptions = cloneDefaultFieldOptions()) {
+  const options = JSON.parse(JSON.stringify(baseOptions));
   const next = {
     prefectures: [],
     cities: {},
@@ -353,14 +353,26 @@ function normalizeFieldOptions(rows = []) {
 
 async function loadFieldOptions() {
   state.fieldOptions = cloneDefaultFieldOptions();
-  if (!hasSupabase()) return;
   try {
-    const rows = await supabaseFetch("/query_field_options?select=option_type,parent_value,value,label,sort_order,is_active&is_active=eq.true&order=option_type.asc,sort_order.asc,value.asc");
-    if (Array.isArray(rows) && rows.length) {
-      state.fieldOptions = normalizeFieldOptions(rows);
+    const response = await fetch("field-options.json", { cache: "no-store" });
+    if (response.ok) {
+      const localOptions = await response.json();
+      state.fieldOptions = {
+        ...cloneDefaultFieldOptions(),
+        ...localOptions,
+      };
     }
   } catch {
     state.fieldOptions = cloneDefaultFieldOptions();
+  }
+  if (!hasSupabase()) return;
+  try {
+    const rows = await supabaseFetch("/query_field_options?select=option_type,parent_value,value,label,sort_order,is_active&is_active=eq.true&order=option_type.asc,sort_order.asc,value.asc&limit=5000");
+    if (Array.isArray(rows) && rows.length) {
+      state.fieldOptions = normalizeFieldOptions(rows, state.fieldOptions);
+    }
+  } catch {
+    // Keep local complete field-options.json/defaults when Supabase field table is not ready.
   }
 }
 

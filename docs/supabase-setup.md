@@ -44,14 +44,21 @@ backend/sql/supabase_schema.sql
 backend/sql/supabase_field_options.sql
 ```
 
-现在已内置：
+现在已内置完整日本行政区划字段库：
 
 - 47 个日本都道府县
-- 每个都道府县 1 个主要城市
-- 东京23区 / 大阪市24区 / 横滨市18区
+- 1746 个市区町村
+- 20 个有行政区的政令指定都市
+- 171 个行政区
 - 房型：塔楼 / 公寓 / 一户建
 - 年份：2024-2027
 - 月份：1-12月
+
+字段库来源：`nojimage/local-gov-code-jp` 整理的总务省全国地方公共団体コード JSON。生成脚本：
+
+```text
+scripts/build_japan_field_options.mjs
+```
 
 如果表已经建好，只想补查询索引，复制并执行：
 

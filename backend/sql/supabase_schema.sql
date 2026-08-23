@@ -19,6 +19,19 @@ create table if not exists public.queries (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.query_field_options (
+  id uuid primary key default gen_random_uuid(),
+  option_type text not null,
+  parent_value text not null default '',
+  value text not null,
+  label text not null default '',
+  sort_order int not null default 0,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(option_type, parent_value, value)
+);
+
 create table if not exists public.generation_jobs (
   id uuid primary key default gen_random_uuid(),
   query_id uuid not null references public.queries(id) on delete cascade,
@@ -66,6 +79,7 @@ create index if not exists idx_queries_lookup on public.queries(query_key, statu
 create index if not exists idx_queries_status on public.queries(status);
 create index if not exists idx_queries_created_at on public.queries(created_at desc);
 create index if not exists idx_queries_requested_email on public.queries(requested_by_email);
+create index if not exists idx_field_options_type_parent on public.query_field_options(option_type, parent_value, is_active, sort_order);
 create index if not exists idx_jobs_query_status on public.generation_jobs(query_id, status);
 create index if not exists idx_jobs_created_at on public.generation_jobs(created_at desc);
 create index if not exists idx_reports_query_key on public.property_reports(query_key);
@@ -95,6 +109,11 @@ create trigger set_queries_updated_at
 before update on public.queries
 for each row execute function public.set_updated_at();
 
+drop trigger if exists set_field_options_updated_at on public.query_field_options;
+create trigger set_field_options_updated_at
+before update on public.query_field_options
+for each row execute function public.set_updated_at();
+
 drop trigger if exists set_jobs_updated_at on public.generation_jobs;
 create trigger set_jobs_updated_at
 before update on public.generation_jobs
@@ -106,6 +125,7 @@ before update on public.property_reports
 for each row execute function public.set_updated_at();
 
 alter table public.queries enable row level security;
+alter table public.query_field_options enable row level security;
 alter table public.generation_jobs enable row level security;
 alter table public.property_reports enable row level security;
 alter table public.data_sources enable row level security;
@@ -128,6 +148,12 @@ on public.queries for update
 to anon
 using (true)
 with check (true);
+
+drop policy if exists "public can read field options" on public.query_field_options;
+create policy "public can read field options"
+on public.query_field_options for select
+to anon
+using (is_active = true);
 
 drop policy if exists "public can read jobs" on public.generation_jobs;
 create policy "public can read jobs"

@@ -33,9 +33,25 @@ backend/sql/supabase_schema.sql
 这会创建：
 
 - `queries`：用户查询索引
+- `query_field_options`：首页查询字段选项，控制都道府县 / 市 / 区 / 房型 / 年 / 月
 - `generation_jobs`：生成任务进度
 - `property_reports`：生成后的房产数据和 Markdown
 - `data_sources`：数据源记录
+
+如果表已经建好，只想补首页查询字段，复制并执行：
+
+```text
+backend/sql/supabase_field_options.sql
+```
+
+现在已内置：
+
+- 47 个日本都道府县
+- 每个都道府县 1 个主要城市
+- 东京23区 / 大阪市24区 / 横滨市18区
+- 房型：塔楼 / 公寓 / 一户建
+- 年份：2024-2027
+- 月份：1-12月
 
 如果表已经建好，只想补查询索引，复制并执行：
 

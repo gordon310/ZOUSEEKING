@@ -5,10 +5,107 @@ const API_BASE_URL = (window.ZOUSEEKING_API_BASE_URL || localStorage.getItem("zo
 const SUPABASE_URL = (window.ZOUSEEKING_SUPABASE_URL || localStorage.getItem("zou_house_supabase_url") || "").replace(/\/$/, "");
 const SUPABASE_ANON_KEY = window.ZOUSEEKING_SUPABASE_ANON_KEY || localStorage.getItem("zou_house_supabase_anon_key") || "";
 
-const LOCATION_OPTIONS = {
-  东京都: {
-    cities: {
-      "东京23区": [
+const DEFAULT_FIELD_OPTIONS = {
+  prefectures: [
+    "北海道",
+    "青森县",
+    "岩手县",
+    "宫城县",
+    "秋田县",
+    "山形县",
+    "福岛县",
+    "茨城县",
+    "栃木县",
+    "群马县",
+    "埼玉县",
+    "千叶县",
+    "东京都",
+    "神奈川县",
+    "新潟县",
+    "富山县",
+    "石川县",
+    "福井县",
+    "山梨县",
+    "长野县",
+    "岐阜县",
+    "静冈县",
+    "爱知县",
+    "三重县",
+    "滋贺县",
+    "京都府",
+    "大阪府",
+    "兵库县",
+    "奈良县",
+    "和歌山县",
+    "鸟取县",
+    "岛根县",
+    "冈山县",
+    "广岛县",
+    "山口县",
+    "德岛县",
+    "香川县",
+    "爱媛县",
+    "高知县",
+    "福冈县",
+    "佐贺县",
+    "长崎县",
+    "熊本县",
+    "大分县",
+    "宫崎县",
+    "鹿儿岛县",
+    "冲绳县",
+  ],
+  cities: {
+    北海道: ["札幌市"],
+    青森县: ["青森市"],
+    岩手县: ["盛冈市"],
+    宫城县: ["仙台市"],
+    秋田县: ["秋田市"],
+    山形县: ["山形市"],
+    福岛县: ["福岛市"],
+    茨城县: ["水户市"],
+    栃木县: ["宇都宫市"],
+    群马县: ["前桥市"],
+    埼玉县: ["埼玉市"],
+    千叶县: ["千叶市"],
+    东京都: ["东京23区"],
+    神奈川县: ["横滨市"],
+    新潟县: ["新潟市"],
+    富山县: ["富山市"],
+    石川县: ["金泽市"],
+    福井县: ["福井市"],
+    山梨县: ["甲府市"],
+    长野县: ["长野市"],
+    岐阜县: ["岐阜市"],
+    静冈县: ["静冈市"],
+    爱知县: ["名古屋市"],
+    三重县: ["津市"],
+    滋贺县: ["大津市"],
+    京都府: ["京都市"],
+    大阪府: ["大阪市"],
+    兵库县: ["神户市"],
+    奈良县: ["奈良市"],
+    和歌山县: ["和歌山市"],
+    鸟取县: ["鸟取市"],
+    岛根县: ["松江市"],
+    冈山县: ["冈山市"],
+    广岛县: ["广岛市"],
+    山口县: ["山口市"],
+    德岛县: ["德岛市"],
+    香川县: ["高松市"],
+    爱媛县: ["松山市"],
+    高知县: ["高知市"],
+    福冈县: ["福冈市"],
+    佐贺县: ["佐贺市"],
+    长崎县: ["长崎市"],
+    熊本县: ["熊本市"],
+    大分县: ["大分市"],
+    宫崎县: ["宫崎市"],
+    鹿儿岛县: ["鹿儿岛市"],
+    冲绳县: ["那霸市"],
+  },
+  wards: {
+    "东京都::东京23区": [
         "千代田区",
         "中央区",
         "港区",
@@ -32,12 +129,8 @@ const LOCATION_OPTIONS = {
         "足立区",
         "葛饰区",
         "江户川区",
-      ],
-    },
-  },
-  大阪府: {
-    cities: {
-      大阪市: [
+    ],
+    "大阪府::大阪市": [
         "北区",
         "都岛区",
         "福岛区",
@@ -62,12 +155,8 @@ const LOCATION_OPTIONS = {
         "东住吉区",
         "平野区",
         "西成区",
-      ],
-    },
-  },
-  神奈川县: {
-    cities: {
-      横滨市: [
+    ],
+    "神奈川县::横滨市": [
         "鹤见区",
         "神奈川区",
         "西区",
@@ -86,9 +175,11 @@ const LOCATION_OPTIONS = {
         "荣区",
         "泉区",
         "濑谷区",
-      ],
-    },
+    ],
   },
+  assetTypes: ["塔楼", "公寓", "一户建"],
+  years: ["2024", "2025", "2026", "2027"],
+  months: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"],
 };
 
 function readJson(key, fallback) {
@@ -107,6 +198,7 @@ const state = {
   page: 1,
   selectedId: "",
   session: readJson(SESSION_KEY, null),
+  fieldOptions: DEFAULT_FIELD_OPTIONS,
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -212,6 +304,64 @@ function hasBackend() {
 
 function hasSupabase() {
   return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+}
+
+function cloneDefaultFieldOptions() {
+  return JSON.parse(JSON.stringify(DEFAULT_FIELD_OPTIONS));
+}
+
+function normalizeFieldOptions(rows = []) {
+  const options = cloneDefaultFieldOptions();
+  const next = {
+    prefectures: [],
+    cities: {},
+    wards: {},
+    assetTypes: [],
+    years: [],
+    months: [],
+  };
+  for (const row of rows) {
+    if (!row?.is_active) continue;
+    const value = row.value;
+    if (!value) continue;
+    if (row.option_type === "prefecture") {
+      next.prefectures.push(value);
+    }
+    if (row.option_type === "city") {
+      const parent = row.parent_value || "";
+      if (!next.cities[parent]) next.cities[parent] = [];
+      next.cities[parent].push(value);
+    }
+    if (row.option_type === "ward") {
+      const key = row.parent_value || "";
+      if (!next.wards[key]) next.wards[key] = [];
+      next.wards[key].push(value);
+    }
+    if (row.option_type === "asset_type") next.assetTypes.push(value);
+    if (row.option_type === "year") next.years.push(value);
+    if (row.option_type === "month") next.months.push(value);
+  }
+  return {
+    prefectures: next.prefectures.length ? next.prefectures : options.prefectures,
+    cities: Object.keys(next.cities).length ? next.cities : options.cities,
+    wards: Object.keys(next.wards).length ? next.wards : options.wards,
+    assetTypes: next.assetTypes.length ? next.assetTypes : options.assetTypes,
+    years: next.years.length ? next.years : options.years,
+    months: next.months.length ? next.months : options.months,
+  };
+}
+
+async function loadFieldOptions() {
+  state.fieldOptions = cloneDefaultFieldOptions();
+  if (!hasSupabase()) return;
+  try {
+    const rows = await supabaseFetch("/query_field_options?select=option_type,parent_value,value,label,sort_order,is_active&is_active=eq.true&order=option_type.asc,sort_order.asc,value.asc");
+    if (Array.isArray(rows) && rows.length) {
+      state.fieldOptions = normalizeFieldOptions(rows);
+    }
+  } catch {
+    state.fieldOptions = cloneDefaultFieldOptions();
+  }
 }
 
 async function supabaseAuthFetch(path, options = {}) {
@@ -491,11 +641,23 @@ function renderLatest() {
 function renderQueryOptions() {
   const prefecture = $("#prefectureSelect");
   if (!prefecture) return;
+  const currentPrefecture = prefecture.value || "东京都";
+  prefecture.innerHTML = `<option value="">请选择</option>${state.fieldOptions.prefectures.map((item) => optionHtml(item)).join("")}`;
+  prefecture.value = state.fieldOptions.prefectures.includes(currentPrefecture) ? currentPrefecture : state.fieldOptions.prefectures[0] || "";
+  const currentAssetType = $("#assetTypeSelect").value || "塔楼";
+  $("#assetTypeSelect").innerHTML = state.fieldOptions.assetTypes.map((item) => optionHtml(item)).join("");
+  $("#assetTypeSelect").value = state.fieldOptions.assetTypes.includes(currentAssetType) ? currentAssetType : state.fieldOptions.assetTypes[0] || "";
+  const currentYear = $("#yearSelect").value || "2026";
+  $("#yearSelect").innerHTML = state.fieldOptions.years.map((item) => optionHtml(item)).join("");
+  $("#yearSelect").value = state.fieldOptions.years.includes(currentYear) ? currentYear : state.fieldOptions.years[0] || "";
+  const currentMonth = $("#monthSelect").value || "8";
+  $("#monthSelect").innerHTML = state.fieldOptions.months.map((item) => optionHtml(item, `${item}月`)).join("");
+  $("#monthSelect").value = state.fieldOptions.months.includes(currentMonth) ? currentMonth : state.fieldOptions.months[0] || "";
   if (!prefecture.value) {
     prefecture.value = "东京都";
-    populateCities();
-    populateWards();
   }
+  populateCities();
+  populateWards();
 }
 
 function optionHtml(value, label = value) {
@@ -504,16 +666,23 @@ function optionHtml(value, label = value) {
 
 function populateCities() {
   const prefecture = $("#prefectureSelect").value;
-  const cities = Object.keys(LOCATION_OPTIONS[prefecture]?.cities || {});
+  const currentCity = $("#citySelect").value;
+  const cities = state.fieldOptions.cities[prefecture] || [];
   $("#citySelect").innerHTML = `<option value="">请选择</option>${cities.map((city) => optionHtml(city)).join("")}`;
-  if (cities.length) $("#citySelect").value = cities[0];
+  if (cities.includes(currentCity)) {
+    $("#citySelect").value = currentCity;
+  } else if (cities.length) {
+    $("#citySelect").value = cities[0];
+  }
 }
 
 function populateWards() {
   const prefecture = $("#prefectureSelect").value;
   const city = $("#citySelect").value;
-  const wards = LOCATION_OPTIONS[prefecture]?.cities?.[city] || [];
+  const currentWard = $("#wardSelect").value;
+  const wards = state.fieldOptions.wards[`${prefecture}::${city}`] || [];
   $("#wardSelect").innerHTML = `<option value="">全部区</option>${wards.map((ward) => optionHtml(ward)).join("")}`;
+  if (wards.includes(currentWard)) $("#wardSelect").value = currentWard;
 }
 
 function readQueryOptions() {
@@ -1009,6 +1178,7 @@ function closeImage() {
 async function init() {
   const response = await fetch("content-library.json", { cache: "no-store" });
   state.records = await response.json();
+  await loadFieldOptions();
   await refreshSupabaseSession();
   $("#showLogin").addEventListener("click", () => showMode("login"));
   $("#showRegister").addEventListener("click", () => showMode("register"));

@@ -110,6 +110,15 @@ https://gordon310.github.io/ZOUSEEKING/**
 
 如果开启邮箱确认，用户注册后需要先点邮件里的确认链接，再登录。
 
+网站注册时会把当前页面地址作为 `redirect_to` 发给 Supabase；用户点确认链接回来后，前端会读取 URL hash 里的登录 token 并自动登录。
+
+如果确认邮件失败，重点检查：
+
+- `Site URL` 是否是 `https://gordon310.github.io/ZOUSEEKING/`
+- `Redirect URLs` 是否包含 `https://gordon310.github.io/ZOUSEEKING/**`
+- 默认邮件服务是否触发发送频率限制；免费默认 SMTP 适合测试，正式使用建议配置自定义 SMTP
+- 邮箱安全扫描是否提前打开确认链接，导致 token 失效
+
 ## 5. 同步已有网站数据到 Supabase
 
 在本地执行：

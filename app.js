@@ -306,6 +306,13 @@ function hasSupabase() {
   return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 }
 
+function appRedirectUrl() {
+  const url = new URL(window.location.href);
+  url.hash = "";
+  url.search = "";
+  return url.toString();
+}
+
 function cloneDefaultFieldOptions() {
   return JSON.parse(JSON.stringify(DEFAULT_FIELD_OPTIONS));
 }
@@ -423,6 +430,38 @@ function sessionFromAuth(data, fallback = {}) {
     refreshToken: data?.refresh_token || fallback.refreshToken || "",
     provider: "supabase",
   };
+}
+
+async function handleAuthRedirect() {
+  if (!hasSupabase() || !window.location.hash) return;
+  const params = new URLSearchParams(window.location.hash.slice(1));
+  const error = params.get("error_description") || params.get("error");
+  if (error) {
+    history.replaceState(null, "", appRedirectUrl());
+    setMessage(`邮箱确认失败：${decodeURIComponent(error)}`, "error");
+    return;
+  }
+  const accessToken = params.get("access_token");
+  const refreshToken = params.get("refresh_token");
+  if (!accessToken) return;
+  try {
+    const user = await supabaseAuthFetch("/user", { authToken: accessToken });
+    saveSession(
+      sessionFromAuth(
+        {
+          access_token: accessToken,
+          refresh_token: refreshToken || "",
+          user,
+        },
+        {},
+      ),
+    );
+    history.replaceState(null, "", appRedirectUrl());
+    setMessage("邮箱确认成功，已经登录。可以开始搜房了。", "success");
+  } catch (authError) {
+    history.replaceState(null, "", appRedirectUrl());
+    setMessage(`邮箱确认成功但登录状态读取失败：${authError.message}`, "error");
+  }
 }
 
 async function refreshSupabaseSession() {
@@ -984,7 +1023,7 @@ async function register(event) {
     try {
       submitButton.disabled = true;
       setMessage("正在注册，小象在 Supabase 门口排队……");
-      const data = await supabaseAuthFetch("/signup", {
+      const data = await supabaseAuthFetch(`/signup?redirect_to=${encodeURIComponent(appRedirectUrl())}`, {
         method: "POST",
         body: JSON.stringify({
           email,
@@ -1191,6 +1230,7 @@ async function init() {
   const response = await fetch("content-library.json", { cache: "no-store" });
   state.records = await response.json();
   await loadFieldOptions();
+  await handleAuthRedirect();
   await refreshSupabaseSession();
   $("#showLogin").addEventListener("click", () => showMode("login"));
   $("#showRegister").addEventListener("click", () => showMode("register"));

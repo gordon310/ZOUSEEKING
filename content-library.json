@@ -1,5 +1,306 @@
 [
   {
+    "id": "jphouse_auto_b6cc4820b3::2026年8月",
+    "slug": "jphouse_auto_b6cc4820b3",
+    "template_name": "jphouse",
+    "title": "新潟县新潟市塔楼，租还是买？",
+    "publish_month": "2026年8月",
+    "generated_at": "2026-08-24",
+    "regions": [
+      "新潟县新潟市"
+    ],
+    "asset_type": "塔楼",
+    "layouts": [
+      "1LDK",
+      "2LDK",
+      "3LDK"
+    ],
+    "status": "generated",
+    "summary": {
+      "title": "总而言之",
+      "line": "1LDK｜约3.21%｜2LDK｜约3.10%｜3LDK｜约3.05%",
+      "note": "算法：月租×12÷买房估算价。先让队列跑起来，后面再把采集源接硬。"
+    },
+    "rental": [
+      {
+        "layout": "1LDK",
+        "area": "约39–45㎡",
+        "amount_jpy": "10.3万日元/月",
+        "amount_rmb": "≈0.44万RMB/月",
+        "unit_jpy": "约2,452日元/㎡/月",
+        "unit_rmb": "≈104RMB/㎡/月"
+      },
+      {
+        "layout": "2LDK",
+        "area": "约59–65㎡",
+        "amount_jpy": "15.4万日元/月",
+        "amount_rmb": "≈0.65万RMB/月",
+        "unit_jpy": "约2,484日元/㎡/月",
+        "unit_rmb": "≈105RMB/㎡/月"
+      },
+      {
+        "layout": "3LDK",
+        "area": "约79–85㎡",
+        "amount_jpy": "21.1万日元/月",
+        "amount_rmb": "≈0.89万RMB/月",
+        "unit_jpy": "约2,573日元/㎡/月",
+        "unit_rmb": "≈109RMB/㎡/月"
+      }
+    ],
+    "sale": [
+      {
+        "layout": "1LDK",
+        "area": "约39–45㎡",
+        "amount_jpy": "约3,853万日元",
+        "amount_rmb": "≈163万RMB",
+        "unit_jpy": "约91.7万日元/㎡",
+        "unit_rmb": "≈3.9万RMB/㎡"
+      },
+      {
+        "layout": "2LDK",
+        "area": "约59–65㎡",
+        "amount_jpy": "约5,958万日元",
+        "amount_rmb": "≈252万RMB",
+        "unit_jpy": "约96.1万日元/㎡",
+        "unit_rmb": "≈4.1万RMB/㎡"
+      },
+      {
+        "layout": "3LDK",
+        "area": "约79–85㎡",
+        "amount_jpy": "约8,310万日元",
+        "amount_rmb": "≈352万RMB",
+        "unit_jpy": "约101.3万日元/㎡",
+        "unit_rmb": "≈4.3万RMB/㎡"
+      }
+    ],
+    "markdown": "# 新潟县新潟市塔楼，租还是买？｜2026年8月\n\n## 区域说明\n新潟县新潟市，这次先按 JPHOUSE 估算模型生成一份查询快照。\n后续接入实时采集源后，同条件查询会自动更新成真实采集数据。\n\n## 基础说明\n小白翻译一下：\nLDK=客厅+餐厅+厨房，前面的数字=卧室数量。\n1LDK差不多一房一厅，2LDK两房一厅，3LDK三房一厅。\n塔楼为本次用户选择的房产类型。\n\n## 汇率\n汇率按发布当天约算：100日元≈4.23RMB。\n\n## 租房子\n1LDK｜约39–45㎡｜10.3万日元/月≈0.44万RMB/月｜约2,452日元/㎡/月≈104RMB/㎡/月\n2LDK｜约59–65㎡｜15.4万日元/月≈0.65万RMB/月｜约2,484日元/㎡/月≈105RMB/㎡/月\n3LDK｜约79–85㎡｜21.1万日元/月≈0.89万RMB/月｜约2,573日元/㎡/月≈109RMB/㎡/月\n\n## 买房子\n1LDK｜约39–45㎡｜约3,853万日元≈163万RMB｜约91.7万日元/㎡≈3.9万RMB/㎡\n2LDK｜约59–65㎡｜约5,958万日元≈252万RMB｜约96.1万日元/㎡≈4.1万RMB/㎡\n3LDK｜约79–85㎡｜约8,310万日元≈352万RMB｜约101.3万日元/㎡≈4.3万RMB/㎡\n\n## 总而言之\n1LDK｜约3.21%｜2LDK｜约3.10%｜3LDK｜约3.05%\n算法：月租×12÷买房估算价。先让队列跑起来，后面再把采集源接硬。\n",
+    "hashtags": [],
+    "data_sources": [
+      {
+        "name": "JPHOUSE Worker",
+        "url": "local://jphouse-worker",
+        "usage": "按用户查询条件生成估算报告"
+      },
+      {
+        "name": "备用采集源待接入",
+        "url": "https://suumo.jp/",
+        "usage": "后续真实租赁相场采集"
+      },
+      {
+        "name": "备用采集源待接入",
+        "url": "https://tochidai.info/",
+        "usage": "后续成交/房价相场采集"
+      }
+    ],
+    "images": [
+      "library/jphouse_auto_b6cc4820b3/images/01-cover-clean.png",
+      "library/jphouse_auto_b6cc4820b3/images/02-rental-all-layouts-clean.png",
+      "library/jphouse_auto_b6cc4820b3/images/03-sale-all-layouts-clean.png"
+    ],
+    "search_text": "新潟县新潟市塔楼，租还是买？ jphouse 2026年8月 塔楼 新潟县新潟市 1ldk 2ldk 3ldk # 新潟县新潟市塔楼，租还是买？｜2026年8月\n\n## 区域说明\n新潟县新潟市，这次先按 jphouse 估算模型生成一份查询快照。\n后续接入实时采集源后，同条件查询会自动更新成真实采集数据。\n\n## 基础说明\n小白翻译一下：\nldk=客厅+餐厅+厨房，前面的数字=卧室数量。\n1ldk差不多一房一厅，2ldk两房一厅，3ldk三房一厅。\n塔楼为本次用户选择的房产类型。\n\n## 汇率\n汇率按发布当天约算：100日元≈4.23rmb。\n\n## 租房子\n1ldk｜约39–45㎡｜10.3万日元/月≈0.44万rmb/月｜约2,452日元/㎡/月≈104rmb/㎡/月\n2ldk｜约59–65㎡｜15.4万日元/月≈0.65万rmb/月｜约2,484日元/㎡/月≈105rmb/㎡/月\n3ldk｜约79–85㎡｜21.1万日元/月≈0.89万rmb/月｜约2,573日元/㎡/月≈109rmb/㎡/月\n\n## 买房子\n1ldk｜约39–45㎡｜约3,853万日元≈163万rmb｜约91.7万日元/㎡≈3.9万rmb/㎡\n2ldk｜约59–65㎡｜约5,958万日元≈252万rmb｜约96.1万日元/㎡≈4.1万rmb/㎡\n3ldk｜约79–85㎡｜约8,310万日元≈352万rmb｜约101.3万日元/㎡≈4.3万rmb/㎡\n\n## 总而言之\n1ldk｜约3.21%｜2ldk｜约3.10%｜3ldk｜约3.05%\n算法：月租×12÷买房估算价。先让队列跑起来，后面再把采集源接硬。\n "
+  },
+  {
+    "id": "jphouse_auto_1c84e0aad9::2026年8月",
+    "slug": "jphouse_auto_1c84e0aad9",
+    "template_name": "jphouse",
+    "title": "大阪府大阪市生野区一户建，租还是买？",
+    "publish_month": "2026年8月",
+    "generated_at": "2026-08-24",
+    "regions": [
+      "大阪"
+    ],
+    "asset_type": "房产",
+    "layouts": [
+      "1LDK",
+      "2LDK",
+      "3LDK"
+    ],
+    "status": "generated",
+    "summary": {
+      "title": "总而言之",
+      "line": "1LDK｜约3.21%｜2LDK｜约3.10%｜3LDK｜约3.06%",
+      "note": "算法：月租×12÷买房估算价。先让队列跑起来，后面再把采集源接硬。"
+    },
+    "rental": [
+      {
+        "layout": "1LDK",
+        "area": "约39–45㎡",
+        "amount_jpy": "12.8万日元/月",
+        "amount_rmb": "≈0.54万RMB/月",
+        "unit_jpy": "约3,048日元/㎡/月",
+        "unit_rmb": "≈129RMB/㎡/月"
+      },
+      {
+        "layout": "2LDK",
+        "area": "约59–65㎡",
+        "amount_jpy": "19.1万日元/月",
+        "amount_rmb": "≈0.81万RMB/月",
+        "unit_jpy": "约3,081日元/㎡/月",
+        "unit_rmb": "≈130RMB/㎡/月"
+      },
+      {
+        "layout": "3LDK",
+        "area": "约79–85㎡",
+        "amount_jpy": "26.3万日元/月",
+        "amount_rmb": "≈1.11万RMB/月",
+        "unit_jpy": "约3,207日元/㎡/月",
+        "unit_rmb": "≈136RMB/㎡/月"
+      }
+    ],
+    "sale": [
+      {
+        "layout": "1LDK",
+        "area": "约39–45㎡",
+        "amount_jpy": "约4,787万日元",
+        "amount_rmb": "≈202万RMB",
+        "unit_jpy": "约114.0万日元/㎡",
+        "unit_rmb": "≈4.8万RMB/㎡"
+      },
+      {
+        "layout": "2LDK",
+        "area": "约59–65㎡",
+        "amount_jpy": "约7,404万日元",
+        "amount_rmb": "≈313万RMB",
+        "unit_jpy": "约119.4万日元/㎡",
+        "unit_rmb": "≈5.1万RMB/㎡"
+      },
+      {
+        "layout": "3LDK",
+        "area": "约79–85㎡",
+        "amount_jpy": "约10,326万日元",
+        "amount_rmb": "≈437万RMB",
+        "unit_jpy": "约125.9万日元/㎡",
+        "unit_rmb": "≈5.3万RMB/㎡"
+      }
+    ],
+    "markdown": "# 大阪府大阪市生野区一户建，租还是买？｜2026年8月\n\n## 区域说明\n大阪府大阪市生野区，这次先按 JPHOUSE 估算模型生成一份查询快照。\n后续接入实时采集源后，同条件查询会自动更新成真实采集数据。\n\n## 基础说明\n小白翻译一下：\nLDK=客厅+餐厅+厨房，前面的数字=卧室数量。\n1LDK差不多一房一厅，2LDK两房一厅，3LDK三房一厅。\n一户建为本次用户选择的房产类型。\n\n## 汇率\n汇率按发布当天约算：100日元≈4.23RMB。\n\n## 租房子\n1LDK｜约39–45㎡｜12.8万日元/月≈0.54万RMB/月｜约3,048日元/㎡/月≈129RMB/㎡/月\n2LDK｜约59–65㎡｜19.1万日元/月≈0.81万RMB/月｜约3,081日元/㎡/月≈130RMB/㎡/月\n3LDK｜约79–85㎡｜26.3万日元/月≈1.11万RMB/月｜约3,207日元/㎡/月≈136RMB/㎡/月\n\n## 买房子\n1LDK｜约39–45㎡｜约4,787万日元≈202万RMB｜约114.0万日元/㎡≈4.8万RMB/㎡\n2LDK｜约59–65㎡｜约7,404万日元≈313万RMB｜约119.4万日元/㎡≈5.1万RMB/㎡\n3LDK｜约79–85㎡｜约10,326万日元≈437万RMB｜约125.9万日元/㎡≈5.3万RMB/㎡\n\n## 总而言之\n1LDK｜约3.21%｜2LDK｜约3.10%｜3LDK｜约3.06%\n算法：月租×12÷买房估算价。先让队列跑起来，后面再把采集源接硬。\n",
+    "hashtags": [],
+    "data_sources": [
+      {
+        "name": "JPHOUSE Worker",
+        "url": "local://jphouse-worker",
+        "usage": "按用户查询条件生成估算报告"
+      },
+      {
+        "name": "备用采集源待接入",
+        "url": "https://suumo.jp/",
+        "usage": "后续真实租赁相场采集"
+      },
+      {
+        "name": "备用采集源待接入",
+        "url": "https://tochidai.info/",
+        "usage": "后续成交/房价相场采集"
+      }
+    ],
+    "images": [
+      "library/jphouse_auto_1c84e0aad9/images/01-cover-clean.png",
+      "library/jphouse_auto_1c84e0aad9/images/02-rental-all-layouts-clean.png",
+      "library/jphouse_auto_1c84e0aad9/images/03-sale-all-layouts-clean.png"
+    ],
+    "search_text": "大阪府大阪市生野区一户建，租还是买？ jphouse 2026年8月 房产 大阪 1ldk 2ldk 3ldk # 大阪府大阪市生野区一户建，租还是买？｜2026年8月\n\n## 区域说明\n大阪府大阪市生野区，这次先按 jphouse 估算模型生成一份查询快照。\n后续接入实时采集源后，同条件查询会自动更新成真实采集数据。\n\n## 基础说明\n小白翻译一下：\nldk=客厅+餐厅+厨房，前面的数字=卧室数量。\n1ldk差不多一房一厅，2ldk两房一厅，3ldk三房一厅。\n一户建为本次用户选择的房产类型。\n\n## 汇率\n汇率按发布当天约算：100日元≈4.23rmb。\n\n## 租房子\n1ldk｜约39–45㎡｜12.8万日元/月≈0.54万rmb/月｜约3,048日元/㎡/月≈129rmb/㎡/月\n2ldk｜约59–65㎡｜19.1万日元/月≈0.81万rmb/月｜约3,081日元/㎡/月≈130rmb/㎡/月\n3ldk｜约79–85㎡｜26.3万日元/月≈1.11万rmb/月｜约3,207日元/㎡/月≈136rmb/㎡/月\n\n## 买房子\n1ldk｜约39–45㎡｜约4,787万日元≈202万rmb｜约114.0万日元/㎡≈4.8万rmb/㎡\n2ldk｜约59–65㎡｜约7,404万日元≈313万rmb｜约119.4万日元/㎡≈5.1万rmb/㎡\n3ldk｜约79–85㎡｜约10,326万日元≈437万rmb｜约125.9万日元/㎡≈5.3万rmb/㎡\n\n## 总而言之\n1ldk｜约3.21%｜2ldk｜约3.10%｜3ldk｜约3.06%\n算法：月租×12÷买房估算价。先让队列跑起来，后面再把采集源接硬。\n "
+  },
+  {
+    "id": "jphouse_auto_9feb3b69b1::2026年8月",
+    "slug": "jphouse_auto_9feb3b69b1",
+    "template_name": "jphouse",
+    "title": "东京都东京23区港区塔楼，租还是买？",
+    "publish_month": "2026年8月",
+    "generated_at": "2026-08-24",
+    "regions": [
+      "港区",
+      "京都"
+    ],
+    "asset_type": "塔楼",
+    "layouts": [
+      "1LDK",
+      "2LDK",
+      "3LDK"
+    ],
+    "status": "generated",
+    "summary": {
+      "title": "总而言之",
+      "line": "1LDK｜约3.21%｜2LDK｜约3.10%｜3LDK｜约3.05%",
+      "note": "算法：月租×12÷买房估算价。先让队列跑起来，后面再把采集源接硬。"
+    },
+    "rental": [
+      {
+        "layout": "1LDK",
+        "area": "约39–45㎡",
+        "amount_jpy": "27.3万日元/月",
+        "amount_rmb": "≈1.15万RMB/月",
+        "unit_jpy": "约6,500日元/㎡/月",
+        "unit_rmb": "≈275RMB/㎡/月"
+      },
+      {
+        "layout": "2LDK",
+        "area": "约59–65㎡",
+        "amount_jpy": "40.7万日元/月",
+        "amount_rmb": "≈1.72万RMB/月",
+        "unit_jpy": "约6,565日元/㎡/月",
+        "unit_rmb": "≈278RMB/㎡/月"
+      },
+      {
+        "layout": "3LDK",
+        "area": "约79–85㎡",
+        "amount_jpy": "56.0万日元/月",
+        "amount_rmb": "≈2.37万RMB/月",
+        "unit_jpy": "约6,829日元/㎡/月",
+        "unit_rmb": "≈289RMB/㎡/月"
+      }
+    ],
+    "sale": [
+      {
+        "layout": "1LDK",
+        "area": "约39–45㎡",
+        "amount_jpy": "约10,199万日元",
+        "amount_rmb": "≈431万RMB",
+        "unit_jpy": "约242.8万日元/㎡",
+        "unit_rmb": "≈10.3万RMB/㎡"
+      },
+      {
+        "layout": "2LDK",
+        "area": "约59–65㎡",
+        "amount_jpy": "约15,773万日元",
+        "amount_rmb": "≈667万RMB",
+        "unit_jpy": "约254.4万日元/㎡",
+        "unit_rmb": "≈10.8万RMB/㎡"
+      },
+      {
+        "layout": "3LDK",
+        "area": "约79–85㎡",
+        "amount_jpy": "约21,999万日元",
+        "amount_rmb": "≈931万RMB",
+        "unit_jpy": "约268.3万日元/㎡",
+        "unit_rmb": "≈11.3万RMB/㎡"
+      }
+    ],
+    "markdown": "# 东京都东京23区港区塔楼，租还是买？｜2026年8月\n\n## 区域说明\n东京都东京23区港区，这次先按 JPHOUSE 估算模型生成一份查询快照。\n后续接入实时采集源后，同条件查询会自动更新成真实采集数据。\n\n## 基础说明\n小白翻译一下：\nLDK=客厅+餐厅+厨房，前面的数字=卧室数量。\n1LDK差不多一房一厅，2LDK两房一厅，3LDK三房一厅。\n塔楼为本次用户选择的房产类型。\n\n## 汇率\n汇率按发布当天约算：100日元≈4.23RMB。\n\n## 租房子\n1LDK｜约39–45㎡｜27.3万日元/月≈1.15万RMB/月｜约6,500日元/㎡/月≈275RMB/㎡/月\n2LDK｜约59–65㎡｜40.7万日元/月≈1.72万RMB/月｜约6,565日元/㎡/月≈278RMB/㎡/月\n3LDK｜约79–85㎡｜56.0万日元/月≈2.37万RMB/月｜约6,829日元/㎡/月≈289RMB/㎡/月\n\n## 买房子\n1LDK｜约39–45㎡｜约10,199万日元≈431万RMB｜约242.8万日元/㎡≈10.3万RMB/㎡\n2LDK｜约59–65㎡｜约15,773万日元≈667万RMB｜约254.4万日元/㎡≈10.8万RMB/㎡\n3LDK｜约79–85㎡｜约21,999万日元≈931万RMB｜约268.3万日元/㎡≈11.3万RMB/㎡\n\n## 总而言之\n1LDK｜约3.21%｜2LDK｜约3.10%｜3LDK｜约3.05%\n算法：月租×12÷买房估算价。先让队列跑起来，后面再把采集源接硬。\n",
+    "hashtags": [],
+    "data_sources": [
+      {
+        "name": "JPHOUSE Worker",
+        "url": "local://jphouse-worker",
+        "usage": "按用户查询条件生成估算报告"
+      },
+      {
+        "name": "备用采集源待接入",
+        "url": "https://suumo.jp/",
+        "usage": "后续真实租赁相场采集"
+      },
+      {
+        "name": "备用采集源待接入",
+        "url": "https://tochidai.info/",
+        "usage": "后续成交/房价相场采集"
+      }
+    ],
+    "images": [
+      "library/jphouse_auto_9feb3b69b1/images/01-cover-clean.png",
+      "library/jphouse_auto_9feb3b69b1/images/02-rental-all-layouts-clean.png",
+      "library/jphouse_auto_9feb3b69b1/images/03-sale-all-layouts-clean.png"
+    ],
+    "search_text": "东京都东京23区港区塔楼，租还是买？ jphouse 2026年8月 塔楼 港区 京都 1ldk 2ldk 3ldk # 东京都东京23区港区塔楼，租还是买？｜2026年8月\n\n## 区域说明\n东京都东京23区港区，这次先按 jphouse 估算模型生成一份查询快照。\n后续接入实时采集源后，同条件查询会自动更新成真实采集数据。\n\n## 基础说明\n小白翻译一下：\nldk=客厅+餐厅+厨房，前面的数字=卧室数量。\n1ldk差不多一房一厅，2ldk两房一厅，3ldk三房一厅。\n塔楼为本次用户选择的房产类型。\n\n## 汇率\n汇率按发布当天约算：100日元≈4.23rmb。\n\n## 租房子\n1ldk｜约39–45㎡｜27.3万日元/月≈1.15万rmb/月｜约6,500日元/㎡/月≈275rmb/㎡/月\n2ldk｜约59–65㎡｜40.7万日元/月≈1.72万rmb/月｜约6,565日元/㎡/月≈278rmb/㎡/月\n3ldk｜约79–85㎡｜56.0万日元/月≈2.37万rmb/月｜约6,829日元/㎡/月≈289rmb/㎡/月\n\n## 买房子\n1ldk｜约39–45㎡｜约10,199万日元≈431万rmb｜约242.8万日元/㎡≈10.3万rmb/㎡\n2ldk｜约59–65㎡｜约15,773万日元≈667万rmb｜约254.4万日元/㎡≈10.8万rmb/㎡\n3ldk｜约79–85㎡｜约21,999万日元≈931万rmb｜约268.3万日元/㎡≈11.3万rmb/㎡\n\n## 总而言之\n1ldk｜约3.21%｜2ldk｜约3.10%｜3ldk｜约3.05%\n算法：月租×12÷买房估算价。先让队列跑起来，后面再把采集源接硬。\n "
+  },
+  {
     "id": "jphouse_yokohama_tsuzuki_tower_2026_08::2026年8月",
     "slug": "jphouse_yokohama_tsuzuki_tower_2026_08",
     "template_name": "jphouse",

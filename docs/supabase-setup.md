@@ -133,3 +133,26 @@ python3 scripts/sync_content_library_to_supabase.py
 - Supabase 里有相同查询：前端直接返回历史数据
 - Supabase 没有相同查询：前端保存 `queries` 和 `generation_jobs`
 - JPHOUSE 采集器后续补数据后，写入 `property_reports`
+
+## 7. 本地运行 JPHOUSE worker
+
+网站产生的新查询会进入 `generation_jobs`，需要 worker 消费队列。
+
+本地运行：
+
+```bash
+cd /Users/gordonmac/GordonDev/JPPropDIs
+python3 scripts/run_jphouse_worker.py --limit 5
+```
+
+脚本会隐藏提示输入 Supabase `service_role key`。不要把这个 key 写进网页或发到聊天里。
+
+worker 会：
+
+1. 读取 `pending` 的 `generation_jobs`
+2. 按查询条件生成 JPHOUSE 报告
+3. 写入 `property_reports`
+4. 更新 `queries.status = completed`
+5. 更新 `generation_jobs.status = completed`
+
+注意：worker 会在本地生成图片到 `web/library/...`。如果新报告需要在线显示图片，还要把 `web/` 同步到 GitHub Pages。

@@ -125,6 +125,34 @@ def ratio_line(rental_rows, sale_rows):
     return "｜".join(parts)
 
 
+def rows_for_asset_type(asset_type: str, factor: float):
+    if asset_type == "一户建":
+        sizes = [
+            ("80㎡左右", 80, 18.5, 72),
+            ("110㎡左右", 110, 24.5, 68),
+            ("140㎡左右", 140, 31.5, 64),
+        ]
+        rental_rows = [rent_row(label, sqm, round(base_rent * factor, 1)) for label, sqm, base_rent, _ in sizes]
+        sale_rows = [sale_row(label, sqm, round(unit_price * factor * sqm)) for label, sqm, _, unit_price in sizes]
+        explain = [
+            "小白翻译一下：",
+            "一户建就是独栋/整栋住宅，和塔楼、公寓不是一个分法。",
+            "一户建不按 1LDK/2LDK/3LDK 拆，这里按建筑面积段看：80㎡、110㎡、140㎡左右。",
+        ]
+        return rental_rows, sale_rows, explain
+
+    layouts = [("1LDK", 42, 11.8), ("2LDK", 62, 17.6), ("3LDK", 82, 24.2)]
+    rental_rows = [rent_row(layout, sqm, round(base * factor, 1)) for layout, sqm, base in layouts]
+    sale_rows = [sale_row(layout, sqm, round(base * factor * sqm)) for layout, sqm, base in [("1LDK", 42, 105), ("2LDK", 62, 110), ("3LDK", 82, 116)]]
+    explain = [
+        "小白翻译一下：",
+        "LDK=客厅+餐厅+厨房，前面的数字=卧室数量。",
+        "1LDK差不多一房一厅，2LDK两房一厅，3LDK三房一厅。",
+        f"{asset_type}为本次用户选择的房产类型。",
+    ]
+    return rental_rows, sale_rows, explain
+
+
 def config_from_query(query: dict):
     prefecture = query["prefecture"]
     city = query["city"]
@@ -135,9 +163,7 @@ def config_from_query(query: dict):
     area = area_title(prefecture, city, ward)
     display_area = area or "日本"
     factor = base_factor(prefecture, city, ward, asset_type)
-    layouts = [("1LDK", 42, 11.8), ("2LDK", 62, 17.6), ("3LDK", 82, 24.2)]
-    rental_rows = [rent_row(layout, sqm, round(base * factor, 1)) for layout, sqm, base in layouts]
-    sale_rows = [sale_row(layout, sqm, round(base * factor * sqm)) for layout, sqm, base in [("1LDK", 42, 105), ("2LDK", 62, 110), ("3LDK", 82, 116)]]
+    rental_rows, sale_rows, explain = rows_for_asset_type(asset_type, factor)
     month_text = publish_month(year, month)
     slug = safe_slug(f"{prefecture}::{city}::{ward or '全部区'}::{asset_type}::{year}::{month}")
     title = f"{display_area}{asset_type}，租还是买？"
@@ -158,12 +184,7 @@ def config_from_query(query: dict):
             f"{display_area}，这次先按 JPHOUSE 估算模型生成一份查询快照。",
             "后续接入实时采集源后，同条件查询会自动更新成真实采集数据。",
         ],
-        "explain": [
-            "小白翻译一下：",
-            "LDK=客厅+餐厅+厨房，前面的数字=卧室数量。",
-            "1LDK差不多一房一厅，2LDK两房一厅，3LDK三房一厅。",
-            f"{asset_type}为本次用户选择的房产类型。",
-        ],
+        "explain": explain,
         "exchange_rate_note": "汇率按发布当天约算：100日元≈4.23RMB。",
         "sections": {
             "rental": {

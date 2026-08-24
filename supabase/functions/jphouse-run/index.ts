@@ -138,20 +138,45 @@ function ratioLine(rental: any[], sale: any[]) {
   }).join("｜");
 }
 
+function rowsForQuery(query: QueryRow, f: number) {
+  if (query.asset_type === "一户建") {
+    const sizes = [
+      { label: "80㎡左右", area: 80, rent: 18.5, saleUnit: 72 },
+      { label: "110㎡左右", area: 110, rent: 24.5, saleUnit: 68 },
+      { label: "140㎡左右", area: 140, rent: 31.5, saleUnit: 64 },
+    ];
+    return {
+      rental: sizes.map((row) => rentRow(row.label, row.area, Math.round(row.rent * f * 10) / 10)),
+      sale: sizes.map((row) => saleRow(row.label, row.area, Math.round(row.saleUnit * f * row.area))),
+      explain: "一户建不按 1LDK/2LDK/3LDK 拆，这里按建筑面积段看：80㎡、110㎡、140㎡左右。",
+    };
+  }
+  return {
+    rental: [
+      rentRow("1LDK", 42, Math.round(11.8 * f * 10) / 10),
+      rentRow("2LDK", 62, Math.round(17.6 * f * 10) / 10),
+      rentRow("3LDK", 82, Math.round(24.2 * f * 10) / 10),
+    ],
+    sale: [
+      saleRow("1LDK", 42, Math.round(105 * f * 42)),
+      saleRow("2LDK", 62, Math.round(110 * f * 62)),
+      saleRow("3LDK", 82, Math.round(116 * f * 82)),
+    ],
+    explain: "LDK=客厅+餐厅+厨房，前面的数字=卧室数量；塔楼/公寓按 1LDK、2LDK、3LDK 并列看。",
+  };
+}
+
+function isStaleDetachedHouseReport(query: QueryRow, report: any) {
+  if (query.asset_type !== "一户建") return false;
+  const rows = [...(report?.rental || []), ...(report?.sale || [])];
+  return rows.some((row) => /LDK/i.test(String(row?.layout || "")));
+}
+
 function reportFromQuery(query: QueryRow) {
   const area = areaTitle(query) || "日本";
   const f = factor(query);
   const monthText = `${query.year}年${query.month}月`;
-  const rental = [
-    rentRow("1LDK", 42, Math.round(11.8 * f * 10) / 10),
-    rentRow("2LDK", 62, Math.round(17.6 * f * 10) / 10),
-    rentRow("3LDK", 82, Math.round(24.2 * f * 10) / 10),
-  ];
-  const sale = [
-    saleRow("1LDK", 42, Math.round(105 * f * 42)),
-    saleRow("2LDK", 62, Math.round(110 * f * 62)),
-    saleRow("3LDK", 82, Math.round(116 * f * 82)),
-  ];
+  const { rental, sale, explain } = rowsForQuery(query, f);
   const title = `${area}${query.asset_type}，租还是买？`;
   const slug = `jphouse_edge_${crypto.randomUUID().slice(0, 8)}`;
   const summary = {
@@ -165,6 +190,7 @@ function reportFromQuery(query: QueryRow) {
     "## 区域说明",
     `${area}，这次由 Supabase Edge Function 按 JPHOUSE 估算模型生成。`,
     "后续接入实时采集源后，同条件查询可以升级成真实采集数据。",
+    explain,
     "",
     "## 汇率",
     "汇率按发布当天约算：100日元≈4.23RMB。",
@@ -218,7 +244,7 @@ Deno.serve(async (req) => {
     }
 
     const existing = await rest(`/property_reports?select=*&query_key=eq.${encodeURIComponent(query.query_key)}&limit=1`);
-    if (existing?.[0]) {
+    if (existing?.[0] && !isStaleDetachedHouseReport(query, existing[0])) {
       await rest(`/queries?id=eq.${encodeURIComponent(query.id)}`, {
         method: "PATCH",
         body: JSON.stringify({ status: "completed" }),

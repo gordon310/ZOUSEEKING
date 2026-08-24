@@ -96,7 +96,7 @@
             <p class="eyebrow">Compare</p>
             <h2>最多三列比较</h2>
           </div>
-          <p class="query-hint">选择最多三条报告，再勾选要比较的房型 / 面积段。表格会同时返回租金、售价、租售比。</p>
+          <p class="query-hint">选择最多三条报告，再勾选要比较的房型 / 面积段和指标。指标会作为每组数据下面的小标题列。</p>
           <div class="compare-selectors">
             <label>
               对比 A
@@ -111,6 +111,20 @@
               <select id="compareSelectC"></select>
             </label>
           </div>
+          <div class="metric-picker" id="metricPicker">
+            <label class="dimension-chip">
+              <input type="checkbox" value="rent" checked />
+              <span>租金</span>
+            </label>
+            <label class="dimension-chip">
+              <input type="checkbox" value="sale" checked />
+              <span>售价</span>
+            </label>
+            <label class="dimension-chip">
+              <input type="checkbox" value="ratio" checked />
+              <span>租售比</span>
+            </label>
+          </div>
           <div class="dimension-picker" id="dimensionPicker"></div>
           <div class="compare-table-wrap" id="compareTable"></div>
         </div>
@@ -122,7 +136,7 @@
       </section>
     </main>
 
-    <script src="config.js?v=20260824-16"></script>
-    <script src="app.js?v=20260824-16"></script>
+    <script src="config.js?v=20260824-17"></script>
+    <script src="app.js?v=20260824-17"></script>
   </body>
 </html>

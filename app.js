@@ -997,11 +997,11 @@ function allLayoutsForRecords(records) {
 }
 
 function compareCell(record, layout) {
-  return [
-    `租金：${formatAnalysisValue(analysisValue(record, "rent", layout), "rent")}`,
-    `售价：${formatAnalysisValue(analysisValue(record, "sale", layout), "sale")}`,
-    `租售比：${formatAnalysisValue(analysisValue(record, "ratio", layout), "ratio")}`,
-  ].join("<br>");
+  return {
+    rent: formatAnalysisValue(analysisValue(record, "rent", layout), "rent"),
+    sale: formatAnalysisValue(analysisValue(record, "sale", layout), "sale"),
+    ratio: formatAnalysisValue(analysisValue(record, "ratio", layout), "ratio"),
+  };
 }
 
 function compareOptionLabel(record) {
@@ -1059,6 +1059,17 @@ function renderDimensions(selected) {
   return active.length ? active : layouts;
 }
 
+function selectedCompareMetrics() {
+  const checked = [...document.querySelectorAll("#metricPicker input:checked")].map((input) => input.value);
+  return checked.length ? checked : ["rent", "sale", "ratio"];
+}
+
+function compareMetricLabel(metric) {
+  if (metric === "rent") return "租金";
+  if (metric === "sale") return "售价";
+  return "租售比";
+}
+
 function renderCompare(matched) {
   if (!$("#compareSelectA") || !$("#compareTable")) return;
   const candidates = matched.slice(0, 30).map((item) => item.record);
@@ -1068,6 +1079,7 @@ function renderCompare(matched) {
 
   const selected = selectedCompareRecords(candidates);
   const layouts = renderDimensions(selected);
+  const metrics = selectedCompareMetrics();
   if (!candidates.length) {
     $("#compareTable").innerHTML = `<div class="empty">没有可比较的数据。先换个关键词。</div>`;
     return;
@@ -1080,18 +1092,29 @@ function renderCompare(matched) {
     <table class="compare-table">
       <thead>
         <tr>
-          <th>维度</th>
-          ${selected.map((record) => `<th>${escapeHtml(record.title)}<small>${escapeHtml(record.publish_month)}</small></th>`).join("")}
+          <th rowspan="2">维度</th>
+          ${selected.map((record) => `<th colspan="${metrics.length}">${escapeHtml(record.title)}<small>${escapeHtml(record.publish_month)}</small></th>`).join("")}
+        </tr>
+        <tr>
+          ${selected.map(() => metrics.map((metric) => `<th>${escapeHtml(compareMetricLabel(metric))}</th>`).join("")).join("")}
         </tr>
       </thead>
       <tbody>
         ${layouts
-          .map((layout) => `
-            <tr>
-              <th>${escapeHtml(layout)}</th>
-              ${selected.map((record) => `<td>${compareCell(record, layout)}</td>`).join("")}
-            </tr>
-          `)
+          .map((layout) => {
+            const cells = selected
+              .map((record) => {
+                const values = compareCell(record, layout);
+                return metrics.map((metric) => `<td>${escapeHtml(values[metric])}</td>`).join("");
+              })
+              .join("");
+            return `
+              <tr>
+                <th>${escapeHtml(layout)}</th>
+                ${cells}
+              </tr>
+            `;
+          })
           .join("")}
       </tbody>
     </table>
@@ -1958,6 +1981,9 @@ async function init() {
   on("#compareSelectA", "change", renderAnalysis);
   on("#compareSelectB", "change", renderAnalysis);
   on("#compareSelectC", "change", renderAnalysis);
+  document.querySelectorAll("#metricPicker input").forEach((input) => {
+    input.addEventListener("change", renderAnalysis);
+  });
   on("#closeImage", "click", closeImage);
   on("#imageDialog", "click", (event) => {
     if (event.target.id === "imageDialog") closeImage();

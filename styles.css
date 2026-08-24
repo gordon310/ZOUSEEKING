@@ -548,11 +548,16 @@ select:disabled {
   margin: 0;
 }
 
-.dimension-picker {
+.dimension-picker,
+.metric-picker {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 12px;
+}
+
+.metric-picker {
+  padding-top: 2px;
 }
 
 .dimension-chip {
@@ -580,7 +585,7 @@ select:disabled {
 
 .compare-table {
   width: 100%;
-  min-width: 620px;
+  min-width: 760px;
   border-collapse: separate;
   border-spacing: 0;
   border: 1.5px solid var(--ink);
@@ -611,6 +616,7 @@ select:disabled {
 
 .compare-table thead th {
   background: var(--soft);
+  text-align: center;
 }
 
 .compare-table small {

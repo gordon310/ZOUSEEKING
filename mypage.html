@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mypage｜ZOU SEEKING HOUSE 小象搜房日本</title>
-    <link rel="stylesheet" href="styles.css?v=20260824-7" />
+    <link rel="stylesheet" href="styles.css?v=20260824-8" />
   </head>
   <body>
     <main class="app">
@@ -68,6 +68,51 @@
           <h2>我的查询任务</h2>
         </div>
         <div class="stats-grid" id="myStats"></div>
+        <section class="profile-card" id="profileCard">
+          <div class="mypage-head">
+            <div>
+              <p class="eyebrow">Profile</p>
+              <h3>我的资料</h3>
+            </div>
+            <button class="ghost-button" id="editProfileButton" type="button">编辑</button>
+          </div>
+          <div class="profile-summary" id="profileSummary"></div>
+          <form class="profile-form hidden" id="profileForm">
+            <label>
+              昵称
+              <input id="profileDisplayName" type="text" placeholder="比如：Gordon" />
+            </label>
+            <label>
+              邮箱
+              <input id="profileEmail" type="email" disabled />
+            </label>
+            <label>
+              所在城市
+              <input id="profileCity" type="text" placeholder="比如：东京 / 大阪 / 上海" />
+            </label>
+            <label>
+              关注区域
+              <input id="profileFavoriteArea" type="text" placeholder="比如：东京港区、大阪北区" />
+            </label>
+            <label>
+              关注房型
+              <select id="profileFavoriteAssetType">
+                <option value="">还没想好</option>
+                <option value="塔楼">塔楼</option>
+                <option value="公寓">公寓</option>
+                <option value="一户建">一户建</option>
+              </select>
+            </label>
+            <label class="profile-full">
+              备注
+              <textarea id="profileBio" rows="3" placeholder="比如：先看租售比，钱包暂时保持沉默。"></textarea>
+            </label>
+            <div class="profile-actions">
+              <button class="primary" type="submit">保存资料</button>
+              <button type="button" id="cancelProfileButton">取消</button>
+            </div>
+          </form>
+        </section>
         <div class="mypage-head">
           <p class="query-hint">这里可以看自己的查询记录，手动执行 JPHOUSE，完成后点查看结果。</p>
           <button class="ghost-button" id="refreshMyPage" type="button">刷新</button>
@@ -95,7 +140,7 @@
       </div>
     </dialog>
 
-    <script src="config.js?v=20260824-7"></script>
-    <script src="app.js?v=20260824-7"></script>
+    <script src="config.js?v=20260824-8"></script>
+    <script src="app.js?v=20260824-8"></script>
   </body>
 </html>

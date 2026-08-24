@@ -201,6 +201,9 @@ const state = {
   fieldOptions: DEFAULT_FIELD_OPTIONS,
   myTasks: [],
   myPageLoaded: false,
+  profile: null,
+  profileLoaded: false,
+  profileEditing: false,
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -577,6 +580,26 @@ async function supabaseFetch(path, options = {}) {
   return response.json();
 }
 
+async function supabaseUserFetch(path, options = {}) {
+  if (!state.session?.accessToken) throw new Error("登录状态过期，请重新登录。");
+  const response = await fetch(`${SUPABASE_URL}/rest/v1${path}`, {
+    ...options,
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${state.session.accessToken}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+      ...(options.headers || {}),
+    },
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `Supabase ${response.status}`);
+  }
+  if (response.status === 204) return null;
+  return response.json();
+}
+
 async function supabaseFunctionFetch(name, payload = {}) {
   if (!state.session?.accessToken) throw new Error("登录状态过期，请重新登录。");
   const response = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
@@ -672,6 +695,115 @@ async function loadMyPage() {
   state.myPageLoaded = true;
 }
 
+function defaultProfile() {
+  return {
+    user_id: state.session?.userId || "",
+    email: state.session?.email || "",
+    username: state.session?.username || "",
+    display_name: state.session?.username || "",
+    city: "",
+    favorite_area: "",
+    favorite_asset_type: "",
+    bio: "",
+    membership_tier: "free",
+    daily_query_limit: 3,
+  };
+}
+
+async function ensureUserProfile() {
+  if (!isLoggedIn() || !hasSupabase() || !state.session?.userId) {
+    state.profile = null;
+    state.profileLoaded = true;
+    return;
+  }
+  const userId = encodeURIComponent(state.session.userId);
+  const rows = await supabaseUserFetch(`/user_profiles?select=*&user_id=eq.${userId}&limit=1`);
+  if (rows?.[0]) {
+    state.profile = rows[0];
+    state.profileLoaded = true;
+    return;
+  }
+  const created = await supabaseUserFetch("/user_profiles?on_conflict=user_id", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=representation" },
+    body: JSON.stringify(defaultProfile()),
+  });
+  state.profile = created?.[0] || defaultProfile();
+  state.profileLoaded = true;
+}
+
+function profileValue(key) {
+  return state.profile?.[key] || "";
+}
+
+function renderProfile() {
+  if (!$("#profileCard")) return;
+  $("#profileCard").classList.toggle("hidden", !isLoggedIn());
+  if (!isLoggedIn()) return;
+
+  if (!hasSupabase()) {
+    $("#profileSummary").innerHTML = `<div class="empty">Supabase 还没配置，资料卡先不营业。</div>`;
+    $("#profileForm").classList.add("hidden");
+    return;
+  }
+
+  if (!state.profileLoaded) {
+    $("#profileSummary").innerHTML = `<div class="empty">正在加载用户资料……</div>`;
+    $("#profileForm").classList.add("hidden");
+    return;
+  }
+
+  const profile = state.profile || defaultProfile();
+  const displayName = profile.display_name || profile.username || state.session.username;
+  const tier = profile.membership_tier === "free" ? "免费版" : profile.membership_tier;
+  $("#profileSummary").innerHTML = `
+    <div class="profile-line"><span>昵称</span><strong>${escapeHtml(displayName)}</strong></div>
+    <div class="profile-line"><span>邮箱</span><strong>${escapeHtml(profile.email || state.session.email)}</strong></div>
+    <div class="profile-line"><span>会员</span><strong>${escapeHtml(tier)}｜每日 ${escapeHtml(profile.daily_query_limit || 3)} 次</strong></div>
+    <div class="profile-line"><span>关注</span><strong>${escapeHtml([profile.favorite_area, profile.favorite_asset_type].filter(Boolean).join(" / ") || "还没填")}</strong></div>
+  `;
+
+  $("#profileForm").classList.toggle("hidden", !state.profileEditing);
+  $("#editProfileButton").textContent = state.profileEditing ? "收起" : "编辑";
+  if (state.profileEditing) {
+    $("#profileDisplayName").value = profile.display_name || profile.username || "";
+    $("#profileEmail").value = profile.email || state.session.email || "";
+    $("#profileCity").value = profile.city || "";
+    $("#profileFavoriteArea").value = profile.favorite_area || "";
+    $("#profileFavoriteAssetType").value = profile.favorite_asset_type || "";
+    $("#profileBio").value = profile.bio || "";
+  }
+}
+
+async function saveProfile(event) {
+  event.preventDefault();
+  if (!isLoggedIn() || !hasSupabase() || !state.session?.userId) return;
+  const payload = {
+    ...defaultProfile(),
+    display_name: $("#profileDisplayName").value.trim(),
+    city: $("#profileCity").value.trim(),
+    favorite_area: $("#profileFavoriteArea").value.trim(),
+    favorite_asset_type: $("#profileFavoriteAssetType").value,
+    bio: $("#profileBio").value.trim(),
+  };
+  try {
+    const rows = await supabaseUserFetch("/user_profiles?on_conflict=user_id", {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates,return=representation" },
+      body: JSON.stringify(payload),
+    });
+    state.profile = rows?.[0] || payload;
+    state.profileEditing = false;
+    if (payload.display_name) {
+      saveSession({ ...state.session, username: payload.display_name });
+    }
+    setMessage("资料已保存。小象记住了，但没有到处乱说。", "success");
+    render();
+  } catch (error) {
+    setMessage(`资料保存失败：${error.message}。如果还没建表，先运行 user_profiles SQL。`, "error");
+  }
+}
+
 function renderMyPage() {
   const panel = $("#mypagePanel");
   if (!panel) return;
@@ -687,6 +819,7 @@ function renderMyPage() {
     <div class="stat-card"><span class="eyebrow">已完成</span><strong>${completed}</strong></div>
     <div class="stat-card"><span class="eyebrow">待处理</span><strong>${pending}</strong></div>
   `;
+  renderProfile();
 
   if (!hasSupabase()) {
     $("#myTaskList").innerHTML = `<div class="empty">Supabase 还没配置，Mypage 先坐会儿。</div>`;
@@ -772,9 +905,13 @@ async function viewReportByQueryKey(key) {
 function renderAccount() {
   const loggedIn = isLoggedIn();
   $("#accountPanel")?.classList.toggle("compact-account", loggedIn);
-  $("#accountTitle").textContent = loggedIn ? `你好，${state.session.username}` : "登录后可以查询";
+  const profileName = state.profile?.display_name || state.session?.username;
+  const taskCount = state.myTasks?.length || 0;
+  const pendingCount = (state.myTasks || []).filter((task) => task.status !== "completed").length;
+  const tier = state.profile?.membership_tier === "free" || !state.profile?.membership_tier ? "免费版" : state.profile.membership_tier;
+  $("#accountTitle").textContent = loggedIn ? `你好，${profileName}` : "登录后可以查询";
   $("#accountCopy").textContent = loggedIn
-    ? `邮箱：${state.session.email}。JPHOUSE 查询已打开，钱包请自行保重。`
+    ? `${tier}｜任务 ${taskCount}｜待处理 ${pendingCount}｜${state.session.email}`
     : "未登录只能看最近 5 条数据。注册很简单，别紧张，不查户口。";
   $("#accountTabs").classList.toggle("hidden", loggedIn);
   $("#loginForm").classList.toggle("hidden", loggedIn || $("#showRegister").classList.contains("active"));
@@ -1215,6 +1352,7 @@ async function register(event) {
       state.selectedId = "";
       if (data?.access_token) {
         saveSession(session);
+        await ensureUserProfile();
         await loadMyPage();
         setMessage("注册成功，已登录。可以搜房了，钱包先深呼吸。", "success");
       } else {
@@ -1246,6 +1384,7 @@ async function register(event) {
   users.push(user);
   saveUsers(users);
   saveSession({ username, email, provider: "local" });
+  await ensureUserProfile();
   await loadMyPage();
   $("#registerForm").reset();
   state.query = "";
@@ -1277,6 +1416,7 @@ async function login(event) {
       });
       const session = sessionFromAuth(data, { email });
       saveSession(session);
+      await ensureUserProfile();
       await loadMyPage();
       $("#loginForm").reset();
       state.page = 1;
@@ -1308,6 +1448,7 @@ async function login(event) {
   }
 
   saveSession({ username: user.username, email: user.email, provider: "local" });
+  await ensureUserProfile();
   await loadMyPage();
   $("#loginForm").reset();
   state.page = 1;
@@ -1335,6 +1476,9 @@ async function logout() {
   state.selectedId = "";
   state.myTasks = [];
   state.myPageLoaded = false;
+  state.profile = null;
+  state.profileLoaded = false;
+  state.profileEditing = false;
   saveSession(null);
   setMessage("已退出。搜索框又开始装睡了。");
   render();
@@ -1417,6 +1561,7 @@ async function init() {
   await loadFieldOptions();
   await handleAuthRedirect();
   await refreshSupabaseSession();
+  await ensureUserProfile();
   await loadMyPage();
   on("#showLogin", "click", () => showMode("login"));
   on("#showRegister", "click", () => showMode("register"));
@@ -1432,11 +1577,22 @@ async function init() {
   on("#backToList", "click", closeDetail);
   on("#refreshMyPage", "click", async () => {
     state.myPageLoaded = false;
+    state.profileLoaded = false;
     renderMyPage();
+    await ensureUserProfile();
     await loadMyPage();
     render();
     setMessage("Mypage 已刷新。小象打卡成功。", "success");
   });
+  on("#editProfileButton", "click", () => {
+    state.profileEditing = !state.profileEditing;
+    renderProfile();
+  });
+  on("#cancelProfileButton", "click", () => {
+    state.profileEditing = false;
+    renderProfile();
+  });
+  on("#profileForm", "submit", saveProfile);
   on("#closeImage", "click", closeImage);
   on("#imageDialog", "click", (event) => {
     if (event.target.id === "imageDialog") closeImage();

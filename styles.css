@@ -431,6 +431,97 @@ select:disabled {
   color: #fff;
 }
 
+.profile-card {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1.5px solid var(--ink);
+  border-radius: 20px;
+  background: #fff;
+}
+
+.profile-card h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.profile-summary {
+  display: grid;
+  gap: 7px;
+}
+
+.profile-line {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.profile-line:first-child {
+  border-top: 0;
+}
+
+.profile-line span {
+  color: var(--muted);
+}
+
+.profile-line strong {
+  text-align: right;
+}
+
+.profile-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.profile-form input,
+.profile-form select,
+.profile-form textarea {
+  width: 100%;
+  padding: 12px 13px;
+  border: 1.5px solid var(--ink);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+
+.profile-form textarea {
+  resize: vertical;
+}
+
+.profile-full,
+.profile-actions {
+  grid-column: 1 / -1;
+}
+
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.profile-actions button {
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1.5px solid var(--ink);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.profile-actions .primary {
+  background: var(--ink);
+  color: #fff;
+}
+
 #historyList {
   display: grid;
   gap: 8px;
@@ -704,6 +795,10 @@ pre {
   }
 
   .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-form {
     grid-template-columns: 1fr;
   }
 

@@ -140,16 +140,26 @@ h1 {
 }
 
 .compact-account {
-  padding: 10px 12px;
-  border-radius: 18px;
+  order: -1;
+  margin: 6px 0 10px;
+  padding: 0 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .compact-account .account-head {
   align-items: center;
+  gap: 8px;
 }
 
 .compact-account .account-head h2 {
-  font-size: 17px;
+  overflow: hidden;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .compact-account .eyebrow {
@@ -157,16 +167,25 @@ h1 {
 }
 
 .compact-account .account-copy {
-  margin-top: 4px;
-  font-size: 12px;
+  overflow: hidden;
+  margin-top: 2px;
+  font-size: 11px;
   line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .compact-account .ghost-button {
-  padding: 6px 10px;
-  border-width: 1.5px;
+  padding: 5px 9px;
+  border-width: 1px;
   border-radius: 999px;
-  font-size: 13px;
+  font-size: 12px;
+}
+
+.compact-account .form-message {
+  min-height: 0;
+  margin-top: 4px;
+  font-size: 11px;
 }
 
 .account-copy,

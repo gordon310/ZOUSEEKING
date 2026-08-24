@@ -204,6 +204,7 @@ const state = {
   profile: null,
   profileLoaded: false,
   profileEditing: false,
+  messageTimer: null,
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -255,8 +256,21 @@ function isLoggedIn() {
 }
 
 function setMessage(text, tone = "") {
-  $("#formMessage").textContent = text;
-  $("#formMessage").className = `form-message ${tone}`;
+  const message = $("#formMessage");
+  if (!message) return;
+  if (state.messageTimer) {
+    clearTimeout(state.messageTimer);
+    state.messageTimer = null;
+  }
+  message.textContent = text;
+  message.className = `form-message ${tone}`;
+  if (text && tone === "success") {
+    state.messageTimer = setTimeout(() => {
+      message.textContent = "";
+      message.className = "form-message";
+      state.messageTimer = null;
+    }, 2200);
+  }
 }
 
 function recordMatches(record) {

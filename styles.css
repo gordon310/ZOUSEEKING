@@ -139,6 +139,36 @@ h1 {
   font-size: 22px;
 }
 
+.compact-account {
+  padding: 10px 12px;
+  border-radius: 18px;
+}
+
+.compact-account .account-head {
+  align-items: center;
+}
+
+.compact-account .account-head h2 {
+  font-size: 17px;
+}
+
+.compact-account .eyebrow {
+  display: none;
+}
+
+.compact-account .account-copy {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.compact-account .ghost-button {
+  padding: 6px 10px;
+  border-width: 1.5px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+
 .account-copy,
 .form-message {
   margin: 10px 0 0;

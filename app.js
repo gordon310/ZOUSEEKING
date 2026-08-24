@@ -667,7 +667,7 @@ async function loadMyPage() {
   const email = encodeURIComponent(state.session.email);
   state.myTasks =
     (await supabaseFetch(
-      `/queries?select=*,generation_jobs(id,status,progress,current_step,error_message,created_at)&requested_by_email=eq.${email}&order=created_at.desc&limit=30`,
+      `/queries?select=*,generation_jobs(id,status,progress,current_step,error_message,created_at)&requested_by_email=eq.${email}&order=created_at.desc&limit=10`,
     )) || [];
   state.myPageLoaded = true;
 }
@@ -771,6 +771,7 @@ async function viewReportByQueryKey(key) {
 
 function renderAccount() {
   const loggedIn = isLoggedIn();
+  $("#accountPanel")?.classList.toggle("compact-account", loggedIn);
   $("#accountTitle").textContent = loggedIn ? `你好，${state.session.username}` : "登录后可以查询";
   $("#accountCopy").textContent = loggedIn
     ? `邮箱：${state.session.email}。JPHOUSE 查询已打开，钱包请自行保重。`
@@ -796,7 +797,7 @@ function matchedRecords() {
 }
 
 function pageSize() {
-  return isLoggedIn() ? 20 : 5;
+  return isLoggedIn() ? 10 : 5;
 }
 
 function totalPages(records) {

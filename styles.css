@@ -61,6 +61,27 @@ h1 {
   line-height: 1.65;
 }
 
+.page-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.page-nav a {
+  padding: 8px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.page-nav a[aria-current="page"] {
+  background: var(--ink);
+  color: #fff;
+}
+
 .latest-panel,
 .account-panel,
 .query-panel,

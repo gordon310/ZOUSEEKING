@@ -205,6 +205,11 @@ const state = {
 
 const $ = (selector) => document.querySelector(selector);
 
+function on(selector, eventName, handler) {
+  const element = $(selector);
+  if (element) element.addEventListener(eventName, handler);
+}
+
 function compact(text) {
   return String(text || "").toLowerCase().replace(/\s+/g, "");
 }
@@ -799,6 +804,7 @@ function totalPages(records) {
 }
 
 function renderLatest() {
+  if (!$("#latestList")) return;
   const all = matchedRecords();
   const total = totalPages(all);
   if (state.page > total) state.page = total;
@@ -1153,9 +1159,9 @@ function render() {
 
 function renderView() {
   const detail = isLoggedIn() && state.selectedId;
-  $("#detailPage").classList.toggle("hidden", !detail);
-  $(".latest-panel").classList.toggle("hidden", detail);
-  $(".query-panel").classList.toggle("hidden", detail);
+  $("#detailPage")?.classList.toggle("hidden", !detail);
+  $(".latest-panel")?.classList.toggle("hidden", detail);
+  $(".query-panel")?.classList.toggle("hidden", detail);
   $("#mypagePanel")?.classList.toggle("hidden", detail || !isLoggedIn());
   if (detail) {
     renderDetail();
@@ -1334,6 +1340,7 @@ async function logout() {
 }
 
 function renderDetail() {
+  if (!$("#detailContent")) return;
   const record = state.records.find((item) => item.id === state.selectedId);
   if (!record) {
     state.selectedId = "";
@@ -1392,11 +1399,13 @@ function closeDetail() {
 }
 
 function openImage(src) {
+  if (!$("#largeImage") || !$("#imageDialog")) return;
   $("#largeImage").src = src;
   $("#imageDialog").showModal();
 }
 
 function closeImage() {
+  if (!$("#largeImage") || !$("#imageDialog")) return;
   $("#imageDialog").close();
   $("#largeImage").removeAttribute("src");
 }
@@ -1408,44 +1417,47 @@ async function init() {
   await handleAuthRedirect();
   await refreshSupabaseSession();
   await loadMyPage();
-  $("#showLogin").addEventListener("click", () => showMode("login"));
-  $("#showRegister").addEventListener("click", () => showMode("register"));
-  $("#registerForm").addEventListener("submit", register);
-  $("#loginForm").addEventListener("submit", login);
-  $("#logoutButton").addEventListener("click", logout);
-  $("#prefectureSelect").addEventListener("change", () => {
+  on("#showLogin", "click", () => showMode("login"));
+  on("#showRegister", "click", () => showMode("register"));
+  on("#registerForm", "submit", register);
+  on("#loginForm", "submit", login);
+  on("#logoutButton", "click", logout);
+  on("#prefectureSelect", "change", () => {
     populateCities();
     populateWards();
   });
-  $("#citySelect").addEventListener("change", populateWards);
-  $("#queryForm").addEventListener("submit", handleStructuredQuery);
-  $("#backToList").addEventListener("click", closeDetail);
-  $("#refreshMyPage").addEventListener("click", async () => {
+  on("#citySelect", "change", populateWards);
+  on("#queryForm", "submit", handleStructuredQuery);
+  on("#backToList", "click", closeDetail);
+  on("#refreshMyPage", "click", async () => {
     state.myPageLoaded = false;
     renderMyPage();
     await loadMyPage();
     render();
     setMessage("Mypage 已刷新。小象打卡成功。", "success");
   });
-  $("#closeImage").addEventListener("click", closeImage);
-  $("#imageDialog").addEventListener("click", (event) => {
+  on("#closeImage", "click", closeImage);
+  on("#imageDialog", "click", (event) => {
     if (event.target.id === "imageDialog") closeImage();
   });
-  $("#prevPage").addEventListener("click", () => {
+  on("#prevPage", "click", () => {
     state.page = Math.max(1, state.page - 1);
     renderLatest();
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
-  $("#nextPage").addEventListener("click", () => {
+  on("#nextPage", "click", () => {
     state.page += 1;
     renderLatest();
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
-  populateCities();
-  populateWards();
+  if ($("#prefectureSelect")) {
+    populateCities();
+    populateWards();
+  }
   render();
 }
 
 init().catch((error) => {
-  $("#latestList").innerHTML = `<div class="empty">数据加载失败：${escapeHtml(error.message)}</div>`;
+  const target = $("#latestList") || $("#myTaskList");
+  if (target) target.innerHTML = `<div class="empty">数据加载失败：${escapeHtml(error.message)}</div>`;
 });

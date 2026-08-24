@@ -1004,40 +1004,76 @@ function compareCell(record, layout) {
   ].join("<br>");
 }
 
+function compareOptionLabel(record) {
+  return `${record.title}｜${record.publish_month}`;
+}
+
+function syncCompareSelect(select, records, fallbackIndex) {
+  if (!select) return;
+  const current = select.value;
+  select.innerHTML = `<option value="">不选择</option>${records
+    .map((record) => `<option value="${escapeHtml(record.id)}">${escapeHtml(compareOptionLabel(record))}</option>`)
+    .join("")}`;
+  if (records.some((record) => record.id === current)) {
+    select.value = current;
+  } else if (current === "" && select.dataset.ready) {
+    select.value = "";
+  } else if (records[fallbackIndex]) {
+    select.value = records[fallbackIndex].id;
+  }
+  select.dataset.ready = "1";
+}
+
+function selectedCompareRecords(candidates) {
+  const ids = ["#compareSelectA", "#compareSelectB", "#compareSelectC"].map((selector) => $(selector)?.value).filter(Boolean);
+  const seen = new Set();
+  return ids
+    .filter((id) => {
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    })
+    .map((id) => candidates.find((record) => record.id === id))
+    .filter(Boolean);
+}
+
+function renderDimensions(selected) {
+  const picker = $("#dimensionPicker");
+  if (!picker) return [];
+  const layouts = allLayoutsForRecords(selected);
+  const checked = new Set([...picker.querySelectorAll("input:checked")].map((input) => input.value));
+  const active = layouts.filter((layout) => checked.size ? checked.has(layout) : true);
+  picker.innerHTML = layouts.length
+    ? layouts
+        .map((layout) => `
+          <label class="dimension-chip">
+            <input type="checkbox" value="${escapeHtml(layout)}" ${active.includes(layout) ? "checked" : ""} />
+            <span>${escapeHtml(layout)}</span>
+          </label>
+        `)
+        .join("")
+    : `<div class="empty">所选报告没有可比较维度。</div>`;
+  picker.querySelectorAll("input").forEach((input) => {
+    input.addEventListener("change", renderAnalysis);
+  });
+  return active.length ? active : layouts;
+}
+
 function renderCompare(matched) {
-  if (!$("#comparePicks") || !$("#compareTable")) return;
-  const candidates = matched.slice(0, 10).map((item) => item.record);
-  const candidateIds = new Set(candidates.map((record) => record.id));
-  state.compareIds = state.compareIds.filter((id) => candidateIds.has(id)).slice(0, 3);
-  if (!state.compareIds.length && candidates.length) state.compareIds = candidates.slice(0, 3).map((record) => record.id);
-
-  $("#comparePicks").innerHTML = candidates
-    .map((record) => `
-      <label class="compare-pick">
-        <input type="checkbox" value="${escapeHtml(record.id)}" ${state.compareIds.includes(record.id) ? "checked" : ""} />
-        <span>${escapeHtml(record.title)}<small>${escapeHtml(record.publish_month)}</small></span>
-      </label>
-    `)
-    .join("") || `<div class="empty">没有可比较的数据。</div>`;
-
-  document.querySelectorAll("#comparePicks input").forEach((input) => {
-    input.addEventListener("change", () => {
-      if (input.checked) {
-        if (!state.compareIds.includes(input.value)) state.compareIds.push(input.value);
-        if (state.compareIds.length > 3) {
-          state.compareIds.shift();
-        }
-      } else {
-        state.compareIds = state.compareIds.filter((id) => id !== input.value);
-      }
-      renderCompare(matched);
-    });
+  if (!$("#compareSelectA") || !$("#compareTable")) return;
+  const candidates = matched.slice(0, 30).map((item) => item.record);
+  ["#compareSelectA", "#compareSelectB", "#compareSelectC"].forEach((selector, index) => {
+    syncCompareSelect($(selector), candidates, index);
   });
 
-  const selected = state.compareIds.map((id) => candidates.find((record) => record.id === id)).filter(Boolean);
-  const layouts = allLayoutsForRecords(selected);
+  const selected = selectedCompareRecords(candidates);
+  const layouts = renderDimensions(selected);
+  if (!candidates.length) {
+    $("#compareTable").innerHTML = `<div class="empty">没有可比较的数据。先换个关键词。</div>`;
+    return;
+  }
   if (!selected.length || !layouts.length) {
-    $("#compareTable").innerHTML = `<div class="empty">先勾选要比较的报告。</div>`;
+    $("#compareTable").innerHTML = `<div class="empty">请选择要比较的数据和维度。</div>`;
     return;
   }
   $("#compareTable").innerHTML = `
@@ -1919,6 +1955,9 @@ async function init() {
   });
   on("#analysisMetric", "change", renderAnalysis);
   on("#analysisLayout", "change", renderAnalysis);
+  on("#compareSelectA", "change", renderAnalysis);
+  on("#compareSelectB", "change", renderAnalysis);
+  on("#compareSelectC", "change", renderAnalysis);
   on("#closeImage", "click", closeImage);
   on("#imageDialog", "click", (event) => {
     if (event.target.id === "imageDialog") closeImage();

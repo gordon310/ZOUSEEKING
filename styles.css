@@ -537,36 +537,40 @@ select:disabled {
   border-top: 1px solid var(--line);
 }
 
-.compare-picks {
+.compare-selectors {
   display: grid;
-  gap: 8px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
   margin-top: 10px;
 }
 
-.compare-pick {
+.compare-selectors label {
+  margin: 0;
+}
+
+.dimension-picker {
   display: flex;
-  gap: 9px;
-  align-items: flex-start;
-  padding: 9px 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.dimension-chip {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  margin: 0;
+  padding: 7px 10px;
   border: 1.5px solid var(--ink);
-  border-radius: 15px;
+  border-radius: 999px;
   background: #fff;
+  font-size: 13px;
   color: var(--ink);
 }
 
-.compare-pick input {
+.dimension-chip input {
   width: auto;
-  margin-top: 2px;
-}
-
-.compare-pick span {
-  display: grid;
-  gap: 3px;
-  font-size: 13px;
-}
-
-.compare-pick small {
-  color: var(--muted);
+  margin: 0;
 }
 
 .compare-table-wrap {
@@ -614,6 +618,12 @@ select:disabled {
   margin-top: 3px;
   color: var(--muted);
   font-weight: 400;
+}
+
+.compact-title {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
 }
 
 .profile-card {
@@ -1018,6 +1028,10 @@ pre {
   }
 
   .analysis-form {
+    grid-template-columns: 1fr;
+  }
+
+  .compare-selectors {
     grid-template-columns: 1fr;
   }
 

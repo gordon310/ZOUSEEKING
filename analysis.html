@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>数据分析｜ZOU SEEKING HOUSE 小象搜房日本</title>
-    <link rel="stylesheet" href="styles.css?v=20260824-14" />
+    <link rel="stylesheet" href="styles.css?v=20260824-16" />
   </head>
   <body class="auth-pending">
     <main class="app">
@@ -85,9 +85,9 @@
             房型 / 面积段
             <select id="analysisLayout"></select>
           </label>
-          <button type="submit">生成图表</button>
+          <button type="submit">生成趋势图</button>
         </form>
-        <p class="query-hint" id="analysisHint">会按月份聚合平均值，并显示最多 10 条匹配报告做比较。</p>
+        <p class="query-hint" id="analysisHint">会按月份聚合平均值。比较区可以单独选择最多三条数据。</p>
         <div class="chart-card">
           <canvas id="analysisChart" width="680" height="320" aria-label="月份趋势图"></canvas>
         </div>
@@ -96,15 +96,33 @@
             <p class="eyebrow">Compare</p>
             <h2>最多三列比较</h2>
           </div>
-          <p class="query-hint">勾选 1～3 条报告。比较维度按房型 / 面积段展示，返回租金、售价、租售比。</p>
-          <div class="compare-picks" id="comparePicks"></div>
+          <p class="query-hint">选择最多三条报告，再勾选要比较的房型 / 面积段。表格会同时返回租金、售价、租售比。</p>
+          <div class="compare-selectors">
+            <label>
+              对比 A
+              <select id="compareSelectA"></select>
+            </label>
+            <label>
+              对比 B
+              <select id="compareSelectB"></select>
+            </label>
+            <label>
+              对比 C
+              <select id="compareSelectC"></select>
+            </label>
+          </div>
+          <div class="dimension-picker" id="dimensionPicker"></div>
           <div class="compare-table-wrap" id="compareTable"></div>
+        </div>
+        <div class="section-title compact-title">
+          <p class="eyebrow">Matched Records</p>
+          <h2>当前筛选数据</h2>
         </div>
         <div class="analysis-results" id="analysisResults"></div>
       </section>
     </main>
 
-    <script src="config.js?v=20260824-15"></script>
-    <script src="app.js?v=20260824-15"></script>
+    <script src="config.js?v=20260824-16"></script>
+    <script src="app.js?v=20260824-16"></script>
   </body>
 </html>

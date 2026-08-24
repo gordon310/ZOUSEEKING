@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mypage｜ZOU SEEKING HOUSE 小象搜房日本</title>
-    <link rel="stylesheet" href="styles.css?v=20260824-8" />
+    <link rel="stylesheet" href="styles.css?v=20260824-11" />
   </head>
   <body>
     <main class="app">
@@ -13,22 +13,7 @@
           <img src="assets/logoELE.png" alt="LOGOELE" />
           <span>ZOU SEEKING HOUSE</span>
         </a>
-        <div class="topbar-links">
-          <a href="index.html">首页</a>
-          <a href="mypage.html" aria-current="page">我的</a>
-        </div>
       </nav>
-
-      <header class="hero">
-        <div class="brand">
-          <img src="assets/logoELE.png" alt="LOGOELE" />
-          <div>
-            <p class="eyebrow">ZOU SEEKING HOUSE</p>
-            <h1>我的数据工作台</h1>
-          </div>
-        </div>
-        <p class="hero-copy">查过什么、跑到哪一步、结果能不能看，都放这里。首页负责好看，Mypage 负责干活。</p>
-      </header>
 
       <section class="account-panel" id="accountPanel">
         <div class="account-head">
@@ -36,7 +21,10 @@
             <p class="eyebrow">Account</p>
             <h2 id="accountTitle">登录后可以查看 Mypage</h2>
           </div>
-          <button class="ghost-button hidden" id="logoutButton" type="button">退出</button>
+          <div class="account-actions">
+            <a class="ghost-link hidden" id="accountPageLink" href="index.html">首页</a>
+            <button class="ghost-button hidden" id="logoutButton" type="button">退出</button>
+          </div>
         </div>
 
         <p class="account-copy" id="accountCopy">未登录不能查看自己的查询任务。小象很八卦，但还是讲隐私。</p>
@@ -61,6 +49,17 @@
 
         <p class="form-message" id="formMessage"></p>
       </section>
+
+      <header class="hero">
+        <div class="brand">
+          <img src="assets/logoELE.png" alt="LOGOELE" />
+          <div>
+            <p class="eyebrow">ZOU SEEKING HOUSE</p>
+            <h1>我的数据工作台</h1>
+          </div>
+        </div>
+        <p class="hero-copy">查过什么、跑到哪一步、结果能不能看，都放这里。首页负责好看，Mypage 负责干活。</p>
+      </header>
 
       <section class="mypage-panel hidden" id="mypagePanel">
         <div class="section-title">
@@ -154,7 +153,7 @@
       </div>
     </dialog>
 
-    <script src="config.js?v=20260824-10"></script>
-    <script src="app.js?v=20260824-10"></script>
+    <script src="config.js?v=20260824-11"></script>
+    <script src="app.js?v=20260824-11"></script>
   </body>
 </html>

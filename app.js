@@ -964,6 +964,13 @@ function renderAccount() {
   $("#loginForm").classList.toggle("hidden", loggedIn || $("#showRegister").classList.contains("active"));
   $("#registerForm").classList.toggle("hidden", loggedIn || $("#showLogin").classList.contains("active"));
   $("#logoutButton").classList.toggle("hidden", !loggedIn);
+  const pageLink = $("#accountPageLink");
+  if (pageLink) {
+    const isMyPage = window.location.pathname.endsWith("mypage.html");
+    pageLink.href = isMyPage ? "index.html" : "mypage.html";
+    pageLink.textContent = isMyPage ? "首页" : "我的";
+    pageLink.classList.toggle("hidden", !loggedIn);
+  }
   ["prefectureSelect", "citySelect", "wardSelect", "assetTypeSelect", "yearSelect", "monthSelect", "queryButton"].forEach((id) => {
     const el = $(`#${id}`);
     if (el) el.disabled = !loggedIn;

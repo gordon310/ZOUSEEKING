@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>ZOU SEEKING HOUSE 小象搜房日本</title>
-    <link rel="stylesheet" href="styles.css?v=20260824-10" />
+    <link rel="stylesheet" href="styles.css?v=20260824-11" />
   </head>
   <body>
     <main class="app">
@@ -13,22 +13,7 @@
           <img src="assets/logoELE.png" alt="LOGOELE" />
           <span>ZOU SEEKING HOUSE</span>
         </a>
-        <div class="topbar-links">
-          <a href="index.html" aria-current="page">首页</a>
-          <a href="mypage.html">我的</a>
-        </div>
       </nav>
-
-      <header class="hero">
-        <div class="brand">
-          <img src="assets/logoELE.png" alt="LOGOELE" />
-          <div>
-            <p class="eyebrow">ZOU SEEKING HOUSE</p>
-            <h1>小象搜房日本</h1>
-          </div>
-        </div>
-        <p class="hero-copy">吃饱饭，没事干，纯分享。想看日本哪里房子，直接搜。</p>
-      </header>
 
       <section class="account-panel" id="accountPanel">
         <div class="account-head">
@@ -36,7 +21,10 @@
             <p class="eyebrow">Account</p>
             <h2 id="accountTitle">登录后可以查询</h2>
           </div>
-          <button class="ghost-button hidden" id="logoutButton" type="button">退出</button>
+          <div class="account-actions">
+            <a class="ghost-link hidden" id="accountPageLink" href="mypage.html">我的</a>
+            <button class="ghost-button hidden" id="logoutButton" type="button">退出</button>
+          </div>
         </div>
 
         <p class="account-copy" id="accountCopy">未登录只能看最近 5 条数据。注册很简单，别紧张，不查户口。</p>
@@ -61,6 +49,17 @@
 
         <p class="form-message" id="formMessage"></p>
       </section>
+
+      <header class="hero">
+        <div class="brand">
+          <img src="assets/logoELE.png" alt="LOGOELE" />
+          <div>
+            <p class="eyebrow">ZOU SEEKING HOUSE</p>
+            <h1>小象搜房日本</h1>
+          </div>
+        </div>
+        <p class="hero-copy">吃饱饭，没事干，纯分享。想看日本哪里房子，直接搜。</p>
+      </header>
 
       <section class="query-panel" id="queryPanel">
         <div class="section-title">
@@ -151,7 +150,7 @@
       </div>
     </dialog>
 
-    <script src="config.js?v=20260824-10"></script>
-    <script src="app.js?v=20260824-10"></script>
+    <script src="config.js?v=20260824-11"></script>
+    <script src="app.js?v=20260824-11"></script>
   </body>
 </html>

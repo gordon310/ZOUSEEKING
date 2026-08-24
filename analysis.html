@@ -78,7 +78,7 @@
             <select id="analysisMetric">
               <option value="rent">月租金</option>
               <option value="sale">买房总价</option>
-              <option value="ratio">总而言之</option>
+              <option value="ratio">租售比</option>
             </select>
           </label>
           <label>
@@ -91,11 +91,20 @@
         <div class="chart-card">
           <canvas id="analysisChart" width="680" height="320" aria-label="月份趋势图"></canvas>
         </div>
+        <div class="compare-box">
+          <div class="section-title">
+            <p class="eyebrow">Compare</p>
+            <h2>最多三列比较</h2>
+          </div>
+          <p class="query-hint">勾选 1～3 条报告。比较维度按房型 / 面积段展示，返回租金、售价、租售比。</p>
+          <div class="compare-picks" id="comparePicks"></div>
+          <div class="compare-table-wrap" id="compareTable"></div>
+        </div>
         <div class="analysis-results" id="analysisResults"></div>
       </section>
     </main>
 
-    <script src="config.js?v=20260824-14"></script>
-    <script src="app.js?v=20260824-14"></script>
+    <script src="config.js?v=20260824-15"></script>
+    <script src="app.js?v=20260824-15"></script>
   </body>
 </html>

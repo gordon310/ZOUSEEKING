@@ -205,6 +205,7 @@ const state = {
   profileLoaded: false,
   profileEditing: false,
   messageTimer: null,
+  compareIds: [],
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -976,7 +977,89 @@ function analysisUnit(metric) {
 function analysisMetricName(metric) {
   if (metric === "rent") return "月租金";
   if (metric === "sale") return "买房总价";
-  return "总而言之";
+  return "租售比";
+}
+
+function formatAnalysisValue(value, metric) {
+  if (!Number.isFinite(value)) return "暂无";
+  return `${value.toFixed(metric === "ratio" ? 2 : 1)}${analysisUnit(metric)}`;
+}
+
+function allLayoutsForRecords(records) {
+  const layouts = new Set();
+  records.forEach((record) => {
+    [...(record.rental || []), ...(record.sale || [])].forEach((row) => {
+      if (row.layout) layouts.add(row.layout);
+    });
+  });
+  const preferred = ["1LDK", "2LDK", "3LDK", "80㎡左右", "110㎡左右", "140㎡左右"];
+  return [...preferred.filter((item) => layouts.has(item)), ...[...layouts].filter((item) => !preferred.includes(item)).sort()];
+}
+
+function compareCell(record, layout) {
+  return [
+    `租金：${formatAnalysisValue(analysisValue(record, "rent", layout), "rent")}`,
+    `售价：${formatAnalysisValue(analysisValue(record, "sale", layout), "sale")}`,
+    `租售比：${formatAnalysisValue(analysisValue(record, "ratio", layout), "ratio")}`,
+  ].join("<br>");
+}
+
+function renderCompare(matched) {
+  if (!$("#comparePicks") || !$("#compareTable")) return;
+  const candidates = matched.slice(0, 10).map((item) => item.record);
+  const candidateIds = new Set(candidates.map((record) => record.id));
+  state.compareIds = state.compareIds.filter((id) => candidateIds.has(id)).slice(0, 3);
+  if (!state.compareIds.length && candidates.length) state.compareIds = candidates.slice(0, 3).map((record) => record.id);
+
+  $("#comparePicks").innerHTML = candidates
+    .map((record) => `
+      <label class="compare-pick">
+        <input type="checkbox" value="${escapeHtml(record.id)}" ${state.compareIds.includes(record.id) ? "checked" : ""} />
+        <span>${escapeHtml(record.title)}<small>${escapeHtml(record.publish_month)}</small></span>
+      </label>
+    `)
+    .join("") || `<div class="empty">没有可比较的数据。</div>`;
+
+  document.querySelectorAll("#comparePicks input").forEach((input) => {
+    input.addEventListener("change", () => {
+      if (input.checked) {
+        if (!state.compareIds.includes(input.value)) state.compareIds.push(input.value);
+        if (state.compareIds.length > 3) {
+          state.compareIds.shift();
+        }
+      } else {
+        state.compareIds = state.compareIds.filter((id) => id !== input.value);
+      }
+      renderCompare(matched);
+    });
+  });
+
+  const selected = state.compareIds.map((id) => candidates.find((record) => record.id === id)).filter(Boolean);
+  const layouts = allLayoutsForRecords(selected);
+  if (!selected.length || !layouts.length) {
+    $("#compareTable").innerHTML = `<div class="empty">先勾选要比较的报告。</div>`;
+    return;
+  }
+  $("#compareTable").innerHTML = `
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>维度</th>
+          ${selected.map((record) => `<th>${escapeHtml(record.title)}<small>${escapeHtml(record.publish_month)}</small></th>`).join("")}
+        </tr>
+      </thead>
+      <tbody>
+        ${layouts
+          .map((layout) => `
+            <tr>
+              <th>${escapeHtml(layout)}</th>
+              ${selected.map((record) => `<td>${compareCell(record, layout)}</td>`).join("")}
+            </tr>
+          `)
+          .join("")}
+      </tbody>
+    </table>
+  `;
 }
 
 function analysisLayouts() {
@@ -1078,6 +1161,7 @@ function renderAnalysis() {
   drawAnalysisChart(points, metric);
 
   $("#analysisHint").textContent = `${analysisMetricName(metric)}｜${layout}｜匹配 ${matched.length} 条，月份点 ${points.length} 个。`;
+  renderCompare(matched);
   $("#analysisResults").innerHTML = matched
     .slice(0, 10)
     .map(({ record, value }) => `

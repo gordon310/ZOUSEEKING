@@ -31,6 +31,8 @@ function env(name: string) {
 }
 
 function serviceKey() {
+  const jphouse = env("JPHOUSE_SERVICE_ROLE_KEY");
+  if (jphouse) return jphouse;
   const legacy = env("SUPABASE_SERVICE_ROLE_KEY");
   if (legacy) return legacy;
   const secretKeys = env("SUPABASE_SECRET_KEYS");

@@ -177,10 +177,12 @@ supabase login
 supabase link --project-ref vbwynsyryuiigpqwvuer
 ```
 
-设置云函数需要的私密 key：
+设置云函数需要的私密 key。
+
+注意：新版 Supabase CLI 不允许手动设置 `SUPABASE_` 开头的 secret，所以这里使用项目自己的名字 `JPHOUSE_SERVICE_ROLE_KEY`。
 
 ```bash
-supabase secrets set SUPABASE_SERVICE_ROLE_KEY="你的 service_role key"
+supabase secrets set JPHOUSE_SERVICE_ROLE_KEY="你的 service_role key"
 ```
 
 然后部署：

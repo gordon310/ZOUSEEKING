@@ -199,6 +199,8 @@ const state = {
   selectedId: "",
   session: readJson(SESSION_KEY, null),
   fieldOptions: DEFAULT_FIELD_OPTIONS,
+  myTasks: [],
+  myPageLoaded: false,
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -570,6 +572,30 @@ async function supabaseFetch(path, options = {}) {
   return response.json();
 }
 
+async function supabaseFunctionFetch(name, payload = {}) {
+  if (!state.session?.accessToken) throw new Error("登录状态过期，请重新登录。");
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${state.session.accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  const text = await response.text();
+  let body = null;
+  try {
+    body = text ? JSON.parse(text) : null;
+  } catch {
+    body = text;
+  }
+  if (!response.ok) {
+    throw new Error(body?.error || body?.message || text || `Function ${response.status}`);
+  }
+  return body;
+}
+
 function rowLine(row) {
   const amount = [row.amount_jpy, row.amount_rmb].filter(Boolean).join(" / ");
   const unit = [row.unit_jpy, row.unit_rmb].filter(Boolean).join(" / ");
@@ -597,6 +623,145 @@ function previewText(record) {
   const rent = rental ? `${rental.layout} 租 ${rental.amount_jpy} / ${rental.amount_rmb}` : "暂无租赁数据";
   const buy = sale ? `${sale.layout} 买 ${sale.amount_jpy} / ${sale.amount_rmb}` : "暂无买卖数据";
   return `${rent}；${buy}`;
+}
+
+function optionsFromQueryRow(query) {
+  return {
+    prefecture: query.prefecture,
+    city: query.city,
+    ward: query.ward || "",
+    assetType: query.asset_type,
+    year: String(query.year),
+    month: String(query.month),
+  };
+}
+
+function titleFromQueryRow(query) {
+  return queryTitle(optionsFromQueryRow(query));
+}
+
+function latestJob(query) {
+  const jobs = Array.isArray(query.generation_jobs) ? query.generation_jobs : [];
+  return jobs[0] || null;
+}
+
+function statusLabel(query) {
+  const job = latestJob(query);
+  if (query.status === "completed") return "已完成";
+  if (job?.status === "running" || query.status === "running") return "生成中";
+  if (job?.status === "failed") return "失败";
+  return "等待生成";
+}
+
+async function loadMyPage() {
+  if (!isLoggedIn() || !hasSupabase() || !state.session?.email) {
+    state.myTasks = [];
+    state.myPageLoaded = true;
+    return;
+  }
+  const email = encodeURIComponent(state.session.email);
+  state.myTasks =
+    (await supabaseFetch(
+      `/queries?select=*,generation_jobs(id,status,progress,current_step,error_message,created_at)&requested_by_email=eq.${email}&order=created_at.desc&limit=30`,
+    )) || [];
+  state.myPageLoaded = true;
+}
+
+function renderMyPage() {
+  const panel = $("#mypagePanel");
+  if (!panel) return;
+  panel.classList.toggle("hidden", !isLoggedIn());
+  if (!isLoggedIn()) return;
+
+  const tasks = state.myTasks || [];
+  const completed = tasks.filter((task) => task.status === "completed").length;
+  const pending = tasks.filter((task) => task.status !== "completed").length;
+  const topArea = tasks[0] ? `${tasks[0].prefecture}${tasks[0].city}` : "暂无";
+  $("#myStats").innerHTML = `
+    <div class="stat-card"><span class="eyebrow">查询任务</span><strong>${tasks.length}</strong></div>
+    <div class="stat-card"><span class="eyebrow">已完成</span><strong>${completed}</strong></div>
+    <div class="stat-card"><span class="eyebrow">待处理</span><strong>${pending}</strong></div>
+  `;
+
+  if (!hasSupabase()) {
+    $("#myTaskList").innerHTML = `<div class="empty">Supabase 还没配置，Mypage 先坐会儿。</div>`;
+    return;
+  }
+  if (!state.myPageLoaded) {
+    $("#myTaskList").innerHTML = `<div class="empty">正在加载我的任务……</div>`;
+    return;
+  }
+  if (!tasks.length) {
+    $("#myTaskList").innerHTML = `<div class="empty">还没有你的查询任务。先搜一个，小象才有班可上。</div>`;
+    return;
+  }
+  $("#myTaskList").innerHTML = tasks
+    .map((task) => {
+      const job = latestJob(task);
+      const canRun = task.status !== "completed" && job?.status !== "running";
+      return `
+        <article class="task-card">
+          <h3>${escapeHtml(titleFromQueryRow(task))}</h3>
+          <p>
+            <span class="pill">${escapeHtml(statusLabel(task))}</span>
+            <span class="pill">${escapeHtml(task.asset_type)}</span>
+            <span class="pill">${escapeHtml(`${task.year}年${task.month}月`)}</span>
+          </p>
+          <p>${escapeHtml(job?.current_step || task.markdown_title || "已保存查询记录")}</p>
+          <div class="task-actions">
+            <button class="primary" type="button" data-run-query="${escapeHtml(task.id)}" ${canRun ? "" : "disabled"}>手动执行 JPHOUSE</button>
+            <button type="button" data-view-query="${escapeHtml(task.query_key)}">查看结果</button>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+  document.querySelectorAll("[data-run-query]").forEach((button) => {
+    button.addEventListener("click", () => runJphouseFromMyPage(button.dataset.runQuery));
+  });
+  document.querySelectorAll("[data-view-query]").forEach((button) => {
+    button.addEventListener("click", () => viewReportByQueryKey(button.dataset.viewQuery));
+  });
+}
+
+async function runJphouseFromMyPage(queryId) {
+  try {
+    renderProgress("云端 JPHOUSE", 20, ["发送任务到 Supabase Edge Function", "云端生成数据报告"]);
+    const result = await supabaseFunctionFetch("jphouse-run", { query_id: queryId });
+    if (result?.report) {
+      const query = state.myTasks.find((item) => item.id === queryId);
+      const record = supabaseReportToRecord(query ? optionsFromQueryRow(query) : {}, result.report);
+      upsertRuntimeRecord(record);
+    }
+    renderProgress("云端 JPHOUSE", 100, ["任务完成", "报告已写入 Supabase"]);
+    await delay(350);
+    if ($("#progressDialog").open) $("#progressDialog").close();
+    await loadMyPage();
+    setMessage("JPHOUSE 云端执行完成，可以查看结果。", "success");
+    render();
+  } catch (error) {
+    if ($("#progressDialog").open) $("#progressDialog").close();
+    setMessage(`云端执行失败：${error.message}。如果函数还没部署，先部署 jphouse-run。`, "error");
+    await loadMyPage();
+    render();
+  }
+}
+
+async function viewReportByQueryKey(key) {
+  try {
+    const rows = await supabaseFetch(`/property_reports?select=*&query_key=eq.${encodeURIComponent(key)}&limit=1`);
+    if (!rows?.[0]) {
+      setMessage("这条还没有生成结果，先点手动执行 JPHOUSE。", "error");
+      return;
+    }
+    const query = state.myTasks.find((item) => item.query_key === key);
+    const record = supabaseReportToRecord(query ? optionsFromQueryRow(query) : {}, rows[0]);
+    upsertRuntimeRecord(record);
+    state.selectedId = record.id;
+    renderView();
+  } catch (error) {
+    setMessage(`查看结果失败：${error.message}`, "error");
+  }
 }
 
 function renderAccount() {
@@ -928,6 +1093,8 @@ async function runSupabaseQuery(options) {
   renderProgress(title, 100, ["已保存查询记录", "等待本地/后端生成器补数据"]);
   await delay(280);
   $("#progressDialog").close();
+  state.myPageLoaded = false;
+  await loadMyPage();
   return { matchedCount: 0, status: "已入库待生成" };
 }
 
@@ -980,6 +1147,7 @@ function render() {
   renderAccount();
   renderQueryOptions();
   renderQueryHistory();
+  renderMyPage();
   renderView();
 }
 
@@ -988,6 +1156,7 @@ function renderView() {
   $("#detailPage").classList.toggle("hidden", !detail);
   $(".latest-panel").classList.toggle("hidden", detail);
   $(".query-panel").classList.toggle("hidden", detail);
+  $("#mypagePanel")?.classList.toggle("hidden", detail || !isLoggedIn());
   if (detail) {
     renderDetail();
     return;
@@ -1039,6 +1208,7 @@ async function register(event) {
       state.selectedId = "";
       if (data?.access_token) {
         saveSession(session);
+        await loadMyPage();
         setMessage("注册成功，已登录。可以搜房了，钱包先深呼吸。", "success");
       } else {
         setMessage("注册成功，但后台还开着邮箱确认。请在 Supabase 关闭 Confirm email，然后用邮箱密码登录。", "success");
@@ -1069,6 +1239,7 @@ async function register(event) {
   users.push(user);
   saveUsers(users);
   saveSession({ username, email, provider: "local" });
+  await loadMyPage();
   $("#registerForm").reset();
   state.query = "";
   state.queryOptions = null;
@@ -1099,6 +1270,7 @@ async function login(event) {
       });
       const session = sessionFromAuth(data, { email });
       saveSession(session);
+      await loadMyPage();
       $("#loginForm").reset();
       state.page = 1;
       state.selectedId = "";
@@ -1129,6 +1301,7 @@ async function login(event) {
   }
 
   saveSession({ username: user.username, email: user.email, provider: "local" });
+  await loadMyPage();
   $("#loginForm").reset();
   state.page = 1;
   state.selectedId = "";
@@ -1153,6 +1326,8 @@ async function logout() {
   state.queryOptions = null;
   state.page = 1;
   state.selectedId = "";
+  state.myTasks = [];
+  state.myPageLoaded = false;
   saveSession(null);
   setMessage("已退出。搜索框又开始装睡了。");
   render();
@@ -1232,6 +1407,7 @@ async function init() {
   await loadFieldOptions();
   await handleAuthRedirect();
   await refreshSupabaseSession();
+  await loadMyPage();
   $("#showLogin").addEventListener("click", () => showMode("login"));
   $("#showRegister").addEventListener("click", () => showMode("register"));
   $("#registerForm").addEventListener("submit", register);
@@ -1244,6 +1420,13 @@ async function init() {
   $("#citySelect").addEventListener("change", populateWards);
   $("#queryForm").addEventListener("submit", handleStructuredQuery);
   $("#backToList").addEventListener("click", closeDetail);
+  $("#refreshMyPage").addEventListener("click", async () => {
+    state.myPageLoaded = false;
+    renderMyPage();
+    await loadMyPage();
+    render();
+    setMessage("Mypage 已刷新。小象打卡成功。", "success");
+  });
   $("#closeImage").addEventListener("click", closeImage);
   $("#imageDialog").addEventListener("click", (event) => {
     if (event.target.id === "imageDialog") closeImage();

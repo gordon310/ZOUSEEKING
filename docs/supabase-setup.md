@@ -156,3 +156,39 @@ worker 会：
 5. 更新 `generation_jobs.status = completed`
 
 注意：worker 会在本地生成图片到 `web/library/...`。如果新报告需要在线显示图片，还要把 `web/` 同步到 GitHub Pages。
+
+## 8. 方案B：Supabase Edge Function 云端执行
+
+现在项目里已经加入 `supabase/functions/jphouse-run`。
+
+它负责：
+
+1. 检查用户登录状态
+2. 读取用户自己的查询任务
+3. 如果已有同条件报告，直接返回缓存
+4. 如果没有报告，就按 JPHOUSE 模型生成数据
+5. 写入 `property_reports`
+6. 更新 `queries` 和 `generation_jobs`
+
+部署前先在本地安装 Supabase CLI，并登录：
+
+```bash
+supabase login
+supabase link --project-ref vbwynsyryuiigpqwvuer
+```
+
+设置云函数需要的私密 key：
+
+```bash
+supabase secrets set SUPABASE_SERVICE_ROLE_KEY="你的 service_role key"
+```
+
+然后部署：
+
+```bash
+supabase functions deploy jphouse-run
+```
+
+部署完成后，网站登录用户可以在 Mypage 里点击“手动执行 JPHOUSE”。
+
+当前 Edge Function 先生成数据报告，不生成图片。原因是 Supabase Edge Function 更适合轻量数据处理；图片生成仍然建议后续用 Supabase Storage + 独立图片 worker，或者继续用本地 worker 批量生成后同步网站。

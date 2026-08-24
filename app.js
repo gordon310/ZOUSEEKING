@@ -1666,10 +1666,14 @@ async function init() {
     populateCities();
     populateWards();
   }
+  document.body.classList.remove("auth-pending");
+  document.body.classList.add("auth-ready");
   render();
 }
 
 init().catch((error) => {
+  document.body.classList.remove("auth-pending");
+  document.body.classList.add("auth-ready");
   const target = $("#latestList") || $("#myTaskList");
   if (target) target.innerHTML = `<div class="empty">数据加载失败：${escapeHtml(error.message)}</div>`;
 });

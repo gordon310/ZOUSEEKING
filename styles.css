@@ -18,6 +18,10 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans GB", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
+body.auth-pending .account-panel {
+  display: none;
+}
+
 .app {
   width: min(100%, 760px);
   margin: 0 auto;

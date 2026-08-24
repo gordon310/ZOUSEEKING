@@ -860,13 +860,16 @@ function renderMyPage() {
   const tasks = state.myTasks || [];
   const completed = tasks.filter((task) => task.status === "completed").length;
   const pending = tasks.filter((task) => task.status !== "completed").length;
-  const topArea = tasks[0] ? `${tasks[0].prefecture}${tasks[0].city}` : "暂无";
-  $("#myStats").innerHTML = `
-    <div class="stat-card"><span class="eyebrow">查询任务</span><strong>${tasks.length}</strong></div>
-    <div class="stat-card"><span class="eyebrow">已完成</span><strong>${completed}</strong></div>
-    <div class="stat-card"><span class="eyebrow">待处理</span><strong>${pending}</strong></div>
-  `;
+  if ($("#myStats")) {
+    $("#myStats").innerHTML = `
+      <div class="stat-card"><span class="eyebrow">查询任务</span><strong>${tasks.length}</strong></div>
+      <div class="stat-card"><span class="eyebrow">已完成</span><strong>${completed}</strong></div>
+      <div class="stat-card"><span class="eyebrow">待处理</span><strong>${pending}</strong></div>
+    `;
+  }
   renderProfile();
+
+  if (!$("#myTaskList")) return;
 
   if (!hasSupabase()) {
     $("#myTaskList").innerHTML = `<div class="empty">Supabase 还没配置，Mypage 先坐会儿。</div>`;
@@ -964,13 +967,9 @@ function renderAccount() {
   $("#loginForm").classList.toggle("hidden", loggedIn || $("#showRegister").classList.contains("active"));
   $("#registerForm").classList.toggle("hidden", loggedIn || $("#showLogin").classList.contains("active"));
   $("#logoutButton").classList.toggle("hidden", !loggedIn);
-  const pageLink = $("#accountPageLink");
-  if (pageLink) {
-    const isMyPage = window.location.pathname.endsWith("mypage.html");
-    pageLink.href = isMyPage ? "index.html" : "mypage.html";
-    pageLink.textContent = isMyPage ? "首页" : "我的";
-    pageLink.classList.toggle("hidden", !loggedIn);
-  }
+  document.querySelectorAll(".account-action-link").forEach((link) => {
+    link.classList.toggle("hidden", !loggedIn);
+  });
   ["prefectureSelect", "citySelect", "wardSelect", "assetTypeSelect", "yearSelect", "monthSelect", "queryButton"].forEach((id) => {
     const el = $(`#${id}`);
     if (el) el.disabled = !loggedIn;

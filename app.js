@@ -804,6 +804,39 @@ async function saveProfile(event) {
   }
 }
 
+async function updatePassword(event) {
+  event.preventDefault();
+  if (!isLoggedIn() || !hasSupabase() || !state.session?.accessToken) {
+    setMessage("请先登录，再改密码。", "error");
+    return;
+  }
+  const password = $("#newPassword").value;
+  const confirm = $("#confirmNewPassword").value;
+  if (password.length < 6) {
+    setMessage("新密码至少 6 位，太短了会被生活教育。", "error");
+    return;
+  }
+  if (password !== confirm) {
+    setMessage("两次密码不一样。手滑，是人类共同命运。", "error");
+    return;
+  }
+  const submitButton = $("#passwordForm button[type='submit']");
+  try {
+    submitButton.disabled = true;
+    await supabaseAuthFetch("/user", {
+      method: "PUT",
+      authToken: state.session.accessToken,
+      body: JSON.stringify({ password }),
+    });
+    $("#passwordForm").reset();
+    setMessage("密码已更新。下次登录请用新密码，小象已换锁。", "success");
+  } catch (error) {
+    setMessage(`密码更新失败：${error.message}`, "error");
+  } finally {
+    submitButton.disabled = false;
+  }
+}
+
 function renderMyPage() {
   const panel = $("#mypagePanel");
   if (!panel) return;
@@ -1593,6 +1626,7 @@ async function init() {
     renderProfile();
   });
   on("#profileForm", "submit", saveProfile);
+  on("#passwordForm", "submit", updatePassword);
   on("#closeImage", "click", closeImage);
   on("#imageDialog", "click", (event) => {
     if (event.target.id === "imageDialog") closeImage();

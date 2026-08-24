@@ -522,6 +522,44 @@ select:disabled {
   color: #fff;
 }
 
+.password-box {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.password-box summary {
+  cursor: pointer;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.password-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.password-form input {
+  width: 100%;
+  padding: 12px 13px;
+  border: 1.5px solid var(--ink);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+
+.password-form button {
+  min-height: 42px;
+  border: 1.5px solid var(--ink);
+  border-radius: 14px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 14px;
+}
+
 #historyList {
   display: grid;
   gap: 8px;

@@ -571,6 +571,30 @@ function supabaseReportToRecord(options, report) {
   });
 }
 
+function supabaseStoredReportToRecord(report) {
+  const query = report.raw_record?.query || {};
+  const inferred = inferRecordLocation({ title: report.title || "" });
+  return backendReportToRecord(
+    {
+      prefecture: query.prefecture || inferred.prefecture || "",
+      city: query.city || inferred.city || "",
+      ward: query.ward || inferred.ward || "",
+      assetType: query.asset_type || query.assetType || "",
+    },
+    report,
+  );
+}
+
+async function loadRemoteReports() {
+  if (!hasSupabase()) return;
+  try {
+    const rows = await supabaseFetch("/property_reports?select=*&order=created_at.desc&limit=300");
+    (rows || []).forEach((row) => upsertRuntimeRecord(supabaseStoredReportToRecord(row)));
+  } catch {
+    // Static library is enough for the page to work; remote reports are a bonus.
+  }
+}
+
 function upsertRuntimeRecord(record) {
   state.records = [record, ...state.records.filter((item) => item.id !== record.id)];
 }
@@ -910,6 +934,162 @@ function renderMyPage() {
   document.querySelectorAll("[data-view-query]").forEach((button) => {
     button.addEventListener("click", () => viewReportByQueryKey(button.dataset.viewQuery));
   });
+}
+
+function monthKey(text) {
+  const match = String(text || "").match(/(\d{4})年(\d{1,2})月/);
+  if (!match) return String(text || "未知月份");
+  return `${match[1]}-${String(match[2]).padStart(2, "0")}`;
+}
+
+function numberFromText(text) {
+  const cleaned = String(text || "").replace(/,/g, "");
+  const match = cleaned.match(/([0-9]+(?:\.[0-9]+)?)/);
+  return match ? Number(match[1]) : NaN;
+}
+
+function rowForLayout(rows, layout) {
+  return (rows || []).find((row) => row.layout === layout) || null;
+}
+
+function ratioForLayout(record, layout) {
+  const line = String(record.summary?.line || "");
+  const part = line.split("｜").reduce((acc, item, index, arr) => {
+    if (item === layout) return arr[index + 1] || "";
+    return acc;
+  }, "");
+  return numberFromText(part);
+}
+
+function analysisValue(record, metric, layout) {
+  if (metric === "rent") return numberFromText(rowForLayout(record.rental, layout)?.amount_jpy);
+  if (metric === "sale") return numberFromText(rowForLayout(record.sale, layout)?.amount_jpy);
+  return ratioForLayout(record, layout);
+}
+
+function analysisUnit(metric) {
+  if (metric === "rent") return "万日元/月";
+  if (metric === "sale") return "万日元";
+  return "%";
+}
+
+function analysisMetricName(metric) {
+  if (metric === "rent") return "月租金";
+  if (metric === "sale") return "买房总价";
+  return "总而言之";
+}
+
+function analysisLayouts() {
+  const layouts = new Set();
+  state.records.forEach((record) => {
+    [...(record.rental || []), ...(record.sale || [])].forEach((row) => {
+      if (row.layout) layouts.add(row.layout);
+    });
+  });
+  const preferred = ["1LDK", "2LDK", "3LDK", "80㎡左右", "110㎡左右", "140㎡左右"];
+  return [...preferred.filter((item) => layouts.has(item)), ...[...layouts].filter((item) => !preferred.includes(item)).sort()];
+}
+
+function drawAnalysisChart(points, metric) {
+  const canvas = $("#analysisChart");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const width = canvas.width;
+  const height = canvas.height;
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, width, height);
+  ctx.strokeStyle = "#dedede";
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 5; i += 1) {
+    const y = 28 + i * ((height - 72) / 4);
+    ctx.beginPath();
+    ctx.moveTo(44, y);
+    ctx.lineTo(width - 18, y);
+    ctx.stroke();
+  }
+  ctx.fillStyle = "#666";
+  ctx.font = "13px sans-serif";
+  if (!points.length) {
+    ctx.fillText("没有可画的数据。换个关键词/房型试试，小象不是不努力，是锅里没米。", 44, height / 2);
+    return;
+  }
+  const values = points.map((p) => p.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  const xFor = (index) => 44 + index * ((width - 72) / Math.max(1, points.length - 1));
+  const yFor = (value) => 28 + (1 - (value - min) / span) * (height - 72);
+  ctx.strokeStyle = "#111";
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  points.forEach((point, index) => {
+    const x = xFor(index);
+    const y = yFor(point.value);
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  ctx.fillStyle = "#111";
+  points.forEach((point, index) => {
+    const x = xFor(index);
+    const y = yFor(point.value);
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillText(point.month.slice(5), x - 10, height - 18);
+  });
+  ctx.fillStyle = "#333";
+  ctx.fillText(`${analysisMetricName(metric)}（${analysisUnit(metric)}）`, 44, 18);
+  ctx.fillText(`${max.toFixed(1)}`, 6, yFor(max) + 4);
+  ctx.fillText(`${min.toFixed(1)}`, 6, yFor(min) + 4);
+}
+
+function renderAnalysis() {
+  const panel = $("#analysisPanel");
+  if (!panel) return;
+  panel.classList.toggle("hidden", !isLoggedIn());
+  if (!isLoggedIn()) return;
+
+  const layoutSelect = $("#analysisLayout");
+  if (layoutSelect && !layoutSelect.dataset.ready) {
+    layoutSelect.innerHTML = analysisLayouts().map((layout) => optionHtml(layout)).join("");
+    layoutSelect.dataset.ready = "1";
+  }
+
+  const keyword = compact($("#analysisKeyword")?.value || "");
+  const metric = $("#analysisMetric")?.value || "rent";
+  const layout = $("#analysisLayout")?.value || analysisLayouts()[0] || "1LDK";
+  const matched = state.records
+    .filter((record) => !keyword || compact([record.title, record.publish_month, record.asset_type, (record.regions || []).join(""), record.markdown].join(" ")).includes(keyword))
+    .map((record) => ({ record, value: analysisValue(record, metric, layout) }))
+    .filter((item) => Number.isFinite(item.value));
+
+  const byMonth = new Map();
+  matched.forEach(({ record, value }) => {
+    const key = monthKey(record.publish_month);
+    const bucket = byMonth.get(key) || [];
+    bucket.push(value);
+    byMonth.set(key, bucket);
+  });
+  const points = [...byMonth.entries()]
+    .map(([month, values]) => ({ month, value: values.reduce((sum, value) => sum + value, 0) / values.length }))
+    .sort((a, b) => a.month.localeCompare(b.month));
+  drawAnalysisChart(points, metric);
+
+  $("#analysisHint").textContent = `${analysisMetricName(metric)}｜${layout}｜匹配 ${matched.length} 条，月份点 ${points.length} 个。`;
+  $("#analysisResults").innerHTML = matched
+    .slice(0, 10)
+    .map(({ record, value }) => `
+      <article class="analysis-row">
+        <div>
+          <h3>${escapeHtml(record.title)}</h3>
+          <p>${escapeHtml(record.publish_month)}｜${escapeHtml((record.regions || []).join(" / ") || record.asset_type || "")}</p>
+        </div>
+        <strong>${escapeHtml(value.toFixed(metric === "ratio" ? 2 : 1))}${escapeHtml(analysisUnit(metric))}</strong>
+      </article>
+    `)
+    .join("") || `<div class="empty">暂时没有匹配数据。换个关键词试试。</div>`;
 }
 
 async function runJphouseFromMyPage(queryId) {
@@ -1345,6 +1525,7 @@ function render() {
   renderQueryOptions();
   renderQueryHistory();
   renderMyPage();
+  renderAnalysis();
   renderView();
 }
 
@@ -1614,6 +1795,7 @@ async function init() {
   await loadFieldOptions();
   await handleAuthRedirect();
   await refreshSupabaseSession();
+  await loadRemoteReports();
   await ensureUserProfile();
   await loadMyPage();
   on("#showLogin", "click", () => showMode("login"));
@@ -1647,6 +1829,12 @@ async function init() {
   });
   on("#profileForm", "submit", saveProfile);
   on("#passwordForm", "submit", updatePassword);
+  on("#analysisForm", "submit", (event) => {
+    event.preventDefault();
+    renderAnalysis();
+  });
+  on("#analysisMetric", "change", renderAnalysis);
+  on("#analysisLayout", "change", renderAnalysis);
   on("#closeImage", "click", closeImage);
   on("#imageDialog", "click", (event) => {
     if (event.target.id === "imageDialog") closeImage();

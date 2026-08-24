@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Mypage｜ZOU SEEKING HOUSE 小象搜房日本</title>
+    <title>数据分析｜ZOU SEEKING HOUSE 小象搜房日本</title>
     <link rel="stylesheet" href="styles.css?v=20260824-14" />
   </head>
   <body class="auth-pending">
@@ -19,17 +19,17 @@
         <div class="account-head">
           <div>
             <p class="eyebrow">Account</p>
-            <h2 id="accountTitle">登录后可以查看 Mypage</h2>
+            <h2 id="accountTitle">登录后可以看数据分析</h2>
           </div>
           <div class="account-actions">
             <a class="ghost-link account-action-link hidden" href="profile.html">资料</a>
-            <a class="ghost-link account-action-link hidden" href="analysis.html">分析</a>
             <a class="ghost-link account-action-link hidden" href="index.html">首页</a>
+            <a class="ghost-link account-action-link hidden" href="mypage.html">我的</a>
             <button class="ghost-button hidden" id="logoutButton" type="button">退出</button>
           </div>
         </div>
 
-        <p class="account-copy" id="accountCopy">未登录不能查看自己的查询任务。小象很八卦，但还是讲隐私。</p>
+        <p class="account-copy" id="accountCopy">未登录不能看分析。数据这东西，多少也算一点隐私。</p>
 
         <div class="account-tabs" id="accountTabs">
           <button class="tab active" id="showLogin" type="button">登录</button>
@@ -39,7 +39,7 @@
         <form class="account-form" id="loginForm">
           <input id="loginUsername" type="email" placeholder="邮件" autocomplete="username" />
           <input id="loginPassword" type="password" placeholder="密码" autocomplete="current-password" />
-          <button type="submit">登录 Mypage</button>
+          <button type="submit">登录分析页</button>
         </form>
 
         <form class="account-form hidden" id="registerForm">
@@ -56,45 +56,44 @@
         <div class="brand">
           <img src="assets/logoELE.png" alt="LOGOELE" />
           <div>
-            <p class="eyebrow">ZOU SEEKING HOUSE</p>
-            <h1>我的数据工作台</h1>
+            <p class="eyebrow">JPHOUSE Analysis</p>
+            <h1>数据分析</h1>
           </div>
         </div>
-        <p class="hero-copy">查过什么、跑到哪一步、结果能不能看，都放这里。首页负责好看，Mypage 负责干活。</p>
+        <p class="hero-copy">按月份看趋势，也可以横向比较不同区域。数据不一定让钱包舒服，但至少让钱包死得明白。</p>
       </header>
 
-      <section class="mypage-panel hidden" id="mypagePanel">
+      <section class="analysis-panel hidden" id="analysisPanel">
         <div class="section-title">
-          <p class="eyebrow">Mypage</p>
-          <h2>我的查询任务</h2>
+          <p class="eyebrow">Chart & Compare</p>
+          <h2>趋势图表 / 数据比较</h2>
         </div>
-        <div class="stats-grid" id="myStats"></div>
-        <div class="mypage-head">
-          <p class="query-hint">这里可以看自己的查询记录，手动执行 JPHOUSE，完成后点查看结果。</p>
-          <button class="ghost-button" id="refreshMyPage" type="button">刷新</button>
+        <form class="analysis-form" id="analysisForm">
+          <label>
+            关键词
+            <input id="analysisKeyword" type="search" placeholder="比如：东京 港区 塔楼 / 大阪 一户建" />
+          </label>
+          <label>
+            指标
+            <select id="analysisMetric">
+              <option value="rent">月租金</option>
+              <option value="sale">买房总价</option>
+              <option value="ratio">总而言之</option>
+            </select>
+          </label>
+          <label>
+            房型 / 面积段
+            <select id="analysisLayout"></select>
+          </label>
+          <button type="submit">生成图表</button>
+        </form>
+        <p class="query-hint" id="analysisHint">会按月份聚合平均值，并显示最多 10 条匹配报告做比较。</p>
+        <div class="chart-card">
+          <canvas id="analysisChart" width="680" height="320" aria-label="月份趋势图"></canvas>
         </div>
-        <div class="task-list" id="myTaskList"></div>
-      </section>
-
-      <section class="detail-page hidden" id="detailPage">
-        <button class="back-button" id="backToList" type="button">← 返回 Mypage</button>
-        <div id="detailContent"></div>
+        <div class="analysis-results" id="analysisResults"></div>
       </section>
     </main>
-
-    <dialog class="image-dialog" id="imageDialog">
-      <button class="image-close" id="closeImage" type="button">×</button>
-      <img id="largeImage" alt="放大图片" />
-    </dialog>
-
-    <dialog class="progress-dialog" id="progressDialog">
-      <div class="progress-card">
-        <p class="eyebrow">JPHOUSE 正在干活</p>
-        <h2 id="progressTitle">准备查询</h2>
-        <div class="progress-track"><span id="progressBar"></span></div>
-        <ol id="progressSteps"></ol>
-      </div>
-    </dialog>
 
     <script src="config.js?v=20260824-14"></script>
     <script src="app.js?v=20260824-14"></script>

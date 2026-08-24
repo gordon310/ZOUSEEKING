@@ -123,7 +123,8 @@ h1 {
 .latest-panel,
 .account-panel,
 .query-panel,
-.mypage-panel {
+.mypage-panel,
+.analysis-panel {
   margin-top: 14px;
   padding: 16px;
   border: 2px solid var(--ink);
@@ -369,11 +370,22 @@ select:disabled {
   gap: 10px;
 }
 
+.analysis-form {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 10px;
+}
+
 .query-form label {
   margin: 0;
 }
 
-.query-form button {
+.analysis-form label {
+  margin: 0;
+}
+
+.query-form button,
+.analysis-form button {
   grid-column: 1 / -1;
   min-height: 52px;
   border: 2px solid var(--ink);
@@ -470,6 +482,53 @@ select:disabled {
 .task-actions button.primary {
   background: var(--ink);
   color: #fff;
+}
+
+.chart-card {
+  margin-top: 12px;
+  padding: 10px;
+  border: 1.5px solid var(--ink);
+  border-radius: 18px;
+  background: #fff;
+}
+
+.chart-card canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.analysis-results {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.analysis-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1.5px solid var(--ink);
+  border-radius: 16px;
+  background: #fff;
+}
+
+.analysis-row h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.analysis-row p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.analysis-row strong {
+  font-size: 15px;
+  text-align: right;
 }
 
 .profile-card {
@@ -870,6 +929,10 @@ pre {
   }
 
   .query-form {
+    grid-template-columns: 1fr;
+  }
+
+  .analysis-form {
     grid-template-columns: 1fr;
   }
 

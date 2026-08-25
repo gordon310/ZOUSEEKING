@@ -28,7 +28,6 @@ services:
   - type: web
     name: zouseeking-web-staging
     runtime: static
-    plan: free
     rootDir: web
     buildCommand: "true"
     staticPublishPath: .

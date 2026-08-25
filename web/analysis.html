@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>数据分析｜ZOU SEEKING HOUSE 小象搜房日本</title>
+    <link rel="stylesheet" href="styles.css?v=20260824-16" />
+  </head>
+  <body class="auth-pending">
+    <main class="app">
+      <nav class="topbar" aria-label="页面导航">
+        <a class="topbar-brand" href="index.html">
+          <img src="assets/logoELE.png" alt="LOGOELE" />
+          <span>ZOU SEEKING HOUSE</span>
+        </a>
+      </nav>
+
+      <section class="account-panel" id="accountPanel">
+        <div class="account-head">
+          <div>
+            <p class="eyebrow">Account</p>
+            <h2 id="accountTitle">登录后可以看数据分析</h2>
+          </div>
+          <div class="account-actions">
+            <a class="ghost-link account-action-link hidden" href="profile.html">资料</a>
+            <a class="ghost-link account-action-link hidden" href="index.html">首页</a>
+            <a class="ghost-link account-action-link hidden" href="mypage.html">我的</a>
+            <button class="ghost-button hidden" id="logoutButton" type="button">退出</button>
+          </div>
+        </div>
+
+        <p class="account-copy" id="accountCopy">未登录不能看分析。数据这东西，多少也算一点隐私。</p>
+
+        <div class="account-tabs" id="accountTabs">
+          <button class="tab active" id="showLogin" type="button">登录</button>
+          <button class="tab" id="showRegister" type="button">注册</button>
+        </div>
+
+        <form class="account-form" id="loginForm">
+          <input id="loginUsername" type="email" placeholder="邮件" autocomplete="username" />
+          <input id="loginPassword" type="password" placeholder="密码" autocomplete="current-password" />
+          <button type="submit">登录分析页</button>
+        </form>
+
+        <form class="account-form hidden" id="registerForm">
+          <input id="registerUsername" type="text" placeholder="用户名" autocomplete="username" />
+          <input id="registerEmail" type="email" placeholder="邮件" autocomplete="email" />
+          <input id="registerPassword" type="password" placeholder="密码" autocomplete="new-password" />
+          <button type="submit">注册并登录</button>
+        </form>
+
+        <p class="form-message" id="formMessage"></p>
+      </section>
+
+      <header class="hero">
+        <div class="brand">
+          <img src="assets/logoELE.png" alt="LOGOELE" />
+          <div>
+            <p class="eyebrow">JPHOUSE Analysis</p>
+            <h1>数据分析</h1>
+          </div>
+        </div>
+        <p class="hero-copy">按月份看趋势，也可以横向比较不同区域。数据不一定让钱包舒服，但至少让钱包死得明白。</p>
+      </header>
+
+      <section class="analysis-panel hidden" id="analysisPanel">
+        <div class="section-title">
+          <p class="eyebrow">Chart & Compare</p>
+          <h2>趋势图表 / 数据比较</h2>
+        </div>
+        <form class="analysis-form" id="analysisForm">
+          <label>
+            关键词
+            <input id="analysisKeyword" type="search" placeholder="比如：东京 港区 塔楼 / 大阪 一户建" />
+          </label>
+          <label>
+            指标
+            <select id="analysisMetric">
+              <option value="rent">月租金</option>
+              <option value="sale">买房总价</option>
+              <option value="ratio">租售比</option>
+            </select>
+          </label>
+          <label>
+            房型 / 面积段
+            <select id="analysisLayout"></select>
+          </label>
+          <button type="submit">生成趋势图</button>
+        </form>
+        <p class="query-hint" id="analysisHint">会按月份聚合平均值。比较区可以单独选择最多三条数据。</p>
+        <div class="chart-card">
+          <canvas id="analysisChart" width="680" height="320" aria-label="月份趋势图"></canvas>
+        </div>
+        <div class="compare-box">
+          <div class="section-title">
+            <p class="eyebrow">Compare</p>
+            <h2>最多三列比较</h2>
+          </div>
+          <p class="query-hint">选择最多三条报告，再勾选要比较的房型 / 面积段和指标。指标会作为每组数据下面的小标题列。</p>
+          <div class="compare-selectors">
+            <label>
+              对比 A
+              <select id="compareSelectA"></select>
+            </label>
+            <label>
+              对比 B
+              <select id="compareSelectB"></select>
+            </label>
+            <label>
+              对比 C
+              <select id="compareSelectC"></select>
+            </label>
+          </div>
+          <div class="metric-picker" id="metricPicker">
+            <label class="dimension-chip">
+              <input type="checkbox" value="rent" checked />
+              <span>租金</span>
+            </label>
+            <label class="dimension-chip">
+              <input type="checkbox" value="sale" checked />
+              <span>售价</span>
+            </label>
+            <label class="dimension-chip">
+              <input type="checkbox" value="ratio" checked />
+              <span>租售比</span>
+            </label>
+          </div>
+          <div class="dimension-picker" id="dimensionPicker"></div>
+          <div class="compare-table-wrap" id="compareTable"></div>
+        </div>
+        <div class="section-title compact-title">
+          <p class="eyebrow">Matched Records</p>
+          <h2>当前筛选数据</h2>
+        </div>
+        <div class="analysis-results" id="analysisResults"></div>
+      </section>
+    </main>
+
+    <script src="config.js?v=20260824-17"></script>
+    <script src="app.js?v=20260824-17"></script>
+  </body>
+</html>

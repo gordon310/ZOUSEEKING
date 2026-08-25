@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ZOU SEEKING HOUSE 小象搜房日本</title>
+    <link rel="stylesheet" href="styles.css?v=20260824-17" />
+  </head>
+  <body class="auth-pending">
+    <main class="app">
+      <nav class="topbar" aria-label="页面导航">
+        <a class="topbar-brand" href="index.html">
+          <img src="assets/logoELE.png" alt="LOGOELE" />
+          <span>ZOU SEEKING HOUSE</span>
+        </a>
+      </nav>
+
+      <section class="account-panel" id="accountPanel">
+        <div class="account-head">
+          <div>
+            <p class="eyebrow">Account</p>
+            <h2 id="accountTitle">登录后可以查询</h2>
+          </div>
+          <div class="account-actions">
+            <a class="ghost-link account-action-link hidden" href="profile.html">资料</a>
+            <a class="ghost-link account-action-link hidden" href="analysis.html">分析</a>
+            <a class="ghost-link account-action-link hidden" href="mypage.html">我的</a>
+            <button class="ghost-button hidden" id="logoutButton" type="button">退出</button>
+          </div>
+        </div>
+
+        <p class="account-copy" id="accountCopy">未登录只能看最近 5 条数据。注册很简单，别紧张，不查户口。</p>
+
+        <div class="account-tabs" id="accountTabs">
+          <button class="tab active" id="showLogin" type="button">登录</button>
+          <button class="tab" id="showRegister" type="button">注册</button>
+        </div>
+
+        <form class="account-form" id="loginForm">
+          <input id="loginUsername" type="email" placeholder="邮件" autocomplete="username" />
+          <input id="loginPassword" type="password" placeholder="密码" autocomplete="current-password" />
+          <button type="submit">登录查询</button>
+        </form>
+
+        <form class="account-form hidden" id="registerForm">
+          <input id="registerUsername" type="text" placeholder="用户名" autocomplete="username" />
+          <input id="registerEmail" type="email" placeholder="邮件" autocomplete="email" />
+          <input id="registerPassword" type="password" placeholder="密码" autocomplete="new-password" />
+          <button type="submit">注册并登录</button>
+        </form>
+
+        <p class="form-message" id="formMessage"></p>
+      </section>
+
+      <header class="hero">
+        <div class="brand">
+          <img src="assets/logoELE.png" alt="LOGOELE" />
+          <div>
+            <p class="eyebrow">ZOU SEEKING HOUSE</p>
+            <h1>小象搜房日本</h1>
+          </div>
+        </div>
+        <p class="hero-copy">吃饱饭，没事干，纯分享。想看日本哪里房子，直接搜。</p>
+      </header>
+
+      <section class="query-panel" id="queryPanel">
+        <div class="section-title">
+          <p class="eyebrow">JPHOUSE Query</p>
+          <h2>数据查询生成</h2>
+        </div>
+        <form class="query-form" id="queryForm">
+          <label>
+            日本都道府县
+            <select id="prefectureSelect" disabled>
+              <option value="">请选择</option>
+              <option value="东京都">东京都</option>
+              <option value="大阪府">大阪府</option>
+              <option value="神奈川县">神奈川县</option>
+            </select>
+          </label>
+          <label>
+            市区町村
+            <select id="citySelect" disabled>
+              <option value="">请选择</option>
+            </select>
+          </label>
+          <label>
+            区
+            <select id="wardSelect" disabled>
+              <option value="">全部区</option>
+            </select>
+          </label>
+          <label>
+            房型
+            <select id="assetTypeSelect" disabled>
+              <option value="塔楼">塔楼</option>
+              <option value="公寓">公寓</option>
+              <option value="一户建">一户建</option>
+            </select>
+          </label>
+          <label>
+            年份
+            <select id="yearSelect" disabled>
+              <option value="2026">2026</option>
+            </select>
+          </label>
+          <label>
+            月份
+            <select id="monthSelect" disabled>
+              <option value="8">8月</option>
+            </select>
+          </label>
+          <button id="queryButton" type="submit" disabled>查询 / 生成</button>
+        </form>
+        <p class="query-hint" id="queryHint">登录后可以查询。已有记录直接调取，没做过的会进入生成流程。</p>
+        <div class="query-history hidden" id="queryHistory">
+          <p class="eyebrow">最近查询</p>
+          <div id="historyList"></div>
+        </div>
+      </section>
+
+      <section class="latest-panel">
+        <div class="section-title">
+          <p class="eyebrow" id="listEyebrow">Latest 5</p>
+          <h2 id="latestTitle">最近发布的数据</h2>
+        </div>
+        <div class="latest-list" id="latestList"></div>
+        <div class="pagination hidden" id="pagination">
+          <button id="prevPage" type="button">上一页</button>
+          <span id="pageInfo">第 1 页</span>
+          <button id="nextPage" type="button">下一页</button>
+        </div>
+      </section>
+
+      <section class="detail-page hidden" id="detailPage">
+        <button class="back-button" id="backToList" type="button">← 返回查询结果</button>
+        <div id="detailContent"></div>
+      </section>
+    </main>
+
+    <dialog class="image-dialog" id="imageDialog">
+      <button class="image-close" id="closeImage" type="button">×</button>
+      <img id="largeImage" alt="放大图片" />
+    </dialog>
+
+    <dialog class="progress-dialog" id="progressDialog">
+      <div class="progress-card">
+        <p class="eyebrow">JPHOUSE 正在干活</p>
+        <h2 id="progressTitle">准备查询</h2>
+        <div class="progress-track"><span id="progressBar"></span></div>
+        <ol id="progressSteps"></ol>
+      </div>
+    </dialog>
+
+    <script src="config.js?v=20260824-17"></script>
+    <script src="app.js?v=20260824-17"></script>
+  </body>
+</html>

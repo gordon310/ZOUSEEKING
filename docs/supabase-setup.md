@@ -8,6 +8,17 @@ GitHub Pages 前端
   -> 本地/后端 JPHOUSE 生成器补数据
 ```
 
+单项目分析的 staging 路径与旧区域查询分开：
+
+```text
+Render FastAPI
+  -> Supabase Auth / PostgreSQL / 私有 Storage
+```
+
+`property-intake` bucket 必须保持 private，浏览器不直接访问或写入项目资料。FastAPI 使用 `SUPABASE_SERVICE_ROLE_KEY` 生成上传和删除请求；该 key 的实际值只能配置在 Render secret 或本地环境变量中，不能写入 `render.yaml`、`web/config.js` 或日志（`render.yaml` 只声明 `sync: false`）。文件上传限制为 PDF/JPG/PNG、单文件 20 MiB，匿名会话创建后 24 小时到期。阶段一只保存资料元数据并等待人工确认，不执行 OCR 或 AI 提取。
+
+当前 staging 使用 Render Free web service 的机会式清理：匿名会话在数据库中过期后立即不能再通过 API 读取，实际 Storage 对象会在 API 启动或下一次会话创建时，按每次最多 100 个会话清理。Free service 休眠期间不会主动执行清理；如果公开上线要求严格的墙钟删除 SLA，需要另行配置持续运行的定时清理机制。
+
 ## 1. 创建 Supabase 项目
 
 1. 登录 Supabase。
@@ -16,7 +27,7 @@ GitHub Pages 前端
 4. 记下：
    - Project URL
    - anon public key
-   - service_role key（只给本地同步脚本用，不要放到前端）
+   - service_role key（只给本地同步脚本或 Render API secret，不要放到前端）
 
 ## 2. 建表
 
@@ -126,7 +137,7 @@ export SUPABASE_SERVICE_ROLE_KEY="你的 service_role key"
 python3 scripts/sync_content_library_to_supabase.py
 ```
 
-注意：`service_role key` 只能放本地环境变量，不要写进 GitHub，不要写进 `web/config.js`。
+注意：`service_role key` 只能放本地环境变量或 Render secret，不要写进 GitHub，不要写进 `web/config.js`。
 
 ## 6. 现在的行为
 

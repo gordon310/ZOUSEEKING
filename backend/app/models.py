@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -9,11 +9,11 @@ AssetType = Literal["塔楼", "公寓", "一户建"]
 class QueryRequest(BaseModel):
     prefecture: str = Field(..., min_length=1)
     city: str = Field(..., min_length=1)
-    ward: str | None = ""
+    ward: Optional[str] = ""
     asset_type: AssetType = "塔楼"
     year: int
     month: int = Field(..., ge=1, le=12)
-    username: str | None = None
+    username: Optional[str] = None
 
 
 class QueryResponse(BaseModel):
@@ -21,8 +21,8 @@ class QueryResponse(BaseModel):
     status: str
     cached: bool
     title: str
-    job_id: str | None = None
-    report: dict[str, Any] | None = None
+    job_id: Optional[str] = None
+    report: Optional[dict[str, Any]] = None
     message: str
 
 
@@ -31,6 +31,5 @@ class JobResponse(BaseModel):
     status: str
     progress: int
     current_step: str
-    error_message: str | None = None
-    report: dict[str, Any] | None = None
-
+    error_message: Optional[str] = None
+    report: Optional[dict[str, Any]] = None

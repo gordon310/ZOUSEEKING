@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 from pathlib import Path
 
@@ -35,4 +37,3 @@ async def init_schema() -> None:
     sql = SCHEMA_PATH.read_text(encoding="utf-8")
     async with get_pool().acquire() as conn:
         await conn.execute(sql)
-

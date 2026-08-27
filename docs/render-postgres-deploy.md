@@ -1,12 +1,24 @@
 # ZOU SEEKING HOUSE 后端部署方案
 
-目标架构：
+> 状态：暂缓方案（2026-08-27）。当前 staging 不创建 Render PostgreSQL；Render FastAPI 继续连接 Supabase staging 的 PostgreSQL、Auth 和私有 Storage。本文的 Render PostgreSQL 步骤不要用于当前 staging 部署，保留作未来迁移参考。
+
+未来迁移目标（尚未执行）：
 
 ```text
 GitHub Pages 前端
   -> Render FastAPI 后端
   -> Render PostgreSQL
 ```
+
+当前 staging 架构：
+
+```text
+GitHub Pages / Render Static Site
+  -> Render FastAPI
+  -> Supabase staging Auth / PostgreSQL / private Storage
+```
+
+当前配置见根目录 `render.yaml`：`INIT_SCHEMA=false`，没有 `databases:`，`DATABASE_URL` 由 staging Supabase 提供。迁移到 Render PostgreSQL 前，必须另行完成 Auth、RLS、私有文件、备份恢复和 migration history 评估；不能只替换一个连接字符串。
 
 ## 1. Render 上创建服务
 
@@ -75,4 +87,3 @@ prefecture + city + ward + asset_type + year + month
 - Tochidai：中古マンション成交相场
 - LIFULL HOME'S：备用租赁/买卖相场
 - At Home：备用房源检索
-

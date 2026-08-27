@@ -6,6 +6,7 @@ import asyncio
 import json
 import os
 from dataclasses import dataclass
+from typing import Optional
 from uuid import UUID
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -40,7 +41,7 @@ def _fetch_supabase_user(access_token: str) -> dict:
         raise ValueError("invalid Supabase access token") from exc
 
 
-async def require_user(authorization: str | None = Header(default=None)) -> AuthUser:
+async def require_user(authorization: Optional[str] = Header(default=None)) -> AuthUser:
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(status_code=401, detail="登录状态已失效，请重新登录。")
     token = authorization.split(" ", 1)[1].strip()

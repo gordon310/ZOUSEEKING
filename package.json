@@ -1,5 +1,9 @@
 {
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "supabase": "^2.115.0"
+  },
+  "scripts": {
+    "test:web": "playwright test tests/web --project=chromium"
   }
 }

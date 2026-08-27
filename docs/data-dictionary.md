@@ -38,3 +38,18 @@
 `analysis_metrics` 保存计算后的指标，必须包含 `calculation_version` 和 `assumption_set`；`risk_findings` 保存风险依据、所需补充资料、建议动作和置信度。法规内容进入 `policy_documents`，保留来源、发布日、生效日、失效日和人工复核记录。
 
 `product_events` 只保存脱敏后的消费特征和聚合所需字段，不保存姓名、邮箱、电话、合同原文或可直接识别用户的项目链接。消费行为必须标记用途范围，默认使用 `internal_product_analytics`。
+
+## Osaka 单项目 intake（staging）
+
+新单项目分析通过 FastAPI 写入 Supabase staging；浏览器不直接写入以下私有表。匿名会话只保存 `token_hash`，原始 token 只在创建响应中返回给浏览器并放入 `sessionStorage`。会话在创建后 24 小时到期；过期后立即不可读，文件对象由下一次 API 清理任务删除。已转正项目不参与匿名清理。
+
+| 表 | 用途 | 关键字段与限制 |
+| --- | --- | --- |
+| `analysis_sessions` | 匿名分析会话及转正状态 | `purpose` 仅为 `self_use` / `rental_investment`；`owner_user_id`、`property_id`、`token_hash`、`expires_at` 由服务端管理 |
+| `project_inputs` | 用户提交的文字、URL 和文件元数据 | `input_type` 为 `text` / `url` / `pdf` / `image`；文件最大 20 MiB；`processing_status` 初始为 `manual_review` 或 `pending` |
+| `project_field_evidence` | 字段候选值和来源证据 | 保留原始值、标准化值、单位、定位、提取方式和可信度；同一证据不可覆盖 |
+| `project_fields` | 用户确认后的当前字段值 | 每个会话/字段唯一；单位由服务端字段白名单推导；确认状态包括 `confirmed`、`corrected`、`unknown`、`conflict` |
+| `free_previews` | 免费预览快照 | 保存完整度、费用项目、风险摘要、可比样本状态和 `calculation_version`；每个会话一份 |
+| `intake_rate_limits` | 按来源或会话限制操作频率 | 只保存 abuse key 的哈希、动作、窗口、次数和过期时间，不保存原始 IP |
+
+这些表启用 RLS，并撤销 `anon` 与 `authenticated` 的直接访问；只有 FastAPI 使用受信任的数据库连接写入。阶段一不执行 OCR、AI 提取、市场估价、税费金额计算或法律结论。缺少证据只标记为资料不足。

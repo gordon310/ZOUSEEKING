@@ -1,0 +1,112 @@
+{
+  "template_name": "jphouse",
+  "slug": "jphouse_yokohama_hodogaya_tower_2026_08",
+  "title": "横滨保土谷区塔楼，租还是买？",
+  "publish_month": "2026年8月",
+  "generated_at": "2026-08-23",
+  "status": "generated",
+  "cover": {
+    "line1": "横滨保土谷区",
+    "line2": "塔楼租还是买？",
+    "tagline": "我替钱包瞄了一眼",
+    "note": "公开相场数据快照"
+  },
+  "intro": [
+    "横滨保土谷区，大概就是保土ケ谷、星川、天王町这一圈。",
+    "通勤住宅区气质明显，中高层公寓比较常见。这里按公开相场做一份数据快照。"
+  ],
+  "explain": [
+    "小白翻译一下：",
+    "LDK=客厅+餐厅+厨房，前面的数字=卧室数量。",
+    "1LDK差不多一房一厅，2LDK两房一厅，3LDK三房一厅。",
+    "塔楼一般指高层/超高层公寓，这里按公开相场做一个粗略快照。"
+  ],
+  "exchange_rate_note": "汇率按发布当天约算：100日元≈4.23RMB。",
+  "sections": {
+    "rental": {
+      "title": "租房子",
+      "subtitle": "横滨保土谷区公开相场快照 · 2026年8月",
+      "note": "汇率约算：100日元≈4.23RMB。",
+      "rows": [
+        {
+          "layout": "1LDK",
+          "area": "约39–45㎡",
+          "amount_jpy": "13.0万日元/月",
+          "amount_rmb": "≈0.55万RMB/月",
+          "unit_jpy": "约3,095日元/㎡/月",
+          "unit_rmb": "≈131RMB/㎡/月"
+        },
+        {
+          "layout": "2LDK",
+          "area": "约59–65㎡",
+          "amount_jpy": "16.0万日元/月",
+          "amount_rmb": "≈0.68万RMB/月",
+          "unit_jpy": "约2,581日元/㎡/月",
+          "unit_rmb": "≈109RMB/㎡/月"
+        },
+        {
+          "layout": "3LDK",
+          "area": "约79–85㎡",
+          "amount_jpy": "18.5万日元/月",
+          "amount_rmb": "≈0.78万RMB/月",
+          "unit_jpy": "约2,256日元/㎡/月",
+          "unit_rmb": "≈95RMB/㎡/月"
+        }
+      ]
+    },
+    "sale": {
+      "title": "买房子",
+      "subtitle": "中古マンション成交均价参考 · 2026年8月",
+      "note": "成交均价来自国交省取引数据整理。",
+      "rows": [
+        {
+          "layout": "1LDK",
+          "area": "约39–45㎡",
+          "amount_jpy": "约1,800万日元",
+          "amount_rmb": "≈76万RMB",
+          "unit_jpy": "约40.0427万日元/㎡",
+          "unit_rmb": "≈1.7万RMB/㎡"
+        },
+        {
+          "layout": "2LDK",
+          "area": "约59–65㎡",
+          "amount_jpy": "约2,158万日元",
+          "amount_rmb": "≈91万RMB",
+          "unit_jpy": "约40.0427万日元/㎡",
+          "unit_rmb": "≈1.7万RMB/㎡"
+        },
+        {
+          "layout": "3LDK",
+          "area": "约79–85㎡",
+          "amount_jpy": "约3,149万日元",
+          "amount_rmb": "≈133万RMB",
+          "unit_jpy": "约40.0427万日元/㎡",
+          "unit_rmb": "≈1.7万RMB/㎡"
+        }
+      ]
+    }
+  },
+  "summary": {
+    "title": "总而言之",
+    "line": "1LDK｜约8.67%｜2LDK｜约8.90%｜3LDK｜约7.05%",
+    "note": "算法：月租×12÷买房成交均价，只看公开相场，不替钱包做主。"
+  },
+  "hashtags": [],
+  "data_sources": [
+    {
+      "name": "SUUMO 横浜市保土ケ谷区租赁相场",
+      "url": "https://suumo.jp/chintai/soba/kanagawa/sc_yokohamashihodogaya/?ts=1",
+      "usage": "1LDK/2LDK/3LDK租金相场（2026年7月10日更新；空值保留为暂无样本）"
+    },
+    {
+      "name": "Tochidai 横浜市保土ケ谷区中古マンション成交相场",
+      "url": "https://tochidai.info/mansion/kanagawa/yokohama-hodogaya/",
+      "usage": "1LDK/2LDK/3LDK成交均价、平米单价（2026年［令和8年］1～3月）"
+    },
+    {
+      "name": "JPY/CNY 汇率参考",
+      "url": "https://www.fx-rate.net/JPY/CNY/",
+      "usage": "发布日附近汇率约算：100日元≈4.23RMB"
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mypage｜ZOU SEEKING HOUSE 小象搜房日本</title>
+    <link rel="stylesheet" href="styles.css?v=20260824-17" />
+  </head>
+  <body class="auth-pending">
+    <main class="app">
+      <nav class="topbar" aria-label="页面导航">
+        <a class="topbar-brand" href="index.html">
+          <img src="assets/logoELE.png" alt="LOGOELE" />
+          <span>ZOU SEEKING HOUSE</span>
+        </a>
+      </nav>
+
+      <section class="account-panel" id="accountPanel">
+        <div class="account-head">
+          <div>
+            <p class="eyebrow">Account</p>
+            <h2 id="accountTitle">登录后可以查看 Mypage</h2>
+          </div>
+          <div class="account-actions">
+            <a class="ghost-link account-action-link hidden" href="profile.html">资料</a>
+            <a class="ghost-link account-action-link hidden" href="analysis.html">分析</a>
+            <a class="ghost-link account-action-link hidden" href="index.html">首页</a>
+            <button class="ghost-button hidden" id="logoutButton" type="button">退出</button>
+          </div>
+        </div>
+
+        <p class="account-copy" id="accountCopy">未登录不能查看自己的查询任务。小象很八卦，但还是讲隐私。</p>
+
+        <div class="account-tabs" id="accountTabs">
+          <button class="tab active" id="showLogin" type="button">登录</button>
+          <button class="tab" id="showRegister" type="button">注册</button>
+        </div>
+
+        <form class="account-form" id="loginForm">
+          <input id="loginUsername" type="email" placeholder="邮件" autocomplete="username" />
+          <input id="loginPassword" type="password" placeholder="密码" autocomplete="current-password" />
+          <button type="submit">登录 Mypage</button>
+        </form>
+
+        <form class="account-form hidden" id="registerForm">
+          <input id="registerUsername" type="text" placeholder="用户名" autocomplete="username" />
+          <input id="registerEmail" type="email" placeholder="邮件" autocomplete="email" />
+          <input id="registerPassword" type="password" placeholder="密码" autocomplete="new-password" />
+          <button type="submit">注册并登录</button>
+        </form>
+
+        <p class="form-message" id="formMessage"></p>
+      </section>
+
+      <header class="hero">
+        <div class="brand">
+          <img src="assets/logoELE.png" alt="LOGOELE" />
+          <div>
+            <p class="eyebrow">ZOU SEEKING HOUSE</p>
+            <h1>我的数据工作台</h1>
+          </div>
+        </div>
+        <p class="hero-copy">查过什么、跑到哪一步、结果能不能看，都放这里。首页负责好看，Mypage 负责干活。</p>
+      </header>
+
+      <section class="mypage-panel hidden" id="mypagePanel">
+        <div class="section-title">
+          <p class="eyebrow">Mypage</p>
+          <h2>我的查询任务</h2>
+        </div>
+        <div class="stats-grid" id="myStats"></div>
+        <div class="mypage-head">
+          <p class="query-hint">这里可以看自己的查询记录，手动执行 JPHOUSE，完成后点查看结果。</p>
+          <button class="ghost-button" id="refreshMyPage" type="button">刷新</button>
+        </div>
+        <div class="task-list" id="myTaskList"></div>
+      </section>
+
+      <section class="detail-page hidden" id="detailPage">
+        <button class="back-button" id="backToList" type="button">← 返回 Mypage</button>
+        <div id="detailContent"></div>
+      </section>
+    </main>
+
+    <dialog class="image-dialog" id="imageDialog">
+      <button class="image-close" id="closeImage" type="button">×</button>
+      <img id="largeImage" alt="放大图片" />
+    </dialog>
+
+    <dialog class="progress-dialog" id="progressDialog">
+      <div class="progress-card">
+        <p class="eyebrow">JPHOUSE 正在干活</p>
+        <h2 id="progressTitle">准备查询</h2>
+        <div class="progress-track"><span id="progressBar"></span></div>
+        <ol id="progressSteps"></ol>
+      </div>
+    </dialog>
+
+    <script src="config.js?v=20260824-17"></script>
+    <script src="app.js?v=20260824-17"></script>
+  </body>
+</html>

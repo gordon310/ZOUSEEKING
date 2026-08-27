@@ -1,0 +1,112 @@
+{
+  "template_name": "jphouse",
+  "slug": "jphouse_tokyo_23ku_edogawa_2026_08",
+  "title": "东京江户川区塔楼，租还是买？",
+  "publish_month": "2026年8月",
+  "cover": {
+    "line1": "东京江户川区",
+    "line2": "塔楼租还是买？",
+    "tagline": "我替钱包瞄了一眼",
+    "note": "吃饱饭，没事干，纯分享。"
+  },
+  "intro": [
+    "东京江户川区，大概就是小岩、葛西、西葛西、船堀这一圈。",
+    "葛西、西葛西、小岩周边公寓供应较多。价格嘛，也很懂怎么让钱包保持清醒。"
+  ],
+  "explain": [
+    "小白翻译一下：",
+    "LDK=客厅+餐厅+厨房，前面的数字=卧室数量。",
+    "1LDK差不多一房一厅，2LDK两房一厅，3LDK三房一厅。",
+    "塔楼一般指高层/超高层公寓，这里按公开相场做一个粗略快照。"
+  ],
+  "exchange_rate_note": "汇率按发布当天约算：100日元≈4.23RMB。",
+  "sections": {
+    "rental": {
+      "title": "租房子",
+      "subtitle": "江户川区公开相场快照 · 2026年8月",
+      "note": "汇率约算：100日元≈4.23RMB。钱包自动进入省电模式。",
+      "rows": [
+        {
+          "layout": "1LDK",
+          "area": "约39–45㎡",
+          "amount_jpy": "13.6万日元/月",
+          "amount_rmb": "≈0.58万RMB/月",
+          "unit_jpy": "约3,238日元/㎡/月",
+          "unit_rmb": "≈137RMB/㎡/月"
+        },
+        {
+          "layout": "2LDK",
+          "area": "约59–65㎡",
+          "amount_jpy": "17.2万日元/月",
+          "amount_rmb": "≈0.73万RMB/月",
+          "unit_jpy": "约2,774日元/㎡/月",
+          "unit_rmb": "≈117RMB/㎡/月"
+        },
+        {
+          "layout": "3LDK",
+          "area": "约79–85㎡",
+          "amount_jpy": "24.6万日元/月",
+          "amount_rmb": "≈1.04万RMB/月",
+          "unit_jpy": "约3,000日元/㎡/月",
+          "unit_rmb": "≈127RMB/㎡/月"
+        }
+      ]
+    },
+    "sale": {
+      "title": "买房子",
+      "subtitle": "中古マンション成交均价参考 · 2026年8月",
+      "note": "成交均价来自国交省取引数据整理。钱包先别急着报警。",
+      "rows": [
+        {
+          "layout": "1LDK",
+          "area": "约39–45㎡",
+          "amount_jpy": "约2,325万日元",
+          "amount_rmb": "≈98万RMB",
+          "unit_jpy": "约74.5036万日元/㎡",
+          "unit_rmb": "≈3.2万RMB/㎡"
+        },
+        {
+          "layout": "2LDK",
+          "area": "约59–65㎡",
+          "amount_jpy": "约5,194万日元",
+          "amount_rmb": "≈220万RMB",
+          "unit_jpy": "约74.5036万日元/㎡",
+          "unit_rmb": "≈3.2万RMB/㎡"
+        },
+        {
+          "layout": "3LDK",
+          "area": "约79–85㎡",
+          "amount_jpy": "约5,554万日元",
+          "amount_rmb": "≈235万RMB",
+          "unit_jpy": "约74.5036万日元/㎡",
+          "unit_rmb": "≈3.2万RMB/㎡"
+        }
+      ]
+    }
+  },
+  "summary": {
+    "title": "总而言之",
+    "line": "1LDK｜约7.02%｜2LDK｜约3.97%｜3LDK｜约5.32%",
+    "note": "算法：月租×12÷买房成交均价，钱包看完继续沉默。"
+  },
+  "closing": "数据如有不对，欢迎评论区狠狠地喷，我先把头低下。",
+  "hashtags": [
+    "东京房产",
+    "江户川区房产",
+    "东京塔楼",
+    "日本租房",
+    "日本买房"
+  ],
+  "data_sources": [
+    {
+      "name": "SUUMO 江戸川区租赁相场",
+      "url": "https://suumo.jp/chintai/soba/tokyo/sc_edogawa/?ts=1",
+      "usage": "1LDK/2LDK/3LDK租金相场（2026年7月10日更新；空值保留为暂无样本）"
+    },
+    {
+      "name": "Tochidai 江戸川区中古マンション成交相场",
+      "url": "https://tochidai.info/mansion/tokyo/edogawa/",
+      "usage": "1LDK/2LDK/3LDK成交均价、平米单价（2026年［令和8年］1～3月）"
+    }
+  ]
+}

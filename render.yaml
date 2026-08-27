@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: zouseeking-api-staging
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health/ready
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.11"
+      - key: ENVIRONMENT
+        value: staging
+      - key: INIT_SCHEMA
+        value: "false"
+      - key: APP_VERSION
+        value: staging
+      - key: ALLOWED_ORIGINS
+        value: "https://gordon310.github.io,http://127.0.0.1:8790,http://localhost:8790"
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: INTERNAL_DIAGNOSTICS_TOKEN
+        sync: false
+
+  - type: web
+    name: zouseeking-web-staging
+    runtime: static
+    rootDir: web
+    buildCommand: "true"
+    staticPublishPath: .

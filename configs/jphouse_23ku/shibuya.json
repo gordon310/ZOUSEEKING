@@ -1,0 +1,112 @@
+{
+  "template_name": "jphouse",
+  "slug": "jphouse_tokyo_23ku_shibuya_2026_08",
+  "title": "东京涩谷区塔楼，租还是买？",
+  "publish_month": "2026年8月",
+  "cover": {
+    "line1": "东京涩谷区",
+    "line2": "塔楼租还是买？",
+    "tagline": "我替钱包瞄了一眼",
+    "note": "吃饱饭，没事干，纯分享。"
+  },
+  "intro": [
+    "东京涩谷区，大概就是涩谷、惠比寿、代官山、代代木这一圈。",
+    "涩谷、惠比寿一带高端公寓不少。价格嘛，也很懂怎么让钱包保持清醒。"
+  ],
+  "explain": [
+    "小白翻译一下：",
+    "LDK=客厅+餐厅+厨房，前面的数字=卧室数量。",
+    "1LDK差不多一房一厅，2LDK两房一厅，3LDK三房一厅。",
+    "塔楼一般指高层/超高层公寓，这里按公开相场做一个粗略快照。"
+  ],
+  "exchange_rate_note": "汇率按发布当天约算：100日元≈4.23RMB。",
+  "sections": {
+    "rental": {
+      "title": "租房子",
+      "subtitle": "涩谷区公开相场快照 · 2026年8月",
+      "note": "汇率约算：100日元≈4.23RMB。钱包自动进入省电模式。",
+      "rows": [
+        {
+          "layout": "1LDK",
+          "area": "约39–45㎡",
+          "amount_jpy": "21.6万日元/月",
+          "amount_rmb": "≈0.91万RMB/月",
+          "unit_jpy": "约5,143日元/㎡/月",
+          "unit_rmb": "≈218RMB/㎡/月"
+        },
+        {
+          "layout": "2LDK",
+          "area": "约59–65㎡",
+          "amount_jpy": "37.9万日元/月",
+          "amount_rmb": "≈1.60万RMB/月",
+          "unit_jpy": "约6,113日元/㎡/月",
+          "unit_rmb": "≈259RMB/㎡/月"
+        },
+        {
+          "layout": "3LDK",
+          "area": "约79–85㎡",
+          "amount_jpy": "77.5万日元/月",
+          "amount_rmb": "≈3.28万RMB/月",
+          "unit_jpy": "约9,451日元/㎡/月",
+          "unit_rmb": "≈400RMB/㎡/月"
+        }
+      ]
+    },
+    "sale": {
+      "title": "买房子",
+      "subtitle": "中古マンション成交均价参考 · 2026年8月",
+      "note": "成交均价来自国交省取引数据整理。钱包先别急着报警。",
+      "rows": [
+        {
+          "layout": "1LDK",
+          "area": "约39–45㎡",
+          "amount_jpy": "约10,257万日元",
+          "amount_rmb": "≈434万RMB",
+          "unit_jpy": "约198.608万日元/㎡",
+          "unit_rmb": "≈8.4万RMB/㎡"
+        },
+        {
+          "layout": "2LDK",
+          "area": "约59–65㎡",
+          "amount_jpy": "约18,705万日元",
+          "amount_rmb": "≈791万RMB",
+          "unit_jpy": "约198.608万日元/㎡",
+          "unit_rmb": "≈8.4万RMB/㎡"
+        },
+        {
+          "layout": "3LDK",
+          "area": "约79–85㎡",
+          "amount_jpy": "约26,716万日元",
+          "amount_rmb": "≈1,130万RMB",
+          "unit_jpy": "约198.608万日元/㎡",
+          "unit_rmb": "≈8.4万RMB/㎡"
+        }
+      ]
+    }
+  },
+  "summary": {
+    "title": "总而言之",
+    "line": "1LDK｜约2.53%｜2LDK｜约2.43%｜3LDK｜约3.48%",
+    "note": "算法：月租×12÷买房成交均价，钱包看完继续沉默。"
+  },
+  "closing": "数据如有不对，欢迎评论区狠狠地喷，我先把头低下。",
+  "hashtags": [
+    "东京房产",
+    "涩谷区房产",
+    "东京塔楼",
+    "日本租房",
+    "日本买房"
+  ],
+  "data_sources": [
+    {
+      "name": "SUUMO 渋谷区租赁相场",
+      "url": "https://suumo.jp/chintai/soba/tokyo/sc_shibuya/?ts=1",
+      "usage": "1LDK/2LDK/3LDK租金相场（2026年7月10日更新；空值保留为暂无样本）"
+    },
+    {
+      "name": "Tochidai 渋谷区中古マンション成交相场",
+      "url": "https://tochidai.info/mansion/tokyo/shibuya/",
+      "usage": "1LDK/2LDK/3LDK成交均价、平米单价（2026年［令和8年］1～3月）"
+    }
+  ]
+}

@@ -1,0 +1,112 @@
+{
+  "template_name": "jphouse",
+  "slug": "jphouse_yokohama_kanazawa_tower_2026_08",
+  "title": "横滨金泽区塔楼，租还是买？",
+  "publish_month": "2026年8月",
+  "generated_at": "2026-08-23",
+  "status": "generated",
+  "cover": {
+    "line1": "横滨金泽区",
+    "line2": "塔楼租还是买？",
+    "tagline": "我替钱包瞄了一眼",
+    "note": "公开相场数据快照"
+  },
+  "intro": [
+    "横滨金泽区，大概就是金泽文库、金泽八景、能见台这一圈。",
+    "生活和海边感都比较强，塔楼密度不算特别夸张。这里按公开相场做一份数据快照。"
+  ],
+  "explain": [
+    "小白翻译一下：",
+    "LDK=客厅+餐厅+厨房，前面的数字=卧室数量。",
+    "1LDK差不多一房一厅，2LDK两房一厅，3LDK三房一厅。",
+    "塔楼一般指高层/超高层公寓，这里按公开相场做一个粗略快照。"
+  ],
+  "exchange_rate_note": "汇率按发布当天约算：100日元≈4.23RMB。",
+  "sections": {
+    "rental": {
+      "title": "租房子",
+      "subtitle": "横滨金泽区公开相场快照 · 2026年8月",
+      "note": "汇率约算：100日元≈4.23RMB。",
+      "rows": [
+        {
+          "layout": "1LDK",
+          "area": "约39–45㎡",
+          "amount_jpy": "11.4万日元/月",
+          "amount_rmb": "≈0.48万RMB/月",
+          "unit_jpy": "约2,714日元/㎡/月",
+          "unit_rmb": "≈115RMB/㎡/月"
+        },
+        {
+          "layout": "2LDK",
+          "area": "约59–65㎡",
+          "amount_jpy": "14.7万日元/月",
+          "amount_rmb": "≈0.62万RMB/月",
+          "unit_jpy": "约2,371日元/㎡/月",
+          "unit_rmb": "≈100RMB/㎡/月"
+        },
+        {
+          "layout": "3LDK",
+          "area": "约79–85㎡",
+          "amount_jpy": "22.4万日元/月",
+          "amount_rmb": "≈0.95万RMB/月",
+          "unit_jpy": "约2,732日元/㎡/月",
+          "unit_rmb": "≈116RMB/㎡/月"
+        }
+      ]
+    },
+    "sale": {
+      "title": "买房子",
+      "subtitle": "中古マンション成交均价参考 · 2026年8月",
+      "note": "成交均价来自国交省取引数据整理。",
+      "rows": [
+        {
+          "layout": "1LDK",
+          "area": "约39–45㎡",
+          "amount_jpy": "约2,340万日元",
+          "amount_rmb": "≈99万RMB",
+          "unit_jpy": "约33.9815万日元/㎡",
+          "unit_rmb": "≈1.4万RMB/㎡"
+        },
+        {
+          "layout": "2LDK",
+          "area": "约59–65㎡",
+          "amount_jpy": "约2,340万日元",
+          "amount_rmb": "≈99万RMB",
+          "unit_jpy": "约33.9815万日元/㎡",
+          "unit_rmb": "≈1.4万RMB/㎡"
+        },
+        {
+          "layout": "3LDK",
+          "area": "约79–85㎡",
+          "amount_jpy": "约2,816万日元",
+          "amount_rmb": "≈119万RMB",
+          "unit_jpy": "约33.9815万日元/㎡",
+          "unit_rmb": "≈1.4万RMB/㎡"
+        }
+      ]
+    }
+  },
+  "summary": {
+    "title": "总而言之",
+    "line": "1LDK｜约5.85%｜2LDK｜约7.54%｜3LDK｜约9.55%",
+    "note": "算法：月租×12÷买房成交均价，只看公开相场，不替钱包做主。"
+  },
+  "hashtags": [],
+  "data_sources": [
+    {
+      "name": "SUUMO 横浜市金沢区租赁相场",
+      "url": "https://suumo.jp/chintai/soba/kanagawa/sc_yokohamashikanazawa/?ts=1",
+      "usage": "1LDK/2LDK/3LDK租金相场（2026年7月10日更新；空值保留为暂无样本）"
+    },
+    {
+      "name": "Tochidai 横浜市金沢区中古マンション成交相场",
+      "url": "https://tochidai.info/mansion/kanagawa/yokohama-kanazawa/",
+      "usage": "1LDK/2LDK/3LDK成交均价、平米单价（2026年［令和8年］1～3月）"
+    },
+    {
+      "name": "JPY/CNY 汇率参考",
+      "url": "https://www.fx-rate.net/JPY/CNY/",
+      "usage": "发布日附近汇率约算：100日元≈4.23RMB"
+    }
+  ]
+}

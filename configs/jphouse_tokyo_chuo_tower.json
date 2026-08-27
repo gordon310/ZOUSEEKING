@@ -1,0 +1,122 @@
+{
+  "template_name": "jphouse",
+  "slug": "jphouse_tokyo_chuo_tower_2026_08",
+  "title": "东京中央区塔楼，租还是买？",
+  "publish_month": "2026年8月",
+  "cover": {
+    "line1": "东京中央区",
+    "line2": "塔楼租还是买？",
+    "tagline": "我替钱包又瞄了一眼",
+    "note": "吃饱饭，没事干，纯分享。"
+  },
+  "intro": [
+    "东京中央区，大概就是银座、日本桥、月岛、胜哄、晴海这一圈。",
+    "白天是金融商业中心，晚上是湾岸塔楼灯光秀，价格嘛，也挺会给钱包上强度。"
+  ],
+  "explain": [
+    "小白翻译一下：",
+    "LDK=客厅+餐厅+厨房，前面的数字=卧室数量。",
+    "1LDK差不多一房一厅，2LDK两房一厅，3LDK三房一厅。",
+    "塔楼一般指高层/超高层公寓，月岛、胜哄、晴海这一带尤其多。"
+  ],
+  "exchange_rate_note": "汇率按发布当天约算：100日元≈4.23RMB。",
+  "sections": {
+    "rental": {
+      "title": "租房子",
+      "subtitle": "中央区公开相场快照 · 2026年8月",
+      "note": "汇率约算：100日元≈4.23RMB。中央区不愧是中央，钱包也站C位。",
+      "rows": [
+        {
+          "layout": "1LDK",
+          "area": "约40–45㎡",
+          "amount_jpy": "20.5万日元/月",
+          "amount_rmb": "≈0.87万RMB/月",
+          "unit_jpy": "约5,442日元/㎡/月",
+          "unit_rmb": "≈230RMB/㎡/月"
+        },
+        {
+          "layout": "2LDK",
+          "area": "约55–65㎡",
+          "amount_jpy": "29.0万日元/月",
+          "amount_rmb": "≈1.23万RMB/月",
+          "unit_jpy": "约5,694日元/㎡/月",
+          "unit_rmb": "≈241RMB/㎡/月"
+        },
+        {
+          "layout": "3LDK",
+          "area": "约75–85㎡",
+          "amount_jpy": "38.1万日元/月",
+          "amount_rmb": "≈1.61万RMB/月",
+          "unit_jpy": "约6,242日元/㎡/月",
+          "unit_rmb": "≈264RMB/㎡/月"
+        }
+      ]
+    },
+    "sale": {
+      "title": "买房子",
+      "subtitle": "中古マンション挂牌中位数 · 2026年8月",
+      "note": "汇率约算：100日元≈4.23RMB。看完以后，钱包开始申请静音。",
+      "rows": [
+        {
+          "layout": "1LDK",
+          "area": "约40–45㎡",
+          "amount_jpy": "约9,980万日元",
+          "amount_rmb": "≈422万RMB",
+          "unit_jpy": "约212万日元/㎡",
+          "unit_rmb": "≈9.0万RMB/㎡"
+        },
+        {
+          "layout": "2LDK",
+          "area": "约55–65㎡",
+          "amount_jpy": "约1.43亿日元",
+          "amount_rmb": "≈604万RMB",
+          "unit_jpy": "约227万日元/㎡",
+          "unit_rmb": "≈9.6万RMB/㎡"
+        },
+        {
+          "layout": "3LDK",
+          "area": "约75–85㎡",
+          "amount_jpy": "约1.82亿日元",
+          "amount_rmb": "≈772万RMB",
+          "unit_jpy": "约233万日元/㎡",
+          "unit_rmb": "≈9.9万RMB/㎡"
+        }
+      ]
+    }
+  },
+  "summary": {
+    "title": "总而言之",
+    "line": "1LDK｜约2.46%｜2LDK｜约2.44%｜3LDK｜约2.51%",
+    "note": "算法：月租×12÷买房中位数，钱包看完继续保持礼貌沉默。"
+  },
+  "closing": "数据如有不对，欢迎评论区狠狠地喷，我先把头低下。",
+  "hashtags": [
+    "东京房产",
+    "中央区房产",
+    "东京塔楼",
+    "日本租房",
+    "日本买房"
+  ],
+  "data_sources": [
+    {
+      "name": "SUUMO 中央区租赁相场",
+      "url": "https://suumo.jp/chintai/soba/tokyo/sc_chuo/",
+      "usage": "1LDK/2LDK/3LDK租金相场"
+    },
+    {
+      "name": "e-room 中央区家賃相場",
+      "url": "https://e-room.co/market.php",
+      "usage": "租赁㎡单价、平均面积"
+    },
+    {
+      "name": "Bukken Watch 中央区中古マンション相场 2026年8月版",
+      "url": "https://bukken-watch.jp/monthly/tokyo-chuo-mansion.html",
+      "usage": "买房挂牌中位数、面积、㎡单价"
+    },
+    {
+      "name": "Tochidai / 国交省取引価格データ整理",
+      "url": "https://tochidai.info/mansion/tokyo/chuo/",
+      "usage": "成交数据参考口径"
+    }
+  ]
+}

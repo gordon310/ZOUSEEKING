@@ -1,0 +1,7 @@
+record_date,market,status,prefecture,ward,building_name,area_sqm,amount_yen,source_url,verified_on,rights_confirmed,layout,station,walk_minutes
+2023-05-18,rental,listing,Tokyo,Minato,匿名化塔楼A,54.2,285000,https://example.com/authorized-record/001,2026-08-23,yes,1LDK,Shinbashi,8
+2024-06-09,rental,listing,Tokyo,Minato,匿名化塔楼A,56,310000,https://example.com/authorized-record/002,2026-08-23,yes,1LDK,Shinbashi,8
+2025-08-21,rental,listing,Tokyo,Minato,匿名化塔楼A,55.1,325000,https://example.com/authorized-record/003,2026-08-23,yes,1LDK,Shinbashi,8
+2023-09-12,sale,closed,Tokyo,Minato,匿名化塔楼B,61.3,148000000,https://example.com/authorized-record/004,2026-08-23,yes,1LDK,Tamachi,7
+2024-10-25,sale,closed,Tokyo,Minato,匿名化塔楼B,60.8,159000000,https://example.com/authorized-record/005,2026-08-23,yes,1LDK,Tamachi,7
+2025-11-07,sale,closed,Tokyo,Minato,匿名化塔楼B,62.1,172000000,https://example.com/authorized-record/006,2026-08-23,yes,1LDK,Tamachi,7

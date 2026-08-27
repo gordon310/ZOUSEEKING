@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import re
 from pathlib import Path
@@ -97,4 +99,3 @@ def fallback_sources(prefecture: str, city: str, ward: str | None) -> list[dict[
         {"name": "LIFULL HOME'S", "role": "备用租赁/出售相场", "url": "https://www.homes.co.jp/"},
         {"name": "At Home", "role": f"备用房源检索：{area}", "url": "https://www.athome.co.jp/"},
     ]
-

@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="提交大阪二手公寓资料，先查看资料完整度和免费项目预览。" />
+    <title>分析一个日本房产｜小象搜房日本</title>
+    <link rel="icon" href="assets/logoELE.png" />
+    <link rel="stylesheet" href="property-analysis.css" />
+  </head>
+  <body>
+    <main class="intake-shell">
+      <nav class="intake-nav" aria-label="页面导航">
+        <a class="intake-brand" href="index.html">
+          <img src="assets/logoELE.png" alt="小象搜房日本" />
+          <span>小象搜房日本</span>
+        </a>
+        <a class="return-link" href="index.html">回到首页</a>
+      </nav>
+
+      <header class="intake-hero">
+        <h1>分析一个日本房产</h1>
+        <p>把房源资料交给小象，先整理事实、来源和缺口，再决定要不要继续了解。</p>
+      </header>
+
+      <ol class="intake-progress" aria-label="分析步骤">
+        <li data-stage="purpose" data-step="1"><span>1</span><span>选择目的</span></li>
+        <li data-stage="submit" data-step="2" class="is-current" aria-current="step"><span>2</span><span>提交资料</span></li>
+        <li data-stage="confirm" data-step="3"><span>3</span><span>确认字段</span></li>
+        <li data-stage="preview" data-step="4"><span>4</span><span>免费预览</span></li>
+        <li data-stage="save" data-step="5"><span>5</span><span>注册保存</span></li>
+      </ol>
+
+      <p id="intakeStatus" class="intake-status" role="alert" aria-live="assertive" tabindex="-1"></p>
+
+      <section id="submitStep" class="intake-section" aria-labelledby="submitHeading">
+        <div class="section-heading">
+          <p class="section-kicker">Step 1–2</p>
+          <h2 id="submitHeading">选择目的，提交资料</h2>
+        </div>
+        <form id="submitForm">
+          <fieldset class="purpose-fieldset">
+            <legend>主要目的</legend>
+            <div class="purpose-options">
+              <label class="purpose-option">
+                <input type="radio" name="purpose" value="self_use" checked />
+                <span>自住</span>
+              </label>
+              <label class="purpose-option">
+                <input type="radio" name="purpose" value="rental_investment" />
+                <span>投资出租</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <label class="field-label" for="propertySource">房源链接或说明</label>
+          <textarea
+            id="propertySource"
+            name="propertySource"
+            rows="5"
+            maxlength="20000"
+            placeholder="粘贴 HTTPS 房源链接，或写下地址、售价、面积等已知信息"
+          ></textarea>
+          <p class="field-help">暂时无法读取的链接，可以直接输入你合法持有的资料摘要。</p>
+
+          <label class="field-label" for="propertyFiles">上传资料</label>
+          <input id="propertyFiles" name="propertyFiles" type="file" accept=".pdf,.jpg,.jpeg,.png" multiple />
+          <p class="field-help">仅支持 PDF、JPG、PNG；单个文件最多 20 MiB。第一版上传后等待自动提取，你可以先手动确认。</p>
+
+          <button id="submitButton" class="primary-action" type="submit">开始整理资料</button>
+        </form>
+      </section>
+
+      <section id="confirmStep" class="intake-section" aria-labelledby="confirmHeading" hidden>
+        <div class="section-heading">
+          <p class="section-kicker">Step 3</p>
+          <h2 id="confirmHeading">核对关键字段</h2>
+          <p>下面的值由你确认后才会进入预览。没有证据的字段不会被小象擅自补齐。</p>
+        </div>
+        <dl class="submission-summary">
+          <div><dt>已提交资料</dt><dd id="sourceSummary"></dd></div>
+          <div><dt>处理状态</dt><dd id="inputSummary">等待提交</dd></div>
+        </dl>
+        <form id="confirmForm" class="confirm-form">
+          <div class="field-grid">
+            <label class="field-label" for="askingPrice">售价（日元）</label>
+            <input id="askingPrice" data-field="asking_price_jpy" type="number" min="0" inputmode="numeric" />
+
+            <label class="field-label" for="areaSqm">专有面积（平方米）</label>
+            <input id="areaSqm" data-field="area_sqm" type="number" min="0" step="0.01" inputmode="decimal" />
+
+            <label class="field-label" for="buildingName">项目名称</label>
+            <input id="buildingName" data-field="building_name" type="text" />
+
+            <label class="field-label" for="address">完整地址</label>
+            <input id="address" data-field="address" type="text" />
+
+            <label class="field-label" for="landRight">土地权利</label>
+            <input id="landRight" data-field="land_right" type="text" />
+          </div>
+          <p class="field-help">每项都可以留空或标记为不知道；这会显示为资料不足，不会直接变成风险结论。</p>
+          <button id="previewButton" class="primary-action" type="submit">生成免费预览</button>
+        </form>
+      </section>
+
+      <section id="previewStep" class="intake-section preview-section-wrap" aria-labelledby="previewHeading" hidden>
+        <div class="section-heading">
+          <p class="section-kicker">Step 4</p>
+          <h2 id="previewHeading">免费项目预览</h2>
+          <p>这是当前资料的可追溯整理结果，不是完整估价、税务意见或法律结论。</p>
+        </div>
+        <div id="previewContent"></div>
+        <section class="save-project" aria-labelledby="saveHeading">
+          <p class="section-kicker">Step 5</p>
+          <h3 id="saveHeading">注册后保存这个项目</h3>
+          <p>登录 Supabase 账户后，小象会把临时资料绑定到你的账户；匿名项目会在 24 小时后到期。</p>
+          <button id="saveProjectButton" class="primary-action" type="button">登录后保存项目</button>
+          <a class="secondary-action" href="index.html">去首页登录或注册</a>
+        </section>
+      </section>
+    </main>
+
+    <script src="config.js"></script>
+    <script type="module" src="js/property-intake.js"></script>
+  </body>
+</html>

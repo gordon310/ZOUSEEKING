@@ -1,13 +1,17 @@
+from __future__ import annotations
+
 import os
 import json
 from contextlib import asynccontextmanager
-from typing import Any
+from typing import Any, Optional
 
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from .db import close, connect, get_pool, init_schema
 from .auth import AuthUser, require_user
+from .intake import storage as intake_storage
+from .intake.repository import IntakeRepository
 from .jphouse_service import (
     fallback_sources,
     match_local_record,
@@ -18,6 +22,7 @@ from .jphouse_service import (
 )
 from .models import JobResponse, QueryRequest, QueryResponse
 from .routes.health import router as health_router
+from .routes.intake import cleanup_expired_sessions, router as intake_router
 
 
 ALLOWED_ORIGINS = [
@@ -35,6 +40,7 @@ async def lifespan(app: FastAPI):
     await connect()
     if os.getenv("INIT_SCHEMA", "true").lower() == "true":
         await init_schema()
+    await cleanup_expired_sessions(IntakeRepository(get_pool()), intake_storage)
     yield
     await close()
 
@@ -48,10 +54,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(health_router)
+app.include_router(intake_router)
 
 
 @app.get("/internal/provenance/diagnostics")
-async def provenance_diagnostics(x_internal_diagnostics_token: str | None = Header(default=None)) -> dict[str, str]:
+async def provenance_diagnostics(x_internal_diagnostics_token: Optional[str] = Header(default=None)) -> dict[str, str]:
     """Return safe source status metadata; never return raw documents or secrets."""
 
     expected = os.getenv("INTERNAL_DIAGNOSTICS_TOKEN", "")

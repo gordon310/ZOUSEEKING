@@ -24,6 +24,12 @@ services:
         sync: false
       - key: SUPABASE_ANON_KEY
         sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: INTAKE_BUCKET
+        value: property-intake
+      - key: ABUSE_HASH_SALT
+        sync: false
       - key: INTERNAL_DIAGNOSTICS_TOKEN
         sync: false
 

@@ -120,6 +120,27 @@ h1 {
   line-height: 1.65;
 }
 
+.primary-product-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  margin-top: 16px;
+  padding: 10px 16px;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.primary-product-link:focus-visible {
+  outline: 3px solid #3677ff;
+  outline-offset: 3px;
+}
+
 .latest-panel,
 .account-panel,
 .query-panel,

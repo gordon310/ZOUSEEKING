@@ -40,7 +40,7 @@
 
 1. 已完成对 `zoubeacon-staging` 应用 migration 004，并验证 foundation 表、intake 表、RLS 和约束；已创建并验证 private `property-intake` bucket（20 MiB，仅 `application/pdf`、`image/jpeg`、`image/png`，未添加针对该 bucket 的 object policy）。
 2. 已在 Render staging API 配置 `SUPABASE_SERVICE_ROLE_KEY`、新生成的 `ABUSE_HASH_SALT`；`INTAKE_BUCKET=property-intake` 已由 Blueprint 同步，现有 Supabase staging 连接信息保留；只通过 `render.yaml` 的 `sync: false` 声明 secret 键名。
-3. 对 staging 运行仅含 `synthetic_fixture` 的 smoke flow：匿名会话、文字/文件、字段确认、预览、用户 A 转正、用户 B 拒绝、幂等转换和过期清理。
+3. 已完成 staging 仅含 `synthetic_fixture` 的 smoke flow：匿名会话、文字/PDF、字段确认、预览、用户 A 转正、用户 B 拒绝、幂等转换和过期清理；测试数据已回收。
 4. 继续拆分旧区域报告的 Supabase REST / Edge Function / local worker 路径；在独立架构决策前不把它们并入新 intake API。
 
 ## Osaka intake implementation (2026-08-27)
@@ -52,9 +52,12 @@
 - 本地验证：`36 passed`（unit/api/smoke）、Playwright Chrome `3 passed`（移动端免费预览、非法文件错误状态、已登录保存）、Python compileall、三个 JS `node --check`、`pip check` 均通过。
 - 已完成 staging migration 004 验收：远端 history 与本地一致，schema assertions 通过，dry-run 报告 `Remote database is up to date`。
 - 已完成 staging Storage bucket 验收：控制台显示 bucket 创建成功；SQL Editor 只读查询确认 `public=false`、`file_size_limit=20971520`、三个 MIME 类型配置正确，匹配的 object policy 数为 0。
-- Render staging 部署：`zouseeking-api-staging` 已从 GitHub `main` 的 `27daf90` 构建并上线；Render 内部 `/health/ready` 返回 `200 OK`，服务连接数据库成功。已配置 intake 所需 secrets 与 `INTAKE_BUCKET=property-intake`，未将 secret 写入仓库。
+- Render staging 部署：`zouseeking-api-staging` 已从 GitHub `main` 的 `c376099` 构建并上线；Render 内部 `/health/ready` 返回 `200 OK`，服务连接数据库成功。已配置 intake 所需 secrets 与 `INTAKE_BUCKET=property-intake`，未将 secret 写入仓库。
+- 已修正 Render staging 的 Auth 公钥配置：旧 `SUPABASE_ANON_KEY` 已失效，已替换为当前 staging publishable key 并重新部署；key 的实际值未写入仓库或文档。
 - Storage 创建后的离线回归：`PYTHONPATH=. backend/.venv/bin/pytest tests/unit tests/api tests/smoke -q` → `36 passed`；Python `compileall` 与三个前端 JS `node --check` 均通过。
-- 尚未执行：staging synthetic smoke、真实账号或真实用户文件 smoke test。
+- staging synthetic smoke 已通过：`/health/live`、`/health/ready` 均为 200；文字/PDF、字段确认和预览均成功，预览保持 `comparable_status=not_checked` 且未生成虚假的取得成本总额；用户 A 转正为 200，重复转正复用同一 property，用户 B 读取和转正均为 404。
+- 过期清理已通过：会话转为 `expired`，对应 private Storage 对象被删除；3 个临时会话、property 和 2 个临时 synthetic Auth 用户均已删除，清理后目标记录与对象计数均为 0。
+- 尚未执行：真实账号或真实用户文件 smoke test；本次线上验证未使用真实账号或真实房产资料。
 - 已知边界：当前使用 Playwright fallback，因为 `browse` CLI 不可用；Image Gen 概念图请求返回 404，因此视觉 QA 以仓库现有视觉系统和本地截图为基准。
 
 ## Known issues

@@ -22,3 +22,6 @@ coverage/
 AGENTS-OLD.md
 CLAUDE-old.md
 .tools/
+
+web/library/
+web/content-library.json

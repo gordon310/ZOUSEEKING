@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>前端流程评审｜小象避坑</title>
+    <link rel="stylesheet" href="project-workspace.css?v=20260828-01" />
+    <style>
+      .review-page { width: min(100% - 48px, 1240px); margin: 0 auto; padding: 36px 0 72px; }
+      .review-header-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+      .review-lead { max-width: 800px; }
+      .review-lead p { color: var(--navy-soft); }
+      .review-lead h1 { margin-bottom: 12px; }
+      .review-flow-note { margin-top: 20px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--white); color: var(--navy-soft); font-size: 13px; }
+      .review-flow-note strong { color: var(--navy); }
+      .review-role-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 22px; }
+      .review-role { min-width: 0; padding: 18px; border: 1px solid var(--line); border-top: 4px solid var(--navy); border-radius: var(--radius-md); background: var(--white); box-shadow: var(--shadow-soft); }
+      .review-role-consumer { border-top-color: var(--orange); }
+      .review-role-business { border-top-color: #2f70ef; }
+      .review-role-admin { border-top-color: var(--navy); }
+      .review-role-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+      .review-role h2 { margin: 0; font-size: 20px; }
+      .review-role p { min-height: 62px; margin: 9px 0 15px; color: var(--navy-soft); font-size: 13px; line-height: 1.55; }
+      .review-density { flex: 0 0 auto; color: var(--muted); font-size: 10px; font-weight: 800; text-align: right; }
+      .review-links { display: grid; gap: 8px; }
+      .review-link { display: grid; gap: 2px; padding: 10px 11px; border: 1px solid var(--line); border-radius: var(--radius-sm); color: var(--navy); text-decoration: none; }
+      .review-link:hover { border-color: var(--orange); background: var(--surface-warm); }
+      .review-link strong { font-size: 13px; }
+      .review-link span { color: var(--navy-soft); font-size: 11px; }
+      .review-inline-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+      .review-inline-links a { padding: 5px 7px; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--navy-soft); font-size: 11px; font-weight: 800; text-decoration: none; }
+      .review-inline-links a:hover { border-color: var(--orange); color: var(--orange-dark); }
+      .review-note { margin-top: 22px; padding: 14px; border-left: 4px solid var(--orange); background: var(--surface-warm); color: var(--navy-soft); font-size: 13px; }
+      .review-note strong { color: var(--navy); }
+      @media (max-width: 980px) { .review-role-grid { grid-template-columns: 1fr; } .review-role p { min-height: 0; } }
+      @media (max-width: 740px) { .workspace-header { align-items: flex-start; flex-direction: column; gap: 10px; padding-block: 14px; } .review-header-actions { justify-content: flex-start; } }
+      @media (max-width: 700px) { .review-page { width: min(100% - 32px, 1240px); padding-top: 28px; } .review-role-header { display: grid; gap: 5px; } .review-density { text-align: left; } }
+    </style>
+  </head>
+  <body>
+    <main class="workspace-app">
+      <header class="workspace-header">
+        <a class="workspace-brand" href="index.html" aria-label="返回小象数据">
+          <svg class="workspace-brand-mark" viewBox="150 285 950 700" aria-hidden="true" focusable="false">
+            <defs>
+              <filter id="beacon-logo-color" color-interpolation-filters="sRGB">
+                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -0.2126 -0.7152 -0.0722 0 1" result="logo-alpha" />
+                <feComponentTransfer in="logo-alpha" result="logo-mask"><feFuncA type="discrete" tableValues="0 0 0 0 0 1 1 1 1 1" /></feComponentTransfer>
+                <feFlood flood-color="#10284d" result="logo-color" /><feComposite in="logo-color" in2="logo-mask" operator="in" />
+              </filter>
+            </defs>
+            <image href="assets/logoELE.png" width="1254" height="1254" preserveAspectRatio="none" filter="url(#beacon-logo-color)" />
+          </svg>
+          <span><strong>角色评审</strong><small>ROLE REVIEW</small></span>
+        </a>
+        <div class="review-header-actions">
+          <a class="outline-button" href="property-analysis.html">打开 C 端</a>
+          <a class="outline-button" href="index.html">打开 B 端</a>
+          <a class="outline-button" href="admin.html?demo=1">打开管理员</a>
+        </div>
+      </header>
+
+      <div class="review-page">
+        <div class="review-lead">
+          <p class="eyebrow">FRONTEND FLOW REVIEW</p>
+          <h1>三角色前端界面评审</h1>
+          <p>先确认每个角色看到什么、从哪里开始、下一步做什么。当前页面只用于浏览和确认界面，B 端与管理员的指标、任务均为 synthetic_fixture，不会写入数据库。</p>
+        </div>
+
+        <div class="review-flow-note"><strong>角色关系：</strong> C 端提交需求并接收小象避坑服务 → B 端查询数据、看统计并承接服务任务 → 管理员维护授权数据、质量审核和发布。三类界面先分开确认，权限和数据结构后续再落地。</div>
+
+        <div class="review-role-grid">
+          <section class="review-role review-role-consumer">
+            <div class="review-role-header"><h2>01 · 小象避坑</h2><span class="review-density">C 端 · 引导优先</span></div>
+            <p>面向 app / 小程序 / 网页用户，提交物件资料、查看免费预览和完整报告，并发起陪同看房、人工专家分析或好房推荐。</p>
+            <div class="review-links">
+              <a class="review-link" href="property-analysis.html?demo=1"><strong>提交资料 / 免费预览</strong><span>用途选择、资料上传、字段确认、风险和费用预览</span></a>
+              <a class="review-link" href="projects.html?demo=1"><strong>我的项目</strong><span>项目列表、资料完整度、下一步动作</span></a>
+              <a class="review-link" href="project.html?demo=1&amp;state=completed"><strong>报告工作台</strong><span>完整报告、历史版本、补充资料和失败恢复</span></a>
+              <a class="review-link" href="profile.html?role=consumer"><strong>账户资料</strong><span>账户、安全设置、隐私与服务条款入口</span></a>
+            </div>
+            <div class="review-inline-links" aria-label="小象避坑状态直达"><a href="project.html?demo=1&amp;state=ready">权益已准备</a><a href="project.html?demo=1&amp;state=running">生成中</a><a href="project.html?demo=1&amp;state=failed">生成失败</a><a href="project.html?demo=1&amp;state=update">补充资料</a></div>
+          </section>
+
+          <section class="review-role review-role-business">
+            <div class="review-role-header"><h2>02 · 小象数据</h2><span class="review-density">B 端 · 紧凑协作</span></div>
+            <p>面向数据和服务协作人员，查询公开数据、查看统计分析，也可以接收和推进 C 端服务任务。</p>
+            <div class="review-links">
+              <a class="review-link" href="data-query.html"><strong>数据查询入口</strong><span>地区 / 物件类型 / 年月筛选、结果列表和详情</span></a>
+              <a class="review-link" href="analysis.html"><strong>统计分析</strong><span>趋势、横向比较、样本数和限制说明</span></a>
+              <a class="review-link" href="mypage.html"><strong>数据与服务工作台</strong><span>查询任务、生成状态和个人协作入口</span></a>
+              <a class="review-link" href="profile.html"><strong>账户资料</strong><span>账号、安全设置和只读会员信息</span></a>
+              <a class="review-link" href="organization.html"><strong>机构与成员</strong><span>机构席位、成员角色、合作方状态和邀请演示</span></a>
+              <a class="review-link" href="billing.html"><strong>套餐与账单</strong><span>B Free / B Data Pro、币种、自动续费和账单记录</span></a>
+              <a class="review-link" href="usage.html"><strong>用量与额度</strong><span>机构共享的查询、分析、订阅和导出计量</span></a>
+              <a class="review-link" href="subscriptions.html"><strong>统计订阅</strong><span>保存区域与物件条件，暂停、恢复或删除订阅</span></a>
+              <a class="review-link" href="exports.html"><strong>数据导出</strong><span>选择公开数据集、格式和行数，查看导出队列</span></a>
+              <a class="review-link" href="service-tasks.html"><strong>服务任务池</strong><span>浏览陪同看房、人工专家分析和好房推荐任务</span></a>
+            </div>
+          </section>
+
+          <section class="review-role review-role-admin">
+            <div class="review-role-header"><h2>03 · 后台维护</h2><span class="review-density">管理员 · 最紧凑</span></div>
+            <p>面向工作人员，维护授权数据采集、数据质量、发布门槛和 C 端服务派单；不与 C/B 端混用。</p>
+            <div class="review-links">
+              <a class="review-link" href="admin.html?demo=1"><strong>数据运营总览</strong><span>采集任务、质量审核、发布前检查和服务派单</span></a>
+              <a class="review-link" href="admin.html?demo=1#collection"><strong>采集任务</strong><span>数据源、数据类、运行状态和重试入口</span></a>
+              <a class="review-link" href="admin.html?demo=1#quality"><strong>质量审核</strong><span>来源、期间、单位和建模版本的阻塞项</span></a>
+              <a class="review-link" href="admin.html?demo=1#members"><strong>会员管理</strong><span>会员状态、额度和演示操作；不写入真实会员资料</span></a>
+            </div>
+          </section>
+        </div>
+
+        <div class="review-note"><strong>本轮确认重点：</strong>请先确认三种角色的入口、信息密度、按钮命名和跨角色跳转。C 端保持易懂和留白，B 端/管理员可以更紧凑；逐屏确认后再调整数据结构、migration 和测试数据。</div>
+      </div>
+    </main>
+  </body>
+</html>

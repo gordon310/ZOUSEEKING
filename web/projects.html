@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="小象避坑的物件分析项目列表。" />
+    <title>我的项目｜小象避坑 ZOUBEACON</title>
+    <link rel="icon" href="assets/logoELE-beacon.svg" />
+    <link rel="stylesheet" href="project-workspace.css?v=20260828-01" />
+    <link rel="stylesheet" href="projects.css?v=20260828-01" />
+  </head>
+  <body>
+    <main class="workspace-app">
+      <header class="workspace-header">
+        <a class="workspace-brand" href="property-analysis.html" aria-label="返回小象避坑">
+          <svg class="workspace-brand-mark" viewBox="150 285 950 700" aria-hidden="true" focusable="false">
+            <defs>
+              <filter id="beacon-logo-color" color-interpolation-filters="sRGB">
+                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -0.2126 -0.7152 -0.0722 0 1" result="logo-alpha" />
+                <feComponentTransfer in="logo-alpha" result="logo-mask"><feFuncA type="discrete" tableValues="0 0 0 0 0 1 1 1 1 1" /></feComponentTransfer>
+                <feFlood flood-color="#10284d" result="logo-color" /><feComposite in="logo-color" in2="logo-mask" operator="in" />
+              </filter>
+            </defs>
+            <image href="assets/logoELE.png" width="1254" height="1254" preserveAspectRatio="none" filter="url(#beacon-logo-color)" />
+          </svg>
+          <span><strong>小象避坑</strong><small>ZOUBEACON</small></span>
+        </a>
+        <nav class="workspace-nav" aria-label="项目导航">
+          <a href="property-analysis.html">分析物件</a>
+          <a href="projects.html" aria-current="page">我的项目</a>
+          <a href="profile.html?role=consumer">账户资料</a>
+        </nav>
+        <button class="workspace-menu-toggle" id="projectsMenuToggle" type="button" aria-expanded="false" aria-controls="projectsMenu">菜单</button>
+      </header>
+
+      <nav class="workspace-menu" id="projectsMenu" aria-label="移动端项目导航" hidden>
+        <a href="property-analysis.html">分析物件</a>
+        <a href="projects.html">我的项目</a>
+        <a href="profile.html?role=consumer">账户资料</a>
+      </nav>
+
+      <div class="projects-review-banner" id="projectsReviewBanner" hidden>
+        <strong>界面评审模式</strong>
+        <span>列表内容为 synthetic_fixture 演示，不代表真实项目或分析结论。</span>
+        <label>状态筛选<select id="statusFilter"><option value="all">全部状态</option><option value="draft">资料待确认</option><option value="preview">免费预览</option><option value="running">生成中</option><option value="completed">完整报告</option><option value="failed">生成失败</option></select></label>
+      </div>
+
+      <div class="projects-page">
+        <nav class="breadcrumbs" aria-label="面包屑导航"><a href="property-analysis.html">小象避坑</a><span aria-hidden="true">/</span><span>我的项目</span></nav>
+        <header class="projects-heading">
+          <div>
+            <p class="eyebrow">MY PROJECTS</p>
+            <h1>我的项目</h1>
+            <p>保存过的物件资料、分析进度和报告版本，都从这里继续。</p>
+          </div>
+          <a class="primary-button" href="property-analysis.html?demo=1">分析一个新物件</a>
+        </header>
+
+        <div class="projects-notice" id="projectsNotice" role="status" aria-live="polite"></div>
+
+        <section class="project-list-shell" aria-labelledby="projectListHeading">
+          <div class="project-list-heading">
+            <div><h2 id="projectListHeading">全部项目</h2><p id="projectListDescription">按最近更新排序</p></div>
+            <span class="version-count" id="projectCount">5 个项目</span>
+          </div>
+          <div class="project-list" id="projectList"></div>
+        </section>
+
+        <section class="projects-empty-state" id="projectsEmptyState" hidden aria-labelledby="emptyHeading">
+          <span class="empty-mark" aria-hidden="true">＋</span>
+          <h2 id="emptyHeading">还没有符合条件的项目</h2>
+          <p>可以换一个状态筛选，或者从一个日本物件开始。</p>
+          <a class="outline-button" href="property-analysis.html?demo=1">开始分析</a>
+        </section>
+
+        <footer class="projects-footer"><span>私有项目仅对所属账户可见。</span><a href="ui-review.html">返回前端流程评审</a></footer>
+      </div>
+    </main>
+    <script type="module" src="js/projects.js?v=20260828-01"></script>
+  </body>
+</html>

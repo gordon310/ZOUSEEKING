@@ -33,7 +33,12 @@ async function request(path, { method = "GET", body, sessionToken = "", accessTo
   const payload = parseResponse(response, await response.text());
   if (!response.ok) {
     const detail = payload && typeof payload === "object" ? payload.detail || payload.message : payload;
-    throw new Error(detail || `分析服务请求失败（${response.status}）。`);
+    const message = detail && typeof detail === "object" ? detail.message : detail;
+    const error = new Error(message || `分析服务请求失败（${response.status}）。`);
+    error.status = response.status;
+    error.code = detail && typeof detail === "object" ? detail.code || "" : payload?.code || "";
+    error.payload = payload;
+    throw error;
   }
   return payload;
 }
@@ -71,15 +76,32 @@ export async function uploadFiles(sessionId, sessionToken, files) {
   return results;
 }
 
-export function confirmField(sessionId, sessionToken, fieldName, value, confirmationStatus = "confirmed") {
+export function confirmField(
+  sessionId,
+  sessionToken,
+  fieldName,
+  value,
+  confirmationStatus = "confirmed",
+  { locator = "" } = {},
+) {
+  const body = { field_name: fieldName, value, confirmation_status: confirmationStatus };
+  if (locator) body.locator = locator;
   return request(
     `/api/intake/sessions/${encodeURIComponent(sessionId)}/fields/${encodeURIComponent(fieldName)}`,
     {
       method: "PUT",
       sessionToken,
-      body: { field_name: fieldName, value, confirmation_status: confirmationStatus },
+      body,
     },
   );
+}
+
+export function saveLocation(sessionId, sessionToken, payload) {
+  return request(`/api/intake/sessions/${encodeURIComponent(sessionId)}/location`, {
+    method: "PUT",
+    sessionToken,
+    body: payload,
+  });
 }
 
 export function generatePreview(sessionId, sessionToken) {
@@ -89,12 +111,12 @@ export function generatePreview(sessionId, sessionToken) {
   });
 }
 
-export function convertSession(sessionId, sessionToken, accessToken) {
+export function convertSession(sessionId, sessionToken, accessToken, projectName = "") {
   return request(`/api/intake/sessions/${encodeURIComponent(sessionId)}/convert`, {
     method: "POST",
     sessionToken,
     accessToken,
-    body: {},
+    body: projectName.trim() ? { project_name: projectName.trim() } : {},
   });
 }
 

@@ -3,121 +3,329 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="提交大阪二手公寓资料，先查看资料完整度和免费项目预览。" />
-    <title>分析一个日本房产｜小象搜房日本</title>
-    <link rel="icon" href="assets/logoELE.png" />
-    <link rel="stylesheet" href="property-analysis.css" />
+    <meta name="description" content="提交日本物件资料，先查看资料完整度和免费项目预览。" />
+    <title>分析一个日本物件｜小象避坑 ZOUBEACON</title>
+    <link rel="icon" href="assets/logoELE-beacon.svg?v=20260827-zo" />
+    <link rel="stylesheet" href="property-analysis.css?v=20260828-02" />
   </head>
   <body>
-    <main class="intake-shell">
-      <nav class="intake-nav" aria-label="页面导航">
-        <a class="intake-brand" href="index.html">
-          <img src="assets/logoELE.png" alt="小象搜房日本" />
-          <span>小象搜房日本</span>
+    <main class="beacon-app">
+      <header class="beacon-header">
+        <a class="beacon-brand" href="index.html" aria-label="小象避坑 ZOUBEACON">
+          <svg class="beacon-mark" viewBox="150 285 950 700" aria-hidden="true" focusable="false">
+            <defs>
+              <filter id="beacon-logo-color" color-interpolation-filters="sRGB">
+                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -0.2126 -0.7152 -0.0722 0 1" result="logo-alpha" />
+                <feComponentTransfer in="logo-alpha" result="logo-mask">
+                  <feFuncA type="discrete" tableValues="0 0 0 0 0 1 1 1 1 1" />
+                </feComponentTransfer>
+                <feFlood flood-color="#10284d" result="logo-color" />
+                <feComposite in="logo-color" in2="logo-mask" operator="in" />
+              </filter>
+            </defs>
+            <image href="assets/logoELE.png" width="1254" height="1254" preserveAspectRatio="none" filter="url(#beacon-logo-color)" />
+          </svg>
+          <span class="beacon-brand-copy">
+            <strong>小象避坑</strong>
+            <span>ZOUBEACON</span>
+          </span>
         </a>
-        <a class="return-link" href="index.html">回到首页</a>
-      </nav>
-
-      <header class="intake-hero">
-        <h1>分析一个日本房产</h1>
-        <p>把房源资料交给小象，先整理事实、来源和缺口，再决定要不要继续了解。</p>
+        <button
+          id="menuToggle"
+          class="menu-toggle"
+          type="button"
+          aria-label="打开菜单"
+          aria-expanded="false"
+          aria-controls="beaconMenu"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M4 6.5h16M4 12h16M4 17.5h16" />
+          </svg>
+        </button>
+        <nav id="beaconMenu" class="beacon-menu" aria-label="快捷导航" hidden>
+          <a href="index.html">回到小象数据</a>
+          <a id="reviewLink" href="ui-review.html" hidden>前端流程评审</a>
+        </nav>
       </header>
 
-      <ol class="intake-progress" aria-label="分析步骤">
-        <li data-stage="purpose" data-step="1"><span>1</span><span>选择目的</span></li>
-        <li data-stage="submit" data-step="2" class="is-current" aria-current="step"><span>2</span><span>提交资料</span></li>
-        <li data-stage="confirm" data-step="3"><span>3</span><span>确认字段</span></li>
-        <li data-stage="preview" data-step="4"><span>4</span><span>免费预览</span></li>
-        <li data-stage="save" data-step="5"><span>5</span><span>注册保存</span></li>
-      </ol>
+      <div id="demoBanner" class="demo-banner" hidden>
+        <strong>界面评审模式</strong>
+        <span>当前流程使用 synthetic_fixture 演示，不上传文件、不写入数据库、不代表真实结论。</span>
+      </div>
 
-      <p id="intakeStatus" class="intake-status" role="alert" aria-live="assertive" tabindex="-1"></p>
+      <div class="beacon-page">
+        <ol class="intake-progress desktop-stepper" aria-label="分析步骤">
+          <li data-stage="purpose" data-step="1"><span>1</span><span>选择用途</span></li>
+          <li data-stage="submit" data-step="2" class="is-current" aria-current="step"><span>2</span><span>提交资料</span></li>
+          <li data-stage="confirm" data-step="3"><span>3</span><span>确认字段</span></li>
+          <li data-stage="preview" data-step="4"><span>4</span><span>免费预览</span></li>
+          <li data-stage="save" data-step="5"><span>5</span><span>注册保存</span></li>
+        </ol>
 
-      <section id="submitStep" class="intake-section" aria-labelledby="submitHeading">
-        <div class="section-heading">
-          <p class="section-kicker">Step 1–2</p>
-          <h2 id="submitHeading">选择目的，提交资料</h2>
-        </div>
-        <form id="submitForm">
-          <fieldset class="purpose-fieldset">
-            <legend>主要目的</legend>
-            <div class="purpose-options">
-              <label class="purpose-option">
-                <input type="radio" name="purpose" value="self_use" checked />
-                <span>自住</span>
-              </label>
-              <label class="purpose-option">
-                <input type="radio" name="purpose" value="rental_investment" />
-                <span>投资出租</span>
-              </label>
+        <div class="intake-layout">
+          <div class="main-column">
+            <header class="page-intro">
+              <h1>分析一个日本物件</h1>
+              <p>我们帮你整理物件关键资料、核对潜在风险与合规信息，<br class="desktop-break" />让你看得更清楚，决策更安心。</p>
+            </header>
+
+            <div class="flow-shell">
+              <ol class="mobile-rail-stepper" aria-label="当前分析步骤">
+                <li data-stage="purpose" data-step="1"><span>1</span><span>选择用途</span></li>
+                <li data-stage="submit" data-step="2" class="is-current" aria-current="step"><span>2</span><span>提交资料</span></li>
+                <li data-stage="confirm" data-step="3"><span>3</span><span>确认字段</span></li>
+                <li data-stage="preview" data-step="4"><span>4</span><span>免费预览</span></li>
+                <li data-stage="save" data-step="5"><span>5</span><span>注册保存</span></li>
+              </ol>
+
+              <div class="flow-content">
+                <p id="intakeStatus" class="intake-status" role="alert" aria-live="assertive" tabindex="-1"></p>
+
+                <section id="submitStep" class="intake-section" aria-labelledby="submitHeading">
+                  <div class="section-heading">
+                    <p class="section-number">1.</p>
+                    <h2 id="submitHeading">请选择分析用途</h2>
+                  </div>
+                  <form id="submitForm" novalidate>
+                    <fieldset class="purpose-fieldset">
+                      <legend class="sr-only">主要目的</legend>
+                      <div class="purpose-options">
+                        <label class="purpose-option">
+                          <input type="radio" name="purpose" value="self_use" checked />
+                          <span class="purpose-radio" aria-hidden="true"></span>
+                          <span>自住购买</span>
+                        </label>
+                        <label class="purpose-option">
+                          <input type="radio" name="purpose" value="rental_investment" />
+                          <span class="purpose-radio" aria-hidden="true"></span>
+                          <span>投资出租</span>
+                        </label>
+                      </div>
+                    </fieldset>
+
+                    <label class="field-label required-label" for="assetType">物件类型 / 房型 <span aria-hidden="true">必填</span></label>
+                    <select id="assetType" class="asset-type-select" name="assetType" required aria-describedby="assetTypeHelp">
+                      <option value="">请选择物件类型</option>
+                      <option value="apartment">公寓</option>
+                      <option value="tower">塔楼</option>
+                      <option value="detached_house">一户建</option>
+                      <option value="other">其他物件</option>
+                    </select>
+                    <p id="assetTypeHelp" class="field-help">物件类型是判断费用、风险和可比资料的必要条件，请先选择。</p>
+
+                    <label class="field-label" for="propertySource">物件链接或说明</label>
+                    <div class="textarea-wrap">
+                      <textarea
+                        id="propertySource"
+                        name="propertySource"
+                        rows="5"
+                        maxlength="500"
+                        placeholder="大阪市北区，售价3500万日元，45.2平方米"
+                      ></textarea>
+                      <span id="sourceCharacterCount" class="character-count">0/500</span>
+                    </div>
+                    <p class="field-help">暂时无法读取的链接，可以直接输入你合法持有的资料摘要。</p>
+
+                    <section class="photo-capture-card" aria-labelledby="photoCaptureHeading">
+                      <div class="photo-capture-heading">
+                        <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+                          <rect x="4" y="8" width="24" height="18" rx="3" />
+                          <path d="m10 8 2-3h8l2 3M16 12.5a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z" />
+                        </svg>
+                        <div>
+                          <h3 id="photoCaptureHeading">拍摄物件照片</h3>
+                          <p>拍照后可获取设备位置，生成物件地址建议。</p>
+                        </div>
+                      </div>
+                      <input
+                        id="propertyPhotos"
+                        class="file-input"
+                        name="propertyPhotos"
+                        type="file"
+                        accept="image/jpeg,image/png"
+                        capture="environment"
+                        multiple
+                        aria-describedby="photoCaptureHelp photoSelectionSummary"
+                      />
+                      <label class="sr-only" for="propertyPhotos">物件照片</label>
+                      <div class="photo-capture-actions">
+                        <button id="takePhotoButton" class="secondary-button" type="button">拍摄物件照片</button>
+                        <span id="photoSelectionSummary" class="photo-selection-summary">尚未选择照片</span>
+                      </div>
+                      <p id="photoCaptureHelp" class="field-help">点击“获取照片位置并生成地址”时才会请求定位权限。坐标只用于本次地址建议和调查记录命名，失败时可以手工填写地址。</p>
+                    </section>
+
+                    <label class="field-label" for="propertyFiles">上传 PDF、JPG、PNG，单个文件不超过 20MB</label>
+                    <div class="file-picker">
+                      <input id="propertyFiles" class="file-input" name="propertyFiles" type="file" accept=".pdf,.jpg,.jpeg,.png" multiple />
+                      <label class="file-dropzone" for="propertyFiles">
+                        <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+                          <path d="M16 22V6m0 0-6 6m6-6 6 6M7 18v6.5A2.5 2.5 0 0 0 9.5 27h13a2.5 2.5 0 0 0 2.5-2.5V18" />
+                        </svg>
+                        <span>
+                          <strong>点击上传或拖拽文件到此处</strong>
+                          <small>支持 PDF、JPG、PNG，单个文件不超过 20MB</small>
+                        </span>
+                      </label>
+                    </div>
+
+                    <div class="privacy-note">
+                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="m12 3 7 3v5c0 4.6-2.9 8-7 10-4.1-2-7-5.4-7-10V6l7-3Z" />
+                        <path d="m8.5 12 2.2 2.2 4.8-5" />
+                      </svg>
+                      <span>资料仅用于本次分析，严格保密，不会对外泄露。</span>
+                    </div>
+
+                    <button id="submitButton" class="primary-action" type="submit">开始整理资料</button>
+                    <p class="form-note">
+                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <circle cx="12" cy="12" r="8.5" />
+                        <path d="M12 10.5v5M12 7.5h.01" />
+                      </svg>
+                      <span>请先填写物件信息并上传资料</span>
+                    </p>
+                  </form>
+                </section>
+
+                <section id="confirmStep" class="intake-section" aria-labelledby="confirmHeading" hidden>
+                  <div class="section-heading section-heading-with-status">
+                    <div>
+                      <p class="section-number">3.</p>
+                      <h2 id="confirmHeading">确认字段</h2>
+                    </div>
+                    <span class="status-chip">待确认</span>
+                  </div>
+                  <p class="section-description">请确认识别到的关键信息是否准确，可直接修改。</p>
+                  <dl class="submission-summary">
+                    <div><dt>物件类型</dt><dd id="assetTypeSummary">未选择</dd></div>
+                    <div><dt>已提交资料</dt><dd id="sourceSummary"></dd></div>
+                    <div><dt>处理状态</dt><dd id="inputSummary">等待提交</dd></div>
+                  </dl>
+                  <section class="location-card" aria-labelledby="locationHeading">
+                    <div class="location-card-heading">
+                      <div>
+                        <h3 id="locationHeading">照片位置与地址建议</h3>
+                        <p>系统只返回可用的区域级候选地址，最终地址请你确认或补全到楼栋/房号。</p>
+                      </div>
+                      <span class="status-chip">可选</span>
+                    </div>
+                    <button id="locationButton" class="secondary-button" type="button" disabled>获取照片位置并生成地址</button>
+                    <p id="locationStatus" class="location-status" data-testid="location-status" aria-live="polite">拍摄照片后，可以在这里请求位置权限。</p>
+                    <div class="location-candidate">
+                      <span>系统建议地址（待确认）</span>
+                      <output id="locationCandidate" data-testid="location-candidate">尚未获取</output>
+                    </div>
+                  </section>
+                  <form id="confirmForm" class="confirm-form">
+                    <div class="field-grid">
+                      <label class="field-label" for="askingPrice">售价（日元）</label>
+                      <input id="askingPrice" data-field="asking_price_jpy" type="number" min="0" inputmode="numeric" placeholder="例如 35000000" />
+
+                      <label class="field-label" for="areaSqm">专有面积（平方米）</label>
+                      <input id="areaSqm" data-field="area_sqm" type="number" min="0" step="0.01" inputmode="decimal" placeholder="例如 45.2" />
+
+                      <label class="field-label" for="buildingName">项目名称</label>
+                      <input id="buildingName" data-field="building_name" type="text" placeholder="不知道可以留空" />
+
+                      <label class="field-label" for="address">完整地址</label>
+                      <input id="address" data-field="address" type="text" placeholder="不知道可以留空" />
+
+                      <label class="field-label" for="landRight">土地权利</label>
+                      <input id="landRight" data-field="land_right" type="text" placeholder="例如 所有权" />
+                    </div>
+                    <p class="field-help">已确认的字段才会进入预览；没有证据的字段会显示为资料不足。</p>
+                    <div class="completion-strip">
+                      <span>已填写 <strong id="confirmedFieldCount">0/5 项</strong></span>
+                      <span id="confirmedFieldPercent">0%</span>
+                    </div>
+                    <div class="completion-bar" aria-hidden="true"><span id="confirmedFieldBar"></span></div>
+                    <button id="previewButton" class="primary-action" type="submit">生成免费预览</button>
+                  </form>
+                </section>
+
+                <section id="previewStep" class="intake-section preview-section-wrap" aria-labelledby="previewHeading" hidden>
+                  <div class="section-heading">
+                    <p class="section-number">4.</p>
+                    <h2 id="previewHeading">免费项目预览</h2>
+                  </div>
+                  <p class="section-description">这是当前资料的可追溯整理结果，不是完整估价、税务意见或法律结论。</p>
+                  <div id="previewContent"></div>
+                  <section class="save-project" aria-labelledby="saveHeading">
+                    <p class="section-number">5.</p>
+                    <h3 id="saveHeading">注册后保存这个项目</h3>
+                    <p>登录账户后，小象会把临时资料绑定到你的账户；匿名项目会在 24 小时后到期。</p>
+                    <label class="field-label" for="projectName">调查记录名称</label>
+                    <input id="projectName" name="projectName" type="text" maxlength="200" aria-describedby="projectNameHelp" placeholder="默认使用已确认地址" />
+                    <p id="projectNameHelp" class="project-name-help">默认使用已确认地址；如果同一地址已有记录，系统会要求你手工修改名称。</p>
+                    <button id="saveProjectButton" class="primary-action" type="button">登录后保存项目</button>
+                    <a id="savedProjectLink" class="secondary-action hidden" href="project.html?demo=1&amp;state=ready">查看项目工作台界面演示</a>
+                    <a class="secondary-action" href="index.html">去首页登录或注册</a>
+                  </section>
+                </section>
+              </div>
             </div>
-          </fieldset>
-
-          <label class="field-label" for="propertySource">房源链接或说明</label>
-          <textarea
-            id="propertySource"
-            name="propertySource"
-            rows="5"
-            maxlength="20000"
-            placeholder="粘贴 HTTPS 房源链接，或写下地址、售价、面积等已知信息"
-          ></textarea>
-          <p class="field-help">暂时无法读取的链接，可以直接输入你合法持有的资料摘要。</p>
-
-          <label class="field-label" for="propertyFiles">上传资料</label>
-          <input id="propertyFiles" name="propertyFiles" type="file" accept=".pdf,.jpg,.jpeg,.png" multiple />
-          <p class="field-help">仅支持 PDF、JPG、PNG；单个文件最多 20 MiB。第一版上传后等待自动提取，你可以先手动确认。</p>
-
-          <button id="submitButton" class="primary-action" type="submit">开始整理资料</button>
-        </form>
-      </section>
-
-      <section id="confirmStep" class="intake-section" aria-labelledby="confirmHeading" hidden>
-        <div class="section-heading">
-          <p class="section-kicker">Step 3</p>
-          <h2 id="confirmHeading">核对关键字段</h2>
-          <p>下面的值由你确认后才会进入预览。没有证据的字段不会被小象擅自补齐。</p>
-        </div>
-        <dl class="submission-summary">
-          <div><dt>已提交资料</dt><dd id="sourceSummary"></dd></div>
-          <div><dt>处理状态</dt><dd id="inputSummary">等待提交</dd></div>
-        </dl>
-        <form id="confirmForm" class="confirm-form">
-          <div class="field-grid">
-            <label class="field-label" for="askingPrice">售价（日元）</label>
-            <input id="askingPrice" data-field="asking_price_jpy" type="number" min="0" inputmode="numeric" />
-
-            <label class="field-label" for="areaSqm">专有面积（平方米）</label>
-            <input id="areaSqm" data-field="area_sqm" type="number" min="0" step="0.01" inputmode="decimal" />
-
-            <label class="field-label" for="buildingName">项目名称</label>
-            <input id="buildingName" data-field="building_name" type="text" />
-
-            <label class="field-label" for="address">完整地址</label>
-            <input id="address" data-field="address" type="text" />
-
-            <label class="field-label" for="landRight">土地权利</label>
-            <input id="landRight" data-field="land_right" type="text" />
           </div>
-          <p class="field-help">每项都可以留空或标记为不知道；这会显示为资料不足，不会直接变成风险结论。</p>
-          <button id="previewButton" class="primary-action" type="submit">生成免费预览</button>
-        </form>
-      </section>
 
-      <section id="previewStep" class="intake-section preview-section-wrap" aria-labelledby="previewHeading" hidden>
-        <div class="section-heading">
-          <p class="section-kicker">Step 4</p>
-          <h2 id="previewHeading">免费项目预览</h2>
-          <p>这是当前资料的可追溯整理结果，不是完整估价、税务意见或法律结论。</p>
+          <aside class="desktop-summary" aria-label="分析进度">
+            <section class="progress-summary">
+              <h2>分析进度</h2>
+              <div class="progress-overview">
+                <div id="progressRing" class="progress-ring" style="--progress: 17%">
+                  <span id="completionPercent" class="progress-ring-value">17%</span>
+                  <span>资料完整度</span>
+                </div>
+                <div class="progress-copy">
+                  <strong id="completion-count" data-testid="completion-count">已完成 1/6 项</strong>
+                  <p>资料越完整，分析越准确。建议补充以下信息。</p>
+                  <p class="progress-context"><span id="purposeSummary" data-testid="purpose-summary">自住购买</span><span aria-hidden="true"> · </span><span id="sourceSummaryRail" data-testid="source-summary">尚未提交资料</span></p>
+                </div>
+              </div>
+              <ol id="completionChecklist" class="completion-checklist">
+                <li data-check="purpose"><span class="check-icon">✓</span><span>分析用途</span><span class="chevron" aria-hidden="true">›</span></li>
+                <li data-check="assetType"><span class="check-icon">✓</span><span>物件类型</span><span class="chevron" aria-hidden="true">›</span></li>
+                <li data-check="source"><span class="check-icon">✓</span><span>物件链接或说明</span><span class="chevron" aria-hidden="true">›</span></li>
+                <li data-check="price"><span class="check-icon">✓</span><span>售价（日元）</span><span class="chevron" aria-hidden="true">›</span></li>
+                <li data-check="area"><span class="check-icon">✓</span><span>专有面积（平方米）</span><span class="chevron" aria-hidden="true">›</span></li>
+                <li data-check="files"><span class="check-icon">✓</span><span>资料文件与物件照片（可选）</span><span class="chevron" aria-hidden="true">›</span></li>
+              </ol>
+            </section>
+
+            <section class="recognized-panel">
+              <h2>已识别的关键信息 <span>（待确认）</span></h2>
+              <div id="recognizedFields" class="recognized-fields">
+                <p class="rail-empty">填写售价或面积后，会在这里显示。</p>
+              </div>
+            </section>
+
+            <section class="rail-preview">
+              <h2>免费项目预览</h2>
+              <div class="rail-preview-detail">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <rect x="5" y="3.5" width="14" height="17" rx="2" />
+                  <path d="M8.5 8h7M8.5 12h7M8.5 16h4" />
+                </svg>
+                <div>
+                  <strong>法律与交易资料</strong>
+                  <p>整理不动产登记、土地与建筑信息、用途地域、建蔽率/容积率等核心资料。</p>
+                </div>
+              </div>
+              <p class="included-note"><span>✓</span> 包含在免费预览中</p>
+              <button id="railPreviewButton" class="rail-cta" type="button">生成免费预览</button>
+            </section>
+          </aside>
         </div>
-        <div id="previewContent"></div>
-        <section class="save-project" aria-labelledby="saveHeading">
-          <p class="section-kicker">Step 5</p>
-          <h3 id="saveHeading">注册后保存这个项目</h3>
-          <p>登录 Supabase 账户后，小象会把临时资料绑定到你的账户；匿名项目会在 24 小时后到期。</p>
-          <button id="saveProjectButton" class="primary-action" type="button">登录后保存项目</button>
-          <a class="secondary-action" href="index.html">去首页登录或注册</a>
-        </section>
-      </section>
+      </div>
+
+      <nav class="mobile-flow-nav" aria-label="流程导航">
+        <ol>
+          <li data-stage="purpose" data-step="1"><span>1</span><span>选择用途</span></li>
+          <li data-stage="submit" data-step="2" class="is-current" aria-current="step"><span>2</span><span>提交资料</span></li>
+          <li data-stage="confirm" data-step="3"><span>3</span><span>确认字段</span></li>
+          <li data-stage="preview" data-step="4"><span>4</span><span>免费预览</span></li>
+          <li data-stage="save" data-step="5"><span>5</span><span>注册保存</span></li>
+        </ol>
+      </nav>
     </main>
 
     <script src="config.js"></script>

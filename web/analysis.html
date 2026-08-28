@@ -3,50 +3,82 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>数据分析｜ZOU SEEKING HOUSE 小象搜房日本</title>
-    <link rel="stylesheet" href="styles.css?v=20260824-16" />
+    <title data-i18n-title="page.analysisTitle">统计分析｜小象数据 ZOUSEEKING</title>
+    <link rel="icon" href="assets/logoELE-beacon.svg?v=20260828-zo" />
+    <link rel="stylesheet" href="styles.css?v=20260828-01" />
+    <link rel="stylesheet" href="business.css?v=20260828-03" />
   </head>
-  <body class="auth-pending">
+  <body class="auth-pending business-app" data-role="business">
     <main class="app">
-      <nav class="topbar" aria-label="页面导航">
+      <nav class="topbar" aria-label="页面导航" data-i18n-aria-label="nav.page">
         <a class="topbar-brand" href="index.html">
-          <img src="assets/logoELE.png" alt="LOGOELE" />
-          <span>ZOU SEEKING HOUSE</span>
+          <svg class="brand-mark" viewBox="150 285 950 700" aria-hidden="true" focusable="false">
+            <defs>
+              <filter id="beacon-logo-color" color-interpolation-filters="sRGB">
+                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -0.2126 -0.7152 -0.0722 0 1" result="logo-alpha" />
+                <feComponentTransfer in="logo-alpha" result="logo-mask"><feFuncA type="discrete" tableValues="0 0 0 0 0 1 1 1 1 1" /></feComponentTransfer>
+                <feFlood flood-color="#10284d" result="logo-color" /><feComposite in="logo-color" in2="logo-mask" operator="in" />
+              </filter>
+            </defs>
+            <image href="assets/logoELE.png" width="1254" height="1254" preserveAspectRatio="none" filter="url(#beacon-logo-color)" />
+          </svg>
+          <span class="topbar-brand-copy"><strong data-i18n="brand.business">小象数据</strong><small>ZOUSEEKING</small></span>
         </a>
+        <nav class="topbar-links" aria-label="小象数据功能" data-i18n-aria-label="nav.businessFunctions">
+          <a href="data-query.html"><span data-i18n="nav.query">数据查询</span></a>
+          <a href="analysis.html" aria-current="page"><span data-i18n="nav.analysis">统计分析</span></a>
+          <a href="mypage.html"><span data-i18n="nav.workspace">数据与服务工作台</span></a>
+          <a href="profile.html"><span data-i18n="nav.profile">账户资料</span></a>
+        </nav>
+        <label class="locale-switcher">
+          <span class="visually-hidden" data-i18n="locale.label">界面语言</span>
+          <select data-locale-switcher aria-label="界面语言" data-i18n-aria-label="locale.label">
+            <option value="zh-CN">中文</option>
+            <option value="en">English</option>
+            <option value="ja">日本語</option>
+          </select>
+        </label>
       </nav>
 
       <section class="account-panel" id="accountPanel">
         <div class="account-head">
           <div>
-            <p class="eyebrow">Account</p>
-            <h2 id="accountTitle">登录后可以看数据分析</h2>
+            <p class="eyebrow" data-i18n="account.eyebrow">Account</p>
+            <h2 id="accountTitle" data-logged-out-title="登录后可以看数据分析" data-logged-out-key="account.loginAnalysisTitle">登录后可以看数据分析</h2>
           </div>
           <div class="account-actions">
-            <a class="ghost-link account-action-link hidden" href="profile.html">资料</a>
-            <a class="ghost-link account-action-link hidden" href="index.html">首页</a>
-            <a class="ghost-link account-action-link hidden" href="mypage.html">我的</a>
-            <button class="ghost-button hidden" id="logoutButton" type="button">退出</button>
+            <a class="ghost-link account-action-link hidden" href="profile.html" data-i18n="nav.profile">账户资料</a>
+            <a class="ghost-link account-action-link hidden" href="data-query.html" data-i18n="nav.query">数据查询</a>
+            <a class="ghost-link account-action-link hidden" href="mypage.html" data-i18n="nav.my">我的</a>
+            <button class="ghost-button hidden" id="logoutButton" type="button" data-i18n="nav.logout">退出</button>
           </div>
         </div>
 
-        <p class="account-copy" id="accountCopy">未登录不能看分析。数据这东西，多少也算一点隐私。</p>
+        <p class="account-copy" id="accountCopy" data-logged-out-copy="未登录不能看分析。数据这东西，多少也算一点隐私。" data-logged-out-copy-key="account.loginAnalysisCopy">未登录不能看分析。数据这东西，多少也算一点隐私。</p>
 
         <div class="account-tabs" id="accountTabs">
-          <button class="tab active" id="showLogin" type="button">登录</button>
-          <button class="tab" id="showRegister" type="button">注册</button>
+          <button class="tab active" id="showLogin" type="button" data-i18n="account.login">登录</button>
+          <button class="tab" id="showRegister" type="button" data-i18n="account.register">注册</button>
         </div>
 
+        <a class="account-recovery-link" id="forgotPasswordLink" href="#forgot-password" data-i18n="account.forgot">忘记密码？</a>
+
         <form class="account-form" id="loginForm">
-          <input id="loginUsername" type="email" placeholder="邮件" autocomplete="username" />
-          <input id="loginPassword" type="password" placeholder="密码" autocomplete="current-password" />
-          <button type="submit">登录分析页</button>
+          <label><span data-i18n="account.email">邮箱</span><input id="loginUsername" type="email" placeholder="name@example.com" autocomplete="username" /></label>
+          <label><span data-i18n="account.password">密码</span><input id="loginPassword" type="password" placeholder="请输入密码" data-i18n-placeholder="account.passwordPlaceholder" autocomplete="current-password" /></label>
+          <button type="submit" data-i18n="account.loginAnalysis">登录分析页</button>
         </form>
 
         <form class="account-form hidden" id="registerForm">
-          <input id="registerUsername" type="text" placeholder="用户名" autocomplete="username" />
-          <input id="registerEmail" type="email" placeholder="邮件" autocomplete="email" />
-          <input id="registerPassword" type="password" placeholder="密码" autocomplete="new-password" />
-          <button type="submit">注册并登录</button>
+          <label><span data-i18n="account.username">用户名</span><input id="registerUsername" type="text" placeholder="比如：Gordon" data-i18n-placeholder="account.usernamePlaceholder" autocomplete="nickname" /></label>
+          <label><span data-i18n="account.email">邮箱</span><input id="registerEmail" type="email" placeholder="name@example.com" autocomplete="email" /></label>
+          <label><span data-i18n="account.password">密码</span><input id="registerPassword" type="password" placeholder="至少 6 位" data-i18n-placeholder="account.passwordShortPlaceholder" autocomplete="new-password" /></label>
+          <button type="submit" data-i18n="account.registerAndLogin">注册并登录</button>
+        </form>
+
+        <form class="account-form hidden" id="forgotPasswordForm">
+          <label><span data-i18n="account.registerEmail">注册邮箱</span><input id="forgotPasswordEmail" type="email" placeholder="name@example.com" autocomplete="email" /></label>
+          <button type="submit" data-i18n="account.sendReset">发送找回邮件</button>
         </form>
 
         <p class="form-message" id="formMessage"></p>
@@ -54,89 +86,99 @@
 
       <header class="hero">
         <div class="brand">
-          <img src="assets/logoELE.png" alt="LOGOELE" />
+          <svg class="brand-mark" viewBox="150 285 950 700" aria-hidden="true" focusable="false">
+            <defs>
+              <filter id="beacon-logo-color" color-interpolation-filters="sRGB">
+                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -0.2126 -0.7152 -0.0722 0 1" result="logo-alpha" />
+                <feComponentTransfer in="logo-alpha" result="logo-mask"><feFuncA type="discrete" tableValues="0 0 0 0 0 1 1 1 1 1" /></feComponentTransfer>
+                <feFlood flood-color="#10284d" result="logo-color" /><feComposite in="logo-color" in2="logo-mask" operator="in" />
+              </filter>
+            </defs>
+            <image href="assets/logoELE.png" width="1254" height="1254" preserveAspectRatio="none" filter="url(#beacon-logo-color)" />
+          </svg>
           <div>
-            <p class="eyebrow">JPHOUSE Analysis</p>
-            <h1>数据分析</h1>
+            <p class="eyebrow" data-i18n="hero.business">小象数据 / ZOUSEEKING</p>
+            <h1 data-i18n="hero.analysisTitle">数据分析</h1>
           </div>
         </div>
-        <p class="hero-copy">按月份看趋势，也可以横向比较不同区域。数据不一定让钱包舒服，但至少让钱包死得明白。</p>
+        <p class="hero-copy" data-i18n="hero.analysisCopy">按月份看趋势，也可以横向比较不同区域。</p>
       </header>
 
       <section class="analysis-panel hidden" id="analysisPanel">
         <div class="section-title">
-          <p class="eyebrow">Chart & Compare</p>
-          <h2>趋势图表 / 数据比较</h2>
+          <p class="eyebrow" data-i18n="analysis.eyebrow">Chart &amp; Compare</p>
+          <h2 data-i18n="analysis.title">趋势图表 / 数据比较</h2>
         </div>
         <form class="analysis-form" id="analysisForm">
           <label>
-            关键词
-            <input id="analysisKeyword" type="search" placeholder="比如：东京 港区 塔楼 / 大阪 一户建" />
+            <span data-i18n="analysis.keyword">关键词</span>
+            <input id="analysisKeyword" type="search" placeholder="比如：东京 港区 塔楼 / 大阪 一户建" data-i18n-placeholder="analysis.keywordPlaceholder" />
           </label>
           <label>
-            指标
+            <span data-i18n="analysis.metric">指标</span>
             <select id="analysisMetric">
-              <option value="rent">月租金</option>
-              <option value="sale">买房总价</option>
-              <option value="ratio">租售比</option>
+              <option value="rent" data-i18n="analysis.rent">月租金</option>
+              <option value="sale" data-i18n="analysis.sale">买房总价</option>
+              <option value="ratio" data-i18n="analysis.ratio">租售比</option>
             </select>
           </label>
           <label>
-            房型 / 面积段
+            <span data-i18n="analysis.layout">物件类型 / 面积段</span>
             <select id="analysisLayout"></select>
           </label>
-          <button type="submit">生成趋势图</button>
+          <button type="submit" data-i18n="analysis.submit">生成趋势图</button>
         </form>
-        <p class="query-hint" id="analysisHint">会按月份聚合平均值。比较区可以单独选择最多三条数据。</p>
+        <p class="query-hint" id="analysisHint" data-i18n="analysis.hint">会按月份聚合平均值。比较区可以单独选择最多三条数据。</p>
         <div class="chart-card">
-          <canvas id="analysisChart" width="680" height="320" aria-label="月份趋势图"></canvas>
+          <canvas id="analysisChart" width="680" height="320" aria-label="月份趋势图" data-i18n-aria-label="analysis.chartAria"></canvas>
         </div>
         <div class="compare-box">
           <div class="section-title">
-            <p class="eyebrow">Compare</p>
-            <h2>最多三列比较</h2>
+            <p class="eyebrow" data-i18n="analysis.compareEyebrow">Compare</p>
+            <h2 data-i18n="analysis.compareTitle">最多三列比较</h2>
           </div>
-          <p class="query-hint">选择最多三条报告，再勾选要比较的房型 / 面积段和指标。指标会作为每组数据下面的小标题列。</p>
+          <p class="query-hint" data-i18n="analysis.compareCopy">选择最多三条报告，再勾选要比较的物件类型 / 面积段和指标。</p>
           <div class="compare-selectors">
             <label>
-              对比 A
+              <span data-i18n="analysis.compareA">对比 A</span>
               <select id="compareSelectA"></select>
             </label>
             <label>
-              对比 B
+              <span data-i18n="analysis.compareB">对比 B</span>
               <select id="compareSelectB"></select>
             </label>
             <label>
-              对比 C
+              <span data-i18n="analysis.compareC">对比 C</span>
               <select id="compareSelectC"></select>
             </label>
           </div>
           <div class="metric-picker" id="metricPicker">
             <label class="dimension-chip">
               <input type="checkbox" value="rent" checked />
-              <span>租金</span>
+              <span data-i18n="analysis.rent">租金</span>
             </label>
             <label class="dimension-chip">
               <input type="checkbox" value="sale" checked />
-              <span>售价</span>
+              <span data-i18n="analysis.sale">售价</span>
             </label>
             <label class="dimension-chip">
               <input type="checkbox" value="ratio" checked />
-              <span>租售比</span>
+              <span data-i18n="analysis.ratio">租售比</span>
             </label>
           </div>
           <div class="dimension-picker" id="dimensionPicker"></div>
           <div class="compare-table-wrap" id="compareTable"></div>
         </div>
         <div class="section-title compact-title">
-          <p class="eyebrow">Matched Records</p>
-          <h2>当前筛选数据</h2>
+          <p class="eyebrow" data-i18n="analysis.resultsEyebrow">Matched Records</p>
+          <h2 data-i18n="analysis.resultsTitle">当前筛选数据</h2>
         </div>
         <div class="analysis-results" id="analysisResults"></div>
       </section>
     </main>
 
     <script src="config.js?v=20260824-17"></script>
-    <script src="app.js?v=20260824-17"></script>
+    <script src="js/i18n.js?v=20260828-01"></script>
+    <script src="app.js?v=20260828-03"></script>
   </body>
 </html>

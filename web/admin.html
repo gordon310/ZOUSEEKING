@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title data-i18n-title="page.adminTitle">后台维护｜小象数据 ZOUSEEKING</title>
+    <link rel="icon" href="assets/logoELE-beacon.svg?v=20260828-zo" />
+    <link rel="stylesheet" href="project-workspace.css?v=20260828-02" />
+    <link rel="stylesheet" href="admin.css?v=20260828-02" />
+  </head>
+  <body class="workspace-app admin-app" data-role="admin">
+    <header class="workspace-header">
+      <a class="workspace-brand" href="index.html" aria-label="返回小象数据">
+        <svg class="workspace-brand-mark" viewBox="150 285 950 700" aria-hidden="true" focusable="false">
+          <defs>
+            <filter id="admin-logo-color" color-interpolation-filters="sRGB">
+              <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -0.2126 -0.7152 -0.0722 0 1" result="logo-alpha" />
+              <feComponentTransfer in="logo-alpha" result="logo-mask"><feFuncA type="discrete" tableValues="0 0 0 0 0 1 1 1 1 1" /></feComponentTransfer>
+              <feFlood flood-color="#10284d" result="logo-color" /><feComposite in="logo-color" in2="logo-mask" operator="in" />
+            </filter>
+          </defs>
+          <image href="assets/logoELE.png" width="1254" height="1254" preserveAspectRatio="none" filter="url(#admin-logo-color)" />
+        </svg>
+        <span><strong data-i18n="brand.business">小象数据</strong><small>ZOUSEEKING</small></span>
+      </a>
+      <nav class="workspace-nav" aria-label="管理员功能">
+        <a href="admin.html" aria-current="page">运营总览</a>
+        <a href="admin.html#collection">采集任务</a>
+        <a href="admin.html#quality">质量审核</a>
+        <a href="admin.html#service">服务派单</a>
+        <a href="admin.html#members" data-i18n="admin.members">会员管理</a>
+        <a href="index.html">返回 B 端</a>
+      </nav>
+      <label class="locale-switcher">
+        <span class="visually-hidden" data-i18n="locale.label">界面语言</span>
+        <select data-locale-switcher aria-label="界面语言" data-i18n-aria-label="locale.label">
+          <option value="zh-CN">中文</option>
+          <option value="en">English</option>
+          <option value="ja">日本語</option>
+        </select>
+      </label>
+      <button class="workspace-menu-toggle" id="adminMenuToggle" type="button" aria-expanded="false" aria-controls="adminMenu">菜单</button>
+      <nav class="workspace-menu" id="adminMenu" hidden aria-label="移动端管理员功能">
+        <a href="admin.html">运营总览</a>
+        <a href="admin.html#collection">采集任务</a>
+        <a href="admin.html#quality">质量审核</a>
+        <a href="admin.html#service">服务派单</a>
+        <a href="admin.html#members" data-i18n="admin.members">会员管理</a>
+        <a href="index.html">返回 B 端</a>
+      </nav>
+    </header>
+
+    <div class="review-toolbar admin-demo-toolbar">
+      <div>
+        <strong>管理员专用界面 · 紧凑视图</strong>
+        <span>工作人员在这里维护授权数据源、审核质量问题、控制发布和协作派单。</span>
+      </div>
+      <span class="admin-fixture-tag">界面演示 · synthetic_fixture</span>
+    </div>
+
+    <main class="workspace-page admin-page">
+      <nav class="breadcrumbs" aria-label="面包屑导航">
+        <a href="index.html">小象数据</a>
+        <span>/</span>
+        <span>后台维护</span>
+      </nav>
+
+      <div class="project-heading admin-heading">
+        <div>
+          <p class="eyebrow">ADMIN CONSOLE</p>
+          <h1>数据运营总览</h1>
+          <p class="project-subtitle">集中查看采集、审核、发布和 C 端服务协作状态。这里的记录仅用于确认后台操作，不代表真实生产状态。</p>
+        </div>
+        <div class="project-heading-meta">
+          <span class="admin-role-tag">管理员</span>
+          <span class="fixture-label">演示数据，不代表生产状态</span>
+        </div>
+      </div>
+
+      <p class="admin-notice" id="adminNotice" aria-live="polite">当前为只读演示，按钮只更新本地页面状态；真正的权限、审计和发布动作需要后端接入。</p>
+
+      <section class="admin-kpi-grid" aria-label="后台演示概览">
+        <article class="admin-kpi"><span>今日采集任务</span><strong>12</strong><small>8 个已完成 · 演示</small></article>
+        <article class="admin-kpi"><span>待人工审核</span><strong>8</strong><small>需要确认来源与周期</small></article>
+        <article class="admin-kpi admin-kpi-alert"><span>质量阻塞</span><strong>2</strong><small>阻止进入发布队列</small></article>
+        <article class="admin-kpi"><span>待发布版本</span><strong>4</strong><small>等待发布前检查</small></article>
+      </section>
+
+      <section class="admin-toolbar" aria-label="后台视图筛选">
+        <div class="admin-tabs" role="tablist" aria-label="后台模块">
+          <button class="admin-tab is-active" type="button" role="tab" aria-selected="true" data-admin-tab="overview">总览</button>
+          <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="collection">采集任务</button>
+          <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="quality">质量审核</button>
+          <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="service">服务派单</button>
+          <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="members" data-i18n="admin.members">会员管理</button>
+        </div>
+        <label class="admin-status-filter">
+          状态
+          <select id="adminStatusFilter">
+            <option value="all">全部</option>
+            <option value="运行中">运行中</option>
+            <option value="待复核">待复核</option>
+            <option value="失败">失败</option>
+            <option value="已完成">已完成</option>
+          </select>
+        </label>
+      </section>
+
+      <div class="admin-layout">
+        <div class="admin-main">
+          <section class="admin-panel" id="collection" data-admin-section="overview collection">
+            <div class="admin-panel-heading">
+              <div>
+                <p class="eyebrow">COLLECTION RUNS</p>
+                <h2>采集任务</h2>
+              </div>
+              <span class="admin-panel-count">4 条演示记录</span>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <caption>授权数据源与内部计算任务的最近状态</caption>
+                <thead>
+                  <tr><th scope="col">任务</th><th scope="col">范围</th><th scope="col">拟产出数据类</th><th scope="col">上次执行</th><th scope="col">状态</th><th scope="col">操作</th></tr>
+                </thead>
+                <tbody>
+                  <tr data-admin-row data-status="已完成" data-detail="大阪住宅聚合数据已完成格式检查，等待下一次来源周期确认。">
+                    <th scope="row">JPHOUSE 大阪住宅<span>COL-001</span></th>
+                    <td>大阪府 / 2026-08</td><td><code>scraped_aggregate</code></td><td>2026-08-27 09:40</td>
+                    <td><span class="admin-table-status status-complete">已完成</span></td><td><button class="admin-action" type="button" data-admin-action="inspect">查看</button></td>
+                  </tr>
+                  <tr data-admin-row data-status="待复核" data-detail="东京人工确认样本缺少一项来源时间，需要工作人员补齐后才能发布。">
+                    <th scope="row">东京人工确认样本<span>COL-002</span></th>
+                    <td>东京都港区 / 2026-08</td><td><code>verified_observation</code></td><td>2026-08-27 08:15</td>
+                    <td><span class="admin-table-status status-review">待复核</span></td><td><button class="admin-action" type="button" data-admin-action="review">标记复核</button></td>
+                  </tr>
+                  <tr data-admin-row data-status="运行中" data-detail="横滨租售比计算正在根据最新快照重算，完成后需要检查单位和样本数。">
+                    <th scope="row">横滨租售比重算<span>CALC-014</span></th>
+                    <td>神奈川县 / 多月</td><td><code>modeled_estimate</code></td><td>2026-08-28 10:05</td>
+                    <td><span class="admin-table-status status-active">运行中</span></td><td><button class="admin-action" type="button" data-admin-action="inspect">查看</button></td>
+                  </tr>
+                  <tr data-admin-row data-status="失败" data-detail="名古屋来源快照读取失败，当前仅保留失败分类和重试入口，不应发布旧数据。">
+                    <th scope="row">名古屋来源快照<span>COL-004</span></th>
+                    <td>爱知县 / 2026-08</td><td><code>scraped_aggregate</code></td><td>2026-08-28 07:50</td>
+                    <td><span class="admin-table-status status-failed">失败</span></td><td><button class="admin-action" type="button" data-admin-action="retry">重试</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="admin-panel" id="quality" data-admin-section="overview quality">
+            <div class="admin-panel-heading">
+              <div>
+                <p class="eyebrow">QUALITY GATE</p>
+                <h2>质量审核队列</h2>
+              </div>
+              <span class="admin-panel-count">2 个阻塞项</span>
+            </div>
+            <ul class="admin-issue-list">
+              <li><span class="admin-issue-level issue-blocked">阻塞</span><div><strong>缺少来源时间</strong><p>东京人工确认样本需要补齐 verification_time 和来源期间。</p></div><button class="admin-action" type="button" data-admin-action="inspect">查看</button></li>
+              <li><span class="admin-issue-level issue-review">复核</span><div><strong>月份定义不一致</strong><p>大阪聚合数据和旧报告的月份口径不同，发布前需要确认。</p></div><button class="admin-action" type="button" data-admin-action="inspect">查看</button></li>
+              <li><span class="admin-issue-level issue-info">提示</span><div><strong>建模值需要标注版本</strong><p>横滨租售比应展示模型版本、样本量和限制说明。</p></div><button class="admin-action" type="button" data-admin-action="inspect">查看</button></li>
+            </ul>
+          </section>
+
+          <section class="admin-panel" id="members" data-admin-section="members">
+            <div class="admin-panel-heading">
+              <div>
+                <p class="eyebrow">MEMBER OPERATIONS</p>
+                <h2 data-i18n="admin.members">会员管理</h2>
+              </div>
+              <span class="admin-panel-count">synthetic_fixture</span>
+            </div>
+            <p class="admin-panel-note">当前只展示脱敏演示会员；搜索、查看和暂停/恢复均只改变本地页面状态，不写入真实会员资料。</p>
+            <div class="member-toolbar">
+              <label>
+                <span>搜索会员</span>
+                <input id="memberSearch" type="search" placeholder="姓名、编号或等级" />
+              </label>
+              <label>
+                <span>会员状态</span>
+                <select id="memberStatusFilter">
+                  <option value="all">全部状态</option>
+                  <option value="active">正常</option>
+                  <option value="paused">已暂停</option>
+                  <option value="review">待确认</option>
+                </select>
+              </label>
+            </div>
+            <p class="admin-member-notice" id="memberNotice" aria-live="polite"></p>
+            <div class="admin-table-wrap">
+              <table class="admin-table member-table">
+                <caption>会员资料与额度状态（界面演示）</caption>
+                <thead>
+                  <tr><th scope="col">会员</th><th scope="col">等级</th><th scope="col">状态</th><th scope="col">额度使用</th><th scope="col">最近活动</th><th scope="col">操作</th></tr>
+                </thead>
+                <tbody id="memberList"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="admin-panel" id="service" data-admin-section="overview service">
+            <div class="admin-panel-heading">
+              <div>
+                <p class="eyebrow">SERVICE DISPATCH</p>
+                <h2>C 端服务派单</h2>
+              </div>
+              <span class="admin-panel-count">3 个演示任务</span>
+            </div>
+            <div class="admin-service-list">
+              <article class="admin-service-row"><div><strong>陪同看房</strong><span>大阪市北区 · 任务 001 · synthetic_fixture</span></div><span class="admin-table-status status-review">待分配</span><button class="admin-action" type="button" data-admin-action="assign">分配</button></article>
+              <article class="admin-service-row"><div><strong>人工专家分析</strong><span>东京都港区 · 任务 002 · synthetic_fixture</span></div><span class="admin-table-status status-active">进行中</span><button class="admin-action" type="button" data-admin-action="inspect">查看</button></article>
+              <article class="admin-service-row"><div><strong>好房推荐</strong><span>横滨市中区 · 任务 003 · synthetic_fixture</span></div><span class="admin-table-status status-complete">已完成</span><button class="admin-action" type="button" data-admin-action="inspect">查看</button></article>
+            </div>
+          </section>
+        </div>
+
+        <aside class="admin-aside">
+          <section class="admin-panel admin-detail-panel" aria-labelledby="adminDetailHeading">
+            <div class="admin-panel-heading"><div><p class="eyebrow">DETAIL</p><h2 id="adminDetailHeading">操作详情</h2></div></div>
+            <p class="admin-detail-copy" id="adminDetail">选择采集任务或审核队列中的“查看”，这里会显示本地演示详情。</p>
+            <div class="admin-detail-meta"><span>权限边界</span><strong>后端待接入</strong></div>
+            <div class="admin-detail-meta"><span>审计记录</span><strong>仅演示</strong></div>
+          </section>
+
+          <section class="admin-panel">
+            <div class="admin-panel-heading"><div><p class="eyebrow">PUBLISH GATE</p><h2>发布前检查</h2></div></div>
+            <ul class="admin-check-list">
+              <li><span class="check-ok">✓</span><span>数据类已声明</span></li>
+              <li><span class="check-ok">✓</span><span>单位和期间已填</span></li>
+              <li><span class="check-warn">!</span><span>来源授权待确认</span></li>
+              <li><span class="check-warn">!</span><span>质量阻塞未清除</span></li>
+            </ul>
+          </section>
+
+          <section class="admin-panel">
+            <div class="admin-panel-heading"><div><p class="eyebrow">AUDIT TRAIL</p><h2>最近操作</h2></div></div>
+            <ol class="admin-audit-list">
+              <li><strong>工作人员 A</strong><span>查看 COL-002 · 10:42</span></li>
+              <li><strong>系统任务</strong><span>重算 CALC-014 · 10:05</span></li>
+              <li><strong>工作人员 B</strong><span>确认大阪周期 · 昨日</span></li>
+            </ol>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <script src="js/i18n.js?v=20260828-01"></script>
+    <script src="js/admin.js?v=20260828-02"></script>
+  </body>
+</html>

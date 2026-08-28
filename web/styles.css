@@ -1,10 +1,26 @@
 :root {
   color-scheme: light;
-  --ink: #111;
-  --muted: #666;
-  --soft: #f4f4f4;
-  --line: #dedede;
-  --paper: #fff;
+  --navy: #10284d;
+  --navy-soft: #60718a;
+  --muted: #71809a;
+  --line: #d8e0ec;
+  --line-strong: #b5c2d5;
+  --surface: #f4f7fb;
+  --surface-warm: #fff8f3;
+  --orange: #ff5a0a;
+  --orange-dark: #e84e05;
+  --green: #22ad83;
+  --yellow: #e09b25;
+  --danger: #c4372e;
+  --white: #fff;
+  --shadow: 0 14px 36px rgba(16, 40, 77, 0.08);
+  --shadow-soft: 0 7px 20px rgba(16, 40, 77, 0.06);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --ink: var(--navy);
+  --soft: var(--surface);
+  --paper: var(--white);
 }
 
 * {
@@ -13,9 +29,11 @@
 
 body {
   margin: 0;
-  background: #f6f6f3;
-  color: var(--ink);
+  background: var(--white);
+  color: var(--navy);
   font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans GB", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
 }
 
 body.auth-pending .account-panel {
@@ -23,36 +41,39 @@ body.auth-pending .account-panel {
 }
 
 .app {
-  width: min(100%, 760px);
+  width: 100%;
   margin: 0 auto;
-  padding: 14px 14px 34px;
+  padding: 0 0 80px;
 }
 
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
-  padding: 8px 4px;
+  min-height: 84px;
+  gap: 18px;
+  margin-bottom: 0;
+  padding: 0 clamp(22px, 5vw, 72px);
+  border-bottom: 1px solid var(--line);
 }
 
 .topbar-brand {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   min-width: 0;
-  color: var(--ink);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  color: var(--navy);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
   text-decoration: none;
 }
 
-.topbar-brand img {
-  width: 30px;
-  height: 30px;
-  object-fit: contain;
+.topbar-brand .brand-mark {
+  display: block;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
 }
 
 .topbar-brand span {
@@ -63,31 +84,64 @@ body.auth-pending .account-panel {
 
 .topbar-links {
   display: inline-flex;
-  gap: 6px;
-  padding: 4px;
-  border: 1.5px solid var(--ink);
-  border-radius: 999px;
-  background: var(--paper);
+  gap: 26px;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .topbar-links a {
-  padding: 7px 11px;
-  border-radius: 999px;
-  color: var(--ink);
-  font-size: 14px;
+  padding: 8px 0;
+  color: var(--navy-soft);
+  font-size: 13px;
+  font-weight: 700;
   text-decoration: none;
 }
 
 .topbar-links a[aria-current="page"] {
-  background: var(--ink);
-  color: #fff;
+  color: var(--orange-dark);
+}
+
+.locale-switcher {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  margin-left: 10px;
+  margin-bottom: 0;
+}
+
+.locale-switcher select {
+  width: auto;
+  min-width: 82px;
+  min-height: 34px;
+  padding: 5px 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  color: var(--navy);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .hero {
-  padding: 16px;
-  border: 2px solid var(--ink);
-  border-radius: 24px;
+  width: min(100% - 48px, 1120px);
+  margin: 28px auto 0;
+  padding: 26px 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
   background: var(--paper);
+  box-shadow: var(--shadow-soft);
 }
 
 .brand {
@@ -96,27 +150,34 @@ body.auth-pending .account-panel {
   align-items: center;
 }
 
-.brand img {
-  width: 54px;
-  height: 54px;
-  object-fit: contain;
+.brand .brand-mark {
+  display: block;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
 }
 
 .eyebrow {
-  margin: 0 0 4px;
+  margin: 0 0 7px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
 }
 
 h1 {
   margin: 0;
-  font-size: 27px;
-  letter-spacing: -0.04em;
+  color: var(--navy);
+  font-size: clamp(30px, 3vw, 40px);
+  line-height: 1.15;
+  letter-spacing: -0.055em;
 }
 
 .hero-copy {
-  margin: 16px 0 0;
-  color: #333;
+  max-width: 680px;
+  margin: 14px 0 0;
+  color: var(--navy-soft);
+  font-size: 15px;
   line-height: 1.65;
 }
 
@@ -124,17 +185,19 @@ h1 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 46px;
-  margin-top: 16px;
-  padding: 10px 16px;
-  border: 2px solid var(--ink);
-  border-radius: 14px;
-  background: var(--ink);
-  color: #fff;
-  font-size: 15px;
-  font-weight: 700;
+  min-height: 44px;
+  margin-top: 18px;
+  padding: 9px 15px;
+  border: 1px solid var(--orange);
+  border-radius: var(--radius-sm);
+  background: var(--orange);
+  color: var(--white);
+  font-size: 14px;
+  font-weight: 800;
   text-decoration: none;
 }
+
+.primary-product-link:hover { background: var(--orange-dark); border-color: var(--orange-dark); }
 
 .primary-product-link:focus-visible {
   outline: 3px solid #3677ff;
@@ -146,11 +209,13 @@ h1 {
 .query-panel,
 .mypage-panel,
 .analysis-panel {
-  margin-top: 14px;
-  padding: 16px;
-  border: 2px solid var(--ink);
-  border-radius: 24px;
+  width: min(100% - 48px, 1120px);
+  margin: 18px auto 0;
+  padding: 24px 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
   background: var(--paper);
+  box-shadow: var(--shadow-soft);
 }
 
 .account-head {
@@ -230,6 +295,18 @@ h1 {
   margin-top: 14px;
 }
 
+.account-recovery-link {
+  display: inline-block;
+  margin-top: 11px;
+  color: var(--muted);
+  font-size: 13px;
+  text-underline-offset: 3px;
+}
+
+.account-recovery-link:hover {
+  color: var(--ink);
+}
+
 .tab,
 .ghost-button,
 .ghost-link,
@@ -278,6 +355,18 @@ h1 {
   display: grid;
   gap: 9px;
   margin-top: 12px;
+}
+
+.account-form label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.account-form label input {
+  width: 100%;
 }
 
 .account-form button {
@@ -757,6 +846,92 @@ select:disabled {
   font-weight: 700;
 }
 
+.account-governance {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 17px;
+  border-top: 1px solid var(--line);
+}
+
+.account-governance h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.account-governance p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.governance-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.governance-meta a {
+  color: var(--ink);
+  font-weight: 700;
+  text-underline-offset: 3px;
+}
+
+.danger-button {
+  min-height: 42px;
+  padding: 8px 13px;
+  border: 1.5px solid #b00020;
+  border-radius: 14px;
+  background: #fff;
+  color: #b00020;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.account-dialog {
+  width: min(92vw, 480px);
+  padding: 22px;
+  border: 2px solid var(--ink);
+  border-radius: 22px;
+  background: #fff;
+}
+
+.account-dialog::backdrop {
+  background: rgb(0 0 0 / 0.5);
+}
+
+.account-dialog h2 {
+  margin-bottom: 9px;
+  font-size: 22px;
+}
+
+.account-dialog p:not(.eyebrow) {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.dialog-actions button:not(.danger-button) {
+  min-height: 42px;
+  padding: 8px 13px;
+  border: 1.5px solid var(--ink);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 14px;
+}
+
 .password-form {
   display: grid;
   gap: 10px;
@@ -1074,4 +1249,235 @@ pre {
     align-items: stretch;
     flex-direction: column;
   }
+}
+
+/* Keep the legacy data surfaces on the same ZOUBEACON visual system. */
+.account-panel:not(.compact-account),
+.query-panel,
+.mypage-panel,
+.analysis-panel,
+.latest-panel,
+.detail-card,
+.progress-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+}
+
+.tab,
+.ghost-button,
+.ghost-link,
+.account-form button,
+.query-form button,
+.analysis-form button,
+.pagination button,
+.back-button,
+.task-actions button,
+.profile-actions button,
+.password-form button {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.tab { min-height: 40px; color: var(--navy); }
+
+.tab.active,
+.account-form button,
+.query-form button,
+.analysis-form button,
+.task-actions button.primary,
+.profile-actions .primary,
+.password-form button {
+  border-color: var(--orange);
+  background: var(--orange);
+  color: var(--white);
+}
+
+.tab.active:hover,
+.account-form button:hover,
+.query-form button:hover,
+.analysis-form button:hover,
+.task-actions button.primary:hover,
+.profile-actions .primary:hover,
+.password-form button:hover {
+  border-color: var(--orange-dark);
+  background: var(--orange-dark);
+}
+
+.ghost-button,
+.ghost-link,
+.pagination button,
+.back-button,
+.task-actions button,
+.profile-actions button {
+  background: var(--white);
+  color: var(--navy);
+}
+
+.ghost-button:hover,
+.ghost-link:hover,
+.pagination button:hover,
+.back-button:hover,
+.task-actions button:hover,
+.profile-actions button:hover {
+  border-color: var(--navy);
+  background: var(--surface);
+}
+
+input,
+select,
+.profile-form input,
+.profile-form select,
+.profile-form textarea,
+.password-form input {
+  min-height: 44px;
+  padding: 10px 13px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  color: var(--navy);
+  font-size: 14px;
+}
+
+input:focus,
+select:focus,
+.profile-form input:focus,
+.profile-form select:focus,
+.profile-form textarea:focus,
+.password-form input:focus {
+  border-color: #3171ef;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(49, 113, 239, 0.12);
+}
+
+select:disabled,
+input:disabled {
+  background: var(--surface);
+}
+
+.query-form button,
+.analysis-form button,
+.account-form button,
+.password-form button {
+  min-height: 44px;
+}
+
+.query-form,
+.analysis-form {
+  gap: 12px;
+}
+
+.latest-card,
+.stat-card,
+.task-card,
+.chart-card,
+.analysis-row,
+.profile-card,
+.detail-grid section,
+.history-chip {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--white);
+}
+
+.latest-card[role="button"]:hover,
+.latest-card[role="button"]:focus {
+  box-shadow: var(--shadow-soft);
+  outline: 0;
+}
+
+.latest-card p,
+.detail-grid p,
+.hero-copy,
+.query-hint,
+.task-card p,
+.analysis-row p {
+  color: var(--navy-soft);
+}
+
+.pill,
+.compare-table thead th {
+  background: var(--surface);
+  color: var(--navy-soft);
+}
+
+.compare-table {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.dimension-chip {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--navy);
+}
+
+.progress-track {
+  border: 1px solid var(--line-strong);
+}
+
+.progress-track span {
+  background: var(--orange);
+}
+
+.detail-page {
+  width: min(100% - 48px, 1120px);
+  margin: 18px auto 0;
+}
+
+@media (min-width: 901px) {
+  body { font-size: 14px; }
+
+  .topbar { min-height: 72px; }
+  .topbar-brand .brand-mark { width: 42px; height: 42px; }
+  .hero { padding: 22px 24px; }
+  h1 { font-size: 36px; }
+  .hero-copy { font-size: 14px; }
+  .latest-panel,
+  .account-panel:not(.compact-account),
+  .query-panel,
+  .mypage-panel,
+  .analysis-panel { padding: 21px 24px; }
+  .account-head h2,
+  .section-title h2 { font-size: 20px; }
+  .query-form { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .query-form button,
+  .analysis-form button { min-height: 42px; font-size: 13px; }
+  input,
+  select,
+  .profile-form input,
+  .profile-form select,
+  .profile-form textarea,
+  .password-form input { min-height: 42px; padding: 8px 12px; }
+  .latest-card h3 { font-size: 15px; }
+  .latest-card p,
+  .task-card p,
+  .analysis-row p,
+  .detail-grid p { font-size: 12px; }
+  .latest-card,
+  .stat-card,
+  .task-card,
+  .profile-card,
+  .chart-card { padding: 12px; }
+  .task-actions button,
+  .profile-actions button,
+  .pagination button,
+  .back-button { min-height: 38px; font-size: 13px; }
+}
+
+@media (max-width: 520px) {
+  input,
+  select,
+  textarea,
+  .profile-form input,
+  .profile-form select,
+  .profile-form textarea,
+  .password-form input { font-size: 16px; }
+
+  .account-form button,
+  .query-form button,
+  .analysis-form button,
+  .primary-product-link { min-height: 48px; }
 }

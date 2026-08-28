@@ -3,15 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title data-i18n-title="page.profileTitle">账户资料｜小象数据 ZOUSEEKING</title>
+    <title data-i18n-title="page.queryTitle">数据查询｜小象数据 ZOUSEEKING</title>
     <link rel="icon" href="assets/logoELE-beacon.svg?v=20260828-zo" />
     <link rel="stylesheet" href="styles.css?v=20260828-01" />
     <link rel="stylesheet" href="business.css?v=20260828-03" />
   </head>
-  <body class="auth-pending business-app" data-role="business">
+  <body class="auth-pending business-app business-query" data-role="business">
     <main class="app">
       <nav class="topbar" aria-label="页面导航" data-i18n-aria-label="nav.page">
-        <a class="topbar-brand" href="index.html">
+        <a class="topbar-brand" href="index.html" aria-label="小象数据首页">
           <svg class="brand-mark" viewBox="150 285 950 700" aria-hidden="true" focusable="false">
             <defs>
               <filter id="beacon-logo-color" color-interpolation-filters="sRGB">
@@ -25,10 +25,10 @@
           <span class="topbar-brand-copy"><strong data-i18n="brand.business">小象数据</strong><small>ZOUSEEKING</small></span>
         </a>
         <nav class="topbar-links" aria-label="小象数据功能" data-i18n-aria-label="nav.businessFunctions">
-          <a href="data-query.html"><span data-i18n="nav.query">数据查询</span></a>
+          <a href="data-query.html" aria-current="page"><span data-i18n="nav.query">数据查询</span></a>
           <a href="analysis.html"><span data-i18n="nav.analysis">统计分析</span></a>
           <a href="mypage.html"><span data-i18n="nav.workspace">数据与服务工作台</span></a>
-          <a href="profile.html" aria-current="page"><span data-i18n="nav.profile">账户资料</span></a>
+          <a href="profile.html"><span data-i18n="nav.profile">账户资料</span></a>
         </nav>
         <label class="locale-switcher">
           <span class="visually-hidden" data-i18n="locale.label">界面语言</span>
@@ -44,17 +44,17 @@
         <div class="account-head">
           <div>
             <p class="eyebrow" data-i18n="account.eyebrow">Account</p>
-            <h2 id="accountTitle" data-logged-out-title="登录后可以编辑资料" data-logged-out-key="account.loginProfileTitle">登录后可以编辑资料</h2>
+            <h2 id="accountTitle" data-logged-out-title="登录后可以查询" data-logged-out-key="account.loginQueryTitle">登录后可以查询</h2>
           </div>
           <div class="account-actions">
-            <a class="ghost-link account-action-link hidden" href="data-query.html" data-i18n="nav.query">数据查询</a>
+            <a class="ghost-link account-action-link hidden" href="profile.html" data-i18n="nav.profile">账户资料</a>
             <a class="ghost-link account-action-link hidden" href="analysis.html" data-i18n="nav.analysis">统计分析</a>
             <a class="ghost-link account-action-link hidden" href="mypage.html" data-i18n="nav.workspace">数据与服务工作台</a>
             <button class="ghost-button hidden" id="logoutButton" type="button" data-i18n="nav.logout">退出</button>
           </div>
         </div>
 
-        <p class="account-copy" id="accountCopy" data-logged-out-copy="未登录不能编辑资料。小象嘴严，但门还是要锁。" data-logged-out-copy-key="account.loginProfileCopy">未登录不能编辑资料。小象嘴严，但门还是要锁。</p>
+        <p class="account-copy" id="accountCopy" data-logged-out-copy="未登录只能看最近 5 条数据。注册很简单，别紧张，不查户口。" data-logged-out-copy-key="account.loginQueryCopy">未登录只能看最近 5 条数据。注册很简单，别紧张，不查户口。</p>
 
         <div class="account-tabs" id="accountTabs">
           <button class="tab active" id="showLogin" type="button" data-i18n="account.login">登录</button>
@@ -66,7 +66,7 @@
         <form class="account-form" id="loginForm">
           <label><span data-i18n="account.email">邮箱</span><input id="loginUsername" type="email" placeholder="name@example.com" autocomplete="username" /></label>
           <label><span data-i18n="account.password">密码</span><input id="loginPassword" type="password" placeholder="请输入密码" data-i18n-placeholder="account.passwordPlaceholder" autocomplete="current-password" /></label>
-          <button type="submit" data-i18n="account.loginProfile">登录资料页</button>
+          <button type="submit" data-i18n="account.loginQuery">登录查询</button>
         </form>
 
         <form class="account-form hidden" id="registerForm">
@@ -88,113 +88,80 @@
         <div class="brand">
           <svg class="brand-mark" viewBox="150 285 950 700" aria-hidden="true" focusable="false">
             <defs>
-              <filter id="beacon-logo-color" color-interpolation-filters="sRGB">
+              <filter id="beacon-logo-color-hero" color-interpolation-filters="sRGB">
                 <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -0.2126 -0.7152 -0.0722 0 1" result="logo-alpha" />
                 <feComponentTransfer in="logo-alpha" result="logo-mask"><feFuncA type="discrete" tableValues="0 0 0 0 0 1 1 1 1 1" /></feComponentTransfer>
                 <feFlood flood-color="#10284d" result="logo-color" /><feComposite in="logo-color" in2="logo-mask" operator="in" />
               </filter>
             </defs>
-            <image href="assets/logoELE.png" width="1254" height="1254" preserveAspectRatio="none" filter="url(#beacon-logo-color)" />
+            <image href="assets/logoELE.png" width="1254" height="1254" preserveAspectRatio="none" filter="url(#beacon-logo-color-hero)" />
           </svg>
           <div>
             <p class="eyebrow" data-i18n="hero.business">小象数据 / ZOUSEEKING</p>
-            <h1 data-i18n="hero.profileTitle">我的资料</h1>
+            <h1 data-i18n="hero.queryTitle">公开数据查询</h1>
           </div>
         </div>
-        <p class="hero-copy" data-i18n="hero.profileCopy">管理账户资料、安全设置和只读会员信息。</p>
+        <p class="hero-copy" data-i18n="hero.queryCopy">按地区、物件类型和年月筛选公开数据，已有记录会直接展示。</p>
       </header>
 
-      <section class="mypage-panel hidden" id="mypagePanel">
-        <section class="profile-card" id="profileCard">
-          <div class="mypage-head">
-            <div>
-              <p class="eyebrow">Profile</p>
-              <h3>我的资料</h3>
-            </div>
-            <button class="ghost-button" id="editProfileButton" type="button">编辑</button>
-          </div>
-          <div class="profile-summary" id="profileSummary"></div>
-          <form class="profile-form hidden" id="profileForm">
-            <label>
-              昵称
-              <input id="profileDisplayName" type="text" placeholder="比如：Gordon" />
-            </label>
-            <label>
-              邮箱
-              <input id="profileEmail" type="email" disabled />
-            </label>
-            <label>
-              所在城市
-              <input id="profileCity" type="text" placeholder="比如：东京 / 大阪 / 上海" />
-            </label>
-            <label>
-              关注区域
-              <input id="profileFavoriteArea" type="text" placeholder="比如：东京港区、大阪北区" />
-            </label>
-            <label>
-              关注物件类型
-              <select id="profileFavoriteAssetType">
-                <option value="">还没想好</option>
-                <option value="塔楼">塔楼</option>
-                <option value="公寓">公寓</option>
-                <option value="一户建">一户建</option>
-              </select>
-            </label>
-            <label class="profile-full">
-              备注
-              <textarea id="profileBio" rows="3" placeholder="比如：先看租售比，钱包暂时保持沉默。"></textarea>
-            </label>
-            <div class="profile-actions">
-              <button class="primary" type="submit">保存资料</button>
-              <button type="button" id="cancelProfileButton">取消</button>
-            </div>
-          </form>
-          <details class="password-box">
-            <summary>修改密码</summary>
-            <form class="password-form" id="passwordForm">
-              <label>
-                新密码
-                <input id="newPassword" type="password" placeholder="至少 6 位" autocomplete="new-password" />
-              </label>
-              <label>
-                确认新密码
-                <input id="confirmNewPassword" type="password" placeholder="再输一遍，防手滑" autocomplete="new-password" />
-              </label>
-              <button class="primary" type="submit">更新密码</button>
-            </form>
-          </details>
+      <section class="query-panel" id="queryPanel">
+        <div class="section-title">
+          <p class="eyebrow" data-i18n="query.eyebrow">DATA QUERY</p>
+          <h2 data-i18n="query.title">公开数据查询</h2>
+        </div>
+        <form class="query-form" id="queryForm">
+          <label><span data-i18n="query.prefecture">日本都道府县</span><select id="prefectureSelect" disabled><option value="">请选择</option></select></label>
+          <label><span data-i18n="query.city">市区町村</span><select id="citySelect" disabled><option value="">请选择</option></select></label>
+          <label><span data-i18n="query.ward">区</span><select id="wardSelect" disabled><option value="">全部区</option></select></label>
+          <label><span data-i18n="query.assetType">物件类型</span><select id="assetTypeSelect" disabled><option value="塔楼">塔楼</option><option value="公寓">公寓</option><option value="一户建">一户建</option></select></label>
+          <label><span data-i18n="query.year">年份</span><select id="yearSelect" disabled><option value="2026">2026</option></select></label>
+          <label><span data-i18n="query.month">月份</span><select id="monthSelect" disabled><option value="8">8月</option></select></label>
+          <button id="queryButton" type="submit" disabled data-i18n="query.submit">查询 / 生成</button>
+        </form>
+        <p class="query-hint" id="queryHint" data-i18n="query.hintLoggedOut">登录后可以查询。已有记录直接调取，没做过的会进入生成流程。</p>
+        <div class="query-history hidden" id="queryHistory">
+          <p class="eyebrow" data-i18n="query.history">最近查询</p>
+          <div id="historyList"></div>
+        </div>
+      </section>
 
-          <section class="account-governance" aria-labelledby="accountGovernanceHeading">
-            <div>
-              <p class="eyebrow">PRIVACY &amp; SECURITY</p>
-              <h3 id="accountGovernanceHeading">隐私与账户</h3>
-            </div>
-            <p>物件资料只在授权项目空间内使用。账户删除需要后端确认，当前页面不会假装已经删除。</p>
-            <div class="governance-meta">
-              <span>资料提交同意版本：privacy-2026-08</span>
-              <a href="property-analysis.html?demo=1">查看资料边界说明</a>
-            </div>
-            <button class="danger-button" id="openDeleteAccountButton" type="button">申请删除账户</button>
-          </section>
-        </section>
+      <section class="latest-panel">
+        <div class="section-title">
+          <p class="eyebrow" id="listEyebrow" data-i18n="latest.eyebrow">Latest updates</p>
+          <h2 id="latestTitle" data-i18n="latest.title">最近更新内容</h2>
+        </div>
+        <p class="business-provenance-note" data-i18n="latest.note">由后台数据采集与质量审核后推送；当前预览使用本地内容库。</p>
+        <div class="latest-list" id="latestList"></div>
+        <div class="pagination hidden" id="pagination">
+          <button id="prevPage" type="button" data-i18n="latest.previous">上一页</button>
+          <span id="pageInfo">第 1 页</span>
+          <button id="nextPage" type="button" data-i18n="latest.next">下一页</button>
+        </div>
+      </section>
+
+      <section class="detail-page hidden" id="detailPage">
+        <button class="back-button" id="backToList" type="button" data-i18n="query.back">← 返回查询结果</button>
+        <div id="detailContent"></div>
       </section>
     </main>
 
-    <dialog class="account-dialog" id="deleteAccountDialog" aria-labelledby="deleteAccountHeading">
-      <form method="dialog">
-        <p class="eyebrow">ACCOUNT ACTION</p>
-        <h2 id="deleteAccountHeading">申请删除账户？</h2>
-        <p>删除账户会影响项目、资料和报告访问。当前版本尚未接通删除服务，因此不会执行删除。</p>
-        <div class="dialog-actions">
-          <button type="submit">取消</button>
-          <button id="confirmDeleteAccountButton" class="danger-button" type="button">确认并检查服务状态</button>
-        </div>
-      </form>
+    <dialog class="image-dialog" id="imageDialog">
+      <button class="image-close" id="closeImage" type="button">×</button>
+      <img id="largeImage" alt="放大图片" />
+    </dialog>
+
+    <dialog class="progress-dialog" id="progressDialog">
+      <div class="progress-card">
+        <p class="eyebrow" data-i18n="query.progressEyebrow">JPHOUSE 正在干活</p>
+        <h2 id="progressTitle" data-i18n="query.progressTitle">准备查询</h2>
+        <div class="progress-track"><span id="progressBar"></span></div>
+        <ol id="progressSteps"></ol>
+      </div>
     </dialog>
 
     <script src="config.js?v=20260824-17"></script>
     <script src="js/i18n.js?v=20260828-01"></script>
     <script src="app.js?v=20260828-03"></script>
-    <script src="js/profile-role.js?v=20260828-02"></script>
+    <script src="js/business.js?v=20260828-03"></script>
   </body>
 </html>

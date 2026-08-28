@@ -204,11 +204,20 @@ const state = {
   profile: null,
   profileLoaded: false,
   profileEditing: false,
+  authMode: "login",
   messageTimer: null,
   compareIds: [],
 };
 
 const $ = (selector) => document.querySelector(selector);
+
+function uiText(key, fallback = "") {
+  return window.ZouI18n?.t(key, fallback) || fallback;
+}
+
+function formatUiText(key, fallback = "", values = {}) {
+  return uiText(key, fallback).replace(/\{(\w+)\}/g, (_, name) => String(values[name] ?? ""));
+}
 
 function on(selector, eventName, handler) {
   const element = $(selector);
@@ -309,9 +318,18 @@ function recordMatchesOptions(record, options) {
   return true;
 }
 
+function displayPropertyText(value) {
+  return String(value ?? "")
+    .replaceAll("日本房产", "日本物件")
+    .replaceAll("房产", "物件")
+    .replaceAll("房源", "物件")
+    .replaceAll("房屋", "物件")
+    .replaceAll("房型", "物件类型");
+}
+
 function queryTitle(options) {
   const area = [options.prefecture, options.city, options.ward].filter(Boolean).join("");
-  return `${area || "日本"}${options.assetType}｜${options.year}年${Number(options.month)}月`;
+  return `${area || "日本"}${displayPropertyText(options.assetType)}｜${options.year}年${Number(options.month)}月`;
 }
 
 function queryKey(options) {
@@ -320,7 +338,7 @@ function queryKey(options) {
 
 function xhsDraftFromQuery(options) {
   const title = queryTitle(options);
-  return `# ${title}\n\n## 小红书发布内容\n${title}，租还是买？\n\n数据生成中。已有相同查询会直接调取历史数据；没有的话，JPHOUSE 会按备用数据源抓取租房子、买房子、房型面积、日元/RMB、总而言之。`;
+  return `# ${title}\n\n## 小红书发布内容\n${title}，租还是买？\n\n数据生成中。已有相同查询会直接调取历史数据；没有的话，JPHOUSE 会按备用数据源抓取租房子、买房子、物件类型与面积、日元/RMB、总而言之。`;
 }
 
 function hasBackend() {
@@ -675,7 +693,7 @@ function rowLine(row) {
 }
 
 function displayMarkdown(markdown) {
-  return String(markdown || "")
+  const cleanMarkdown = String(markdown || "")
     .split("\n")
     .filter((line) => {
       const text = line.trim();
@@ -687,6 +705,7 @@ function displayMarkdown(markdown) {
     })
     .join("\n")
     .trim();
+  return displayPropertyText(cleanMarkdown);
 }
 
 function previewText(record) {
@@ -719,10 +738,10 @@ function latestJob(query) {
 
 function statusLabel(query) {
   const job = latestJob(query);
-  if (query.status === "completed") return "已完成";
-  if (job?.status === "running" || query.status === "running") return "生成中";
-  if (job?.status === "failed") return "失败";
-  return "等待生成";
+  if (query.status === "completed") return uiText("status.completed", "已完成");
+  if (job?.status === "running" || query.status === "running") return uiText("status.running", "生成中");
+  if (job?.status === "failed") return uiText("status.failed", "失败");
+  return uiText("status.waiting", "等待生成");
 }
 
 async function loadMyPage() {
@@ -813,7 +832,7 @@ function renderProfile() {
     <div class="profile-line"><span>昵称</span><strong>${escapeHtml(displayName)}</strong></div>
     <div class="profile-line"><span>邮箱</span><strong>${escapeHtml(profile.email || state.session.email)}</strong></div>
     <div class="profile-line"><span>会员</span><strong>${escapeHtml(tier)}｜每日 ${escapeHtml(profile.daily_query_limit || 3)} 次</strong></div>
-    <div class="profile-line"><span>关注</span><strong>${escapeHtml([profile.favorite_area, profile.favorite_asset_type].filter(Boolean).join(" / ") || "还没填")}</strong></div>
+    <div class="profile-line"><span>关注</span><strong>${escapeHtml(displayPropertyText([profile.favorite_area, profile.favorite_asset_type].filter(Boolean).join(" / ") || "还没填"))}</strong></div>
   `;
 
   $("#profileForm").classList.toggle("hidden", !state.profileEditing);
@@ -832,7 +851,7 @@ async function saveProfile(event) {
   event.preventDefault();
   if (!isLoggedIn() || !hasSupabase() || !state.session?.userId) return;
   const payload = {
-    ...defaultProfile(),
+    user_id: state.session.userId,
     display_name: $("#profileDisplayName").value.trim(),
     city: $("#profileCity").value.trim(),
     favorite_area: $("#profileFavoriteArea").value.trim(),
@@ -901,9 +920,9 @@ function renderMyPage() {
   const pending = tasks.filter((task) => task.status !== "completed").length;
   if ($("#myStats")) {
     $("#myStats").innerHTML = `
-      <div class="stat-card"><span class="eyebrow">查询任务</span><strong>${tasks.length}</strong></div>
-      <div class="stat-card"><span class="eyebrow">已完成</span><strong>${completed}</strong></div>
-      <div class="stat-card"><span class="eyebrow">待处理</span><strong>${pending}</strong></div>
+      <div class="stat-card"><span class="eyebrow">${escapeHtml(uiText("workspace.statTasks", "查询任务"))}</span><strong>${tasks.length}</strong></div>
+      <div class="stat-card"><span class="eyebrow">${escapeHtml(uiText("workspace.statCompleted", "已完成"))}</span><strong>${completed}</strong></div>
+      <div class="stat-card"><span class="eyebrow">${escapeHtml(uiText("workspace.statPending", "待处理"))}</span><strong>${pending}</strong></div>
     `;
   }
   renderProfile();
@@ -911,15 +930,15 @@ function renderMyPage() {
   if (!$("#myTaskList")) return;
 
   if (!hasSupabase()) {
-    $("#myTaskList").innerHTML = `<div class="empty">Supabase 还没配置，Mypage 先坐会儿。</div>`;
+    $("#myTaskList").innerHTML = `<div class="empty">${escapeHtml(uiText("workspace.supabaseMissing", "Supabase 还没配置，工作台先坐会儿。"))}</div>`;
     return;
   }
   if (!state.myPageLoaded) {
-    $("#myTaskList").innerHTML = `<div class="empty">正在加载我的任务……</div>`;
+    $("#myTaskList").innerHTML = `<div class="empty">${escapeHtml(uiText("workspace.loading", "正在加载我的任务……"))}</div>`;
     return;
   }
   if (!tasks.length) {
-    $("#myTaskList").innerHTML = `<div class="empty">还没有你的查询任务。先搜一个，小象才有班可上。</div>`;
+    $("#myTaskList").innerHTML = `<div class="empty">${escapeHtml(uiText("workspace.empty", "还没有你的查询任务。先搜一个，小象才有班可上。"))}</div>`;
     return;
   }
   $("#myTaskList").innerHTML = tasks
@@ -931,13 +950,13 @@ function renderMyPage() {
           <h3>${escapeHtml(titleFromQueryRow(task))}</h3>
           <p>
             <span class="pill">${escapeHtml(statusLabel(task))}</span>
-            <span class="pill">${escapeHtml(task.asset_type)}</span>
+            <span class="pill">${escapeHtml(displayPropertyText(task.asset_type))}</span>
             <span class="pill">${escapeHtml(`${task.year}年${task.month}月`)}</span>
           </p>
-          <p>${escapeHtml(job?.current_step || task.markdown_title || "已保存查询记录")}</p>
+          <p>${escapeHtml(job?.current_step || task.markdown_title || uiText("workspace.savedQuery", "已保存查询记录"))}</p>
           <div class="task-actions">
-            <button class="primary" type="button" data-run-query="${escapeHtml(task.id)}" ${canRun ? "" : "disabled"}>手动执行 JPHOUSE</button>
-            <button type="button" data-view-query="${escapeHtml(task.query_key)}">查看结果</button>
+            <button class="primary" type="button" data-run-query="${escapeHtml(task.id)}" ${canRun ? "" : "disabled"}>${escapeHtml(uiText("workspace.runJphouse", "手动执行 JPHOUSE"))}</button>
+            <button type="button" data-view-query="${escapeHtml(task.query_key)}">${escapeHtml(uiText("workspace.viewResult", "查看结果"))}</button>
           </div>
         </article>
       `;
@@ -983,15 +1002,15 @@ function analysisValue(record, metric, layout) {
 }
 
 function analysisUnit(metric) {
-  if (metric === "rent") return "万日元/月";
-  if (metric === "sale") return "万日元";
+  if (metric === "rent") return uiText("analysis.unitRent", "万日元/月");
+  if (metric === "sale") return uiText("analysis.unitSale", "万日元");
   return "%";
 }
 
 function analysisMetricName(metric) {
-  if (metric === "rent") return "月租金";
-  if (metric === "sale") return "买房总价";
-  return "租售比";
+  if (metric === "rent") return uiText("analysis.rent", "月租金");
+  if (metric === "sale") return uiText("analysis.sale", "买房总价");
+  return uiText("analysis.ratio", "租售比");
 }
 
 function formatAnalysisValue(value, metric) {
@@ -1019,7 +1038,7 @@ function compareCell(record, layout) {
 }
 
 function compareOptionLabel(record) {
-  return `${record.title}｜${record.publish_month}`;
+  return `${displayPropertyText(record.title)}｜${record.publish_month}`;
 }
 
 function syncCompareSelect(select, records, fallbackIndex) {
@@ -1066,7 +1085,7 @@ function renderDimensions(selected) {
           </label>
         `)
         .join("")
-    : `<div class="empty">所选报告没有可比较维度。</div>`;
+    : `<div class="empty">${escapeHtml(uiText("analysis.noCompareSelection", "所选报告没有可比较维度。"))}</div>`;
   picker.querySelectorAll("input").forEach((input) => {
     input.addEventListener("change", renderAnalysis);
   });
@@ -1079,9 +1098,9 @@ function selectedCompareMetrics() {
 }
 
 function compareMetricLabel(metric) {
-  if (metric === "rent") return "租金";
-  if (metric === "sale") return "售价";
-  return "租售比";
+  if (metric === "rent") return uiText("analysis.rent", "租金");
+  if (metric === "sale") return uiText("analysis.sale", "售价");
+  return uiText("analysis.ratio", "租售比");
 }
 
 function renderCompare(matched) {
@@ -1095,11 +1114,11 @@ function renderCompare(matched) {
   const layouts = renderDimensions(selected);
   const metrics = selectedCompareMetrics();
   if (!candidates.length) {
-    $("#compareTable").innerHTML = `<div class="empty">没有可比较的数据。先换个关键词。</div>`;
+    $("#compareTable").innerHTML = `<div class="empty">${escapeHtml(uiText("analysis.noCompareData", "没有可比较的数据。先换个关键词。"))}</div>`;
     return;
   }
   if (!selected.length || !layouts.length) {
-    $("#compareTable").innerHTML = `<div class="empty">请选择要比较的数据和维度。</div>`;
+    $("#compareTable").innerHTML = `<div class="empty">${escapeHtml(uiText("analysis.noCompareSelection", "请选择要比较的数据和维度。"))}</div>`;
     return;
   }
   $("#compareTable").innerHTML = `
@@ -1107,7 +1126,7 @@ function renderCompare(matched) {
       <thead>
         <tr>
           <th rowspan="2">维度</th>
-          ${selected.map((record) => `<th colspan="${metrics.length}">${escapeHtml(record.title)}<small>${escapeHtml(record.publish_month)}</small></th>`).join("")}
+          ${selected.map((record) => `<th colspan="${metrics.length}">${escapeHtml(displayPropertyText(record.title))}<small>${escapeHtml(record.publish_month)}</small></th>`).join("")}
         </tr>
         <tr>
           ${selected.map(() => metrics.map((metric) => `<th>${escapeHtml(compareMetricLabel(metric))}</th>`).join("")).join("")}
@@ -1167,7 +1186,7 @@ function drawAnalysisChart(points, metric) {
   ctx.fillStyle = "#666";
   ctx.font = "13px sans-serif";
   if (!points.length) {
-    ctx.fillText("没有可画的数据。换个关键词/房型试试，小象不是不努力，是锅里没米。", 44, height / 2);
+    ctx.fillText(uiText("analysis.noChart", "没有可画的数据。换个关键词或物件类型试试。"), 44, height / 2);
     return;
   }
   const values = points.map((p) => p.value);
@@ -1233,26 +1252,55 @@ function renderAnalysis() {
     .sort((a, b) => a.month.localeCompare(b.month));
   drawAnalysisChart(points, metric);
 
-  $("#analysisHint").textContent = `${analysisMetricName(metric)}｜${layout}｜匹配 ${matched.length} 条，月份点 ${points.length} 个。`;
+  $("#analysisHint").textContent = formatUiText("analysis.dynamicHint", `${analysisMetricName(metric)}｜${layout}｜匹配 ${matched.length} 条，月份点 ${points.length} 个。`, {
+    metric: analysisMetricName(metric),
+    layout,
+    matched: matched.length,
+    points: points.length,
+  });
   renderCompare(matched);
   $("#analysisResults").innerHTML = matched
     .slice(0, 10)
     .map(({ record, value }) => `
       <article class="analysis-row">
         <div>
-          <h3>${escapeHtml(record.title)}</h3>
-          <p>${escapeHtml(record.publish_month)}｜${escapeHtml((record.regions || []).join(" / ") || record.asset_type || "")}</p>
+          <h3>${escapeHtml(displayPropertyText(record.title))}</h3>
+          <p>${escapeHtml(record.publish_month)}｜${escapeHtml(displayPropertyText((record.regions || []).join(" / ") || record.asset_type || ""))}</p>
         </div>
         <strong>${escapeHtml(value.toFixed(metric === "ratio" ? 2 : 1))}${escapeHtml(analysisUnit(metric))}</strong>
       </article>
     `)
-    .join("") || `<div class="empty">暂时没有匹配数据。换个关键词试试。</div>`;
+    .join("") || `<div class="empty">${escapeHtml(uiText("analysis.noMatched", "暂时没有匹配数据。换个关键词试试。"))}</div>`;
 }
 
 async function runJphouseFromMyPage(queryId) {
+  const useAuthenticatedBackend = canUseAuthenticatedBackend();
   try {
-    renderProgress("云端 JPHOUSE", 20, ["发送任务到 Supabase Edge Function", "云端生成数据报告"]);
-    const result = await supabaseFunctionFetch("jphouse-run", { query_id: queryId });
+    renderProgress(
+      "云端 JPHOUSE",
+      20,
+      useAuthenticatedBackend
+        ? ["发送任务到 FastAPI", "后台生成数据报告"]
+        : ["发送任务到 Supabase Edge Function", "云端生成数据报告"],
+    );
+    let result = useAuthenticatedBackend
+      ? await apiFetch(`/api/jobs/${encodeURIComponent(queryId)}/run`, { method: "POST" })
+      : await supabaseFunctionFetch("jphouse-run", { query_id: queryId });
+    if (useAuthenticatedBackend) {
+      for (let i = 0; i < 30 && result?.status !== "completed"; i += 1) {
+        if (result?.status === "failed") throw new Error(result.error_message || "生成失败");
+        await delay(900);
+        result = await apiFetch(`/api/jobs/${encodeURIComponent(queryId)}`);
+        renderProgress("云端 JPHOUSE", result.progress || 20, [result.current_step || "生成中", `任务状态：${result.status}`]);
+      }
+      if (result?.status !== "completed") {
+        if ($("#progressDialog").open) $("#progressDialog").close();
+        setMessage("任务仍在运行，请稍后刷新工作台。", "info");
+        await loadMyPage();
+        render();
+        return;
+      }
+    }
     if (result?.report) {
       const query = state.myTasks.find((item) => item.id === queryId);
       const record = supabaseReportToRecord(query ? optionsFromQueryRow(query) : {}, result.report);
@@ -1262,11 +1310,16 @@ async function runJphouseFromMyPage(queryId) {
     await delay(350);
     if ($("#progressDialog").open) $("#progressDialog").close();
     await loadMyPage();
-    setMessage("JPHOUSE 云端执行完成，可以查看结果。", "success");
+    setMessage(useAuthenticatedBackend ? "JPHOUSE API 执行完成，可以查看结果。" : "JPHOUSE 云端执行完成，可以查看结果。", "success");
     render();
   } catch (error) {
     if ($("#progressDialog").open) $("#progressDialog").close();
-    setMessage(`云端执行失败：${error.message}。如果函数还没部署，先部署 jphouse-run。`, "error");
+    setMessage(
+      useAuthenticatedBackend
+        ? `JPHOUSE API 执行失败：${error.message}`
+        : `云端执行失败：${error.message}。如果函数还没部署，先部署 jphouse-run。`,
+      "error",
+    );
     await loadMyPage();
     render();
   }
@@ -1293,18 +1346,41 @@ async function viewReportByQueryKey(key) {
 
 function renderAccount() {
   const loggedIn = isLoggedIn();
+  const registerMode = state.authMode === "register";
+  const forgotMode = state.authMode === "forgot";
   $("#accountPanel")?.classList.toggle("compact-account", loggedIn);
   const profileName = state.profile?.display_name || state.session?.username;
   const taskCount = state.myTasks?.length || 0;
   const pendingCount = (state.myTasks || []).filter((task) => task.status !== "completed").length;
-  const tier = state.profile?.membership_tier === "free" || !state.profile?.membership_tier ? "免费版" : state.profile.membership_tier;
-  $("#accountTitle").textContent = loggedIn ? `你好，${profileName}` : "登录后可以查询";
+  const tier = state.profile?.membership_tier === "free" || !state.profile?.membership_tier ? uiText("account.freeTier", "免费版") : state.profile.membership_tier;
+  const loggedOutTitle = uiText(
+    $("#accountTitle")?.dataset.loggedOutKey,
+    $("#accountTitle")?.dataset.loggedOutTitle || "登录后可以查询",
+  );
+  const loggedOutCopy = uiText(
+    $("#accountCopy")?.dataset.loggedOutCopyKey,
+    $("#accountCopy")?.dataset.loggedOutCopy || "未登录只能看最近 5 条数据。注册很简单，别紧张，不查户口。",
+  );
+  $("#accountTitle").textContent = loggedIn
+    ? formatUiText("account.greeting", `你好，${profileName}`, { name: profileName })
+    : forgotMode
+      ? uiText("account.resetTitle", "找回密码")
+      : loggedOutTitle;
   $("#accountCopy").textContent = loggedIn
-    ? `${tier}｜任务 ${taskCount}｜待处理 ${pendingCount}｜${state.session.email}`
-    : "未登录只能看最近 5 条数据。注册很简单，别紧张，不查户口。";
-  $("#accountTabs").classList.toggle("hidden", loggedIn);
-  $("#loginForm").classList.toggle("hidden", loggedIn || $("#showRegister").classList.contains("active"));
-  $("#registerForm").classList.toggle("hidden", loggedIn || $("#showLogin").classList.contains("active"));
+    ? formatUiText("account.loggedIn", `${tier}｜任务 ${taskCount}｜待处理 ${pendingCount}｜${state.session.email}`, {
+        tier,
+        tasks: taskCount,
+        pending: pendingCount,
+        email: state.session.email,
+      })
+    : forgotMode
+      ? uiText("account.resetCopy", "输入注册邮箱后，我们会发送找回密码邮件。如果没有收到，也不会暴露账户是否存在。")
+      : loggedOutCopy;
+  $("#accountTabs")?.classList.toggle("hidden", loggedIn || forgotMode);
+  $("#forgotPasswordLink")?.classList.toggle("hidden", loggedIn || forgotMode);
+  $("#loginForm")?.classList.toggle("hidden", loggedIn || registerMode || forgotMode);
+  $("#registerForm")?.classList.toggle("hidden", loggedIn || !registerMode || forgotMode);
+  $("#forgotPasswordForm")?.classList.toggle("hidden", loggedIn || !forgotMode);
   $("#logoutButton").classList.toggle("hidden", !loggedIn);
   document.querySelectorAll(".account-action-link").forEach((link) => {
     link.classList.toggle("hidden", !loggedIn);
@@ -1316,8 +1392,8 @@ function renderAccount() {
   const hint = $("#queryHint");
   if (hint) {
     hint.textContent = loggedIn
-      ? "选择条件后查询。已有数据直接展示；没有命中会保存到 Supabase，等 JPHOUSE 采集器补数据。"
-      : "登录后可以查询。已有记录直接调取，没做过的会进入生成流程。";
+      ? uiText("query.hintLoggedIn", "选择条件后查询。已有数据直接展示；没有命中会保存到 Supabase，等 JPHOUSE 采集器补数据。")
+      : uiText("query.hintLoggedOut", "登录后可以查询。已有记录直接调取，没做过的会进入生成流程。");
   }
 }
 
@@ -1341,39 +1417,38 @@ function renderLatest() {
   const start = (state.page - 1) * pageSize();
   const records = all.slice(start, start + pageSize());
 
-  $("#latestTitle").textContent = !isLoggedIn()
-    ? "最近发布的数据"
-    : state.queryOptions
-      ? `查询结果：${queryTitle(state.queryOptions)}（${all.length}条）`
-      : state.query
-        ? `搜索结果：${state.query}（${all.length}条）`
-      : `全部数据（${all.length}条）`;
-  $("#listEyebrow").textContent = isLoggedIn() ? "Search Results" : "Latest 5";
+  const title = $("#latestTitle");
+  if (title) {
+    title.textContent = !isLoggedIn()
+      ? uiText("latest.title", "最近更新内容")
+      : state.queryOptions
+        ? formatUiText("latest.searchResults", `查询结果：${queryTitle(state.queryOptions)}（${all.length}条）`, { title: queryTitle(state.queryOptions), count: all.length })
+        : state.query
+          ? formatUiText("latest.keywordResults", `搜索结果：${state.query}（${all.length}条）`, { query: state.query, count: all.length })
+        : formatUiText("latest.allResults", `全部数据（${all.length}条）`, { count: all.length });
+  }
+  const eyebrow = $("#listEyebrow");
+  if (eyebrow) eyebrow.textContent = isLoggedIn() ? uiText("latest.searchEyebrow", "Search results") : uiText("latest.eyebrow", "Latest updates");
 
-  $("#pagination").classList.toggle("hidden", !isLoggedIn() || all.length <= pageSize());
-  $("#pageInfo").textContent = `第 ${state.page} / ${total} 页`;
-  $("#prevPage").disabled = state.page <= 1;
-  $("#nextPage").disabled = state.page >= total;
+  $("#pagination")?.classList.toggle("hidden", !isLoggedIn() || all.length <= pageSize());
+  if ($("#pageInfo")) $("#pageInfo").textContent = formatUiText("latest.pageInfo", `第 ${state.page} / ${total} 页`, { page: state.page, total });
+  if ($("#prevPage")) $("#prevPage").disabled = state.page <= 1;
+  if ($("#nextPage")) $("#nextPage").disabled = state.page >= total;
 
   if (!records.length) {
-    $("#latestList").innerHTML = `<div class="empty">暂时没搜到。这个查询已经可以记录下来，等后端生成器接上，小象就能现场抓数。</div>`;
+    $("#latestList").innerHTML = `<div class="empty">${escapeHtml(uiText("latest.empty", "暂时没搜到。这个查询已经可以记录下来，等后端生成器接上。"))}</div>`;
     return;
   }
 
   $("#latestList").innerHTML = records
     .map((record) => {
-      const cover = record.images?.[0] || "";
+      const regions = displayPropertyText((record.regions || []).join(" / ")) || "日本";
       return `
         <article class="latest-card" role="${isLoggedIn() ? "button" : "article"}" tabindex="${isLoggedIn() ? "0" : "-1"}" data-detail="${escapeHtml(record.id)}">
-          <img src="${cover}" alt="${escapeHtml(record.title)} 封面" />
+          <span class="latest-currency" aria-hidden="true">¥</span>
           <div>
-            <h3>${escapeHtml(record.title)}</h3>
-            <p class="meta">
-              <span class="pill">${escapeHtml(record.publish_month)}</span>
-              <span class="pill">${escapeHtml((record.regions || []).join(" / "))}</span>
-              <span class="pill">${escapeHtml((record.layouts || []).join(" / "))}</span>
-            </p>
-            <p>${escapeHtml(previewText(record))}</p>
+            <h3>${escapeHtml(displayPropertyText(record.title))}</h3>
+            <p class="latest-record-meta">${escapeHtml(formatUiText("latest.meta", `${record.publish_month} · ${regions}`, { month: record.publish_month, regions }))}</p>
           </div>
         </article>
       `;
@@ -1393,18 +1468,24 @@ function renderLatest() {
 function renderQueryOptions() {
   const prefecture = $("#prefectureSelect");
   if (!prefecture) return;
+  const city = $("#citySelect");
+  const ward = $("#wardSelect");
+  const assetType = $("#assetTypeSelect");
+  const year = $("#yearSelect");
+  const month = $("#monthSelect");
+  if (!city || !ward || !assetType || !year || !month) return;
   const currentPrefecture = prefecture.value || "东京都";
-  prefecture.innerHTML = `<option value="">请选择</option>${state.fieldOptions.prefectures.map((item) => optionHtml(item)).join("")}`;
+  prefecture.innerHTML = `<option value="">${escapeHtml(uiText("query.select", "请选择"))}</option>${state.fieldOptions.prefectures.map((item) => optionHtml(item)).join("")}`;
   prefecture.value = state.fieldOptions.prefectures.includes(currentPrefecture) ? currentPrefecture : state.fieldOptions.prefectures[0] || "";
-  const currentAssetType = $("#assetTypeSelect").value || "塔楼";
-  $("#assetTypeSelect").innerHTML = state.fieldOptions.assetTypes.map((item) => optionHtml(item)).join("");
-  $("#assetTypeSelect").value = state.fieldOptions.assetTypes.includes(currentAssetType) ? currentAssetType : state.fieldOptions.assetTypes[0] || "";
-  const currentYear = $("#yearSelect").value || "2026";
-  $("#yearSelect").innerHTML = state.fieldOptions.years.map((item) => optionHtml(item)).join("");
-  $("#yearSelect").value = state.fieldOptions.years.includes(currentYear) ? currentYear : state.fieldOptions.years[0] || "";
-  const currentMonth = $("#monthSelect").value || "8";
-  $("#monthSelect").innerHTML = state.fieldOptions.months.map((item) => optionHtml(item, `${item}月`)).join("");
-  $("#monthSelect").value = state.fieldOptions.months.includes(currentMonth) ? currentMonth : state.fieldOptions.months[0] || "";
+  const currentAssetType = assetType.value || "塔楼";
+  assetType.innerHTML = state.fieldOptions.assetTypes.map((item) => optionHtml(item, assetTypeLabel(item))).join("");
+  assetType.value = state.fieldOptions.assetTypes.includes(currentAssetType) ? currentAssetType : state.fieldOptions.assetTypes[0] || "";
+  const currentYear = year.value || "2026";
+  year.innerHTML = state.fieldOptions.years.map((item) => optionHtml(item)).join("");
+  year.value = state.fieldOptions.years.includes(currentYear) ? currentYear : state.fieldOptions.years[0] || "";
+  const currentMonth = month.value || "8";
+  month.innerHTML = state.fieldOptions.months.map((item) => optionHtml(item, formatUiText("query.monthOption", `${item}月`, { month: item }))).join("");
+  month.value = state.fieldOptions.months.includes(currentMonth) ? currentMonth : state.fieldOptions.months[0] || "";
   if (!prefecture.value) {
     prefecture.value = "东京都";
   }
@@ -1416,25 +1497,42 @@ function optionHtml(value, label = value) {
   return `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`;
 }
 
+function assetTypeLabel(value) {
+  const keys = {
+    塔楼: "asset.tower",
+    公寓: "asset.apartment",
+    一户建: "asset.detached",
+    其他物件: "asset.other",
+  };
+  return uiText(keys[value], displayPropertyText(value));
+}
+
 function populateCities() {
-  const prefecture = $("#prefectureSelect").value;
-  const currentCity = $("#citySelect").value;
+  const prefectureSelect = $("#prefectureSelect");
+  const citySelect = $("#citySelect");
+  if (!prefectureSelect || !citySelect) return;
+  const prefecture = prefectureSelect.value;
+  const currentCity = citySelect.value;
   const cities = state.fieldOptions.cities[prefecture] || [];
-  $("#citySelect").innerHTML = `<option value="">请选择</option>${cities.map((city) => optionHtml(city)).join("")}`;
+  citySelect.innerHTML = `<option value="">${escapeHtml(uiText("query.select", "请选择"))}</option>${cities.map((city) => optionHtml(city)).join("")}`;
   if (cities.includes(currentCity)) {
-    $("#citySelect").value = currentCity;
+    citySelect.value = currentCity;
   } else if (cities.length) {
-    $("#citySelect").value = cities[0];
+    citySelect.value = cities[0];
   }
 }
 
 function populateWards() {
-  const prefecture = $("#prefectureSelect").value;
-  const city = $("#citySelect").value;
-  const currentWard = $("#wardSelect").value;
+  const prefectureSelect = $("#prefectureSelect");
+  const citySelect = $("#citySelect");
+  const wardSelect = $("#wardSelect");
+  if (!prefectureSelect || !citySelect || !wardSelect) return;
+  const prefecture = prefectureSelect.value;
+  const city = citySelect.value;
+  const currentWard = wardSelect.value;
   const wards = state.fieldOptions.wards[`${prefecture}::${city}`] || [];
-  $("#wardSelect").innerHTML = `<option value="">全部区</option>${wards.map((ward) => optionHtml(ward)).join("")}`;
-  if (wards.includes(currentWard)) $("#wardSelect").value = currentWard;
+  wardSelect.innerHTML = `<option value="">${escapeHtml(uiText("query.allWards", "全部区"))}</option>${wards.map((ward) => optionHtml(ward)).join("")}`;
+  if (wards.includes(currentWard)) wardSelect.value = currentWard;
 }
 
 function readQueryOptions() {
@@ -1468,9 +1566,11 @@ function saveQuery(options, status, matchedCount = 0) {
 function renderQueryHistory() {
   const panel = $("#queryHistory");
   if (!panel) return;
+  const historyList = $("#historyList");
+  if (!historyList) return;
   const history = getQueryHistory();
   panel.classList.toggle("hidden", !isLoggedIn() || !history.length);
-  $("#historyList").innerHTML = history
+  historyList.innerHTML = history
     .slice(0, 5)
     .map(
       (item) => `
@@ -1586,7 +1686,7 @@ async function handleStructuredQuery(event) {
   if (!isLoggedIn()) return;
   const options = readQueryOptions();
   if (!options.prefecture || !options.city) {
-    setMessage("都道府县和市至少选一下，不然小象不知道往哪儿跑。", "error");
+    setMessage(uiText("query.citiesRequired", "都道府县和市至少选一下，不然小象不知道往哪儿跑。"), "error");
     return;
   }
   let matchedCount = state.records.filter((record) => recordMatchesOptions(record, options)).length;
@@ -1602,7 +1702,7 @@ async function handleStructuredQuery(event) {
       await showProgress(queryTitle(options), matchedCount);
     }
   } else {
-    setMessage("后端尚未配置，当前只显示本地公开数据；登录后的项目查询需要连接 API。", "error");
+    setMessage(uiText("query.backendFallback", "后端尚未配置，当前只显示本地公开数据；登录后的项目查询需要连接 API。"), "error");
     await showProgress(queryTitle(options), matchedCount);
   }
   saveQuery(options, status, matchedCount);
@@ -1611,7 +1711,9 @@ async function handleStructuredQuery(event) {
   state.page = 1;
   state.selectedId = "";
   setMessage(
-    matchedCount ? `查到了 ${matchedCount} 条，直接调取。` : "当前库里还没有，已保存查询记录，等 JPHOUSE 采集器补数据。",
+    matchedCount
+      ? formatUiText("query.matched", `查到了 ${matchedCount} 条，直接调取。`, { count: matchedCount })
+      : uiText("query.noLocal", "当前库里还没有，已保存查询记录，等 JPHOUSE 采集器补数据。"),
     matchedCount ? "success" : "",
   );
   render();
@@ -1641,10 +1743,39 @@ function renderView() {
 
 function showMode(mode) {
   const registerMode = mode === "register";
+  state.authMode = mode === "forgot" ? "forgot" : registerMode ? "register" : "login";
   $("#showLogin").classList.toggle("active", !registerMode);
   $("#showRegister").classList.toggle("active", registerMode);
   setMessage("");
   renderAccount();
+}
+
+async function requestPasswordReset(event) {
+  event.preventDefault();
+  const email = $("#forgotPasswordEmail")?.value.trim();
+  const submitButton = $("#forgotPasswordForm button[type='submit']");
+  if (!email) {
+    setMessage("请输入注册邮箱。", "error");
+    return;
+  }
+  if (!hasSupabase()) {
+    setMessage("账户服务还未配置，暂时无法发送找回邮件；没有修改任何账户。", "error");
+    return;
+  }
+  try {
+    submitButton.disabled = true;
+    setMessage("正在发送找回邮件……");
+    await supabaseAuthFetch(`/recover?redirect_to=${encodeURIComponent(appRedirectUrl())}`, {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+    $("#forgotPasswordForm").reset();
+    setMessage("如果这个邮箱已注册，找回密码邮件会发到邮箱；请检查收件箱和垃圾邮件。", "success");
+  } catch {
+    setMessage("找回密码请求未完成，请稍后再试。", "error");
+  } finally {
+    submitButton.disabled = false;
+  }
 }
 
 async function register(event) {
@@ -1810,6 +1941,7 @@ async function logout() {
   state.profile = null;
   state.profileLoaded = false;
   state.profileEditing = false;
+  state.authMode = "login";
   saveSession(null);
   setMessage("已退出。搜索框又开始装睡了。");
   render();
@@ -1827,7 +1959,7 @@ function renderDetail() {
   const sale = record.sale || [];
   $("#detailContent").innerHTML = `
     <article class="detail-card">
-      <h2>${escapeHtml(record.title)}</h2>
+      <h2>${escapeHtml(displayPropertyText(record.title))}</h2>
       <p class="meta">
         <span class="pill">${escapeHtml(record.publish_month)}</span>
         <span class="pill">${escapeHtml((record.regions || []).join(" / "))}</span>
@@ -1838,7 +1970,7 @@ function renderDetail() {
           .map(
             (src, index) => `
               <button class="image-zoom" type="button" data-image="${escapeHtml(src)}" aria-label="放大第 ${index + 1} 张图片">
-                <img src="${escapeHtml(src)}" alt="${escapeHtml(record.title)} 配图 ${index + 1}" />
+                <img src="${escapeHtml(src)}" alt="${escapeHtml(displayPropertyText(record.title))} 配图 ${index + 1}" />
               </button>
             `,
           )
@@ -1897,8 +2029,13 @@ async function init() {
   await loadMyPage();
   on("#showLogin", "click", () => showMode("login"));
   on("#showRegister", "click", () => showMode("register"));
+  on("#forgotPasswordLink", "click", (event) => {
+    event.preventDefault();
+    showMode("forgot");
+  });
   on("#registerForm", "submit", register);
   on("#loginForm", "submit", login);
+  on("#forgotPasswordForm", "submit", requestPasswordReset);
   on("#logoutButton", "click", logout);
   on("#prefectureSelect", "change", () => {
     populateCities();
@@ -1914,7 +2051,7 @@ async function init() {
     await ensureUserProfile();
     await loadMyPage();
     render();
-    setMessage("Mypage 已刷新。小象打卡成功。", "success");
+    setMessage("工作台已刷新。小象打卡成功。", "success");
   });
   on("#editProfileButton", "click", () => {
     state.profileEditing = !state.profileEditing;
@@ -1926,6 +2063,11 @@ async function init() {
   });
   on("#profileForm", "submit", saveProfile);
   on("#passwordForm", "submit", updatePassword);
+  on("#openDeleteAccountButton", "click", () => $("#deleteAccountDialog")?.showModal());
+  on("#confirmDeleteAccountButton", "click", () => {
+    $("#deleteAccountDialog")?.close();
+    setMessage("当前版本尚未接通账户删除服务，未删除任何内容。", "error");
+  });
   on("#analysisForm", "submit", (event) => {
     event.preventDefault();
     renderAnalysis();

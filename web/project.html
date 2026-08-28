@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="小象避坑项目工作台与物件分析报告。" />
+    <title>项目工作台｜小象避坑 ZOUBEACON</title>
+    <link rel="icon" href="assets/logoELE-beacon.svg" />
+    <link rel="stylesheet" href="project-workspace.css?v=20260828-01" />
+  </head>
+  <body>
+    <main class="workspace-app">
+      <header class="workspace-header">
+        <a class="workspace-brand" href="property-analysis.html" aria-label="返回小象避坑">
+          <svg class="workspace-brand-mark" viewBox="150 285 950 700" aria-hidden="true" focusable="false">
+            <defs>
+              <filter id="beacon-logo-color" color-interpolation-filters="sRGB">
+                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -0.2126 -0.7152 -0.0722 0 1" result="logo-alpha" />
+                <feComponentTransfer in="logo-alpha" result="logo-mask"><feFuncA type="discrete" tableValues="0 0 0 0 0 1 1 1 1 1" /></feComponentTransfer>
+                <feFlood flood-color="#10284d" result="logo-color" /><feComposite in="logo-color" in2="logo-mask" operator="in" />
+              </filter>
+            </defs>
+            <image href="assets/logoELE.png" width="1254" height="1254" preserveAspectRatio="none" filter="url(#beacon-logo-color)" />
+          </svg>
+          <span>
+            <strong>小象避坑</strong>
+            <small>ZOUBEACON</small>
+          </span>
+        </a>
+        <nav class="workspace-nav" aria-label="项目导航">
+          <a href="property-analysis.html">分析物件</a>
+          <a href="projects.html">我的项目</a>
+          <a href="profile.html?role=consumer">账户资料</a>
+        </nav>
+        <button class="workspace-menu-toggle" id="workspaceMenuToggle" type="button" aria-expanded="false" aria-controls="workspaceMenu">
+          菜单
+        </button>
+      </header>
+
+      <nav class="workspace-menu" id="workspaceMenu" aria-label="移动端项目导航" hidden>
+        <a href="property-analysis.html">分析物件</a>
+        <a href="projects.html">我的项目</a>
+        <a href="profile.html?role=consumer">账户资料</a>
+      </nav>
+
+      <div class="review-toolbar" id="reviewToolbar" hidden>
+        <div>
+          <strong>界面评审模式</strong>
+          <span>以下内容为 synthetic_fixture 演示，不代表真实物件结论。</span>
+        </div>
+        <label>
+          查看状态
+          <select id="stateSelector">
+            <option value="preview">免费预览</option>
+            <option value="ready">权益已准备</option>
+            <option value="running">生成中</option>
+            <option value="completed">完整报告</option>
+            <option value="failed">生成失败</option>
+            <option value="update">补充资料</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="workspace-page">
+        <nav class="breadcrumbs" aria-label="面包屑导航">
+          <a href="projects.html">我的项目</a>
+          <span aria-hidden="true">/</span>
+          <span>大阪市北区・塔楼演示项目</span>
+        </nav>
+
+        <header class="project-heading">
+          <div>
+            <p class="eyebrow">PROJECT WORKSPACE</p>
+            <h1>大阪市北区・塔楼演示项目</h1>
+            <p class="project-subtitle">以当前已确认资料为基础，查看分析进度、报告版本和下一步动作。</p>
+          </div>
+          <div class="project-heading-meta">
+            <span class="project-status" id="projectStatus">免费预览</span>
+            <span class="fixture-label">界面演示 · synthetic_fixture</span>
+          </div>
+        </header>
+
+        <div id="workspaceNotice" class="workspace-notice" role="status" aria-live="polite"></div>
+
+        <div class="workspace-layout">
+          <div class="workspace-main">
+            <section class="project-summary-band" aria-labelledby="summaryHeading">
+              <div class="summary-intro">
+                <p class="eyebrow">CURRENT PROJECT</p>
+                <h2 id="summaryHeading">资料已经整理到可以继续判断</h2>
+                <p>售价和面积已确认；法律、管理与市场可比资料仍需要补齐后才能给出可靠结论。</p>
+              </div>
+              <dl class="summary-facts">
+                <div>
+                  <dt>主要用途</dt>
+                  <dd>自住购买</dd>
+                </div>
+                <div>
+                  <dt>售价</dt>
+                  <dd>35,000,000 JPY</dd>
+                </div>
+                <div>
+                  <dt>专有面积</dt>
+                  <dd>45.2㎡</dd>
+                </div>
+                <div>
+                  <dt>资料更新时间</dt>
+                  <dd>2026-08-27</dd>
+                </div>
+              </dl>
+            </section>
+
+            <section class="report-state" id="reportState" aria-live="polite"></section>
+
+            <section class="service-request-panel" aria-labelledby="serviceRequestHeading">
+              <div class="service-request-heading">
+                <div>
+                  <p class="eyebrow">ZOUBEACON SUPPORT</p>
+                  <h2 id="serviceRequestHeading">需要人工协助？</h2>
+                </div>
+                <span class="fixture-label">演示入口 · synthetic_fixture</span>
+              </div>
+              <p class="service-request-copy">选择你需要的服务，提交后会进入小象数据的服务协作队列。当前只用于确认界面，不会创建真实订单。</p>
+              <div class="service-request-options">
+                <label class="service-request-option"><input type="radio" name="serviceRequest" value="陪同看房" /><span><strong>陪同看房</strong><small>现场确认采光、噪音、周边动线和资料一致性。</small></span></label>
+                <label class="service-request-option"><input type="radio" name="serviceRequest" value="人工专家分析" /><span><strong>人工专家分析</strong><small>由专家复核管理费、修缮计划、法律和投资风险。</small></span></label>
+                <label class="service-request-option"><input type="radio" name="serviceRequest" value="好房推荐" /><span><strong>好房推荐</strong><small>根据预算、通勤、用途和避坑偏好整理候选项目。</small></span></label>
+              </div>
+              <div class="service-request-actions">
+                <button class="primary-button" id="serviceRequestButton" type="button">提交服务需求（演示）</button>
+                <p id="serviceRequestStatus" role="status" aria-live="polite"></p>
+              </div>
+            </section>
+
+            <section class="report-content free-report-content" id="freeReportContent" hidden aria-labelledby="freeReportHeading">
+              <div class="report-title-row">
+                <div>
+                  <p class="eyebrow">FREE PREVIEW · V1 · SYNTHETIC FIXTURE</p>
+                  <h2 id="freeReportHeading">先看清资料状态，再决定是否继续</h2>
+                  <p>免费预览帮助你判断资料是否值得补齐，不替代正式交易核查，也不公开完整行动结论。</p>
+                </div>
+                <span class="conclusion conclusion-free">免费预览</span>
+              </div>
+
+              <div class="report-alert report-alert-neutral">
+                <strong>当前只展示已识别的信息和资料缺口</strong>
+                <p>没有证据支持的字段会保留为资料不足；收费完整版才会展开证据推理、市场比较和专项测算。</p>
+              </div>
+
+              <div class="preview-metric-grid" aria-label="免费预览摘要">
+                <article class="preview-metric-card preview-metric-primary">
+                  <span class="metric-label">资料完整度</span>
+                  <strong>62%</strong>
+                  <span>6 个维度分别计算</span>
+                </article>
+                <article class="preview-metric-card">
+                  <span class="metric-label">资料提醒</span>
+                  <strong>3 项</strong>
+                  <span>优先补充后再判断</span>
+                </article>
+                <article class="preview-metric-card">
+                  <span class="metric-label">市场可比数据</span>
+                  <strong>未检查</strong>
+                  <span>不会静默生成价格结论</span>
+                </article>
+              </div>
+
+              <div class="report-grid">
+                <section class="report-section report-section-wide" aria-labelledby="freeCompletenessHeading">
+                  <div class="section-heading-row">
+                    <div>
+                      <p class="eyebrow">01 · INPUT QUALITY</p>
+                      <h3 id="freeCompletenessHeading">资料完整度</h3>
+                    </div>
+                    <span class="section-index">62%</span>
+                  </div>
+                  <div class="dimension-grid">
+                    <div class="dimension-row"><span>项目身份</span><div class="dimension-track"><span style="width: 80%"></span></div><strong>80%</strong></div>
+                    <div class="dimension-row"><span>价格与费用</span><div class="dimension-track"><span style="width: 55%"></span></div><strong>55%</strong></div>
+                    <div class="dimension-row"><span>收益测算</span><div class="dimension-track"><span style="width: 0%"></span></div><strong>0%</strong></div>
+                    <div class="dimension-row"><span>建筑与管理</span><div class="dimension-track"><span style="width: 35%"></span></div><strong>35%</strong></div>
+                    <div class="dimension-row"><span>法律与交易</span><div class="dimension-track"><span style="width: 20%"></span></div><strong>20%</strong></div>
+                    <div class="dimension-row"><span>来源可信度</span><div class="dimension-track"><span style="width: 40%"></span></div><strong>40%</strong></div>
+                  </div>
+                  <p class="section-note">关键资料不足时，完整度不会被其他普通字段的数量抵消。</p>
+                </section>
+
+                <section class="report-section" aria-labelledby="freeCostHeading">
+                  <div class="section-heading-row">
+                    <div>
+                      <p class="eyebrow">02 · COST CHECK</p>
+                      <h3 id="freeCostHeading">购入费用项目</h3>
+                    </div>
+                    <span class="section-index">待确认</span>
+                  </div>
+                  <div class="cost-table-wrap">
+                    <table>
+                      <caption>只列项目，不计算未验证金额</caption>
+                      <thead><tr><th scope="col">项目</th><th scope="col">状态</th></tr></thead>
+                      <tbody>
+                        <tr><th scope="row">中介手续费</th><td><span class="table-status pending">待资料</span></td></tr>
+                        <tr><th scope="row">不动产取得税</th><td><span class="table-status pending">待规则</span></td></tr>
+                        <tr><th scope="row">登记与司法书士费用</th><td><span class="table-status missing">资料不足</span></td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+
+                <section class="report-section" aria-labelledby="freeRiskHeading">
+                  <div class="section-heading-row">
+                    <div>
+                      <p class="eyebrow">03 · OPEN QUESTIONS</p>
+                      <h3 id="freeRiskHeading">当前资料提醒</h3>
+                    </div>
+                    <span class="section-index">3 项</span>
+                  </div>
+                  <ul class="preview-list">
+                    <li><span class="preview-list-mark caution">!</span><span>长期修缮计划尚未提供</span></li>
+                    <li><span class="preview-list-mark caution">!</span><span>管理费与修缮积立金待确认</span></li>
+                    <li><span class="preview-list-mark info">i</span><span>登记簿和重要事项说明书待补充</span></li>
+                  </ul>
+                  <p class="section-note">这些是资料提醒，不代表已经完成法律或风险结论。</p>
+                </section>
+
+                <section class="report-section" aria-labelledby="freeMarketHeading">
+                  <div class="section-heading-row">
+                    <div>
+                      <p class="eyebrow">04 · MARKET DATA</p>
+                      <h3 id="freeMarketHeading">市场可比数据</h3>
+                    </div>
+                    <span class="section-index">待检查</span>
+                  </div>
+                  <div class="insufficient-block">
+                    <strong>尚未检查可比样本</strong>
+                    <p>完整报告会按地区、物件类型、面积、楼龄、车站条件和数据类别筛选，不会把挂牌价和成交价混在一起。</p>
+                  </div>
+                </section>
+
+                <section class="report-section" aria-labelledby="freePriorityHeading">
+                  <div class="section-heading-row">
+                    <div>
+                      <p class="eyebrow">05 · NEXT INPUT</p>
+                      <h3 id="freePriorityHeading">最优先确认的 3 件事</h3>
+                    </div>
+                    <span class="section-index">下一步</span>
+                  </div>
+                  <ol class="action-list">
+                    <li>向中介索取长期修缮计划与修缮记录。</li>
+                    <li>确认管理费、修缮积立金和特别征收。</li>
+                    <li>补充登记簿、重要事项说明书和合同草案。</li>
+                  </ol>
+                </section>
+
+                <section class="report-section paid-teaser report-section-wide" aria-labelledby="paidTeaserHeading">
+                  <div class="paid-teaser-content">
+                    <div>
+                      <p class="eyebrow">FULL REPORT</p>
+                      <h3 id="paidTeaserHeading">收费完整版会继续展开什么？</h3>
+                      <p>解锁后可以查看行动结论、证据定位、市场价格比较、三种成本/收益情景、法律检查清单和深度避坑分析。</p>
+                    </div>
+                    <ul class="paid-teaser-list">
+                      <li>完整 11 章报告</li>
+                      <li>来源、样本、期间和规则版本</li>
+                      <li>补充资料后生成一次更新版</li>
+                    </ul>
+                  </div>
+                  <div class="state-actions">
+                    <button class="primary-button" type="button" data-action="ready">注册并保存项目</button>
+                    <a class="outline-button" href="property-analysis.html">继续补充资料</a>
+                  </div>
+                </section>
+              </div>
+
+              <footer class="report-footer">
+                <span>免费预览 V1 · 输入版本 I1 · 数据类别 synthetic_fixture</span>
+                <span>预览结果不保存完整报告，不替代专业意见。</span>
+              </footer>
+            </section>
+
+            <section class="report-content paid-report-content" id="reportContent" hidden aria-labelledby="reportHeading">
+              <div class="report-title-row">
+                <div>
+                  <p class="eyebrow" id="reportVersionLabel">FULL REPORT · V2 · SYNTHETIC FIXTURE</p>
+                  <h2 id="reportHeading">当前资料下，建议谨慎推进</h2>
+                  <p>以下结论只用于确认报告样式。真实报告必须引用已验证证据、适用期间和规则版本。</p>
+                </div>
+                <span class="conclusion conclusion-caution">谨慎推进</span>
+              </div>
+
+              <div class="report-meta-strip" aria-label="收费完整版报告元数据">
+                <span><strong>报告版本</strong> <span id="reportMetaVersion">V2</span></span>
+                <span><strong>输入版本</strong> I1</span>
+                <span><strong>数据快照</strong> 2026-08-27</span>
+                <span><strong>规则版本</strong> 演示</span>
+              </div>
+
+              <div class="report-alert">
+                <strong>先补齐长期修缮计划与管理资料</strong>
+                <p>当前缺少会影响持有成本和修缮负担判断的关键文件，因此不能把这份演示结论当作签约建议。正式报告会保留“资料不足”状态。</p>
+              </div>
+
+              <div class="report-grid paid-report-grid">
+                <section class="report-section report-section-wide" aria-labelledby="reportSummaryHeading">
+                  <div class="section-heading-row">
+                    <div>
+                      <p class="eyebrow">01 · DECISION BRIEF</p>
+                      <h3 id="reportSummaryHeading">项目结论摘要</h3>
+                    </div>
+                    <span class="section-index">01</span>
+                  </div>
+                  <div class="conclusion-list">
+                    <div class="conclusion-item">
+                      <span class="conclusion-mark mark-caution">!</span>
+                      <div>
+                        <strong>当前建议：谨慎推进</strong>
+                        <p>在补齐长期修缮计划、管理费用和登记资料前，不建议把本项目推进到签约判断。</p>
+                      </div>
+                    </div>
+                    <div class="conclusion-item">
+                      <span class="conclusion-mark mark-info">i</span>
+                      <div>
+                        <strong>价格暂时不能独立判断</strong>
+                        <p>演示数据的可比样本不足，不能用单个挂牌价推断合理成交区间。</p>
+                      </div>
+                    </div>
+                    <div class="conclusion-item">
+                      <span class="conclusion-mark mark-stop">×</span>
+                      <div>
+                        <strong>资料不足不是“没有风险”</strong>
+                        <p>产权、合同、建筑合规和灾害资料未完成核对前，结论置信度保持受限。</p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="report-section" aria-labelledby="reportBasicHeading">
+                  <div class="section-heading-row">
+                    <div>
+                      <p class="eyebrow">02 · PROPERTY FACTS</p>
+                      <h3 id="reportBasicHeading">项目基本信息</h3>
+                    </div>
+                    <span class="section-index">02</span>
+                  </div>
+                  <dl class="source-list">
+                    <div><dt>分析用途</dt><dd>自住购买</dd></div>
+                    <div><dt>所在地</dt><dd>大阪市北区</dd></div>
+                    <div><dt>售价</dt><dd>35,000,000 JPY</dd></div>
+                    <div><dt>专有面积</dt><dd>45.2㎡</dd></div>
+                    <div><dt>项目类型</dt><dd>二手公寓/塔楼</dd></div>
+                  </dl>
+                </section>
+
+                <section class="report-section" aria-labelledby="reportSourceHeading">
+                  <div class="section-heading-row">
+                    <div>
+                      <p class="eyebrow">03 · PROVENANCE</p>
+                      <h3 id="reportSourceHeading">数据来源与可信度</h3>
+                    </div>
+                    <span class="section-index">03</span>
+                  </div>
+                  <dl class="source-list">
+                    <div><dt>用户提交资料</dt><dd>待人工确认</dd></div>
+                    <div><dt>市场可比数据</dt><dd>样本不足</dd></div>
+                    <div><dt>法规资料</dt><dd>未加载</dd></div>
+                    <div><dt>数据类别</dt><dd>synthetic_fixture</dd></div>
+                    <div><dt>数据更新时间</dt><dd>2026-08-27</dd></div>
+                  </dl>
+                </section>
+
+                <section class="report-section" aria-labelledby="reportMarketHeading">
+                  <div class="section-heading-row">
+                    <div>
+                      <p class="eyebrow">04 · MARKET COMPARISON</p>
+                      <h3 id="reportMarketHeading">市场价格比较</h3>
+                    </div>
+                    <span class="section-index">04</span>
+                  </div>
+                  <div class="insufficient-block">
+                    <strong>可比样本不足</strong>
+                    <p>需要相同地区、物件类型、面积段、期间和数据类别的可比记录。当前不输出价格区间。</p>
+                  </div>
+                  <div class="evidence-note"><span>比较口径</span><strong>挂牌价、成交价分开</strong><small>样本量、期间、来源和限制将在真实数据加载后展示。</small></div>
+                </section>
+
+                <section class="report-section report-section-wide" aria-labelledby="reportCostHeading">
+                  <div class="section-heading-row">
+                    <div>
+                      <p class="eyebrow">05 · COST MODEL</p>
+                      <h3 id="reportCostHeading">购入成本与持有成本</h3>
+                    </div>
+                    <span class="section-index">05</span>
+                  </div>
+                  <div class="cost-table-wrap">
+                    <table>
+                      <caption>演示报告只列出状态；未验证金额不会被估算</caption>
+                      <thead><tr><th scope="col">项目</th><th scope="col">状态</th><th scope="col">说明</th></tr></thead>
+                      <tbody>
+                        <tr><th scope="row">中介手续费</th><td><span class="table-status pending">待资料</span></td><td>需要合同或费用说明</td></tr>
+                        <tr><th scope="row">管理费与修缮积立金</th><td><span class="table-status missing">资料不足</span></td><td>需要管理资料与长期修缮计划</td></tr>
+                        <tr><th scope="row">不动产取得税</th><td><span class="table-status pending">待规则</span></td><td>需确认评估额与适用条件</td></tr>
+                        <tr><th scope="row">登记与司法书士费用</th><td><span class="table-status missing">资料不足</span></td><td>需要交易资料和登记信息</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+
+                <section class="report-section" aria-labelledby="reportSelfUseHeading">
+                  <div class="section-heading-row">
+                    <div>
+                      <p class="eyebrow">06 · SELF USE</p>
+                      <h3 id="reportSelfUseHeading">自住专项分析</h3>
+                    </div>
+                    <span class="section-index">06</span>
+                  </div>
+                  <ul class="check-list">
+                    <li><span class="check-dot neutral">?</span><span>通勤与生活便利</span><strong>待确认</strong></li>
+                    <li><span class="check-dot neutral">?</span><span>采光与噪音</span><strong>待现场</strong></li>
+                    <li><span class="check-dot missing">—</span><span>灾害与转售难度</span><strong>资料不足</strong></li>
+                  </ul>
+                  <p class="section-note">自住适配度需要用户偏好、实地信息和有效资料共同确认。</p>
+                </section>
+
+                <section class="report-section" aria-labelledby="reportInvestmentHeading">
+                  <div class="section-heading-row">
+                    <div>
+                      <p class="eyebrow">07 · INVESTMENT</p>
+                      <h3 id="reportInvestmentHeading">投资收益分析</h3>
+                    </div>
+                    <span class="section-index">07</span>
+                  </div>
+                  <div class="scenario-grid">
+                    <article><span>保守</span><strong>待租金</strong><small>空置与费用未确认</small></article>
+                    <article><span>基准</span><strong>待租金</strong><small>需要可比租金样本</small></article>
+                    <article><span>乐观</span><strong>待租金</strong><small>不提前假设增长</small></article>
+                  </div>
+                  <p class="section-note">当前不生成毛/净收益率、现金流或保本租金。</p>
+                </section>
+
+                <section class="report-section" aria-labelledby="reportLegalHeading">
+                  <div class="section-heading-row">
+                    <div>
+                      <p class="eyebrow">08 · LEGAL CHECK</p>
+                      <h3 id="reportLegalHeading">法律与重要事项</h3>
+                    </div>
+                    <span class="section-index">08</span>
+                  </div>
+                  <ul class="check-list">
+                    <li><span class="check-dot missing">—</span><span>所有权与登记簿</span><strong>资料不足</strong></li>
+                    <li><span class="check-dot missing">—</span><span>管理规约与修缮计划</span><strong>资料不足</strong></li>
+                    <li><span class="check-dot neutral">?</span><span>用途、接道与再建</span><strong>待检查</strong></li>
+                    <li><span class="check-dot neutral">?</span><span>灾害地图与避难条件</span><strong>待检查</strong></li>
+                  </ul>
+                </section>
+
+                <section class="report-section report-section-wide" aria-labelledby="reportRiskHeading">
+                  <div class="section-heading-row">
+                    <div>
+                      <p class="eyebrow">09 · RISK REVIEW</p>
+                      <h3 id="reportRiskHeading">深度避坑分析</h3>
+                    </div>
+                    <span class="section-index">09</span>
+                  </div>
+                  <div class="risk-card-list">
+                    <article class="risk-card risk-card-caution"><span class="risk-level">资料不足</span><div><strong>管理与修缮负担</strong><p>长期修缮计划、积立金和特别征收未核对，不能判断未来持有压力。</p></div></article>
+                    <article class="risk-card risk-card-caution"><span class="risk-level">资料不足</span><div><strong>交易与产权核查</strong><p>登记簿、重要事项说明书和合同草案未提供，不能确认关键权利义务。</p></div></article>
+                    <article class="risk-card risk-card-info"><span class="risk-level">待检查</span><div><strong>市场价格偏离</strong><p>可比样本不足，当前不把售价与市场合理区间直接比较。</p></div></article>
+                  </div>
+                </section>
+
+                <section class="report-section" aria-labelledby="reportActionHeading">
+                  <div class="section-heading-row">
+                    <div>
+                      <p class="eyebrow">10 · NEXT ACTION</p>
+                      <h3 id="reportActionHeading">资料缺口与下一步行动</h3>
+                    </div>
+                    <span class="section-index">10</span>
+                  </div>
+                  <ol class="action-list">
+                    <li>向中介索取长期修缮计划与修缮记录。</li>
+                    <li>确认管理费、修缮积立金和特别征收。</li>
+                    <li>补充登记簿、重要事项说明书和合同草案。</li>
+                  </ol>
+                  <button class="outline-button" type="button" data-action="update">补充资料并更新一次</button>
+                </section>
+
+                <section class="report-section report-section-wide" aria-labelledby="reportMethodHeading">
+                  <div class="section-heading-row">
+                    <div>
+                      <p class="eyebrow">11 · METHOD &amp; LIMITS</p>
+                      <h3 id="reportMethodHeading">方法、版本信息和免责声明</h3>
+                    </div>
+                    <span class="section-index">11</span>
+                  </div>
+                  <div class="method-grid">
+                    <dl class="source-list">
+                      <div><dt>数据类别</dt><dd>synthetic_fixture</dd></div>
+                      <div><dt>计算规则</dt><dd>free-preview-v1 · 演示</dd></div>
+                      <div><dt>市场口径</dt><dd>未生成估算</dd></div>
+                    </dl>
+                    <div class="method-note"><strong>结论边界</strong><p>缺少证据时保持“资料不足”，不把模型估算或示例数据当作收集到的市场事实。</p><p>本报告不替代宅地建物取引士、律师、税务师或金融机构意见。</p></div>
+                  </div>
+                </section>
+              </div>
+
+              <footer class="report-footer">
+                <span id="reportFooterVersion">收费完整版 V2 · 输入版本 I1 · 数据类别 synthetic_fixture</span>
+                <span>不替代宅地建物取引士、律师、税务师或金融机构意见。</span>
+              </footer>
+            </section>
+
+            <section class="version-section" aria-labelledby="versionHeading">
+              <div class="section-heading-row">
+                <div>
+                  <p class="eyebrow">HISTORY</p>
+                  <h2 id="versionHeading">报告版本</h2>
+                </div>
+                <span class="version-count" id="versionCount">2 个版本</span>
+              </div>
+              <div class="version-list" id="versionList"></div>
+            </section>
+          </div>
+
+          <aside class="workspace-rail" aria-label="项目状态侧栏">
+            <section class="rail-panel completeness-panel">
+              <div class="rail-panel-heading">
+                <h2>资料完整度</h2>
+                <span id="completionValue">62%</span>
+              </div>
+              <div class="completeness-meter" aria-hidden="true"><span id="completionMeter"></span></div>
+              <p>关键资料不足时，系统会保留“资料不足”而不是猜测结论。</p>
+              <ul class="dimension-list">
+                <li><span>项目身份</span><strong>80%</strong></li>
+                <li><span>价格与费用</span><strong>55%</strong></li>
+                <li><span>建筑与管理</span><strong>35%</strong></li>
+                <li><span>法律与交易</span><strong>20%</strong></li>
+                <li><span>来源可信度</span><strong>40%</strong></li>
+              </ul>
+            </section>
+
+            <section class="rail-panel next-action-panel" id="nextActionPanel">
+              <p class="eyebrow">NEXT ACTION</p>
+              <h2 id="nextActionTitle">先查看免费预览</h2>
+              <p id="nextActionCopy">你可以先确认资料整理结果，再决定是否注册保存。</p>
+              <button class="primary-button" id="nextActionButton" type="button">查看免费预览</button>
+            </section>
+
+            <section class="rail-panel safe-note">
+              <span class="safe-icon" aria-hidden="true">✓</span>
+              <div>
+                <strong>资料边界</strong>
+                <p>演示数据不会写入数据库，也不会代表真实市场事实。</p>
+              </div>
+            </section>
+          </aside>
+        </div>
+      </div>
+    </main>
+
+    <script type="module" src="js/project-workspace.js?v=20260828-01"></script>
+  </body>
+</html>

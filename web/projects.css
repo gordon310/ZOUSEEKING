@@ -1,0 +1,131 @@
+.projects-review-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(100% - 48px, 1120px);
+  margin: 18px auto -2px;
+  padding: 12px 15px;
+  border: 1px solid #f0c4ae;
+  border-radius: var(--radius-md);
+  background: var(--surface-warm);
+  color: var(--navy-soft);
+  font-size: 13px;
+}
+
+.projects-review-banner strong { color: var(--orange-dark); }
+
+.projects-review-banner label { display: inline-flex; align-items: center; gap: 7px; margin-left: auto; color: var(--navy-soft); font-size: 12px; font-weight: 800; }
+
+.projects-review-banner select { min-height: 36px; padding: 4px 10px; border: 1px solid #e3b39b; border-radius: var(--radius-sm); background: var(--white); color: var(--navy); font-size: 13px; font-weight: 700; }
+
+.projects-page { width: min(100% - 48px, 1120px); margin: 0 auto; padding: 28px 0 80px; }
+
+.projects-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin: 28px 0 22px; }
+
+.projects-heading h1 { margin-bottom: 9px; }
+
+.projects-heading p:last-child { margin-bottom: 0; color: var(--navy-soft); font-size: 16px; }
+
+.projects-heading .primary-button { flex: 0 0 auto; text-decoration: none; }
+
+.projects-notice { min-height: 0; margin-bottom: 16px; color: var(--navy-soft); font-size: 14px; }
+
+.projects-notice:not(:empty) { padding: 12px 14px; border-left: 3px solid var(--green); background: var(--surface); }
+
+.project-list-shell { padding: 26px 28px 10px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--white); box-shadow: var(--shadow-soft); }
+
+.project-list-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 13px; }
+
+.project-list-heading h2 { margin-bottom: 2px; }
+
+.project-list-heading p { margin-bottom: 0; color: var(--muted); font-size: 13px; }
+
+.project-list { display: grid; }
+
+.project-list-item { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(145px, 0.7fr) minmax(170px, 0.85fr) auto; gap: 18px; align-items: center; padding: 20px 0; border-top: 1px solid var(--line); }
+
+.project-list-item:first-child { border-top: 0; }
+
+.project-list-item h3 { margin-bottom: 4px; font-size: 16px; }
+
+.project-list-item p { margin-bottom: 0; color: var(--navy-soft); font-size: 13px; }
+
+.project-list-item small { display: block; margin-top: 4px; color: var(--muted); font-size: 11px; }
+
+.project-purpose { color: var(--muted); font-size: 12px; }
+
+.project-status-cell { display: grid; justify-items: start; gap: 6px; }
+
+.project-status-cell .project-status { font-size: 12px; }
+
+.project-status-running { background: #e1ecfb; color: #2f70ef; }
+
+.project-status-failed { background: #fbe1df; color: var(--danger); }
+
+.project-status-draft { background: #fff1de; color: #9b6510; }
+
+.project-status-cell small { margin: 0; }
+
+.project-completeness { display: grid; gap: 6px; }
+
+.project-completeness-row { display: flex; justify-content: space-between; gap: 10px; color: var(--navy-soft); font-size: 12px; }
+
+.project-completeness-row strong { color: var(--navy); }
+
+.project-list-meter { height: 6px; overflow: hidden; border-radius: 999px; background: var(--surface); }
+
+.project-list-meter span { display: block; height: 100%; border-radius: inherit; background: var(--orange); }
+
+.project-list-item > a { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: 7px 12px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); color: var(--navy); font-size: 12px; font-weight: 800; text-decoration: none; white-space: nowrap; }
+
+.project-list-item > a:hover { border-color: var(--orange); color: var(--orange-dark); }
+
+.projects-empty-state { display: grid; justify-items: center; padding: 62px 20px; border: 1px dashed var(--line-strong); border-radius: var(--radius-lg); background: var(--surface); text-align: center; }
+
+.empty-mark { display: grid; place-items: center; width: 46px; height: 46px; margin-bottom: 15px; border-radius: 50%; background: var(--white); color: var(--orange); font-size: 27px; font-weight: 300; }
+
+.projects-empty-state h2 { margin-bottom: 7px; }
+
+.projects-empty-state p { margin-bottom: 18px; color: var(--navy-soft); font-size: 14px; }
+
+.projects-empty-state a { text-decoration: none; }
+
+.projects-footer { display: flex; justify-content: space-between; gap: 14px; margin-top: 22px; color: var(--muted); font-size: 12px; }
+
+.projects-footer a { font-weight: 700; text-decoration: none; }
+
+.projects-footer a:hover { color: var(--orange-dark); }
+
+@media (max-width: 880px) {
+  .project-list-item { grid-template-columns: minmax(0, 1fr) minmax(145px, 0.7fr) auto; }
+  .project-purpose { grid-column: 1 / 2; }
+  .project-completeness { grid-column: 2 / 3; grid-row: 1 / 3; }
+}
+
+@media (max-width: 700px) {
+  .projects-review-banner { width: min(100% - 32px, 1120px); align-items: flex-start; flex-wrap: wrap; margin-top: 16px; padding: 12px; }
+  .projects-review-banner label { width: 100%; justify-content: space-between; margin-left: 0; }
+  .projects-review-banner select { min-width: 160px; }
+  .projects-page { width: min(100% - 32px, 1120px); padding-top: 21px; }
+  .projects-heading { align-items: flex-start; flex-direction: column; gap: 16px; margin-top: 21px; }
+  .projects-heading .primary-button { width: 100%; }
+  .project-list-shell { padding: 21px 16px 7px; }
+  .project-list-heading { align-items: flex-start; }
+  .project-list-item { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 18px 0; }
+  .project-purpose { grid-column: 1 / -1; }
+  .project-status-cell { grid-column: 1 / 2; }
+  .project-completeness { grid-column: 1 / -1; grid-row: auto; }
+  .project-list-item > a { grid-column: 2 / 3; grid-row: 2 / 3; }
+  .projects-footer { flex-direction: column; }
+}
+
+@media (min-width: 741px) {
+  .projects-page { padding-top: 22px; }
+  .projects-heading { margin: 22px 0 18px; }
+  .projects-heading p:last-child { font-size: 14px; }
+  .project-list-shell { padding: 22px 24px 8px; }
+  .project-list-item { gap: 15px; padding: 17px 0; }
+  .project-list-item h3 { font-size: 15px; }
+  .project-list-item p { font-size: 12px; }
+  .project-list-item > a { min-height: 36px; font-size: 12px; }
+}

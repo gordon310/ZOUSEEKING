@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title data-i18n-title="page.organizationTitle">机构与成员｜小象数据 ZOUSEEKING</title>
+    <link rel="icon" href="assets/logoELE-beacon.svg?v=20260828-zo" />
+    <link rel="stylesheet" href="styles.css?v=20260828-01" />
+    <link rel="stylesheet" href="business.css?v=20260828-03" />
+    <link rel="stylesheet" href="business-pages.css?v=20260829-01" />
+  </head>
+  <body class="business-app business-page" data-role="business" data-business-page="organization">
+    <main class="app">
+      <nav class="topbar" aria-label="页面导航" data-i18n-aria-label="nav.page">
+        <a class="topbar-brand" href="index.html" aria-label="小象数据首页">
+          <img class="brand-mark" src="assets/logoELE-beacon.svg" alt="" aria-hidden="true" />
+          <span class="topbar-brand-copy"><strong data-i18n="brand.business">小象数据</strong><small>ZOUSEEKING</small></span>
+        </a>
+        <nav class="topbar-links" aria-label="小象数据功能" data-i18n-aria-label="nav.businessFunctions">
+          <a href="data-query.html"><span data-i18n="nav.query">数据查询</span></a>
+          <a href="analysis.html"><span data-i18n="nav.analysis">统计分析</span></a>
+          <a href="mypage.html"><span data-i18n="nav.workspace">数据与服务工作台</span></a>
+          <a href="profile.html"><span data-i18n="nav.profile">账户资料</span></a>
+        </nav>
+        <label class="locale-switcher">
+          <span class="visually-hidden" data-i18n="locale.label">界面语言</span>
+          <select data-locale-switcher aria-label="界面语言" data-i18n-aria-label="locale.label">
+            <option value="zh-CN">中文</option>
+            <option value="en">English</option>
+            <option value="ja">日本語</option>
+          </select>
+        </label>
+      </nav>
+
+      <aside class="business-side-card" aria-labelledby="demoAccountHeading">
+        <p class="eyebrow">BUSINESS SPACE</p>
+        <h2 id="demoAccountHeading" data-i18n="business.demoAccount">演示机构</h2>
+        <p class="business-side-copy" data-i18n="business.demoTier">B Data Pro · 演示会员</p>
+        <span class="business-demo-label" data-i18n="common.fixture">界面演示 · synthetic_fixture</span>
+        <dl class="business-side-meta">
+          <div><dt data-i18n="business.role">角色</dt><dd data-i18n="business.demoRole">机构所有者</dd></div>
+          <div><dt data-i18n="business.organization">机构</dt><dd data-i18n="business.demoOrganization">东京生活研究所</dd></div>
+          <div><dt data-i18n="business.partnerStatus">合作方状态</dt><dd data-i18n="business.verified">已核验</dd></div>
+          <div><dt data-i18n="business.seats">席位</dt><dd id="businessSeatSummary">已使用 4 / 5 个席位</dd></div>
+        </dl>
+        <a class="business-button secondary" href="profile.html" data-i18n="business.openProfile">打开账户资料</a>
+        <nav class="business-side-links" aria-label="更多 B 端功能" data-i18n-aria-label="business.tools">
+          <p data-i18n="business.tools">更多 B 端功能</p>
+          <a href="organization.html" aria-current="page"><span data-i18n="nav.organization">机构与成员</span></a>
+          <a href="billing.html"><span data-i18n="nav.billing">套餐与账单</span></a>
+          <a href="usage.html"><span data-i18n="nav.usage">用量与额度</span></a>
+          <a href="subscriptions.html"><span data-i18n="nav.subscriptions">统计订阅</span></a>
+          <a href="exports.html"><span data-i18n="nav.exports">数据导出</span></a>
+          <a href="service-tasks.html"><span data-i18n="nav.serviceTasks">服务任务池</span></a>
+        </nav>
+      </aside>
+
+      <header class="hero">
+        <div class="brand">
+          <img class="brand-mark" src="assets/logoELE-beacon.svg" alt="" aria-hidden="true" />
+          <div>
+            <p class="eyebrow" data-i18n="hero.business">小象数据 / ZOUSEEKING</p>
+            <h1 data-i18n="hero.organizationTitle">机构与成员</h1>
+          </div>
+        </div>
+        <p class="hero-copy" data-i18n="hero.organizationCopy">查看机构席位、成员角色和合作方状态。</p>
+      </header>
+
+      <section class="business-page-panel" aria-labelledby="organizationHeading">
+        <div class="business-panel-heading">
+          <div>
+            <p class="eyebrow">ORGANIZATION</p>
+            <h2 id="organizationHeading" data-i18n="business.organizationSection">机构成员</h2>
+          </div>
+          <span class="business-fixture-note" data-i18n="common.fixture">界面演示 · synthetic_fixture</span>
+        </div>
+        <p class="business-panel-copy" data-i18n="business.organizationCopy">管理机构席位、成员角色和合作方状态；邀请与查看仅更新本地演示提示。</p>
+        <div class="business-toolbar">
+          <span class="business-fixture-note" id="organizationSeatSummary">已使用 4 / 5 个席位</span>
+          <button class="business-button" id="inviteMemberButton" type="button" data-i18n="business.inviteMember">邀请成员（演示）</button>
+        </div>
+        <p class="business-notice" id="organizationNotice" aria-live="polite" data-i18n="business.organizationNoticeInitial">机构成员为脱敏演示记录；真实邀请需要后端权限和邮件服务。</p>
+        <div class="business-table-wrap">
+          <table class="business-table business-member-table">
+            <caption data-i18n="business.organizationSection">机构成员</caption>
+            <thead>
+              <tr><th scope="col" data-i18n="business.memberName">成员</th><th scope="col" data-i18n="business.role">角色</th><th scope="col" data-i18n="business.status">状态</th><th scope="col" data-i18n="business.lastActive">最近活动</th><th scope="col" data-i18n="business.action">操作</th></tr>
+            </thead>
+            <tbody id="organizationMembers"></tbody>
+          </table>
+        </div>
+        <div class="business-task-detail" id="organizationDetail" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <script src="js/i18n.js?v=20260829-01"></script>
+    <script src="js/business-pages.js?v=20260829-01"></script>
+  </body>
+</html>

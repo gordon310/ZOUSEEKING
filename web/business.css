@@ -1,0 +1,666 @@
+/* B 端的小象数据工作台：紧凑桌面信息密度，移动端仍保留可触控尺寸。 */
+
+.business-app {
+  min-height: 100vh;
+  background: var(--surface);
+}
+
+.business-app .topbar {
+  background: var(--white);
+}
+
+.business-app .topbar-brand-copy {
+  display: grid;
+  gap: 3px;
+  overflow: visible;
+  line-height: 1;
+  white-space: normal;
+}
+
+.business-app .topbar-brand-copy strong {
+  font-size: 16px;
+  letter-spacing: 0.04em;
+}
+
+.business-app .topbar-brand-copy small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.business-app .topbar-links {
+  margin-left: auto;
+  gap: 20px;
+}
+
+.business-app .topbar-links a {
+  font-size: 12px;
+}
+
+.business-app .hero {
+  margin-top: 20px;
+  border-color: var(--navy);
+  background: var(--navy);
+  color: var(--white);
+}
+
+.business-app .hero .eyebrow {
+  color: #9fb4d0;
+}
+
+.business-app .hero h1 {
+  color: var(--white);
+}
+
+.business-app .hero-copy {
+  color: #c9d6e8;
+}
+
+.business-app .primary-product-link {
+  margin-top: 16px;
+}
+
+.business-app .account-panel:not(.compact-account) {
+  margin-top: 12px;
+  padding: 14px 18px;
+}
+
+.business-app .account-panel:not(.compact-account) .account-head h2 {
+  font-size: 18px;
+}
+
+.business-app .account-panel:not(.compact-account) .account-copy {
+  margin-top: 5px;
+  font-size: 12px;
+}
+
+.business-app .account-panel:not(.compact-account) .account-tabs {
+  margin-top: 10px;
+}
+
+.business-app .account-panel:not(.compact-account) .account-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 10px;
+  margin-top: 9px;
+}
+
+.business-app .account-panel:not(.compact-account) .account-form label {
+  margin: 0;
+  font-size: 12px;
+}
+
+.business-app .account-panel:not(.compact-account) .account-form button {
+  grid-column: 1 / -1;
+}
+
+.business-app .account-panel:not(.compact-account) input {
+  min-height: 40px;
+  padding: 8px 11px;
+  font-size: 13px;
+}
+
+.business-app .compact-account .account-action-link {
+  display: none;
+}
+
+.business-app[data-role="consumer"] .hero {
+  border-color: #f0c4ae;
+  background: var(--surface-warm);
+  color: var(--navy);
+}
+
+.business-app[data-role="consumer"] .hero .eyebrow {
+  color: var(--muted);
+}
+
+.business-app[data-role="consumer"] .hero h1 {
+  color: var(--navy);
+}
+
+.business-app[data-role="consumer"] .hero-copy {
+  color: var(--navy-soft);
+}
+
+.business-overview,
+.service-task-panel {
+  width: min(100% - 48px, 1120px);
+  margin: 18px auto 0;
+  padding: 21px 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  box-shadow: var(--shadow-soft);
+}
+
+.business-overview-head,
+.business-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.business-overview-head h2,
+.business-section-heading h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.business-overview-head p:not(.eyebrow) {
+  max-width: 690px;
+  margin: 7px 0 0;
+  color: var(--navy-soft);
+  font-size: 13px;
+}
+
+.business-fixture-note {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.business-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.business-kpi {
+  display: grid;
+  gap: 3px;
+  min-height: 100px;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.business-kpi > span,
+.business-kpi small {
+  color: var(--navy-soft);
+  font-size: 11px;
+}
+
+.business-kpi strong {
+  font-size: 25px;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+
+.business-kpi-alert {
+  border-color: #f0c4ae;
+  background: var(--surface-warm);
+}
+
+.business-kpi-alert strong {
+  color: var(--orange-dark);
+}
+
+.business-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.business-shortcuts a {
+  display: grid;
+  gap: 3px;
+  padding: 11px 13px;
+  border-top: 2px solid var(--navy);
+  color: var(--navy);
+  text-decoration: none;
+}
+
+.business-shortcuts a:hover {
+  border-color: var(--orange);
+  background: var(--surface-warm);
+}
+
+.business-shortcuts strong {
+  font-size: 13px;
+}
+
+.business-shortcuts span {
+  color: var(--navy-soft);
+  font-size: 11px;
+}
+
+.business-app .query-panel {
+  margin-top: 18px;
+}
+
+.business-filter {
+  display: inline-grid;
+  grid-template-columns: auto 150px;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.business-filter select {
+  min-height: 38px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.business-provenance-note {
+  margin: 9px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.business-provenance-note code {
+  color: var(--navy);
+  font-family: inherit;
+  font-weight: 800;
+}
+
+.service-task-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.service-task-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--white);
+}
+
+.service-task-card.is-hidden {
+  display: none;
+}
+
+.service-task-topline,
+.service-task-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.service-task-topline small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.service-task-status,
+.admin-role-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.status-pending {
+  background: #fff1de;
+  color: #9b6510;
+}
+
+.status-active {
+  background: #e1ecfb;
+  color: #2f70ef;
+}
+
+.status-complete {
+  background: #eaf8f3;
+  color: #14785b;
+}
+
+.service-task-card h3 {
+  margin: 13px 0 5px;
+  font-size: 16px;
+}
+
+.service-task-card > p {
+  min-height: 58px;
+  margin: 0;
+  color: var(--navy-soft);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.service-task-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 14px 0;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.service-task-facts div {
+  min-width: 0;
+}
+
+.service-task-facts dt {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.service-task-facts dd {
+  overflow: hidden;
+  margin: 3px 0 0;
+  color: var(--navy);
+  font-size: 12px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.service-task-footer {
+  margin-top: auto;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.service-task-footer button {
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--orange);
+  border-radius: var(--radius-sm);
+  background: var(--orange);
+  color: var(--white);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.service-task-footer button:hover {
+  border-color: var(--orange-dark);
+  background: var(--orange-dark);
+}
+
+.service-task-footer button.secondary-action {
+  border-color: var(--line-strong);
+  background: var(--white);
+  color: var(--navy);
+}
+
+.service-task-footer button.secondary-action:hover {
+  border-color: var(--navy);
+  background: var(--surface);
+}
+
+.business-action-message {
+  min-height: 18px;
+  margin: 10px 0 0;
+  color: var(--navy-soft);
+  font-size: 12px;
+}
+
+.business-app .latest-card {
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 10px;
+  min-height: 44px;
+  padding: 9px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.business-app .latest-card:last-child {
+  border-bottom: 0;
+}
+
+.latest-currency {
+  display: inline-flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 24px;
+  padding-top: 1px;
+  color: var(--orange-dark);
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.business-app .latest-card h3 {
+  margin: 0;
+  overflow: hidden;
+  color: var(--navy);
+  font-size: 13px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.business-app .latest-record-meta {
+  margin: 3px 0 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.business-app .latest-card[role="button"]:hover,
+.business-app .latest-card[role="button"]:focus {
+  transform: none;
+  box-shadow: none;
+  background: var(--surface-warm);
+}
+
+.business-app .latest-card[role="button"]:focus-visible {
+  outline: 3px solid #2f70ef;
+  outline-offset: 2px;
+}
+
+.business-home .business-latest-panel {
+  padding: 14px 16px;
+}
+
+.business-home .business-latest-panel .section-title {
+  margin-bottom: 7px;
+}
+
+.business-home .business-latest-panel .business-provenance-note {
+  margin-bottom: 2px;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.business-home .hero {
+  min-height: 0;
+  padding: 22px 24px;
+}
+
+@media (min-width: 901px) {
+  .business-app .app {
+    display: grid;
+    grid-template-columns: minmax(230px, 270px) minmax(0, 1fr);
+    column-gap: 18px;
+    align-items: start;
+    width: min(100% - 48px, 1280px);
+    margin: 0 auto;
+    padding: 0 0 72px;
+  }
+
+  .business-app .topbar {
+    grid-column: 1 / -1;
+    min-height: 72px;
+    width: auto;
+    padding-inline: 0;
+  }
+
+  .business-app .topbar-brand .brand-mark {
+    width: 42px;
+    height: 42px;
+  }
+
+  .business-app .account-panel {
+    grid-column: 1;
+    grid-row: 2 / span 10;
+    width: auto;
+    margin: 14px 0 0;
+    align-self: start;
+    position: sticky;
+    top: 14px;
+  }
+
+  .business-home .account-panel {
+    grid-row: 2;
+    position: static;
+  }
+
+  .business-home .hero {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .business-home .business-latest-panel {
+    grid-column: 1;
+    grid-row: 3;
+    margin-top: 12px;
+  }
+
+  .business-app .hero,
+  .business-app .business-overview,
+  .business-app .query-panel,
+  .business-app .service-task-panel,
+  .business-app .latest-panel,
+  .business-app .detail-page,
+  .business-app .analysis-panel,
+  .business-app .mypage-panel {
+    grid-column: 2;
+    width: auto;
+    margin-right: 0;
+    margin-left: 0;
+  }
+
+  .business-home .business-latest-panel {
+    grid-column: 1;
+  }
+
+  .business-app .hero {
+    margin-top: 14px;
+  }
+
+  .business-app .account-panel:not(.compact-account) .account-form {
+    grid-template-columns: 1fr;
+  }
+
+  .business-app .account-panel:not(.compact-account) .account-form button {
+    grid-column: auto;
+  }
+
+  .business-app .business-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .business-app .business-shortcuts {
+    grid-template-columns: 1fr;
+  }
+
+  .business-app .service-task-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .business-kpis,
+  .service-task-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .business-app .topbar {
+    flex-wrap: wrap;
+    row-gap: 9px;
+    padding: 12px 0;
+  }
+
+  .business-app .topbar-links {
+    flex: 1 1 100%;
+    order: 3;
+    width: 100%;
+    gap: 18px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    white-space: nowrap;
+  }
+
+  .business-app .locale-switcher {
+    margin-left: auto;
+  }
+
+  .business-app .topbar-links a {
+    flex: 0 0 auto;
+    min-height: 32px;
+    padding: 7px 0;
+  }
+
+  .business-overview,
+  .service-task-panel {
+    width: min(100% - 32px, 1120px);
+    padding: 18px 16px;
+  }
+
+  .business-app .account-panel:not(.compact-account) {
+    width: min(100% - 32px, 1120px);
+    padding: 16px;
+  }
+
+  .business-home .business-latest-panel {
+    width: min(100% - 32px, 1120px);
+    padding: 14px 16px;
+  }
+
+  .business-app .account-panel:not(.compact-account) .account-form {
+    grid-template-columns: 1fr;
+  }
+
+  .business-app .account-panel:not(.compact-account) input {
+    font-size: 16px;
+  }
+
+  .business-app .account-panel:not(.compact-account) .account-form button {
+    grid-column: auto;
+  }
+
+  .business-overview-head,
+  .business-section-heading {
+    display: grid;
+    gap: 10px;
+  }
+
+  .business-kpis,
+  .business-shortcuts,
+  .service-task-list {
+    grid-template-columns: 1fr;
+  }
+
+  .business-filter {
+    grid-template-columns: minmax(0, 1fr) minmax(140px, 1fr);
+  }
+
+  .service-task-card > p {
+    min-height: 0;
+  }
+
+  .service-task-footer button {
+    min-height: 44px;
+  }
+}

@@ -119,4 +119,15 @@ migration_baseline_status = reconciliation_required
 
 ## 8. Verification 与下一道门槛
 
-本 ADR 的离线验证由实施计划记录。下一份实施计划是 migration baseline reconciliation；在其 fresh reset、schema/RLS 断言、drift 对比和 backup/restore 方案通过前，不得添加 V1 membership、billing、task、contact-consent 或 admin migration。
+本 ADR 的离线验证结果：
+
+- 系统 Python 的 `python3 -m pytest` 因未安装 pytest 未能执行；使用仓库已有的 `backend/.venv/bin/python` 重跑架构契约、schema 初始化和 legacy job 回归，结果为 `11 passed`。
+- `node --test tests/edge/jphouse-run-authority.test.mjs` 结果为 `1 passed`。
+- `node --check web/app.js` 和 `backend/.venv/bin/python -m compileall -q backend scripts src` 通过。
+- `git diff --check HEAD~3..HEAD` 通过。
+
+本次没有执行 SQL/RLS 行为、fresh migration reset、linked Supabase 检查、backup/restore、浏览器交互或部署验证。
+
+Next required plan: reconstruct and reconcile the Supabase migration baseline from an empty local database. Until it passes a fresh reset, schema assertions, anonymous/owner/other-user/service-worker RLS tests, drift comparison, and an approved backup/restore plus forward-fix procedure, no V1 membership, billing, task, contact-consent, or admin migration may be added.
+
+`migration_baseline_status = reconciliation_required` 仍然有效；不得声称 staging 或 production 与仓库一致。

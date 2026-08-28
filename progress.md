@@ -196,6 +196,13 @@
 - 静态验收：所有 `web/js/*.js` 通过 `node --check`，`git diff --check` 通过；本轮用本地 Chrome + Playwright fallback 检查 `1440x900` 和 `390x844` 截图，无 page error、console error 或横向溢出。
 - 仍未完成：真实机构/成员/订阅/支付/额度/导出/任务的数据结构、权限和服务端计量；本轮前端已从 `056a263` 部署到 Render staging，但本地未提交的后端/SQL 变更尚未部署或应用到数据库。本轮前端改动已整理为可独立发布 commit，后端与数据变更仍需按架构门槛单独验证。
 
+## Product acceptance gate (2026-08-29)
+
+- 产品方已确认前端界面和输出报告内容：C 端免费预览/完整版报告、B 端查询与业务页面、管理员演示入口，以及中/英/日界面切换均按 staging 版本验收。
+- Render staging 前端使用 release commit `056a263`；示例报告脚本为 `scripts/create_report_sample_pdf.py`，本地生成的 PDF 仅用于评审，所有数值继续标记为 `synthetic_fixture`。
+- 本次验收不等于真实会员、支付、额度、任务、数据库或报告生成服务验收；后端/SQL commit `57762f5` 仍只在本地，未部署或应用新的业务 migration。
+- 下一道门槛：完成 Supabase migration baseline reconciliation、schema/RLS/备份恢复验证，再冻结已验收字段并进入后端 staging。
+
 ## Last updated
 
 2026-08-29

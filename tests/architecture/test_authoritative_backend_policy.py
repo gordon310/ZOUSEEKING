@@ -78,3 +78,33 @@ def test_backend_sql_is_non_authoritative_reference() -> None:
     assert "backend/sql/supabase_schema.sql" in text
     assert "backend/sql/001_foundation_data_contract.sql" in text
     assert "新 schema 变更只能新增到 supabase/migrations/" in text
+
+
+INVENTORY_PATH = ROOT / "docs/architecture/runtime-conflict-inventory.md"
+SPEC_PATH = (
+    ROOT
+    / "docs/superpowers/specs/2026-08-28-membership-billing-task-marketplace-design.md"
+)
+
+
+def test_conflict_inventory_covers_every_frozen_component() -> None:
+    inventory = INVENTORY_PATH.read_text(encoding="utf-8")
+    policy = load_policy()
+
+    for component in policy["frozen_legacy_components"]:
+        path = component.split(":", 1)[0]
+        assert path in inventory
+    assert "docs/supabase-setup.md" in inventory
+    assert "backend/sql/" in inventory
+    assert "supabase/migrations/" in inventory
+    assert "不得承载 V1 新功能" in inventory
+
+
+def test_approved_spec_links_to_adr_without_losing_core_rules() -> None:
+    text = SPEC_PATH.read_text(encoding="utf-8")
+
+    assert "**状态：** 产品规则已确认；架构采用 ADR-0001" in text
+    assert "adr-0001-authoritative-backend-and-schema.md" in text
+    assert "C Plus／月" in text
+    assert "B Data Pro／月" in text
+    assert "平台不参与报价、议价、付款、佣金、托管、发票或任务费用退款" in text

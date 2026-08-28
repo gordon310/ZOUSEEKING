@@ -7,11 +7,12 @@ from fastapi.testclient import TestClient
 
 from backend.app.auth import AuthUser, require_user
 from backend.app.intake.completeness import FieldValue, build_free_preview
+from backend.app.intake.geocoding import AddressCandidate
 from backend.app.intake.models import ConfirmFieldRequest, CreateInputRequest, FIELD_UNITS
-from backend.app.intake.repository import ConvertedProject, SessionNotFound
+from backend.app.intake.repository import ConvertedProject, DuplicateAddress, ProjectNameTaken, SessionNotFound
 from backend.app.intake.storage import StorageObject
 from backend.app.main import app
-from backend.app.routes.intake import get_intake_repository, get_storage
+from backend.app.routes.intake import get_intake_repository, get_reverse_geocoder, get_storage
 
 
 TEST_USER_ID = UUID("00000000-0000-0000-0000-000000000030")
@@ -28,6 +29,13 @@ class FakeRepository:
         self.previews: Dict[UUID, dict] = {}
         self.created_properties: List[dict] = []
         self.rate_counts: Dict[tuple, int] = {}
+        self.reverse_geocoder_result = AddressCandidate(
+            address="大阪府大阪市北区梅田",
+            source="gsi_reverse_geocoder",
+            precision="town",
+        )
+        self.duplicate_address = False
+        self.project_name_taken = False
 
     async def create_session(self, purpose, consent_version, token_hash, expires_at):
         session_id = uuid4()
@@ -117,7 +125,23 @@ class FakeRepository:
         self.sessions[session_id]["purpose_locked_at"] = FIXED_NOW
         return preview
 
-    async def convert_to_user(self, session_id, token_hash, user_id):
+    async def save_location(self, session_id, request, candidate):
+        session = self.sessions[session_id]
+        session.update(
+            {
+                "latitude": request.latitude,
+                "longitude": request.longitude,
+                "location_accuracy_m": request.accuracy_m,
+                "location_captured_at": request.captured_at,
+                "location_source": request.source,
+                "address_candidate": candidate.address if candidate else "",
+                "address_source": candidate.source if candidate else "unavailable",
+                "address_precision": candidate.precision if candidate else "",
+            }
+        )
+        return session
+
+    async def convert_to_user(self, session_id, token_hash, user_id, project_name=None):
         session = await self.require_session(session_id, token_hash)
         if session["owner_user_id"] is not None:
             if session["owner_user_id"] == user_id:
@@ -125,10 +149,16 @@ class FakeRepository:
             raise SessionNotFound()
         if session["status"] != "preview_ready":
             raise SessionNotFound()
+        if self.duplicate_address and not project_name:
+            raise DuplicateAddress()
+        if self.project_name_taken:
+            raise ProjectNameTaken()
         session["owner_user_id"] = user_id
         session["property_id"] = PROPERTY_ID
         session["status"] = "converted"
-        self.created_properties.append({"id": PROPERTY_ID, "owner_user_id": user_id})
+        self.created_properties.append(
+            {"id": PROPERTY_ID, "owner_user_id": user_id, "project_name": project_name or "大阪市北区梅田"}
+        )
         return ConvertedProject(user_id, PROPERTY_ID)
 
     async def get_project(self, property_id, user_id):
@@ -164,6 +194,21 @@ class FakeStorage:
         self.deleted.append(path)
 
 
+class FakeReverseGeocoder:
+    def __init__(self):
+        self.result = AddressCandidate(
+            address="大阪府大阪市北区梅田",
+            source="gsi_reverse_geocoder",
+            precision="town",
+        )
+        self.error = None
+
+    def reverse_geocode(self, latitude, longitude):
+        if self.error:
+            raise self.error
+        return self.result
+
+
 @pytest.fixture(autouse=True)
 def test_environment(monkeypatch):
     monkeypatch.setenv("ENVIRONMENT", "test")
@@ -178,6 +223,14 @@ def fake_repository():
 @pytest.fixture
 def fake_storage():
     return FakeStorage()
+
+
+@pytest.fixture
+def fake_geocoder():
+    geocoder = FakeReverseGeocoder()
+    app.dependency_overrides[get_reverse_geocoder] = lambda: geocoder
+    yield geocoder
+    app.dependency_overrides.pop(get_reverse_geocoder, None)
 
 
 @pytest.fixture

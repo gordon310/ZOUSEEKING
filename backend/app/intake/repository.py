@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 import json
+import re
+import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Mapping, Optional
 from uuid import UUID
 
+import asyncpg
+
 from .completeness import FieldValue
-from .models import ConfirmFieldRequest, CreateInputRequest
+from .geocoding import AddressCandidate
+from .models import ConfirmFieldRequest, CreateInputRequest, LocationRequest
 
 
 class SessionNotFound(Exception):
@@ -17,6 +22,18 @@ class SessionNotFound(Exception):
 
     def __init__(self) -> None:
         super().__init__("analysis session not found")
+
+
+class ProjectNameRequired(Exception):
+    """Raised when a converted project has neither an address nor a manual name."""
+
+
+class DuplicateAddress(Exception):
+    """Raised when an owner already has the same address under the default name."""
+
+
+class ProjectNameTaken(Exception):
+    """Raised when an owner already uses the requested project name."""
 
 
 @dataclass(frozen=True)
@@ -63,6 +80,22 @@ def _number(value: Any) -> Any:
         except ValueError:
             return None
     return value
+
+
+def normalize_address(value: Any) -> str:
+    """Normalize address text for owner-scoped duplicate comparisons."""
+
+    if value is None:
+        return ""
+    normalized = unicodedata.normalize("NFKC", str(value)).replace("\u3000", " ")
+    return re.sub(r"\s+", "", normalized).strip()
+
+
+def _clean_project_name(value: Any) -> str:
+    if not isinstance(value, str):
+        return ""
+    normalized = unicodedata.normalize("NFKC", str(value)).replace("\u3000", " ")
+    return " ".join(normalized.split())[:200]
 
 
 class IntakeRepository:
@@ -276,11 +309,53 @@ class IntakeRepository:
                 )
                 return row
 
+    async def save_location(
+        self,
+        session_id: UUID,
+        request: LocationRequest,
+        candidate: Optional[AddressCandidate],
+    ) -> Any:
+        address_candidate = candidate.address if candidate else ""
+        address_source = candidate.source if candidate else "unavailable"
+        address_precision = candidate.precision if candidate else ""
+        async with self.pool.acquire() as connection:
+            row = await connection.fetchrow(
+                """
+                update public.analysis_sessions
+                set latitude=$2,
+                    longitude=$3,
+                    location_accuracy_m=$4,
+                    location_source=$5,
+                    location_captured_at=$6,
+                    location_consent_version=$7,
+                    address_candidate=$8,
+                    address_source=$9,
+                    address_precision=$10,
+                    updated_at=now()
+                where id=$1 and status <> 'converted'
+                returning *
+                """,
+                session_id,
+                request.latitude,
+                request.longitude,
+                request.accuracy_m,
+                request.source,
+                request.captured_at,
+                request.consent_version,
+                address_candidate,
+                address_source,
+                address_precision,
+            )
+        if not row:
+            raise SessionNotFound()
+        return row
+
     async def convert_to_user(
         self,
         session_id: UUID,
         token_hash: str,
         user_id: UUID,
+        project_name: Optional[str] = None,
     ) -> ConvertedProject:
         async with self.pool.acquire() as connection:
             async with connection.transaction():
@@ -318,27 +393,76 @@ class IntakeRepository:
                     session_id,
                 )
                 values: Dict[str, Any] = {
-                    str(_row_value(row, "field_name")): _row_value(row, "confirmed_value")
+                    str(_row_value(row, "field_name")): _json_value(_row_value(row, "confirmed_value"))
                     for row in field_rows
                 }
-                property_id = await connection.fetchval(
+                address = _clean_project_name(values.get("address"))
+                normalized_address = normalize_address(address)
+                manual_name = _clean_project_name(project_name)
+                final_name = manual_name or address
+                if not final_name:
+                    raise ProjectNameRequired()
+
+                is_manual_name = bool(manual_name and normalize_address(manual_name) != normalized_address)
+                if normalized_address and not is_manual_name:
+                    duplicate_address = await connection.fetchval(
+                        """
+                        select 1
+                        from public.properties
+                        where owner_user_id=$1 and address_normalized=$2
+                        limit 1
+                        """,
+                        user_id,
+                        normalized_address,
+                    )
+                    if duplicate_address:
+                        raise DuplicateAddress()
+
+                name_taken = await connection.fetchval(
                     """
-                    insert into public.properties
-                      (owner_user_id, project_type, prefecture, city, ward,
-                       address_normalized, building_name, building_year, area_sqm,
-                       asking_price, price_currency, data_class, confidence)
-                    values ($1, 'residential', '大阪府', '大阪市', $2, $3, $4, $5,
-                            $6, $7, 'JPY', 'user_submitted', 'unreviewed')
-                    returning id
+                    select 1
+                    from public.properties
+                    where owner_user_id=$1 and project_name=$2
+                    limit 1
                     """,
                     user_id,
-                    values.get("ward") or "",
-                    values.get("address") or "",
-                    values.get("building_name") or "",
-                    _number(values.get("building_year")),
-                    _number(values.get("area_sqm")),
-                    _number(values.get("asking_price_jpy")),
+                    final_name,
                 )
+                if name_taken:
+                    raise ProjectNameTaken()
+
+                try:
+                    property_id = await connection.fetchval(
+                        """
+                        insert into public.properties
+                          (owner_user_id, project_type, prefecture, city, ward,
+                           address_normalized, building_name, project_name, building_year, area_sqm,
+                           asking_price, price_currency, data_class, confidence,
+                           latitude, longitude, location_accuracy_m, location_source,
+                           location_captured_at, address_source, address_precision)
+                        values ($1, 'residential', '大阪府', '大阪市', $2, $3, $4, $5, $6,
+                                $7, $8, 'JPY', 'user_submitted', 'unreviewed', $9, $10,
+                                $11, $12, $13, $14, $15)
+                        returning id
+                        """,
+                        user_id,
+                        values.get("ward") or "",
+                        normalized_address,
+                        values.get("building_name") or "",
+                        final_name,
+                        _number(values.get("building_year")),
+                        _number(values.get("area_sqm")),
+                        _number(values.get("asking_price_jpy")),
+                        _row_value(session, "latitude"),
+                        _row_value(session, "longitude"),
+                        _row_value(session, "location_accuracy_m"),
+                        _row_value(session, "location_source", ""),
+                        _row_value(session, "location_captured_at"),
+                        _row_value(session, "address_source", "manual"),
+                        _row_value(session, "address_precision", ""),
+                    )
+                except asyncpg.UniqueViolationError as exc:
+                    raise ProjectNameTaken() from exc
                 if not property_id:
                     raise RuntimeError("property conversion failed")
                 await connection.execute(
@@ -359,13 +483,15 @@ class IntakeRepository:
                     update public.analysis_sessions
                     set owner_user_id=$1,
                         property_id=$2,
+                        project_name=$3,
                         status='converted',
                         converted_at=now(),
                         updated_at=now()
-                    where id=$3
+                    where id=$4
                     """,
                     user_id,
                     property_id,
+                    final_name,
                     session_id,
                 )
                 return ConvertedProject(user_id, _as_uuid(property_id))

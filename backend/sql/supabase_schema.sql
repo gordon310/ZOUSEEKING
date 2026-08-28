@@ -130,51 +130,25 @@ alter table public.generation_jobs enable row level security;
 alter table public.property_reports enable row level security;
 alter table public.data_sources enable row level security;
 
-drop policy if exists "public can read queries" on public.queries;
-create policy "public can read queries"
-on public.queries for select
-to anon
-using (true);
+-- Private regional data has no anonymous access. The forward RLS migration
+-- grants authenticated read access only after owner_user_id is available.
+revoke all on public.queries,
+  public.generation_jobs,
+  public.property_reports,
+  public.data_sources
+from public;
+revoke all on public.queries,
+  public.generation_jobs,
+  public.property_reports,
+  public.data_sources
+from anon, authenticated;
 
-drop policy if exists "public can insert queries" on public.queries;
-create policy "public can insert queries"
-on public.queries for insert
-to anon
-with check (true);
-
-drop policy if exists "public can update queries" on public.queries;
-create policy "public can update queries"
-on public.queries for update
-to anon
-using (true)
-with check (true);
+revoke all on public.query_field_options from public;
+revoke all on public.query_field_options from anon, authenticated;
+grant select on public.query_field_options to anon;
 
 drop policy if exists "public can read field options" on public.query_field_options;
 create policy "public can read field options"
 on public.query_field_options for select
 to anon
 using (is_active = true);
-
-drop policy if exists "public can read jobs" on public.generation_jobs;
-create policy "public can read jobs"
-on public.generation_jobs for select
-to anon
-using (true);
-
-drop policy if exists "public can insert jobs" on public.generation_jobs;
-create policy "public can insert jobs"
-on public.generation_jobs for insert
-to anon
-with check (true);
-
-drop policy if exists "public can read reports" on public.property_reports;
-create policy "public can read reports"
-on public.property_reports for select
-to anon
-using (true);
-
-drop policy if exists "public can read data sources" on public.data_sources;
-create policy "public can read data sources"
-on public.data_sources for select
-to anon
-using (true);

@@ -15,10 +15,11 @@
 | `source_url` | `https://example.com/record/1` | 允许引用的来源页面或内部授权资料链接 |
 | `verified_on` | `2026-08-23` | 人工核验日期 |
 | `rights_confirmed` | `yes` | 仅 `yes` 可进入发布流程 |
+| `data_class` | `verified_observation` | 数据类别；必须为 `verified_observation`、`scraped_aggregate`、`modeled_estimate` 或 `synthetic_fixture`，统计时不可跨类别合并 |
 
 可选字段如 `layout`、`station`、`walk_minutes`、`floor`、`built_year` 可用于后续细分分析。
 
-测试或版式演示数据应增加 `is_synthetic=yes`，并与人工核验的真实数据分文件保存，不得作为真实市场数据发布。
+测试或版式演示数据应使用 `data_class=synthetic_fixture`、增加 `is_synthetic=yes`，并与人工核验的真实数据分文件保存，不得作为真实市场数据发布。
 
 ## 第一阶段项目数据契约
 
@@ -45,7 +46,7 @@
 
 | 表 | 用途 | 关键字段与限制 |
 | --- | --- | --- |
-| `analysis_sessions` | 匿名分析会话及转正状态 | `purpose` 仅为 `self_use` / `rental_investment`；`owner_user_id`、`property_id`、`token_hash`、`expires_at` 由服务端管理 |
+| `analysis_sessions` | 匿名分析会话及转正状态 | `purpose` 仅为 `self_use` / `rental_investment`；`owner_user_id`、`property_id`、`token_hash`、`expires_at` 由服务端管理；拍照定位还保存坐标、精度、位置同意版本、`address_candidate`、`address_source` 和 `address_precision` |
 | `project_inputs` | 用户提交的文字、URL 和文件元数据 | `input_type` 为 `text` / `url` / `pdf` / `image`；文件最大 20 MiB；`processing_status` 初始为 `manual_review` 或 `pending` |
 | `project_field_evidence` | 字段候选值和来源证据 | 保留原始值、标准化值、单位、定位、提取方式和可信度；同一证据不可覆盖 |
 | `project_fields` | 用户确认后的当前字段值 | 每个会话/字段唯一；单位由服务端字段白名单推导；确认状态包括 `confirmed`、`corrected`、`unknown`、`conflict` |
@@ -53,3 +54,24 @@
 | `intake_rate_limits` | 按来源或会话限制操作频率 | 只保存 abuse key 的哈希、动作、窗口、次数和过期时间，不保存原始 IP |
 
 这些表启用 RLS，并撤销 `anon` 与 `authenticated` 的直接访问；只有 FastAPI 使用受信任的数据库连接写入。阶段一不执行 OCR、AI 提取、市场估价、税费金额计算或法律结论。缺少证据只标记为资料不足。
+
+## 房屋照片定位与调查记录命名
+
+照片仍作为 `project_inputs.input_type=image` 保存到私有 Storage。用户主动点击定位并授予浏览器权限后，FastAPI 才接收并保存以下受限元数据：
+
+| 字段 | 类型/示例 | 说明 |
+| --- | --- | --- |
+| `project_name` | `大阪府大阪市北区梅田｜二次调查` | 调查记录的展示名称；默认取用户确认后的地址；同一用户下非空名称唯一 |
+| `latitude` | `34.702500` | 设备定位纬度，数值列，范围 `-90..90`；不是公开市场事实 |
+| `longitude` | `135.495900` | 设备定位经度，数值列，范围 `-180..180`；精确位置只供项目所有者和受信任后端使用 |
+| `location_accuracy_m` | `18.50` | 设备报告的定位精度（米），必须为正数 |
+| `location_source` | `device_geolocation` | 位置来源；只接受浏览器设备定位 |
+| `location_captured_at` | `2026-08-28T03:30:00Z` | 获取位置的带时区时间 |
+| `address_candidate` | `大阪府大阪市北区梅田` | 反向地址服务返回的候选文本，仅在会话阶段保存；不能当作最终确认地址 |
+| `address_source` | `gsi_reverse_geocoder` / `manual` / `unavailable` | 地址候选来源；解析失败时保留坐标并允许手工回退 |
+| `address_precision` | `town` | 当前 GSI 适配器只声明街区/町名级精度，不自动补全楼栋或房号 |
+| `address_normalized` | `大阪府大阪市北区梅田` | 用户确认/修正后保存到 `properties` 的标准化地址，用于同一用户的重复地址检查 |
+
+反向地址默认使用日本国土地理院 `LonLatToAddress` 适配器，由 FastAPI 以 1–15 秒超时调用；可通过 `REVERSE_GEOCODER_URL` 和 `REVERSE_GEOCODER_TIMEOUT_SECONDS` 配置，但更换供应商前必须单独审查使用条款、隐私、留存和限流。浏览器不直接调用第三方地址接口，也不在测试中请求真实地址服务。
+
+`duplicate_address` 只表示同一用户已有相同标准化地址；它不是跨用户查询，也不会把地址设为全局唯一。用户输入不同的 `project_name` 后可以继续保存同一地址的另一份调查记录。

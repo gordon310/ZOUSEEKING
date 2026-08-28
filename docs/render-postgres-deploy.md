@@ -42,8 +42,10 @@ uvicorn app.main:app --host 0.0.0.0 --port $PORT
 Render Blueprint 已写好：
 
 - `DATABASE_URL`：自动引用 Render PostgreSQL connection string
-- `INIT_SCHEMA=true`：后端启动时自动建表
+- `INIT_SCHEMA=false`：后端启动不自动建表，使用审核后的 forward migration
 - `ALLOWED_ORIGINS=https://gordon310.github.io,http://127.0.0.1:8790,http://localhost:8790`
+
+`INIT_SCHEMA=true` 只允许与 `ENVIRONMENT=local`、`development` 或 `test` 一起用于一次性的本地/测试数据库。当前 `backend/sql/schema.sql` 仍是旧兼容脚本，不能替代统一 migration history。
 
 ## 3. 前端连接后端
 

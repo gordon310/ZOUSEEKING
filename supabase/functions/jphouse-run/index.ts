@@ -1,3 +1,5 @@
+import { isQueryOwnedByUser } from "./authorization.mjs";
+
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -13,7 +15,7 @@ type QueryRow = {
   asset_type: string;
   year: number;
   month: number;
-  requested_by_email?: string;
+  owner_user_id?: string | null;
 };
 
 function jsonResponse(body: unknown, status = 200) {
@@ -228,7 +230,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return jsonResponse({ error: "POST only" }, 405);
   try {
     const user = await currentUser(req.headers.get("Authorization") || "");
-    if (!user?.email) return jsonResponse({ error: "未登录或登录已过期" }, 401);
+    if (!user?.id) return jsonResponse({ error: "未登录或登录已过期" }, 401);
 
     const body = await req.json().catch(() => ({}));
     const queryId = body.query_id || "";
@@ -239,8 +241,8 @@ Deno.serve(async (req) => {
     const queries = await rest(`/queries?select=*&${filter}&limit=1`);
     const query = queries?.[0] as QueryRow | undefined;
     if (!query) return jsonResponse({ error: "查询记录不存在" }, 404);
-    if (query.requested_by_email && query.requested_by_email !== user.email) {
-      return jsonResponse({ error: "只能执行自己的查询任务" }, 403);
+    if (!isQueryOwnedByUser(query, user.id)) {
+      return jsonResponse({ error: "查询记录不存在" }, 404);
     }
 
     const existing = await rest(`/property_reports?select=*&query_key=eq.${encodeURIComponent(query.query_key)}&limit=1`);

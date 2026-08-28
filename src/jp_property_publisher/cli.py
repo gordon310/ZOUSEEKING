@@ -9,10 +9,13 @@ from typing import Dict, Iterable, List
 
 REQUIRED_COLUMNS = {
     "record_date", "market", "status", "prefecture", "ward", "building_name",
-    "area_sqm", "amount_yen", "source_url", "verified_on", "rights_confirmed",
+    "area_sqm", "amount_yen", "source_url", "verified_on", "rights_confirmed", "data_class",
 }
 VALID_MARKETS = {"sale", "rental"}
 VALID_STATUSES = {"listing", "closed"}
+VALID_DATA_CLASSES = {
+    "verified_observation", "scraped_aggregate", "modeled_estimate", "synthetic_fixture",
+}
 
 
 def read_records(path: Path) -> List[Dict[str, str]]:
@@ -42,6 +45,8 @@ def validate_record(record: Dict[str, str], line_number: int) -> None:
         raise ValueError(f"第 {line_number} 行 market 必须为 sale 或 rental")
     if record["status"] not in VALID_STATUSES:
         raise ValueError(f"第 {line_number} 行 status 必须为 listing 或 closed")
+    if record["data_class"] not in VALID_DATA_CLASSES:
+        raise ValueError(f"第 {line_number} 行 data_class 不受支持")
     if record["rights_confirmed"].lower() != "yes":
         raise ValueError(f"第 {line_number} 行未经权利确认，不能进入发布数据集")
     if not record["source_url"].startswith(("https://", "http://")):
@@ -72,16 +77,17 @@ def make_report(records: List[Dict[str, str]], title: str, output_dir: Path) -> 
     output_dir.mkdir(parents=True, exist_ok=True)
     groups = defaultdict(list)
     for record in records:
-        groups[(record["month"], record["market"], record["status"])].append(record)
+        groups[(record["month"], record["market"], record["status"], record["data_class"])].append(record)
 
     monthly_rows = []
-    for (month, market, status), group in sorted(groups.items()):
+    for (month, market, status, data_class), group in sorted(groups.items()):
         amounts = [int(item["amount_yen"]) for item in group]
         ppsm = [int(item["price_per_sqm_yen"]) for item in group]
         monthly_rows.append({
             "month": month,
             "market": market,
             "status": status,
+            "data_class": data_class,
             "sample_count": str(len(group)),
             "median_amount_yen": str(round(median(amounts))),
             "median_price_per_sqm_yen": str(round(median(ppsm))),
@@ -109,7 +115,7 @@ def render_draft(summary: Dict) -> str:
     for row in summary["groups"]:
         label = "出售" if row["market"] == "sale" else "出租"
         status = "已成交" if row["status"] == "closed" else "挂牌"
-        lines.append(f"{row['month']}｜{label}/{status}｜{row['sample_count']}条｜¥{int(row['median_amount_yen']):,}｜¥{int(row['median_price_per_sqm_yen']):,}/㎡")
+        lines.append(f"{row['month']}｜{label}/{status}｜{row['data_class']}｜{row['sample_count']}条｜¥{int(row['median_amount_yen']):,}｜¥{int(row['median_price_per_sqm_yen']):,}/㎡")
     lines.extend(["", "#东京房产 #港区 #塔楼 #日本租房 #日本买房"])
     return "\n".join(lines) + "\n"
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import hashlib
 import json
@@ -262,6 +264,15 @@ def update_row(table: str, row_id: str, payload: dict):
     request_json(f"/{table}?id=eq.{quote(row_id)}", "PATCH", payload, prefer="return=representation")
 
 
+def claim_pending_job(job_id: str):
+    rows = request_json(
+        f"/generation_jobs?id=eq.{quote(job_id)}&status=eq.pending",
+        "PATCH",
+        {"status": "running", "progress": 20, "current_step": "JPHOUSE 正在生成报告"},
+    )
+    return rows[0] if rows else None
+
+
 def fetch_pending_jobs(limit: int):
     return request_json(
         f"/generation_jobs?select=id,query_id,status,progress,current_step,queries(*)&status=eq.pending&order=created_at.asc&limit={limit}",
@@ -269,12 +280,15 @@ def fetch_pending_jobs(limit: int):
 
 
 def process_job(job: dict):
+    claimed = claim_pending_job(job["id"])
+    if not claimed:
+        return {"job_id": job["id"], "status": "skipped", "reason": "already_claimed"}
+
     query = job.get("queries")
     if not query:
         update_row("generation_jobs", job["id"], {"status": "failed", "progress": 100, "current_step": "失败", "error_message": "缺少 query 记录"})
         return {"job_id": job["id"], "status": "failed", "error": "missing query"}
 
-    update_row("generation_jobs", job["id"], {"status": "running", "progress": 20, "current_step": "JPHOUSE 正在生成报告"})
     update_row("queries", query["id"], {"status": "running"})
 
     config = config_from_query(query)

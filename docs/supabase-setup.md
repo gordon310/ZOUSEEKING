@@ -29,17 +29,24 @@ Render FastAPI
    - anon public key
    - service_role key（只给本地同步脚本或 Render API secret，不要放到前端）
 
-## 2. 建表
+## 2. 建表与 migration 边界
 
-打开 Supabase 项目：
+当前仓库仍有一段历史 bootstrap schema 尚未回填到 Supabase migration history：
 
-SQL Editor -> New query
+- `backend/sql/supabase_schema.sql`、`backend/sql/supabase_user_profiles.sql` 和 `backend/sql/001–003` 只作为已有 staging 的恢复/bootstrap 脚本保留；不要在托管环境中单独重复执行。
+- 新的 forward migration 统一放在 `supabase/migrations/`。`20260827000500_legacy_private_data_rls.sql` 会移除旧的匿名私有表权限，并将区域报告表改为“登录用户只读本人、写入由受信任后端负责”。
+- 房屋照片定位和调查记录命名使用 `20260828000100_property_photo_location.sql`；它只扩展 FastAPI intake 所需字段、约束和 owner-scoped 索引，不应编辑已有 migration。2026-08-28 已将它与 `20260827000500_legacy_private_data_rls.sql` 应用到 `zoubeacon-staging`，production 未执行。
+- 现有 `backups/zoubeacon-staging-20260825/restore_supabase.sql` 是旧恢复包，不等同于完整 migration history；使用前必须确认它已包含最新 RLS migration，绝不能直接用于生产数据库。
+- 当前 staging 的历史 bootstrap schema 尚未完全回填到仓库 migration history；本次已验证 schema/RLS 断言，但完整备份恢复演练和四类身份行为测试仍需单独完成。
 
-复制并执行：
+房屋照片定位的默认反向地址服务由 FastAPI 调用日本国土地理院 `LonLatToAddress`。服务端可配置：
 
-```text
-backend/sql/supabase_schema.sql
-```
+- `REVERSE_GEOCODER_URL`：地址服务 endpoint；默认使用 GSI，切换前先审核供应商条款和隐私要求
+- `REVERSE_GEOCODER_TIMEOUT_SECONDS`：请求超时，应用限制在 1–15 秒，默认 5 秒
+
+用户拒绝定位、设备不支持定位或地址服务不可用时，坐标不会阻断 intake；页面保留手工填写地址入口。GSI 返回值只作为候选地址，最终的 `address_normalized` 必须来自用户确认/修正。
+
+旧区域报告基础表包括：
 
 这会创建：
 
@@ -141,13 +148,15 @@ python3 scripts/sync_content_library_to_supabase.py
 
 ## 6. 现在的行为
 
-- Supabase 里有相同查询：前端直接返回历史数据
-- Supabase 没有相同查询：前端保存 `queries` 和 `generation_jobs`
-- JPHOUSE 采集器后续补数据后，写入 `property_reports`
+- 新的“分析一个日本房产”页面只通过 FastAPI intake API 写入项目、文件和预览，不进入旧的 `queries` / `generation_jobs` 表。
+- 区域行情查询优先使用已配置的 FastAPI：查询发送到 `/api/query`，Mypage 的旧任务执行发送到 `/api/jobs/{job_id}/run`，任务读取发送到 `/api/jobs/*` 和 `/api/my/queries`。
+- 没有配置 FastAPI 时，区域行情页面只显示本地公开内容；旧任务仍可由下面的 Edge Function 兼容路径处理。
+- 匿名角色不能直接读取或写入区域查询、生成任务、报告、数据源和会员资料；完成 `20260827000500_legacy_private_data_rls.sql` 后，登录用户只能读取自己的区域任务与报告，写入仍由受信任后端负责。
+- `property_reports` 的旧报告必须由带有 `owner_user_id` 的受信任服务写入，不能把客户端邮箱当作归属边界。
 
 ## 7. 本地运行 JPHOUSE worker
 
-网站产生的新查询会进入 `generation_jobs`，需要 worker 消费队列。
+旧区域查询产生的 `generation_jobs` 可以由本地 worker 消费队列；它不消费新的 intake 会话。
 
 本地运行：
 
@@ -161,21 +170,22 @@ python3 scripts/run_jphouse_worker.py --limit 5
 worker 会：
 
 1. 读取 `pending` 的 `generation_jobs`
-2. 按查询条件生成 JPHOUSE 报告
-3. 写入 `property_reports`
-4. 更新 `queries.status = completed`
-5. 更新 `generation_jobs.status = completed`
+2. 用 `id=eq...&status=eq.pending` 的条件更新原子抢占任务；抢不到的任务直接跳过
+3. 按查询条件生成 JPHOUSE 报告
+4. 写入 `property_reports`
+5. 更新 `queries.status = completed`
+6. 更新 `generation_jobs.status = completed`
 
 注意：worker 会在本地生成图片到 `web/library/...`。如果新报告需要在线显示图片，还要把 `web/` 同步到 GitHub Pages。
 
 ## 8. 方案B：Supabase Edge Function 云端执行
 
-现在项目里已经加入 `supabase/functions/jphouse-run`。
+现在项目里已经加入 `supabase/functions/jphouse-run`，仅作为旧区域报告的兼容执行路径。
 
 它负责：
 
 1. 检查用户登录状态
-2. 读取用户自己的查询任务
+2. 使用 `queries.owner_user_id` 读取用户自己的查询任务；缺少归属或归属不匹配时拒绝执行
 3. 如果已有同条件报告，直接返回缓存
 4. 如果没有报告，就按 JPHOUSE 模型生成数据
 5. 写入 `property_reports`
@@ -202,6 +212,6 @@ supabase secrets set JPHOUSE_SERVICE_ROLE_KEY="你的 service_role key"
 supabase functions deploy jphouse-run
 ```
 
-部署完成后，网站登录用户可以在 Mypage 里点击“手动执行 JPHOUSE”。
+只有在未配置 FastAPI 的旧页面上，登录用户才会通过该 Edge Function 处理 Mypage 的“手动执行 JPHOUSE”。API 已配置时，按钮走 FastAPI `/api/jobs/{job_id}/run`，不会再调用该函数。
 
 当前 Edge Function 先生成数据报告，不生成图片。原因是 Supabase Edge Function 更适合轻量数据处理；图片生成仍然建议后续用 Supabase Storage + 独立图片 worker，或者继续用本地 worker 批量生成后同步网站。

@@ -53,3 +53,28 @@ def test_adr_records_non_overlapping_responsibilities() -> None:
     )
     for statement in required:
         assert statement in text
+
+
+MIGRATION_POLICY_PATH = ROOT / "supabase/migrations/README.md"
+LEGACY_SQL_POLICY_PATH = ROOT / "backend/sql/README.md"
+
+
+def test_migration_policy_blocks_v1_until_reconciliation() -> None:
+    text = MIGRATION_POLICY_PATH.read_text(encoding="utf-8")
+
+    assert "唯一前向迁移历史" in text
+    assert "20260825000400_property_intake.sql" in text
+    assert "依赖尚未进入迁移历史的基础表" in text
+    assert "migration_baseline_status = reconciliation_required" in text
+    assert "基线协调完成前，不得增加 V1 业务迁移" in text
+    assert "不得执行 linked repair、db push 或 production reset" in text
+
+
+def test_backend_sql_is_non_authoritative_reference() -> None:
+    text = LEGACY_SQL_POLICY_PATH.read_text(encoding="utf-8")
+
+    assert "backend/sql/ 不是迁移历史" in text
+    assert "backend/sql/schema.sql" in text
+    assert "backend/sql/supabase_schema.sql" in text
+    assert "backend/sql/001_foundation_data_contract.sql" in text
+    assert "新 schema 变更只能新增到 supabase/migrations/" in text

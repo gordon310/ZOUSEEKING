@@ -67,6 +67,14 @@
 - `data/content_library.json` 与 Web 端生成内容存在同步关系
 - 生成目录较大，不应默认参与 Codex 全仓扫描
 
+## Fast-track backend staging release (2026-08-30)
+
+- 已将基于远端 `main` 的 `codex/release-candidate` fast-forward 推送到 GitHub `main`（`e8f9465`），触发 `zouseeking-api-staging` 自动部署。
+- Render staging 验证通过：`/health/live`、`/health/ready`、`/openapi.json` 均返回 `200`；`/health/ready` 报告 `database=ok`。
+- OpenAPI 已包含 `/api/intake/sessions`、`/api/intake/sessions/{session_id}/location`；未认证项目读取返回 `401`。
+- 本次仅发布后端代码，未执行 Supabase migration、数据库写入、生产部署或真实用户数据测试。
+- 完整 migration baseline reconciliation、备份恢复和 V1 业务表继续延期到单独批准窗口。
+
 ## Important decisions
 
 - `data/content_library.json` 作为本地 canonical content library

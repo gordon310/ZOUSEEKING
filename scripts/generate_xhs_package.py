@@ -8,7 +8,12 @@ from PIL import Image, ImageDraw, ImageFont
 
 W, H = 1080, 1440
 ROOT = Path(__file__).resolve().parents[1]
-LOGO = ROOT / "logoELE.png"
+LOGO_CANDIDATES = (
+    ROOT / "logoELE.png",
+    ROOT / "assets" / "logoELE.png",
+    ROOT / "web" / "assets" / "logoELE.png",
+)
+LOGO = next((path for path in LOGO_CANDIDATES if path.is_file()), LOGO_CANDIDATES[0])
 FONT_REGULAR = "/System/Library/Fonts/STHeiti Light.ttc"
 FONT_BOLD = "/System/Library/Fonts/Hiragino Sans GB.ttc"
 

@@ -33,12 +33,19 @@ ALLOWED_ORIGINS = [
     ).split(",")
     if origin.strip()
 ]
+SCHEMA_INIT_ENVIRONMENTS = {"local", "development", "test"}
+
+
+def should_init_schema() -> bool:
+    requested = os.getenv("INIT_SCHEMA", "false").strip().lower() == "true"
+    environment = os.getenv("ENVIRONMENT", "").strip().lower()
+    return requested and environment in SCHEMA_INIT_ENVIRONMENTS
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await connect()
-    if os.getenv("INIT_SCHEMA", "true").lower() == "true":
+    if should_init_schema():
         await init_schema()
     await cleanup_expired_sessions(IntakeRepository(get_pool()), intake_storage)
     yield
@@ -244,6 +251,85 @@ async def query_report(
         )
     background_tasks.add_task(run_generation_job, str(job_id), str(query_id), user.user_id, request)
     return QueryResponse(query_key=key, status="pending", cached=False, title=title, job_id=str(job_id), message="已创建生成任务")
+
+
+@app.post("/api/jobs/{job_id}/run", response_model=JobResponse, status_code=202)
+async def run_legacy_job(
+    job_id: str,
+    background_tasks: BackgroundTasks,
+    user: AuthUser = Depends(require_user),
+) -> JobResponse:
+    """Start an existing regional-report job through the authenticated API boundary."""
+
+    async with get_pool().acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            select gj.id, gj.query_id, gj.status, gj.progress, gj.current_step, gj.error_message,
+                   q.owner_user_id, q.prefecture, q.city, q.ward, q.asset_type, q.year, q.month
+            from generation_jobs gj
+            join queries q on q.id = gj.query_id
+            where gj.id=$1 and q.owner_user_id=$2
+            """,
+            job_id,
+            user.user_id,
+        )
+        if not row:
+            raise HTTPException(status_code=404, detail="job not found")
+        if row["status"] in {"completed", "running"}:
+            return JobResponse(
+                job_id=str(row["id"]),
+                status=row["status"],
+                progress=row["progress"],
+                current_step=row["current_step"],
+                error_message=row["error_message"],
+            )
+
+        claimed = await conn.fetchrow(
+            """
+            update generation_jobs gj
+            set status='running', progress=20, current_step='检查本地历史数据', error_message=null, updated_at=now()
+            from queries q
+            where gj.id=$1
+              and q.id=gj.query_id
+              and q.owner_user_id=$2
+              and gj.status in ('pending', 'failed')
+            returning gj.id, gj.query_id, gj.progress, gj.current_step, gj.error_message,
+                      q.prefecture, q.city, q.ward, q.asset_type, q.year, q.month
+            """,
+            job_id,
+            user.user_id,
+        )
+        if not claimed:
+            raise HTTPException(status_code=409, detail="job is already being handled")
+        await conn.execute(
+            "update queries set status='running', updated_at=now() where id=$1 and owner_user_id=$2",
+            claimed["query_id"],
+            user.user_id,
+        )
+
+    request = QueryRequest(
+        prefecture=claimed["prefecture"],
+        city=claimed["city"],
+        ward=claimed["ward"] or "",
+        asset_type=claimed["asset_type"],
+        year=claimed["year"],
+        month=claimed["month"],
+        username=user.username,
+    )
+    background_tasks.add_task(
+        run_generation_job,
+        str(claimed["id"]),
+        str(claimed["query_id"]),
+        str(user.user_id),
+        request,
+    )
+    return JobResponse(
+        job_id=str(claimed["id"]),
+        status="running",
+        progress=claimed["progress"],
+        current_step=claimed["current_step"],
+        error_message=claimed["error_message"],
+    )
 
 
 @app.get("/api/jobs/{job_id}", response_model=JobResponse)

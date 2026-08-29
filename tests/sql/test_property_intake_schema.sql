@@ -3,6 +3,7 @@
 do $$
 declare
   required_table text;
+  required_column text;
 begin
   foreach required_table in array array[
     'analysis_sessions', 'project_inputs', 'project_field_evidence', 'project_fields', 'free_previews',
@@ -41,5 +42,39 @@ begin
     where conname = 'analysis_sessions_expires_after_creation'
   ) then
     raise exception '24-hour expiry constraint is missing';
+  end if;
+
+  foreach required_column in array array[
+    'project_name', 'latitude', 'longitude', 'location_accuracy_m',
+    'location_source', 'location_captured_at', 'address_source', 'address_precision'
+  ] loop
+    if not exists (
+      select 1
+      from information_schema.columns
+      where table_schema = 'public'
+        and table_name = 'properties'
+        and column_name = required_column
+    ) then
+      raise exception 'missing properties column: %', required_column;
+    end if;
+  end loop;
+
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'analysis_sessions'
+      and column_name = 'address_candidate'
+  ) then
+    raise exception 'missing analysis_sessions address_candidate column';
+  end if;
+
+  if not exists (
+    select 1
+    from pg_indexes
+    where schemaname = 'public'
+      and indexname = 'idx_properties_owner_project_name'
+  ) then
+    raise exception 'owner-scoped project name uniqueness index is missing';
   end if;
 end $$;

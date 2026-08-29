@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from datetime import datetime
 from typing import Any, Dict, Literal, Optional
 from urllib.parse import urlparse
@@ -13,6 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 Purpose = Literal["self_use", "rental_investment"]
 InputType = Literal["text", "url"]
 ConfirmationStatus = Literal["confirmed", "corrected", "unknown"]
+LocationSource = Literal["device_geolocation"]
 
 FIELD_UNITS: Dict[str, Optional[str]] = {
     "building_name": None,
@@ -100,6 +102,50 @@ class CreateInputRequest(IntakeModel):
         return self
 
 
+class LocationRequest(IntakeModel):
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+    accuracy_m: float = Field(gt=0, le=100000)
+    captured_at: datetime
+    consent_version: str = Field(min_length=1, max_length=100)
+    source: LocationSource = "device_geolocation"
+
+    @field_validator("latitude", "longitude", "accuracy_m", mode="before")
+    @classmethod
+    def validate_finite_number(cls, value: Any) -> float:
+        try:
+            number = float(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("location value must be a finite number") from exc
+        if not math.isfinite(number):
+            raise ValueError("location value must be a finite number")
+        return number
+
+    @field_validator("captured_at")
+    @classmethod
+    def require_timezone(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("captured_at must include a timezone")
+        return value
+
+    @field_validator("consent_version", mode="before")
+    @classmethod
+    def normalize_consent_version(cls, value: str) -> str:
+        return str(value).strip()
+
+
+class ConvertSessionRequest(IntakeModel):
+    project_name: Optional[str] = Field(default=None, max_length=200)
+
+    @field_validator("project_name", mode="before")
+    @classmethod
+    def normalize_project_name(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        normalized = str(value).strip()
+        return normalized or None
+
+
 class ConfirmFieldRequest(IntakeModel):
     field_name: str = Field(min_length=1, max_length=100)
     value: Any = None
@@ -141,6 +187,17 @@ class CreateSessionResponse(IntakeModel):
 class CreateInputResponse(IntakeModel):
     input_id: UUID
     processing_status: str
+
+
+class LocationResponse(IntakeModel):
+    latitude: float
+    longitude: float
+    accuracy_m: float
+    captured_at: datetime
+    location_source: str
+    address_candidate: str
+    address_source: str
+    address_precision: str
 
 
 class FieldView(IntakeModel):

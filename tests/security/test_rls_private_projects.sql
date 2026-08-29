@@ -8,9 +8,38 @@ begin
     select 1 from pg_policies
     where schemaname = 'public'
       and tablename in ('queries', 'generation_jobs', 'property_reports', 'data_sources')
-      and policyname like 'public can %'
+      and 'anon' = any(roles)
   ) then
     raise exception 'anonymous public policies remain on private project tables';
+  end if;
+
+  foreach required_table in array array[
+    'queries', 'generation_jobs', 'property_reports', 'data_sources'
+  ] loop
+    if has_table_privilege('anon', 'public.' || required_table, 'select')
+       or has_table_privilege('anon', 'public.' || required_table, 'insert')
+       or has_table_privilege('anon', 'public.' || required_table, 'update')
+       or has_table_privilege('anon', 'public.' || required_table, 'delete') then
+      raise exception 'anonymous table privilege remains on %', required_table;
+    end if;
+    if has_table_privilege('authenticated', 'public.' || required_table, 'insert')
+       or has_table_privilege('authenticated', 'public.' || required_table, 'update')
+       or has_table_privilege('authenticated', 'public.' || required_table, 'delete') then
+      raise exception 'authenticated write privilege remains on %', required_table;
+    end if;
+    if not has_table_privilege('authenticated', 'public.' || required_table, 'select') then
+      raise exception 'authenticated read privilege is missing on %', required_table;
+    end if;
+  end loop;
+
+  if exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename in ('queries', 'generation_jobs', 'property_reports', 'data_sources')
+      and 'authenticated' = any(roles)
+      and cmd in ('INSERT', 'UPDATE', 'DELETE')
+  ) then
+    raise exception 'authenticated write policies remain on private project tables';
   end if;
 
   if not exists (
@@ -18,8 +47,10 @@ begin
       where schemaname = 'public'
       and tablename = 'queries'
       and policyname = 'owners can read own queries'
+      and qual like '%owner_user_id%'
+      and qual like '%auth.uid%'
   ) then
-    raise exception 'owner query select policy is missing';
+    raise exception 'owner-scoped query select policy is missing';
   end if;
 
   foreach required_table in array array[
@@ -41,5 +72,15 @@ begin
       and tgrelid = 'public.user_profiles'::regclass
   ) then
     raise exception 'membership protection trigger is missing';
+  end if;
+
+  if has_table_privilege('anon', 'public.user_profiles', 'select')
+     or has_table_privilege('anon', 'public.user_profiles', 'insert')
+     or has_table_privilege('anon', 'public.user_profiles', 'update')
+     or has_table_privilege('anon', 'public.user_profiles', 'delete') then
+    raise exception 'anonymous table privilege remains on user_profiles';
+  end if;
+  if has_table_privilege('authenticated', 'public.user_profiles', 'delete') then
+    raise exception 'authenticated delete privilege remains on user_profiles';
   end if;
 end $$;

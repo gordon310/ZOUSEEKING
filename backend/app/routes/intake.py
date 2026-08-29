@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import os
@@ -9,22 +10,32 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Header, HTTPException, Request, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, File, Header, HTTPException, Request, UploadFile
 
 from ..auth import AuthUser, require_user
 from ..db import get_pool
 from ..intake import storage as storage_module
 from ..intake.completeness import build_free_preview
+from ..intake.geocoding import GsiReverseGeocoder, ReverseGeocoderError
 from ..intake.models import (
     ConfirmFieldRequest,
+    ConvertSessionRequest,
     CreateInputRequest,
     CreateInputResponse,
     CreateSessionRequest,
     CreateSessionResponse,
     FieldView,
+    LocationRequest,
+    LocationResponse,
     FreePreviewResponse,
 )
-from ..intake.repository import IntakeRepository, SessionNotFound
+from ..intake.repository import (
+    DuplicateAddress,
+    IntakeRepository,
+    ProjectNameRequired,
+    ProjectNameTaken,
+    SessionNotFound,
+)
 from ..intake.tokens import hash_session_token, new_session_token
 from ..intake.storage import (
     MAX_UPLOAD_BYTES,
@@ -40,6 +51,10 @@ SESSION_NOT_FOUND_MESSAGE = "分析项目不存在或已过期。"
 RATE_LIMIT_MESSAGE = "操作太频繁，请稍后再试。"
 STORAGE_FAILURE_MESSAGE = "文件服务暂时不可用，请稍后重试。"
 SAVE_FAILURE_MESSAGE = "资料保存失败，请稍后重试。"
+LOCATION_FAILURE_MESSAGE = "位置资料保存失败，请稍后重试。"
+DUPLICATE_ADDRESS_MESSAGE = "同一地址已有调查记录，请手工修改记录名称。"
+PROJECT_NAME_TAKEN_MESSAGE = "这个调查记录名称已存在，请换一个名称。"
+PROJECT_NAME_REQUIRED_MESSAGE = "请先确认地址，或手工填写调查记录名称。"
 SESSION_TTL = timedelta(hours=24)
 
 
@@ -49,6 +64,10 @@ def get_intake_repository() -> IntakeRepository:
 
 def get_storage() -> Any:
     return storage_module
+
+
+def get_reverse_geocoder() -> GsiReverseGeocoder:
+    return GsiReverseGeocoder()
 
 
 def _row_value(row: Any, name: str, default: Any = None) -> Any:
@@ -154,6 +173,19 @@ def _input_response(row: Any) -> CreateInputResponse:
     )
 
 
+def _location_response(row: Any, request: LocationRequest) -> LocationResponse:
+    return LocationResponse(
+        latitude=float(_row_value(row, "latitude", request.latitude)),
+        longitude=float(_row_value(row, "longitude", request.longitude)),
+        accuracy_m=float(_row_value(row, "location_accuracy_m", request.accuracy_m)),
+        captured_at=_row_value(row, "location_captured_at") or request.captured_at,
+        location_source=str(_row_value(row, "location_source", request.source)),
+        address_candidate=str(_row_value(row, "address_candidate", "") or ""),
+        address_source=str(_row_value(row, "address_source", "unavailable") or "unavailable"),
+        address_precision=str(_row_value(row, "address_precision", "") or ""),
+    )
+
+
 @router.post("/sessions", response_model=CreateSessionResponse, status_code=201)
 async def create_session(
     payload: CreateSessionRequest,
@@ -246,6 +278,35 @@ async def add_file(
     return _input_response(row)
 
 
+@router.put("/sessions/{session_id}/location", response_model=LocationResponse)
+async def save_location(
+    session_id: UUID,
+    payload: LocationRequest,
+    request: Request,
+    x_analysis_session: Optional[str] = Header(default=None, alias="X-Analysis-Session"),
+    repository: IntakeRepository = Depends(get_intake_repository),
+    reverse_geocoder: GsiReverseGeocoder = Depends(get_reverse_geocoder),
+) -> LocationResponse:
+    await _require_editable_session(repository, session_id, x_analysis_session)
+    await _enforce_rate_limit(repository, request, "location_capture", 5, scope=f"session:{session_id}")
+    candidate = None
+    try:
+        candidate = await asyncio.to_thread(
+            reverse_geocoder.reverse_geocode,
+            payload.latitude,
+            payload.longitude,
+        )
+    except ReverseGeocoderError:
+        candidate = None
+    try:
+        row = await repository.save_location(session_id, payload, candidate)
+    except SessionNotFound as exc:
+        raise _not_found() from exc
+    if not row:
+        raise HTTPException(status_code=503, detail=LOCATION_FAILURE_MESSAGE)
+    return _location_response(row, payload)
+
+
 @router.put("/sessions/{session_id}/fields/{field_name}", response_model=FieldView)
 async def confirm_field(
     session_id: UUID,
@@ -292,14 +353,35 @@ async def create_preview(
 @router.post("/sessions/{session_id}/convert")
 async def convert_session(
     session_id: UUID,
+    payload: Optional[ConvertSessionRequest] = Body(default=None),
     x_analysis_session: Optional[str] = Header(default=None, alias="X-Analysis-Session"),
     user: AuthUser = Depends(require_user),
     repository: IntakeRepository = Depends(get_intake_repository),
 ) -> Dict[str, str]:
     try:
-        converted = await repository.convert_to_user(session_id, _token_digest(x_analysis_session), user.user_id)
+        converted = await repository.convert_to_user(
+            session_id,
+            _token_digest(x_analysis_session),
+            user.user_id,
+            payload.project_name if payload else None,
+        )
     except SessionNotFound as exc:
         raise _not_found() from exc
+    except ProjectNameRequired as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "project_name_required", "message": PROJECT_NAME_REQUIRED_MESSAGE},
+        ) from exc
+    except DuplicateAddress as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "duplicate_address", "message": DUPLICATE_ADDRESS_MESSAGE},
+        ) from exc
+    except ProjectNameTaken as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "project_name_taken", "message": PROJECT_NAME_TAKEN_MESSAGE},
+        ) from exc
     return {
         "owner_user_id": str(converted.owner_user_id),
         "property_id": str(converted.property_id),

@@ -17,7 +17,7 @@ services:
       - key: APP_VERSION
         value: staging
       - key: ALLOWED_ORIGINS
-        value: "https://gordon310.github.io,http://127.0.0.1:8790,http://localhost:8790"
+        value: "https://gordon310.github.io,https://zouseeking-web-staging.onrender.com,http://127.0.0.1:8790,http://localhost:8790"
       - key: DATABASE_URL
         sync: false
       - key: SUPABASE_URL

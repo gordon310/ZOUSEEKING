@@ -165,6 +165,13 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+test("staging intake page points to the deployed FastAPI", async ({ page }) => {
+  await page.goto("/property-analysis.html");
+  await expect.poll(() => page.evaluate(() => window.ZOUSEEKING_API_BASE_URL)).toBe(
+    "https://zouseeking-api-staging.onrender.com",
+  );
+});
+
 test("anonymous user reaches free preview on mobile", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/property-analysis.html");

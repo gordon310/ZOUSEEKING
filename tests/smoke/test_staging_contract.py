@@ -16,3 +16,8 @@ def test_frontend_does_not_contain_service_role_key():
         content = path.read_text(encoding="utf-8", errors="ignore")
         assert "service_role" not in content
         assert "SUPABASE_SERVICE_ROLE_KEY" not in content
+
+
+def test_render_staging_allows_its_static_frontend_origin():
+    render_config = (ROOT / "render.yaml").read_text(encoding="utf-8")
+    assert "https://zouseeking-web-staging.onrender.com" in render_config

@@ -1,0 +1,7 @@
+interface:
+  display_name: "JP Property Graphic"
+  short_description: "日本房产拍照、设备位置记录与后续分析协议"
+  default_prompt: "Use $jp-property-graphic to process a Japanese property photo capture, preserve user-authorized GPS/address metadata, and report the capture record without invoking image recognition unless explicitly enabled."
+
+policy:
+  allow_implicit_invocation: true

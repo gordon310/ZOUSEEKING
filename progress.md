@@ -103,10 +103,10 @@
 ## C07–C13 后续离线候选验收（2026-08-31）
 
 - 在各自隔离候选 worktree（未自动合入本 release candidate）完成专用回归：C07 durable worker `26 passed`，C07 legacy path retirement `16 passed`，C08 production config/auth/readiness `12 passed`，C09 reliability/rate-limit/observability `19 passed`，C10 privacy operations `16 passed`，C11 capacity/unit/api/performance `71 passed`，C12 release-gate/evidence/secret-scan/static-server `21 passed`。
-- C13 staging synthetic smoke 离线 runner `16 passed`；`--mode offline --run-id c13-offline-20260831` 返回 `status=passed`，覆盖 health、匿名 session、text/PDF、location、preview、跨用户隔离、幂等与清理。该结果不代表 staging live 或 production。
+- C13 staging synthetic smoke 离线 runner `16 passed`；`--mode offline --run-id c13-offline-20260901` 返回 `status=passed`，覆盖 health、匿名 session、text/PDF、location、preview、跨用户隔离、幂等与清理。该结果不代表 staging live 或 production。
 - C11 离线容量探针实测：FastAPI synthetic 100/100、DB pool 50/50、bounded queue 20/20 均通过预算；静态总量 `1,520,420B` 在 2MiB 内，但 `web/assets/logoELE.png` 为 `945,771B`，超过单文件 `524,288B`，所以整体 verdict 为 `FIX`。未据此进行图片删除或压缩。
 - C12 供应链补充检查：`npm audit --offline --audit-level=high` 返回 `found 0 vulnerabilities`，但 registry advisory 请求在当前环境 DNS 失败；`pip-audit`/`pip_audit` 不存在。因此仅记录为本地缓存结果，不能替代在线 advisory feed，C12 仍未达到完整 gate pass。
-- 当前 release candidate 直接 secret scan `PASS`；C12 policy scan `FAIL`，原因是 `.github/workflows/release-gate.yml`、`docs/release/release-gate.md`、`docs/release/rollback-checklist.md` 尚未集成，且 checker 仍要求旧的 `migration_baseline_status = reconciliation_required` 文本。浏览器离线回归首次发现候选缺失 `data/content_library.json`；已从同哈希生成源补齐后重跑，当前 `22 passed`。
+- 当前 release candidate 直接 secret scan `PASS`；C12 policy scan 已在集成 release gate 后为 `PASS`。浏览器离线回归首次发现候选缺失 `data/content_library.json`；已从同哈希生成源补齐后重跑，当前 `22 passed`。
 - C07–C12 候选代码仍需逐文件 review 后再集成；未执行 GitHub Actions、`pip-audit`（当前环境无 `pip_audit` 模块）、staging load、线上 Auth/DB/Storage、deployment 或 DNS。SQL/RLS 与 provider 证据缺失时，任何候选均不得标为 production pass。
 
 ## C14 Go/No-Go 模板（2026-08-31）
@@ -128,8 +128,8 @@
 
 ## C12 发布证据包（2026-09-01）
 
-- 已在当前 release candidate `05e226a0b8870fd5821d34dec5c222a848794d96` 重新记录证据并生成离线包：`/private/tmp/jpp-c12-evidence.p96IcF/bundle/manifest.json`。
-- 真实结果：Python `95 passed`、Edge authority `2 passed`、compileall、全部 JS syntax、secret scan、diff check 和 browser `22 passed` 均为 `PASS`；SQL/RLS 为 `NOT_EXECUTED`；npm advisory 因当前环境 DNS 失败为 `FAIL`；`pip-audit` 不存在为 `BLOCKED`；release policy 因 canonical marker/CI 文档未集成为 `FAIL`。
+- 已在当前 release candidate `5adbb9b3370d6a46661b0b592d470dbfe3dd8a32` 重新记录证据并生成离线包：`/private/tmp/jpp-c12-evidence.p96IcF/bundle/manifest.json`。
+- 真实结果：Python `112 passed`、Edge authority `2 passed`、compileall、全部 JS syntax、secret scan、release policy、diff check 和 browser `22 passed` 均为 `PASS`；synthetic offline smoke 另行 `PASS`；SQL/RLS 为 `NOT_EXECUTED`；npm advisory 因当前环境 DNS 失败为 `FAIL`；`pip-audit` 不存在为 `BLOCKED`。manifest 仍为 `offline_gate_passed=false`、`release_ready=false`。
 - manifest 的 `offline_gate_passed=false`、`release_ready=false`；外部 staging/production DB、Auth、Storage、deployment、DNS、billing 均保持 `NOT_EXECUTED`。该证据包不构成上线批准。
 
 ## Important decisions

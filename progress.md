@@ -106,6 +106,12 @@
 - C13 staging synthetic smoke 离线 runner `16 passed`；`--mode offline --run-id c13-offline-20260831` 返回 `status=passed`，覆盖 health、匿名 session、text/PDF、location、preview、跨用户隔离、幂等与清理。该结果不代表 staging live 或 production。
 - C07–C12 候选代码仍需逐文件 review 后再集成；未执行 GitHub Actions、`pip-audit`（当前环境无 `pip_audit` 模块）、staging load、线上 Auth/DB/Storage、deployment 或 DNS。SQL/RLS 与 provider 证据缺失时，任何候选均不得标为 production pass。
 
+## C14 Go/No-Go 模板（2026-08-31）
+
+- 已新增 `docs/release/production-go-live-approval.json` 与 `docs/release/production-release-evidence.json`；已写入已确认角色、保留期 7 天、清理窗口 `2026-09-01 02:00–03:00 JST`、费用上限 `JPY 0` 与 provider backup/clone 延后策略。
+- 模板中的 live action、provider change、deployment、DNS、backup ID、commit 和 checksum 均保持未授权/null；不会被脚本当作可执行目标。
+- C14 仍为 `NOT_EXECUTED`；在 C03–C13 证据闭合并取得逐项明确授权前，不执行任何 production 或 staging 写入。
+
 ## Important decisions
 
 - `data/content_library.json` 作为本地 canonical content library

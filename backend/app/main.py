@@ -26,6 +26,7 @@ from .routes.health import router as health_router
 from .routes.intake import cleanup_expired_sessions, router as intake_router
 from .routes.renovation import router as renovation_router
 from .release_scope import request_allowed
+from .billing.routes import router as billing_router
 
 
 ALLOWED_ORIGINS = [
@@ -78,6 +79,7 @@ app.add_middleware(
 app.include_router(health_router)
 app.include_router(intake_router)
 app.include_router(renovation_router)
+app.include_router(billing_router)
 
 
 @app.get("/internal/provenance/diagnostics")

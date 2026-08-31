@@ -145,7 +145,20 @@ python3 scripts/sync_content_library_to_supabase.py
 - Supabase 没有相同查询：前端保存 `queries` 和 `generation_jobs`
 - JPHOUSE 采集器后续补数据后，写入 `property_reports`
 
-## 7. 本地运行 JPHOUSE worker
+## 7. Stripe 计费 rollout 门槛（当前仅离线）
+
+当前 FastAPI 已记录 Stripe 支付/订阅边界，但 `BILLING_ENABLED` 默认关闭，未完成受信 gateway/store 注入前不会创建 Checkout、Customer Portal 或退款请求，也不会连接 live Stripe。所有本地测试使用固定 test fixtures/mock，不使用 live key，不产生真实收费。
+
+Webhook 必须由 FastAPI 读取原始 request body，先验证 `Stripe-Signature`，再以唯一 `event.id` 幂等写入事件状态、账单状态和审计/outbox。Checkout 产品、price id、金额、币种、customer 和 redirect URL 只能来自服务端白名单；浏览器回跳不能直接开通权益。
+
+上线前必须同时完成并记录：
+
+- `migration_baseline_status = reconciliation_required` 清除后的 canonical membership/billing forward migration、RLS 与四类身份断言；在此之前不得增加或执行 billing migration。
+- 不得执行 linked repair、db push 或 production reset，除非另有明确授权、备份和 forward-fix 计划。
+- Stripe Dashboard Customer Portal 的 payment method、invoice history、取消/计划更新配置，test-mode webhook delivery 和失败重试演练。
+- provider backup/restore、税费/收据、退款/取消和支付失败降级演练；任何 provider 或生产数据库操作都必须停在明确授权门槛。
+
+## 8. 本地运行 JPHOUSE worker
 
 网站产生的新查询会进入 `generation_jobs`，需要 worker 消费队列。
 
@@ -168,7 +181,7 @@ worker 会：
 
 注意：worker 会在本地生成图片到 `web/library/...`。如果新报告需要在线显示图片，还要把 `web/` 同步到 GitHub Pages。
 
-## 8. 方案B：Supabase Edge Function 云端执行
+## 9. 方案B：Supabase Edge Function 云端执行
 
 现在项目里已经加入 `supabase/functions/jphouse-run`。
 

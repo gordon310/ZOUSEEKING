@@ -3,3 +3,7 @@ export function isQueryOwnedByUser(query, userId) {
   const authenticatedUserId = typeof userId === "string" ? userId.trim() : "";
   return Boolean(ownerUserId && authenticatedUserId && ownerUserId === authenticatedUserId);
 }
+
+export function isLegacyExecutionEnabled(value) {
+  return value === "true";
+}

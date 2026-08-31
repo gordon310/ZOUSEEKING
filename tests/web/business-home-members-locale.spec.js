@@ -1,6 +1,16 @@
 const { test, expect } = require("@playwright/test");
+const path = require("node:path");
 
 const demoSession = { username: "Demo User", email: "demo@example.com", provider: "local" };
+
+test.beforeEach(async ({ page }) => {
+  await page.route("**/content-library.json", async (route) => {
+    await route.fulfill({
+      path: path.resolve(__dirname, "../../data/content_library.json"),
+      contentType: "application/json",
+    });
+  });
+});
 
 async function seedSession(page, locale = "zh-CN") {
   await page.addInitScript(({ session, locale: initialLocale }) => {

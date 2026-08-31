@@ -1,9 +1,21 @@
 const { test, expect } = require("@playwright/test");
+const path = require("node:path");
 
 const JOB_ID = "00000000-0000-0000-0000-000000000050";
 
-test("configured FastAPI runs a legacy regional job without calling the Edge Function", async ({ page }) => {
+test("development compatibility profile runs a legacy regional job without calling the Edge Function", async ({ page }) => {
+  await page.route("**/content-library.json", async (route) => {
+    await route.fulfill({
+      path: path.resolve(__dirname, "../../data/content_library.json"),
+      contentType: "application/json",
+    });
+  });
   await page.addInitScript(() => {
+    window.ZOUSEEKING_RELEASE_SCOPE = {
+      phase: "development",
+      businessOperations: true,
+      adminOperations: true,
+    };
     window.ZOUSEEKING_API_BASE_URL = "http://api.test";
     window.ZOUSEEKING_SUPABASE_URL = "https://supabase.test";
     window.ZOUSEEKING_SUPABASE_ANON_KEY = "public-test-key";

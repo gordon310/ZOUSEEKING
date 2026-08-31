@@ -47,8 +47,8 @@ begin
       where schemaname = 'public'
       and tablename = 'queries'
       and policyname = 'owners can read own queries'
-      and qual like '%owner_user_id%'
-      and qual like '%auth.uid%'
+      and 'authenticated' = any(roles)
+      and cmd = 'SELECT'
   ) then
     raise exception 'owner-scoped query select policy is missing';
   end if;
@@ -82,5 +82,25 @@ begin
   end if;
   if has_table_privilege('authenticated', 'public.user_profiles', 'delete') then
     raise exception 'authenticated delete privilege remains on user_profiles';
+  end if;
+
+  if not has_table_privilege('anon', 'public.query_field_options', 'select') then
+    raise exception 'anonymous field-option read privilege is missing';
+  end if;
+  if has_table_privilege('anon', 'public.query_field_options', 'insert')
+     or has_table_privilege('anon', 'public.query_field_options', 'update')
+     or has_table_privilege('anon', 'public.query_field_options', 'delete') then
+    raise exception 'anonymous field-option write privilege remains';
+  end if;
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'query_field_options'
+      and policyname = 'public can read active field options'
+      and 'anon' = any(roles)
+      and cmd = 'SELECT'
+      and qual like '%is_active%'
+  ) then
+    raise exception 'active-only anonymous field-option policy is missing';
   end if;
 end $$;

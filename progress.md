@@ -145,6 +145,14 @@
 - 聚焦测试：`tests/unit/test_account_controls.py` `8 passed`；`tests/web/account-controls.spec.js` `2 passed`；整合回归 `132 passed`、Playwright `25 passed`；JS syntax、Python compileall、`git diff --check`、release policy 和 secret scan 均为 `PASS`。
 - 本任务只完成离线契约和静态行为，未新增/应用 migration，未触碰真实 Auth/RLS/Storage、provider backup/clone、部署、DNS、计费或真实会员数据；C14 Go/No-Go 继续保持 `BLOCK / NOT AUTHORIZED`。
 
+## C17 Stripe 计费边界离线实现（2026-09-01）
+
+- 已整合 `backend/app/billing/` 离线边界：服务端产品/地区价格白名单与最小货币单位、Checkout/Portal/状态/取消/退款端口、原始 bytes `Stripe-Signature` 验签、唯一 `event.id` 幂等 claim/process、transient 重试、dunning outbox 与脱敏审计。
+- 默认 provider/store 未注入，计费操作保持 `503 billing is not configured`；价格列表不暴露 `stripe_price_id`。Checkout 产品、金额、币种、customer 和 redirect URL 均由服务端决定，权益不由浏览器回跳开通。
+- 离线验证：`tests/billing` `38 passed`；整合 Python `tests/unit tests/architecture tests/smoke tests/api tests/billing` `170 passed`；Playwright Chromium `25 passed`；Python `compileall`、JS `node --check`、`git diff --check`、release policy 与 secret scan 均为 `PASS`。
+- 已更新 `docs/release/worktree-integration-manifest.json`：P1-2 标记为 `integrated`，并保留 provider gateway/store、canonical billing migration、真实 webhook delivery、税费/收据、退款演练、provider backup/restore 与 live Stripe 为后续授权门槛；C14 Go/No-Go 仍为 `BLOCK / NOT AUTHORIZED`。
+- 本轮未连接 Stripe、未使用 live key、未收费、未写入线上数据库/Auth/RLS/Storage，未执行部署、DNS 或 billing 配置；下一项 C18 继续处理 usage ledger/quota 的 disposable 离线边界。
+
 ## Important decisions
 
 - `data/content_library.json` 作为本地 canonical content library

@@ -141,16 +141,25 @@
       "id": "P1-2",
       "label": "Stripe billing boundary",
       "state": "offline_candidate",
-      "disposition": "deferred",
-      "defer_until": "C16",
-      "reason": "仅保留安全默认与离线边界；真实 billing、webhook 与迁移需单独授权。"
+      "disposition": "integrated",
+      "integrated_ref": "release candidate working tree (C17 offline Stripe boundary)",
+      "target_paths": [
+        "backend/app/billing/",
+        "backend/app/main.py",
+        "backend/README.md",
+        "docs/supabase-setup.md",
+        "docs/superpowers/plans/2026-08-31-stripe-billing-boundary.md",
+        "docs/superpowers/specs/2026-08-31-stripe-billing-boundary-design.md",
+        "tests/billing/"
+      ],
+      "reason": "已落地服务端价格白名单、原始 bytes webhook 验签、event.id 幂等、重试、退款/取消/审计的 fake/fixture 离线边界；provider gateway/store、canonical billing migration、真实 webhook、税费/收据与 live Stripe 仍需后续授权。"
     },
     {
       "id": "P1-3",
       "label": "usage ledger and quota enforcement",
       "state": "prototype",
       "disposition": "deferred",
-      "defer_until": "C17",
+      "defer_until": "C18",
       "reason": "当前为 disposable prototype，尚无正式迁移与原子扣减证据。"
     },
     {

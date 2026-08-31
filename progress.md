@@ -128,7 +128,7 @@
 
 ## C12 发布证据包（2026-09-01）
 
-- 已在当前 release candidate `2c539b20e78fac04cbf11ac9b27c3ad480266666` 重新记录证据并生成离线包：`/private/tmp/jpp-c12-evidence.p96IcF/bundle/manifest.json`。
+- 已在当前 release candidate `05e226a0b8870fd5821d34dec5c222a848794d96` 重新记录证据并生成离线包：`/private/tmp/jpp-c12-evidence.p96IcF/bundle/manifest.json`。
 - 真实结果：Python `95 passed`、Edge authority `2 passed`、compileall、全部 JS syntax、secret scan、diff check 和 browser `22 passed` 均为 `PASS`；SQL/RLS 为 `NOT_EXECUTED`；npm advisory 因当前环境 DNS 失败为 `FAIL`；`pip-audit` 不存在为 `BLOCKED`；release policy 因 canonical marker/CI 文档未集成为 `FAIL`。
 - manifest 的 `offline_gate_passed=false`、`release_ready=false`；外部 staging/production DB、Auth、Storage、deployment、DNS、billing 均保持 `NOT_EXECUTED`。该证据包不构成上线批准。
 

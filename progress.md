@@ -104,6 +104,7 @@
 
 - 在各自隔离候选 worktree（未自动合入本 release candidate）完成专用回归：C07 durable worker `26 passed`，C07 legacy path retirement `16 passed`，C08 production config/auth/readiness `12 passed`，C09 reliability/rate-limit/observability `19 passed`，C10 privacy operations `16 passed`，C11 capacity/unit/api/performance `71 passed`，C12 release-gate/evidence/secret-scan/static-server `21 passed`。
 - C13 staging synthetic smoke 离线 runner `16 passed`；`--mode offline --run-id c13-offline-20260831` 返回 `status=passed`，覆盖 health、匿名 session、text/PDF、location、preview、跨用户隔离、幂等与清理。该结果不代表 staging live 或 production。
+- C11 离线容量探针实测：FastAPI synthetic 100/100、DB pool 50/50、bounded queue 20/20 均通过预算；静态总量 `1,520,420B` 在 2MiB 内，但 `web/assets/logoELE.png` 为 `945,771B`，超过单文件 `524,288B`，所以整体 verdict 为 `FIX`。未据此进行图片删除或压缩。
 - C07–C12 候选代码仍需逐文件 review 后再集成；未执行 GitHub Actions、`pip-audit`（当前环境无 `pip_audit` 模块）、staging load、线上 Auth/DB/Storage、deployment 或 DNS。SQL/RLS 与 provider 证据缺失时，任何候选均不得标为 production pass。
 
 ## C14 Go/No-Go 模板（2026-08-31）

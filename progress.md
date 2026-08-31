@@ -75,6 +75,15 @@
 - 本次仅发布后端代码，未执行 Supabase migration、数据库写入、生产部署或真实用户数据测试。
 - 完整 migration baseline reconciliation、备份恢复和 V1 业务表继续延期到单独批准窗口。
 
+## C04 provider backup 与隔离恢复（2026-08-31）
+
+- 已确认项目尚未上线，前期费用上限为 `JPY 0`；数据库/Auth/Storage 继续采用 Supabase Free，暂不创建 Render 付费数据库、启用 PITR 或创建 provider clone。
+- 已加入 `scripts/database_recovery.py`、`docs/operations/database-recovery-runbook.md`、证据模板和聚焦单元测试；工具只接受 loopback maintenance database、`jpp_restore_` 一次性目标，先校验 SHA-256/TOC，首个断言失败即停止并仅清理自己创建的目标。
+- `PYTHONPATH=. /Users/gordonmac/GordonDev/JPPropDIs/backend/.venv/bin/python -m pytest tests/unit/test_database_recovery.py -q` → `8 passed`。
+- 当前 release candidate 使用 `jpp-canonical-local-full-exec-20260831-v2.dump`（SHA-256 `b9e521827d32647157cf1676bf53a2e9e0e2fd4149bba189fd6f886b466dc215`、PostgreSQL `17.6`、pg_dump `18.6`）；checksum/TOC、foundation/intake/private-RLS 三组断言和目标清理均为 `pass`。报告保留在受限临时目录，未提交仓库。
+- 本地演练负责人按已确认角色记录：`database_owner=数据库运维`、`backup_operator=备份`、`recovery_lead=任务派发`、`release_owner=版本发布`、`forward_fix_owner=后台审核`、`incident_commander=超级管理员`；`security_reviewer=系统安全`、`billing_owner=财务`未参与本地演练。
+- provider backup、Storage object backup、隔离 clone、live forward-fix 仍为 `deferred/blocked`，因此 C04 尚未达到 production release pass；正式上线前必须重新取得明确的费用、保留期、清理窗口和 provider 恢复批准。
+
 ## Important decisions
 
 - `data/content_library.json` 作为本地 canonical content library

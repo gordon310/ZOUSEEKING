@@ -119,6 +119,12 @@
 - C06 formal provenance 候选隔离回归：Python contract/report/audit `33 passed`、Node web/authorization `6 passed`、worker contract `2 passed`；候选实现未合入本 release candidate，历史内容仍按审计结果阻断。
 - P1 Stripe offline boundary `38 passed`、数据质量 pipeline `26 passed`；均为 fixture/mock 验证，未连接 Stripe、未收费、未写入真实数据，不能替代 C14 后的 staging UAT。
 
+## C01–C03 候选归档与整合回归（2026-09-01）
+
+- C01/C02 架构边界与第一阶段 allowlist 已归档：`fe4b9dd`、`110358e`；C03 canonical migration baseline、legacy SQL 归类与 schema inventory 已归档：`41cafc7`。
+- 整合后离线回归：Python unit/architecture/smoke/api `95 passed`；Edge authority `2 passed`；Python `compileall`、全部 `web/js` 与 `app.js` `node --check`、机器 JSON 解析均通过。
+- 这些结果仍只证明 release candidate 的本地契约；staging drift、provider backup/clone、later-ID forward-fix、production deployment 和真实资料验收继续保持未执行。
+
 ## Important decisions
 
 - `data/content_library.json` 作为本地 canonical content library

@@ -126,6 +126,12 @@
 - 整合后离线回归：Python unit/architecture/smoke/api `95 passed`；Edge authority `2 passed`；Python `compileall`、全部 `web/js` 与 `app.js` `node --check`、机器 JSON 解析均通过。
 - 这些结果仍只证明 release candidate 的本地契约；staging drift、provider backup/clone、later-ID forward-fix、production deployment 和真实资料验收继续保持未执行。
 
+## C12 发布证据包（2026-09-01）
+
+- 已在当前 release candidate `3002500cc847f4c2a643da75f54439d45368d5f0` 重新记录证据并生成离线包：`/private/tmp/jpp-c12-evidence.p96IcF/bundle/manifest.json`。
+- 真实结果：Python `95 passed`、Edge authority `2 passed`、compileall、全部 JS syntax、secret scan、diff check 均为 `PASS`；browser 与 SQL/RLS 为 `NOT_EXECUTED`；npm advisory 因当前环境 DNS 失败为 `FAIL`；`pip-audit` 不存在为 `BLOCKED`；release policy 因 canonical marker/CI 文档未集成为 `FAIL`。
+- manifest 的 `offline_gate_passed=false`、`release_ready=false`；外部 staging/production DB、Auth、Storage、deployment、DNS、billing 均保持 `NOT_EXECUTED`。该证据包不构成上线批准。
+
 ## Important decisions
 
 - `data/content_library.json` 作为本地 canonical content library

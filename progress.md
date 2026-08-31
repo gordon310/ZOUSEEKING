@@ -93,6 +93,13 @@
 - staging 的 live reconciliation 未执行：没有 provider backup/隔离 clone、没有可用 direct staging database URL，existing-row provenance 尚未分类，也没有创建或应用 later-ID forward migration。
 - 未执行 linked `db push`、`migration repair`、staging/production reset 或任何线上写入；C05 的 live 部分保持 `BLOCKED`，不影响继续推进不依赖 live 数据的后续离线任务。
 
+## C06 provenance 与授权来源离线审计（2026-08-31）
+
+- 对 release candidate 的 `content-library.json` 做只读 formal provenance 审计：70 条记录中 `publishable_records=0`、`issue_count=70`；未自动补写 provenance 或 rights。
+- 两份 `data/input/*.csv` 均因缺少 `aggregation_method`、`limitations`、`method`、`missing_value_policy`、`observed_at`、`retrieved_at`、`rights_status`、`sample_size`、`source_period`、`version` 而阻断；没有记录被提升为可发布数据。
+- `content-library.json` 与 `web/content-library.json` SHA-256 均为 `eb0fefae86a04204d9c0682f69e76a21497fcd1f18f5b8c4aa631197a1b71d1e`，仅证明生成副本一致，不证明来源权利或统计代表性。
+- 审计报告：`docs/architecture/provenance-audit-2026-08.md`。未联网、未写数据库、未改生成文件；C06 的 formal contract 集成仍需 canonical 路径、授权 manifest 和 later-ID migration 评审，状态保持 `BLOCK / NOT AUTHORIZED`。
+
 ## Important decisions
 
 - `data/content_library.json` 作为本地 canonical content library

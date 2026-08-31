@@ -124,10 +124,18 @@
     {
       "id": "P1-1",
       "label": "membership and account controls",
-      "state": "audit_candidate",
-      "disposition": "deferred",
-      "defer_until": "C15",
-      "reason": "真实组织、会员、配额与账户生命周期尚未实现并验证。"
+      "state": "offline_candidate",
+      "disposition": "integrated",
+      "integrated_ref": "release candidate working tree (C16 offline contract)",
+      "target_paths": [
+        "backend/app/account_controls.py",
+        "docs/release/account-controls-offline-contract.md",
+        "tests/unit/test_account_controls.py",
+        "tests/web/account-controls.spec.js",
+        "web/app.js",
+        "app.js"
+      ],
+      "reason": "已落地资料字段 allowlist、5 席位与 owner/member 规则、内部角色最小权限、近期认证和 Supabase-only 账户行为；真实组织表、Auth/RLS、配额与账户生命周期仍需基线 reconciliation 后另行授权。"
     },
     {
       "id": "P1-2",

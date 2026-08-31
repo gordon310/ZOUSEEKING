@@ -137,6 +137,14 @@
 - 真实结果：Python `112 passed`、Edge authority `2 passed`、compileall、全部 JS syntax、secret scan、release policy、diff check 和 browser `22 passed` 均为 `PASS`；synthetic offline smoke 另行 `PASS`；SQL/RLS 为 `NOT_EXECUTED`；npm advisory 因当前环境 DNS 失败为 `FAIL`；`pip-audit` 不存在为 `BLOCKED`。manifest 仍为 `offline_gate_passed=false`、`release_ready=false`。
 - manifest 的 `offline_gate_passed=false`、`release_ready=false`；外部 staging/production DB、Auth、Storage、deployment、DNS、billing 均保持 `NOT_EXECUTED`。该证据包不构成上线批准。
 
+## C16 会员与账户控制离线契约（2026-09-01）
+
+- 新增 `backend/app/account_controls.py`：用户可编辑资料 allowlist、服务端管理字段拒绝、12–128 位密码基线、统一认证失败响应、15 分钟近期认证、B 端 5 席位 owner/member 边界、内部角色最小权限与套餐不授予后台角色。
+- 前端 `web/app.js` 与根 `app.js` 移除 `localStorage` 本地密码哈希/注册/登录回退；仅接受 Supabase Auth 或明确 `demo` 会话。资料服务未开放或 demo-only 页面不会创建 profile 或写入私有表；历史本地会话不再作为认证凭据。
+- 注册/登录/密码更新失败不再透传 provider 原始错误；注册页面和密码修改页面同步显示 12 位密码基线。B 端浏览器演示 fixture 改用 `provider=demo`。
+- 聚焦测试：`tests/unit/test_account_controls.py` `8 passed`；`tests/web/account-controls.spec.js` `2 passed`；整合回归 `132 passed`、Playwright `25 passed`；JS syntax、Python compileall、`git diff --check`、release policy 和 secret scan 均为 `PASS`。
+- 本任务只完成离线契约和静态行为，未新增/应用 migration，未触碰真实 Auth/RLS/Storage、provider backup/clone、部署、DNS、计费或真实会员数据；C14 Go/No-Go 继续保持 `BLOCK / NOT AUTHORIZED`。
+
 ## Important decisions
 
 - `data/content_library.json` 作为本地 canonical content library

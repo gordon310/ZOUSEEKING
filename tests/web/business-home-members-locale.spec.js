@@ -1,7 +1,7 @@
 const { test, expect } = require("@playwright/test");
 const path = require("node:path");
 
-const demoSession = { username: "Demo User", email: "demo@example.com", provider: "local" };
+const demoSession = { username: "Demo User", email: "demo@example.com", provider: "demo" };
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/content-library.json", async (route) => {

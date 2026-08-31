@@ -1,6 +1,8 @@
-const USERS_KEY = "zou_house_users";
 const SESSION_KEY = "zou_house_session";
 const QUERY_HISTORY_KEY = "zou_house_query_history";
+const PASSWORD_MIN_LENGTH = 12;
+const PASSWORD_MAX_LENGTH = 128;
+const SESSION_PROVIDERS = new Set(["supabase", "demo"]);
 const API_BASE_URL = (window.ZOUSEEKING_API_BASE_URL || localStorage.getItem("zou_house_api_base") || "").replace(/\/$/, "");
 const SUPABASE_URL = (window.ZOUSEEKING_SUPABASE_URL || localStorage.getItem("zou_house_supabase_url") || "").replace(/\/$/, "");
 const SUPABASE_ANON_KEY = window.ZOUSEEKING_SUPABASE_ANON_KEY || localStorage.getItem("zou_house_supabase_anon_key") || "";
@@ -228,14 +230,6 @@ function escapeHtml(text) {
     .replaceAll("'", "&#039;");
 }
 
-function getUsers() {
-  return readJson(USERS_KEY, []);
-}
-
-function saveUsers(users) {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
-}
-
 function getQueryHistory() {
   return readJson(QUERY_HISTORY_KEY, []);
 }
@@ -244,16 +238,21 @@ function saveQueryHistory(items) {
   localStorage.setItem(QUERY_HISTORY_KEY, JSON.stringify(items.slice(0, 30)));
 }
 
-async function passwordHash(password) {
-  const data = new TextEncoder().encode(password);
-  const digest = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
+function passwordIsValid(password) {
+  return (
+    typeof password === "string" &&
+    password.length >= PASSWORD_MIN_LENGTH &&
+    password.length <= PASSWORD_MAX_LENGTH &&
+    !/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(password)
+  );
+}
+
+function hasSupabaseSession() {
+  return hasSupabase() && state.session?.provider === "supabase" && Boolean(state.session?.accessToken);
 }
 
 function isLoggedIn() {
-  return Boolean(state.session?.username);
+  return Boolean(state.session?.username && SESSION_PROVIDERS.has(state.session?.provider));
 }
 
 function setMessage(text, tone = "") {
@@ -721,36 +720,30 @@ function statusLabel(query) {
 }
 
 async function loadMyPage() {
-  if (!isLoggedIn() || !hasSupabase() || !state.session?.email) {
+  if (!isLoggedIn() || !state.session?.email) {
     state.myTasks = [];
     state.myPageLoaded = true;
     return;
   }
-  const email = encodeURIComponent(state.session.email);
+  if (!hasSupabaseSession()) {
+    state.myTasks = [];
+    state.myPageLoaded = true;
+    return;
+  }
   state.myTasks =
-    (await supabaseFetch(
-      `/queries?select=*,generation_jobs(id,status,progress,current_step,error_message,created_at)&requested_by_email=eq.${email}&order=created_at.desc&limit=10`,
+    (await supabaseUserFetch(
+      `/queries?select=*,generation_jobs(id,status,progress,current_step,error_message,created_at)&owner_user_id=eq.${encodeURIComponent(state.session.userId)}&order=created_at.desc&limit=10`,
     )) || [];
   state.myPageLoaded = true;
 }
 
-function defaultProfile() {
-  return {
-    user_id: state.session?.userId || "",
-    email: state.session?.email || "",
-    username: state.session?.username || "",
-    display_name: state.session?.username || "",
-    city: "",
-    favorite_area: "",
-    favorite_asset_type: "",
-    bio: "",
-    membership_tier: "free",
-    daily_query_limit: 3,
-  };
-}
-
 async function ensureUserProfile() {
-  if (!isLoggedIn() || !hasSupabase() || !state.session?.userId) {
+  if (
+    !isLoggedIn() ||
+    !hasSupabaseSession() ||
+    !state.session?.userId ||
+    window.ZOUSEEKING_REAL_OPERATIONS_DISABLED
+  ) {
     state.profile = null;
     state.profileLoaded = true;
     return;
@@ -762,12 +755,7 @@ async function ensureUserProfile() {
     state.profileLoaded = true;
     return;
   }
-  const created = await supabaseUserFetch("/user_profiles?on_conflict=user_id", {
-    method: "POST",
-    headers: { Prefer: "resolution=merge-duplicates,return=representation" },
-    body: JSON.stringify(defaultProfile()),
-  });
-  state.profile = created?.[0] || defaultProfile();
+  state.profile = null;
   state.profileLoaded = true;
 }
 
@@ -780,7 +768,7 @@ function renderProfile() {
   $("#profileCard").classList.toggle("hidden", !isLoggedIn());
   if (!isLoggedIn()) return;
 
-  if (!hasSupabase()) {
+  if (!hasSupabaseSession()) {
     $("#profileSummary").innerHTML = `<div class="empty">Supabase 还没配置，资料卡先不营业。</div>`;
     $("#profileForm").classList.add("hidden");
     return;
@@ -792,7 +780,13 @@ function renderProfile() {
     return;
   }
 
-  const profile = state.profile || defaultProfile();
+  if (!state.profile) {
+    $("#profileSummary").innerHTML = `<div class="empty">账户资料服务尚未开放，当前未创建或修改资料。</div>`;
+    $("#profileForm").classList.add("hidden");
+    return;
+  }
+
+  const profile = state.profile;
   const displayName = profile.display_name || profile.username || state.session.username;
   const tier = profile.membership_tier === "free" ? "免费版" : profile.membership_tier;
   $("#profileSummary").innerHTML = `
@@ -816,9 +810,15 @@ function renderProfile() {
 
 async function saveProfile(event) {
   event.preventDefault();
-  if (!isLoggedIn() || !hasSupabase() || !state.session?.userId) return;
+  if (!isLoggedIn() || !hasSupabaseSession() || !state.session?.userId) {
+    setMessage("请先登录，再编辑资料。", "error");
+    return;
+  }
+  if (window.ZOUSEEKING_REAL_OPERATIONS_DISABLED || !state.profile) {
+    setMessage("账户资料服务尚未开放；未提交任何资料。", "error");
+    return;
+  }
   const payload = {
-    ...defaultProfile(),
     display_name: $("#profileDisplayName").value.trim(),
     city: $("#profileCity").value.trim(),
     favorite_area: $("#profileFavoriteArea").value.trim(),
@@ -826,8 +826,8 @@ async function saveProfile(event) {
     bio: $("#profileBio").value.trim(),
   };
   try {
-    const rows = await supabaseUserFetch("/user_profiles?on_conflict=user_id", {
-      method: "POST",
+    const rows = await supabaseUserFetch(`/user_profiles?user_id=eq.${encodeURIComponent(state.session.userId)}`, {
+      method: "PATCH",
       headers: { Prefer: "resolution=merge-duplicates,return=representation" },
       body: JSON.stringify(payload),
     });
@@ -845,14 +845,14 @@ async function saveProfile(event) {
 
 async function updatePassword(event) {
   event.preventDefault();
-  if (!isLoggedIn() || !hasSupabase() || !state.session?.accessToken) {
+  if (!isLoggedIn() || !hasSupabaseSession()) {
     setMessage("请先登录，再改密码。", "error");
     return;
   }
   const password = $("#newPassword").value;
   const confirm = $("#confirmNewPassword").value;
-  if (password.length < 6) {
-    setMessage("新密码至少 6 位，太短了会被生活教育。", "error");
+  if (!passwordIsValid(password)) {
+    setMessage("新密码需为 12–128 位，且不能包含控制字符。", "error");
     return;
   }
   if (password !== confirm) {
@@ -869,8 +869,8 @@ async function updatePassword(event) {
     });
     $("#passwordForm").reset();
     setMessage("密码已更新。下次登录请用新密码，小象已换锁。", "success");
-  } catch (error) {
-    setMessage(`密码更新失败：${error.message}`, "error");
+  } catch {
+    setMessage("密码更新未完成，请稍后再试。", "error");
   } finally {
     submitButton.disabled = false;
   }
@@ -896,7 +896,7 @@ function renderMyPage() {
 
   if (!$("#myTaskList")) return;
 
-  if (!hasSupabase()) {
+  if (!hasSupabaseSession()) {
     $("#myTaskList").innerHTML = `<div class="empty">Supabase 还没配置，Mypage 先坐会儿。</div>`;
     return;
   }
@@ -1704,72 +1704,47 @@ async function register(event) {
     setMessage("用户名、邮件、密码都要填。小象不挑食，但不能空盘。", "error");
     return;
   }
-  if (password.length < 6) {
-    setMessage("密码至少 6 位，太短了会被生活教育。", "error");
+  if (!passwordIsValid(password)) {
+    setMessage("密码需为 12–128 位，且不能包含控制字符。", "error");
     return;
   }
 
-  if (hasSupabase()) {
-    try {
-      submitButton.disabled = true;
-      setMessage("正在注册，小象在 Supabase 门口排队……");
-      const data = await supabaseAuthFetch(`/signup?redirect_to=${encodeURIComponent(appRedirectUrl())}`, {
-        method: "POST",
-        body: JSON.stringify({
-          email,
-          password,
-          data: { username },
-        }),
-      });
-      const session = sessionFromAuth(data, { username, email });
-      $("#registerForm").reset();
-      state.query = "";
-      state.queryOptions = null;
-      state.page = 1;
-      state.selectedId = "";
-      if (data?.access_token) {
-        saveSession(session);
-        await ensureUserProfile();
-        await loadMyPage();
-        setMessage("注册成功，已登录。可以搜房了，钱包先深呼吸。", "success");
-      } else {
-        setMessage("注册成功，但后台还开着邮箱确认。请在 Supabase 关闭 Confirm email，然后用邮箱密码登录。", "success");
-      }
-      render();
-      return;
-    } catch (error) {
-      const message = String(error.message || "");
-      setMessage(`注册失败：${message}`, "error");
-      return;
-    } finally {
-      submitButton.disabled = false;
+  if (!hasSupabase()) {
+    setMessage("账户服务还未配置，暂时无法注册；没有保存密码。", "error");
+    return;
+  }
+
+  try {
+    submitButton.disabled = true;
+    setMessage("正在注册，小象在 Supabase 门口排队……");
+    const data = await supabaseAuthFetch(`/signup?redirect_to=${encodeURIComponent(appRedirectUrl())}`, {
+      method: "POST",
+      body: JSON.stringify({
+        email,
+        password,
+        data: { username },
+      }),
+    });
+    const session = sessionFromAuth(data, { username, email });
+    $("#registerForm").reset();
+    state.query = "";
+    state.queryOptions = null;
+    state.page = 1;
+    state.selectedId = "";
+    if (data?.access_token) {
+      saveSession(session);
+      await ensureUserProfile();
+      await loadMyPage();
+      setMessage("注册成功，已登录。可以搜房了，钱包先深呼吸。", "success");
+    } else {
+      setMessage("注册成功，但后台还开着邮箱确认。请完成邮箱确认后再登录。", "success");
     }
+    render();
+  } catch {
+    setMessage("注册未完成，请稍后再试。", "error");
+  } finally {
+    submitButton.disabled = false;
   }
-
-  const users = getUsers();
-  if (users.some((user) => compact(user.username) === compact(username))) {
-    setMessage("这个用户名已经注册过了。换个马甲试试。", "error");
-    return;
-  }
-
-  const user = {
-    username,
-    email,
-    passwordHash: await passwordHash(password),
-    createdAt: new Date().toISOString(),
-  };
-  users.push(user);
-  saveUsers(users);
-  saveSession({ username, email, provider: "local" });
-  await ensureUserProfile();
-  await loadMyPage();
-  $("#registerForm").reset();
-  state.query = "";
-  state.queryOptions = null;
-  state.page = 1;
-  state.selectedId = "";
-  setMessage("注册成功，查询门打开了。", "success");
-  render();
 }
 
 async function login(event) {
@@ -1783,56 +1758,33 @@ async function login(event) {
     return;
   }
 
-  if (hasSupabase()) {
-    try {
-      submitButton.disabled = true;
-      setMessage("正在登录，小象在翻钥匙串……");
-      const data = await supabaseAuthFetch("/token?grant_type=password", {
-        method: "POST",
-        body: JSON.stringify({ email, password }),
-      });
-      const session = sessionFromAuth(data, { email });
-      saveSession(session);
-      await ensureUserProfile();
-      await loadMyPage();
-      $("#loginForm").reset();
-      state.page = 1;
-      state.selectedId = "";
-      state.queryOptions = null;
-      setMessage("登录成功，可以搜了。", "success");
-      render();
-      return;
-    } catch (error) {
-      const message = String(error.message || "");
-      if (message.includes("Invalid login credentials")) {
-        setMessage("邮箱或密码不对。别慌，人生经常这样。", "error");
-      } else if (message.includes("Email not confirmed")) {
-        setMessage("后台还开着邮箱确认。请在 Supabase 关闭 Confirm email 后再登录。", "error");
-      } else {
-        setMessage(`登录失败：${message}`, "error");
-      }
-      return;
-    } finally {
-      submitButton.disabled = false;
-    }
-  }
-
-  const user = getUsers().find((item) => compact(item.email) === compact(email) || compact(item.username) === compact(email));
-
-  if (!user || user.passwordHash !== (await passwordHash(password))) {
-    setMessage("用户名或密码不对。别慌，人生经常这样。", "error");
+  if (!hasSupabase()) {
+    setMessage("账户服务还未配置，暂时无法登录；没有读取本地密码。", "error");
     return;
   }
 
-  saveSession({ username: user.username, email: user.email, provider: "local" });
-  await ensureUserProfile();
-  await loadMyPage();
-  $("#loginForm").reset();
-  state.page = 1;
-  state.selectedId = "";
-  state.queryOptions = null;
-  setMessage("登录成功，可以搜了。", "success");
-  render();
+  try {
+    submitButton.disabled = true;
+    setMessage("正在登录，小象在翻钥匙串……");
+    const data = await supabaseAuthFetch("/token?grant_type=password", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    const session = sessionFromAuth(data, { email });
+    saveSession(session);
+    await ensureUserProfile();
+    await loadMyPage();
+    $("#loginForm").reset();
+    state.page = 1;
+    state.selectedId = "";
+    state.queryOptions = null;
+    setMessage("登录成功，可以搜了。", "success");
+    render();
+  } catch {
+    setMessage("邮箱或密码不正确，或账户暂不可用。", "error");
+  } finally {
+    submitButton.disabled = false;
+  }
 }
 
 async function logout() {

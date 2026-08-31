@@ -88,6 +88,7 @@
 
 - 已在本地 canonical disposable PostgreSQL 上复核 11 条 migration ledger：`20260824000100`–`20260824000700`、`20260825000400`、`20260827000500`、`20260828000100`、`20260829000100`。
 - 五组本地断言全部通过：foundation、property-intake、provenance/metric、private-project RLS、V1 identity matrix；本次只使用本地 synthetic/empty 数据，断言事务已回滚。
+- candidate 离线回归：`PYTHONPATH=. backend/.venv/bin/python -m pytest tests/unit tests/architecture tests/smoke tests/api -q` → `95 passed`；Edge authority tests → `2 passed`；Python compileall 与 `web/js`/`app.js` 的 `node --check` 均通过。
 - staging 的 live reconciliation 未执行：没有 provider backup/隔离 clone、没有可用 direct staging database URL，existing-row provenance 尚未分类，也没有创建或应用 later-ID forward migration。
 - 未执行 linked `db push`、`migration repair`、staging/production reset 或任何线上写入；C05 的 live 部分保持 `BLOCKED`，不影响继续推进不依赖 live 数据的后续离线任务。
 

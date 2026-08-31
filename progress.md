@@ -114,6 +114,11 @@
 - 模板中的 live action、provider change、deployment、DNS、backup ID、commit 和 checksum 均保持未授权/null；不会被脚本当作可执行目标。
 - C14 仍为 `NOT_EXECUTED`；在 C03–C13 证据闭合并取得逐项明确授权前，不执行任何 production 或 staging 写入。
 
+## P1 离线候选预检（2026-09-01）
+
+- C06 formal provenance 候选隔离回归：Python contract/report/audit `33 passed`、Node web/authorization `6 passed`、worker contract `2 passed`；候选实现未合入本 release candidate，历史内容仍按审计结果阻断。
+- P1 Stripe offline boundary `38 passed`、数据质量 pipeline `26 passed`；均为 fixture/mock 验证，未连接 Stripe、未收费、未写入真实数据，不能替代 C14 后的 staging UAT。
+
 ## Important decisions
 
 - `data/content_library.json` 作为本地 canonical content library

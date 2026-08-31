@@ -84,6 +84,13 @@
 - 本地演练负责人按已确认角色记录：`database_owner=数据库运维`、`backup_operator=备份`、`recovery_lead=任务派发`、`release_owner=版本发布`、`forward_fix_owner=后台审核`、`incident_commander=超级管理员`；`security_reviewer=系统安全`、`billing_owner=财务`未参与本地演练。
 - provider backup、Storage object backup、隔离 clone、live forward-fix 仍为 `deferred/blocked`，因此 C04 尚未达到 production release pass；正式上线前必须重新取得明确的费用、保留期、清理窗口和 provider 恢复批准。
 
+## C05 baseline/RLS 验收预检（2026-08-31）
+
+- 已在本地 canonical disposable PostgreSQL 上复核 11 条 migration ledger：`20260824000100`–`20260824000700`、`20260825000400`、`20260827000500`、`20260828000100`、`20260829000100`。
+- 五组本地断言全部通过：foundation、property-intake、provenance/metric、private-project RLS、V1 identity matrix；本次只使用本地 synthetic/empty 数据，断言事务已回滚。
+- staging 的 live reconciliation 未执行：没有 provider backup/隔离 clone、没有可用 direct staging database URL，existing-row provenance 尚未分类，也没有创建或应用 later-ID forward migration。
+- 未执行 linked `db push`、`migration repair`、staging/production reset 或任何线上写入；C05 的 live 部分保持 `BLOCKED`，不影响继续推进不依赖 live 数据的后续离线任务。
+
 ## Important decisions
 
 - `data/content_library.json` 作为本地 canonical content library

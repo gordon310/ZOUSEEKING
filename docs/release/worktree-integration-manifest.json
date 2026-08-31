@@ -157,17 +157,24 @@
     {
       "id": "P1-3",
       "label": "usage ledger and quota enforcement",
-      "state": "prototype",
-      "disposition": "deferred",
-      "defer_until": "C18",
-      "reason": "当前为 disposable prototype，尚无正式迁移与原子扣减证据。"
+      "state": "offline_candidate",
+      "disposition": "integrated",
+      "integrated_ref": "release candidate working tree (C18 offline usage ledger)",
+      "target_paths": [
+        "backend/app/usage/",
+        "backend/app/main.py",
+        "docs/release/usage-ledger-offline-contract.md",
+        "tests/unit/test_usage_ledger.py",
+        "tests/api/test_usage_routes.py"
+      ],
+      "reason": "已整合 UTC+08:00 账期、scope 隔离、幂等、reserve/commit/release 与线程并发离线契约；正式 migration、数据库多实例原子扣减、Auth/RLS、真实会员配额和 billing 绑定仍需后续授权。"
     },
     {
       "id": "P1-4",
       "label": "data quality and source registry",
       "state": "offline_candidate",
       "disposition": "deferred",
-      "defer_until": "C18",
+      "defer_until": "C19",
       "reason": "质量流水线候选可离线运行，真实来源 rights 与历史重建未完成。"
     },
     {

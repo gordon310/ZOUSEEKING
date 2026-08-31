@@ -153,6 +153,14 @@
 - 已更新 `docs/release/worktree-integration-manifest.json`：P1-2 标记为 `integrated`，并保留 provider gateway/store、canonical billing migration、真实 webhook delivery、税费/收据、退款演练、provider backup/restore 与 live Stripe 为后续授权门槛；C14 Go/No-Go 仍为 `BLOCK / NOT AUTHORIZED`。
 - 本轮未连接 Stripe、未使用 live key、未收费、未写入线上数据库/Auth/RLS/Storage，未执行部署、DNS 或 billing 配置；下一项 C18 继续处理 usage ledger/quota 的 disposable 离线边界。
 
+## C18 用量账本与配额离线契约（2026-09-01）
+
+- 已整合 `backend/app/usage/`：线程安全的 in-memory ledger、UTC+08:00 自然日/月账期、owner/organization scope 隔离、scope-wide operation 幂等指纹、`consume` 与 `reserve/commit/release` 原子语义、原账期 reservation transition 和 quota 容量检查。
+- 新增默认关闭的 `POST /api/usage/events`：客户端不能提交 `user_id`、scope 或 limit；可信服务端依赖负责身份、scope 与配额解析。未知故障只返回通用 `503 usage_unavailable`，未配置 service 时返回 `503 usage service is not configured`。
+- 离线契约文档：`docs/release/usage-ledger-offline-contract.md`；未新增或应用 `supabase/migrations/`，未扩大 `consumer_intake_preview` allowlist。
+- TDD 证据：先运行缺失实现的 RED（collection `ModuleNotFoundError`），再运行 `tests/unit/test_usage_ledger.py tests/api/test_usage_routes.py` → `13 passed`；覆盖日本时间边界、幂等冲突、配额不变性、scope 隔离、跨日 reservation、释放状态与 8 路并发 limit=1。
+- 本轮未执行：真实 PostgreSQL/multi-instance 原子性、migration baseline reconciliation、Auth/RLS、真实会员/组织配额、Stripe entitlement 绑定、staging/production UAT、provider backup/restore、部署、DNS、billing 或线上写入；C14 Go/No-Go 继续为 `BLOCK / NOT AUTHORIZED`。
+
 ## Important decisions
 
 - `data/content_library.json` 作为本地 canonical content library

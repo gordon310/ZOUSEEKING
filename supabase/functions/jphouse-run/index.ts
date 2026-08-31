@@ -1,4 +1,4 @@
-import { isQueryOwnedByUser } from "./authorization.mjs";
+import { isLegacyExecutionEnabled, isQueryOwnedByUser } from "./authorization.mjs";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -228,6 +228,9 @@ function reportFromQuery(query: QueryRow) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS_HEADERS });
   if (req.method !== "POST") return jsonResponse({ error: "POST only" }, 405);
+  if (!isLegacyExecutionEnabled(env("JPHOUSE_LEGACY_EXECUTION_ENABLED"))) {
+    return jsonResponse({ error: "legacy executor frozen" }, 410);
+  }
   try {
     const user = await currentUser(req.headers.get("Authorization") || "");
     if (!user?.id) return jsonResponse({ error: "未登录或登录已过期" }, 401);

@@ -1,0 +1,290 @@
+name: Release Gate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-gate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "22"
+  REQUIRED_CHECKS: "python-pytest,python-compileall,pip-check,node-syntax,node-edge,browser,sql-start,sql-reset,sql-foundation,sql-intake,sql-rls,npm-audit,pip-audit,secret-scan,policy,diff"
+
+jobs:
+  python:
+    name: Python checks
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install backend test dependencies
+        run: python -m pip install --disable-pip-version-check -r backend/requirements-dev.txt
+      - name: Prepare result directory
+        run: mkdir -p ci-results
+      - name: Run pytest
+        continue-on-error: true
+        run: python scripts/ci/release_evidence.py record --name python-pytest --output ci-results/python-pytest.json -- env PYTHONPATH=src:. python -m pytest -q
+      - name: Run compileall
+        continue-on-error: true
+        env:
+          PYTHONPYCACHEPREFIX: ${{ runner.temp }}/jp-property-pycache
+        run: python scripts/ci/release_evidence.py record --name python-compileall --output ci-results/python-compileall.json -- python -m compileall -q backend scripts src
+      - name: Run pip check
+        continue-on-error: true
+        run: python scripts/ci/release_evidence.py record --name pip-check --output ci-results/pip-check.json -- python -m pip check
+      - name: Fail if a Python check failed
+        if: always()
+        run: python scripts/ci/release_evidence.py validate --results-dir ci-results --required python-pytest,python-compileall,pip-check
+      - name: Upload Python evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gate-python
+          path: ci-results
+          if-no-files-found: error
+
+  node:
+    name: Node checks
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install Node dependencies
+        run: npm ci
+      - name: Prepare result directory
+        run: mkdir -p ci-results
+      - name: Run JavaScript syntax checks
+        continue-on-error: true
+        run: >-
+          python3 scripts/ci/release_evidence.py record
+          --name node-syntax --output ci-results/node-syntax.json --
+          bash -euo pipefail -c
+          'node --check web/app.js && node --check playwright.config.js && for file in web/js/*.js; do node --check "$file"; done'
+      - name: Run Edge authorization tests
+        continue-on-error: true
+        run: python3 scripts/ci/release_evidence.py record --name node-edge --output ci-results/node-edge.json -- node --test tests/edge/jphouse-run-authority.test.mjs
+      - name: Fail if a Node check failed
+        if: always()
+        run: python3 scripts/ci/release_evidence.py validate --results-dir ci-results --required node-syntax,node-edge
+      - name: Upload Node evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gate-node
+          path: ci-results
+          if-no-files-found: error
+
+  browser:
+    name: Playwright checks
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install Node dependencies
+        run: npm ci
+      - name: Install bundled Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Prepare result directory
+        run: mkdir -p ci-results
+      - name: Run Playwright
+        continue-on-error: true
+        run: python3 scripts/ci/release_evidence.py record --name browser --output ci-results/browser.json -- npm run test:web
+      - name: Fail if browser checks failed
+        if: always()
+        run: python3 scripts/ci/release_evidence.py validate --results-dir ci-results --required browser
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gate-browser
+          path: ci-results
+          if-no-files-found: error
+
+  sql-rls:
+    name: Disposable SQL and RLS checks
+    runs-on: ubuntu-24.04
+    env:
+      SUPABASE_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install Supabase CLI dependency
+        run: npm ci
+      - name: Prepare result directory
+        run: mkdir -p ci-results
+      - name: Start disposable Supabase
+        continue-on-error: true
+        run: python3 scripts/ci/release_evidence.py record --name sql-start --output ci-results/sql-start.json -- npx supabase start
+      - name: Reset disposable database
+        continue-on-error: true
+        run: python3 scripts/ci/release_evidence.py record --name sql-reset --output ci-results/sql-reset.json -- npx supabase db reset --local
+      - name: Run foundation SQL assertions
+        continue-on-error: true
+        run: python3 scripts/ci/release_evidence.py record --name sql-foundation --output ci-results/sql-foundation.json -- psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/sql/test_foundation_schema.sql
+      - name: Run property intake SQL assertions
+        continue-on-error: true
+        run: python3 scripts/ci/release_evidence.py record --name sql-intake --output ci-results/sql-intake.json -- psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/sql/test_property_intake_schema.sql
+      - name: Run private project RLS assertions
+        continue-on-error: true
+        run: python3 scripts/ci/release_evidence.py record --name sql-rls --output ci-results/sql-rls.json -- psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/security/test_rls_private_projects.sql
+      - name: Stop disposable Supabase
+        if: always()
+        run: npx supabase stop --no-backup || true
+      - name: Fail if SQL or RLS checks failed
+        if: always()
+        run: python3 scripts/ci/release_evidence.py validate --results-dir ci-results --required sql-start,sql-reset,sql-foundation,sql-intake,sql-rls
+      - name: Upload SQL/RLS evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gate-sql-rls
+          path: ci-results
+          if-no-files-found: error
+
+  supply-chain:
+    name: Supply-chain checks
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install locked dependencies
+        run: |
+          python -m pip install --disable-pip-version-check -r backend/requirements-dev.txt
+          npm ci
+      - name: Prepare result directory
+        run: mkdir -p ci-results
+      - name: Run npm audit
+        continue-on-error: true
+        run: python scripts/ci/release_evidence.py record --name npm-audit --output ci-results/npm-audit.json -- npm audit --audit-level=high
+      - name: Run pip-audit
+        continue-on-error: true
+        run: >-
+          python scripts/ci/release_evidence.py record
+          --name pip-audit --output ci-results/pip-audit.json --
+          bash -euo pipefail -c
+          'python -m pip install --disable-pip-version-check pip-audit==2.9.0 && pip-audit -r backend/requirements.txt -r backend/requirements-dev.txt'
+      - name: Run offline secret scan
+        continue-on-error: true
+        run: python scripts/ci/release_evidence.py record --name secret-scan --output ci-results/secret-scan.json -- python scripts/ci/secret_scan.py --repo .
+      - name: Fail if supply-chain checks failed
+        if: always()
+        run: python scripts/ci/release_evidence.py validate --results-dir ci-results --required npm-audit,pip-audit,secret-scan
+      - name: Upload supply-chain evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gate-supply-chain
+          path: ci-results
+          if-no-files-found: error
+
+  policy:
+    name: Repository policy checks
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Prepare result directory
+        run: mkdir -p ci-results
+      - name: Run release policy assertions
+        continue-on-error: true
+        run: python scripts/ci/release_evidence.py record --name policy --output ci-results/policy.json -- python scripts/ci/check_release_policy.py
+      - name: Run git diff check
+        continue-on-error: true
+        run: python scripts/ci/release_evidence.py record --name diff --output ci-results/diff.json -- bash -euo pipefail -c 'git diff --check HEAD^ HEAD && git diff --check'
+      - name: Fail if repository policy checks failed
+        if: always()
+        run: python scripts/ci/release_evidence.py validate --results-dir ci-results --required policy,diff
+      - name: Upload policy evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gate-policy
+          path: ci-results
+          if-no-files-found: error
+
+  evidence:
+    name: Release evidence
+    if: always()
+    needs: [python, node, browser, sql-rls, supply-chain, policy]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Download gate results
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-gate-*
+          path: ${{ runner.temp }}/release-results
+          merge-multiple: true
+      - name: Read project version
+        id: project-version
+        run: echo "version=$(python -c 'import re; text=open("backend/app/main.py", encoding="utf-8").read(); print(re.search(r"version=\"([^\"]+)\"", text).group(1))')" >> "$GITHUB_OUTPUT"
+      - name: Build evidence manifest and candidate artifact
+        id: evidence
+        if: always()
+        continue-on-error: true
+        env:
+          REQUIRED_CHECKS: ${{ env.REQUIRED_CHECKS }}
+        run: >-
+          python scripts/ci/release_evidence.py evidence
+          --results-dir "${{ runner.temp }}/release-results"
+          --output-dir release-evidence
+          --version "${{ steps.project-version.outputs.version }}"
+          --ref-name "${GITHUB_REF_NAME}"
+          --commit "${GITHUB_SHA}"
+          --required "$REQUIRED_CHECKS"
+      - name: Publish tag and readiness summary
+        if: always()
+        run: |
+          echo "## Release gate evidence" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f release-evidence/release-tag.txt ]; then echo "release_tag: $(cat release-evidence/release-tag.txt)" >> "$GITHUB_STEP_SUMMARY"; fi
+          if [ -f release-evidence/manifest.json ]; then python -c 'import json; m=json.load(open("release-evidence/manifest.json")); print("offline_gate_passed:", m["offline_gate_passed"]); print("release_ready:", m["release_ready"])' >> "$GITHUB_STEP_SUMMARY"; fi
+          echo "external_checks: NOT_EXECUTED until separately authorized" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-evidence
+          path: release-evidence
+          if-no-files-found: error
+      - name: Upload candidate source artifact
+        if: always() && hashFiles('release-evidence/*source*.tar.gz') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-candidate-source
+          path: release-evidence/*source*.tar.gz

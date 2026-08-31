@@ -1,0 +1,53 @@
+# 生产发布集成决策
+
+审查日期：2026-08-31
+
+## C01 基线
+
+- 集成工作区：现有隔离分支 `codex/release-candidate`。
+- 当前基线：`78714fb`；上游参考 `origin/main@daa0707`。
+- `origin/main` 中新增的 renovation API 暂不纳入第一阶段，列为独立候选。
+- 主工作区存在用户未提交改动；本次不触碰、不清理、不覆盖。
+- 工作区中已有的 `test-results/` 等生成目录不纳入发布集成，也不删除。
+- 本次仅进行离线文件集成与验证；不执行数据库、Auth/RLS/Storage、部署、DNS、billing 或 destructive 操作。
+
+## 候选处置规则
+
+1. 仅将已明确归属、能通过离线验证且符合第一阶段 allowlist 的文件标记为 `integrated`。
+2. 依赖数据库基线、provider 证据、真实权限或付费服务的候选标记为 `deferred`，并指向后续 C 编号。
+3. `rejected` 仅用于违反数据权利、秘密管理或发布范围的候选；当前没有候选需要该处置。
+4. 不复制 secrets、`.env`、缓存、测试结果、生成媒体或未审查的整棵工作树。
+
+## 当前决策
+
+第一阶段只保留 `consumer_intake_preview`：匿名 intake、受限免费预览、可追溯的离线/合成 smoke。会员、收费、配额、历史库、真实生产数据、renovation API 及 provider 级发布证据必须通过后续闸门后才能进入正式 V1。
+
+## C02 执行证据
+
+- 已集成 FastAPI release allowlist、ADR-0002 机器契约、Edge/local worker 默认冻结、B/admin 浏览器网络门闩与 Render phase 配置。
+- `tests/architecture`、intake API、staging smoke 与 worker 单元测试：`36 passed`。
+- Edge Node 测试：`2 passed`；相关 JavaScript `node --check` 通过。
+- Playwright release-scope 浏览器测试：`2 passed`。
+- 生产发布仍为 **BLOCK / NOT AUTHORIZED**；未执行任何 live provider 操作。
+
+## C03 执行证据
+
+- canonical 11-file history fresh reset：exit 0；migration ledger 为 11 条且顺序完整。
+- `supabase db lint --local --level warning`：`No schema errors found`。
+- fresh-reset schema/RLS 五组 assertions：全部 exit 0。
+- custom-format dump 恢复到新建 disposable database 后，五组 assertions：全部 exit 0。
+- `migration_baseline_status` 更新为 `canonical_local_pass_live_reconciliation_required`；staging drift、provider backup/clone、later-ID forward-fix 与 live approval 仍未完成。
+
+## C04 local-only 执行证据
+
+- `tests/unit/test_database_recovery.py`：`8 passed`。
+- custom-format artifact checksum 与 `pg_restore --list`：通过，源 PostgreSQL `17.6`、pg_dump `18.6`、TOC `1072` 条目。
+- `database_recovery.py drill`：`gate_status=pass`；foundation、property-intake、provenance/metric、private-RLS、V1 identity 五组 assertions 均 `pass`，`cleanup_result=pass`。
+- 该证据仅覆盖本机 synthetic/empty 数据；未创建或读取 staging/production provider backup，未执行 Storage object backup、clone restore、forward-fix 或 live SQL。
+
+## C04 provider 预检结果
+
+- staging physical backup：无可用记录，PITR 未启用。
+- Storage `property-intake` bucket：对象数为 `0`；无需执行对象复制，未读取对象内容。
+- 按已确认的 `JPY 0` 费用上限，未启用任何可能收费的备份/clone 能力。
+- C04 的 provider backup 与隔离 clone 仍为 **BLOCKED**；不执行 C05 的 staging forward-fix 或任何 live migration。

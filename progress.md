@@ -75,6 +75,68 @@
 - 本次仅发布后端代码，未执行 Supabase migration、数据库写入、生产部署或真实用户数据测试。
 - 完整 migration baseline reconciliation、备份恢复和 V1 业务表继续延期到单独批准窗口。
 
+## C04 provider backup 与隔离恢复（2026-08-31）
+
+- 已确认项目尚未上线，前期费用上限为 `JPY 0`；数据库/Auth/Storage 继续采用 Supabase Free，暂不创建 Render 付费数据库、启用 PITR 或创建 provider clone。
+- 已加入 `scripts/database_recovery.py`、`docs/operations/database-recovery-runbook.md`、证据模板和聚焦单元测试；工具只接受 loopback maintenance database、`jpp_restore_` 一次性目标，先校验 SHA-256/TOC，首个断言失败即停止并仅清理自己创建的目标。
+- `PYTHONPATH=. backend/.venv/bin/python -m pytest tests/unit/test_database_recovery.py -q` → `8 passed`。
+- 当前 release candidate 使用 `jpp-canonical-local-full-exec-20260831-v2.dump`（SHA-256 `b9e521827d32647157cf1676bf53a2e9e0e2fd4149bba189fd6f886b466dc215`、PostgreSQL `17.6`、pg_dump `18.6`）；checksum/TOC、foundation/intake/private-RLS 三组断言和目标清理均为 `pass`。报告保留在受限临时目录，未提交仓库。
+- 本地演练负责人按已确认角色记录：`database_owner=数据库运维`、`backup_operator=备份`、`recovery_lead=任务派发`、`release_owner=版本发布`、`forward_fix_owner=后台审核`、`incident_commander=超级管理员`；`security_reviewer=系统安全`、`billing_owner=财务`未参与本地演练。
+- provider backup、Storage object backup、隔离 clone、live forward-fix 仍为 `deferred/blocked`，因此 C04 尚未达到 production release pass；正式上线前必须重新取得明确的费用、保留期、清理窗口和 provider 恢复批准。
+
+## C05 baseline/RLS 验收预检（2026-08-31）
+
+- 已在本地 canonical disposable PostgreSQL 上复核 11 条 migration ledger：`20260824000100`–`20260824000700`、`20260825000400`、`20260827000500`、`20260828000100`、`20260829000100`。
+- 五组本地断言全部通过：foundation、property-intake、provenance/metric、private-project RLS、V1 identity matrix；本次只使用本地 synthetic/empty 数据，断言事务已回滚。
+- candidate 离线回归：`PYTHONPATH=. backend/.venv/bin/python -m pytest tests/unit tests/architecture tests/smoke tests/api -q` → `95 passed`；Edge authority tests → `2 passed`；Python compileall 与 `web/js`/`app.js` 的 `node --check` 均通过。
+- staging 只读 migration dry-run：普通 dry-run 因早期本地 migration 位于远端末尾而停止；`--dry-run --include-all` 仅报告将推送 `20260824000100`–`20260824000700` 与 `20260829000100`，未执行写入。
+- staging 的 live reconciliation 未执行：没有 provider backup/隔离 clone、没有可用 direct staging database URL，existing-row provenance 尚未分类，也没有创建或应用 later-ID forward migration。
+- 未执行 linked `db push`、`migration repair`、staging/production reset 或任何线上写入；C05 的 live 部分保持 `BLOCKED`，不影响继续推进不依赖 live 数据的后续离线任务。
+
+## C06 provenance 与授权来源离线审计（2026-08-31）
+
+- 对 release candidate 的 `content-library.json` 做只读 formal provenance 审计：70 条记录中 `publishable_records=0`、`issue_count=70`；未自动补写 provenance 或 rights。
+- 两份 `data/input/*.csv` 均因缺少 `aggregation_method`、`limitations`、`method`、`missing_value_policy`、`observed_at`、`retrieved_at`、`rights_status`、`sample_size`、`source_period`、`version` 而阻断；没有记录被提升为可发布数据。
+- `content-library.json` 与 `web/content-library.json` SHA-256 均为 `eb0fefae86a04204d9c0682f69e76a21497fcd1f18f5b8c4aa631197a1b71d1e`，仅证明生成副本一致，不证明来源权利或统计代表性。
+- 审计报告：`docs/architecture/provenance-audit-2026-08.md`。未联网、未写数据库、未改生成文件；C06 的 formal contract 集成仍需 canonical 路径、授权 manifest 和 later-ID migration 评审，状态保持 `BLOCK / NOT AUTHORIZED`。
+
+## C07–C13 后续离线候选验收（2026-08-31）
+
+- 在各自隔离候选 worktree（未自动合入本 release candidate）完成专用回归：C07 durable worker `26 passed`，C07 legacy path retirement `16 passed`，C08 production config/auth/readiness `12 passed`，C09 reliability/rate-limit/observability `19 passed`，C10 privacy operations `16 passed`，C11 capacity/unit/api/performance `71 passed`，C12 release-gate/evidence/secret-scan/static-server `21 passed`。
+- C13 staging synthetic smoke 离线 runner `16 passed`；`--mode offline --run-id c13-offline-20260901` 返回 `status=passed`，覆盖 health、匿名 session、text/PDF、location、preview、跨用户隔离、幂等与清理。该结果不代表 staging live 或 production。
+- C11 离线容量探针实测：FastAPI synthetic 100/100、DB pool 50/50、bounded queue 20/20 均通过预算；静态总量 `1,520,420B` 在 2MiB 内，但 `web/assets/logoELE.png` 为 `945,771B`，超过单文件 `524,288B`，所以整体 verdict 为 `FIX`。未据此进行图片删除或压缩。
+- C12 供应链补充检查：`npm audit --offline --audit-level=high` 返回 `found 0 vulnerabilities`，但 registry advisory 请求在当前环境 DNS 失败；`pip-audit`/`pip_audit` 不存在。因此仅记录为本地缓存结果，不能替代在线 advisory feed，C12 仍未达到完整 gate pass。
+- 当前 release candidate 直接 secret scan `PASS`；C12 policy scan 已在集成 release gate 后为 `PASS`。浏览器离线回归首次发现候选缺失 `data/content_library.json`；已从同哈希生成源补齐后重跑，当前 `22 passed`。
+- C07–C11 候选代码仍需逐文件 review 后再集成；C12 release gate 已纳入本候选。未执行 GitHub Actions、`pip-audit`（当前环境无 `pip_audit` 模块）、staging load、线上 Auth/DB/Storage、deployment 或 DNS。SQL/RLS 与 provider 证据缺失时，任何候选均不得标为 production pass。
+
+## C14 Go/No-Go 模板（2026-08-31）
+
+- 已新增 `docs/release/production-go-live-approval.json` 与 `docs/release/production-release-evidence.json`；已写入已确认角色、保留期 7 天、清理窗口 `2026-09-01 02:00–03:00 JST`、费用上限 `JPY 0` 与 provider backup/clone 延后策略。
+- 模板中的 live action、provider change、deployment、DNS、backup ID、commit 和 checksum 均保持未授权/null；不会被脚本当作可执行目标。
+- C14 仍为 `NOT_EXECUTED`；在 C03–C13 证据闭合并取得逐项明确授权前，不执行任何 production 或 staging 写入。
+
+## C14 Go/No-Go 复核（2026-09-01）
+
+- 已复核角色、`retention_days=7`、`cost_cap_jpy=0`、`cleanup_window_jst=2026-09-01 02:00–03:00`、Storage `property-intake` 与 provider object backup 延后策略；模板目标、backup ID、deployment commit/checksum 继续为 null/false。
+- 当前结论仍为 `BLOCK / NOT AUTHORIZED`：migration baseline 尚需 live reconciliation，provider backup/isolated clone 在 JPY 0 下未获批，SQL/RLS、Auth/Storage、deployment/DNS/billing live 证据未执行；C06 provenance `70/70` 阻断、C11 单文件预算 `FIX`、C12 npm/pip advisory 未闭合。
+
+## P1 离线候选预检（2026-09-01）
+
+- C06 formal provenance 候选隔离回归：Python contract/report/audit `33 passed`、Node web/authorization `6 passed`、worker contract `2 passed`；候选实现未合入本 release candidate，历史内容仍按审计结果阻断。
+- P1 Stripe offline boundary `38 passed`、数据质量 pipeline `26 passed`；均为 fixture/mock 验证，未连接 Stripe、未收费、未写入真实数据，不能替代 C14 后的 staging UAT。
+
+## C01–C03 候选归档与整合回归（2026-09-01）
+
+- C01/C02 架构边界与第一阶段 allowlist 已归档：`fe4b9dd`、`110358e`；C03 canonical migration baseline、legacy SQL 归类与 schema inventory 已归档：`41cafc7`。
+- 整合后离线回归：Python unit/architecture/smoke/api `95 passed`；Edge authority `2 passed`；Python `compileall`、全部 `web/js` 与 `app.js` `node --check`、机器 JSON 解析均通过。
+- 这些结果仍只证明 release candidate 的本地契约；staging drift、provider backup/clone、later-ID forward-fix、production deployment 和真实资料验收继续保持未执行。
+
+## C12 发布证据包（2026-09-01）
+
+- 已在当前 release candidate `5adbb9b3370d6a46661b0b592d470dbfe3dd8a32` 重新记录证据并生成离线包：`/private/tmp/jpp-c12-evidence.p96IcF/bundle/manifest.json`。
+- 真实结果：Python `112 passed`、Edge authority `2 passed`、compileall、全部 JS syntax、secret scan、release policy、diff check 和 browser `22 passed` 均为 `PASS`；synthetic offline smoke 另行 `PASS`；SQL/RLS 为 `NOT_EXECUTED`；npm advisory 因当前环境 DNS 失败为 `FAIL`；`pip-audit` 不存在为 `BLOCKED`。manifest 仍为 `offline_gate_passed=false`、`release_ready=false`。
+- manifest 的 `offline_gate_passed=false`、`release_ready=false`；外部 staging/production DB、Auth、Storage、deployment、DNS、billing 均保持 `NOT_EXECUTED`。该证据包不构成上线批准。
+
 ## Important decisions
 
 - `data/content_library.json` 作为本地 canonical content library
@@ -83,4 +145,4 @@
 
 ## Last updated
 
-2026-08-27
+2026-09-01

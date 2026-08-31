@@ -307,6 +307,11 @@ def process_job(job: dict):
 
 
 def main():
+    if os.environ.get("ENABLE_FROZEN_JPHOUSE_WORKER", "") != "true":
+        raise SystemExit(
+            "legacy JPHOUSE worker is frozen; explicit approved break-glass activation is required"
+        )
+
     parser = argparse.ArgumentParser(description="Run local JPHOUSE worker for pending Supabase generation jobs.")
     parser.add_argument("--limit", type=int, default=5)
     args = parser.parse_args()

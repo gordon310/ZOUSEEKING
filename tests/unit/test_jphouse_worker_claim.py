@@ -3,10 +3,33 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
+
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
 
 import run_jphouse_worker as worker
+
+
+def test_legacy_worker_is_frozen_before_credentials_are_read(monkeypatch):
+    monkeypatch.delenv("ENABLE_FROZEN_JPHOUSE_WORKER", raising=False)
+    monkeypatch.setattr(sys, "argv", ["run_jphouse_worker.py"])
+
+    def unexpected_credentials():
+        raise AssertionError("a frozen worker must stop before reading credentials")
+
+    monkeypatch.setattr(worker, "service_role_key", unexpected_credentials)
+
+    with pytest.raises(SystemExit, match="frozen"):
+        worker.main()
+
+
+def test_legacy_worker_break_glass_value_must_be_exact(monkeypatch):
+    monkeypatch.setenv("ENABLE_FROZEN_JPHOUSE_WORKER", " true ")
+    monkeypatch.setattr(sys, "argv", ["run_jphouse_worker.py"])
+
+    with pytest.raises(SystemExit, match="frozen"):
+        worker.main()
 
 
 def test_claim_pending_job_uses_conditional_update(monkeypatch):

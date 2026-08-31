@@ -1,0 +1,61 @@
+{
+  "record_version": 1,
+  "gate_status": "blocked",
+  "source": {
+    "environment": null,
+    "provider": "supabase",
+    "project_environment_record": null,
+    "data_scope": "provider_managed_backup"
+  },
+  "backup": {
+    "identifier": null,
+    "kind": null,
+    "created_at": null,
+    "recovery_point": null,
+    "postgres_version": null,
+    "checksum_mode": null,
+    "sha256": null,
+    "checksum_verified": false,
+    "encrypted_at_rest": null,
+    "retention_record": null,
+    "storage_backup_identifier": null
+  },
+  "restore": {
+    "target_kind": null,
+    "target_identifier": null,
+    "provider_job_identifier": null,
+    "started_at": null,
+    "finished_at": null,
+    "result": "not_run",
+    "cleanup_result": "not_run",
+    "catalog_signature_record": null,
+    "assertions": []
+  },
+  "responsible": {
+    "database_owner": null,
+    "backup_operator": null,
+    "recovery_lead": null,
+    "release_owner": null,
+    "forward_fix_owner": null,
+    "incident_commander": null,
+    "security_reviewer": null,
+    "billing_owner": null
+  },
+  "authorization": {
+    "live_write_status": "not_authorized",
+    "approved_scope": null,
+    "approval_record": null,
+    "maintenance_window": null,
+    "billing_approval_record": null
+  },
+  "migration_failure": {
+    "failed_migration_id": null,
+    "failure_class": null,
+    "applied_ledger_after_failure": null,
+    "forward_fix_migration_id": null,
+    "forward_fix_approval_record": null
+  },
+  "limitations": [
+    "This blocked template is not backup or restore evidence until every required field is assigned and validation passes."
+  ]
+}

@@ -7,6 +7,7 @@ from typing import Any, Optional
 
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from .db import close, connect, get_pool, init_schema
 from .auth import AuthUser, require_user
@@ -24,6 +25,7 @@ from .models import JobResponse, QueryRequest, QueryResponse
 from .routes.health import router as health_router
 from .routes.intake import cleanup_expired_sessions, router as intake_router
 from .routes.renovation import router as renovation_router
+from .release_scope import request_allowed
 
 
 ALLOWED_ORIGINS = [
@@ -54,6 +56,18 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="ZOU SEEKING HOUSE JPHOUSE API", version="0.1.0", lifespan=lifespan)
+
+
+@app.middleware("http")
+async def enforce_release_scope(request, call_next):
+    if not request_allowed(request.method, request.url.path):
+        return JSONResponse(
+            status_code=404,
+            content={"detail": "operation unavailable in current release phase"},
+        )
+    return await call_next(request)
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,

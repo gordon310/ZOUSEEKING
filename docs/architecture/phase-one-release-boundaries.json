@@ -1,0 +1,27 @@
+{
+  "decision_id": "ADR-0002",
+  "status": "accepted",
+  "release_phase": "consumer_intake_preview",
+  "authoritative_business_api": "fastapi",
+  "api_allowlist": [
+    "GET /health",
+    "GET /health/live",
+    "GET /health/ready",
+    "GET /internal/provenance/diagnostics",
+    "POST /api/intake/sessions",
+    "POST /api/intake/sessions/{session_id}/inputs",
+    "POST /api/intake/sessions/{session_id}/files",
+    "PUT /api/intake/sessions/{session_id}/location",
+    "PUT /api/intake/sessions/{session_id}/fields/{field_name}",
+    "POST /api/intake/sessions/{session_id}/preview"
+  ],
+  "project_conversion": "disabled",
+  "business_and_admin_operations": "demo_only_no_network_writes",
+  "live_change_gate": "explicit_approval_required",
+  "legacy_activation_gates": {
+    "edge_function": "JPHOUSE_LEGACY_EXECUTION_ENABLED=true",
+    "local_worker": "ENABLE_FROZEN_JPHOUSE_WORKER=true",
+    "in_process_fastapi_executor": "blocked_by_release_phase",
+    "browser_private_postgrest": "blocked_by_demo_surface_network_boundary"
+  }
+}

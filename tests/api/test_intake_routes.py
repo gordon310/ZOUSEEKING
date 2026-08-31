@@ -136,6 +136,42 @@ def test_preview_has_no_fabricated_tax_amount(client, session):
     assert body["comparable_status"] == "not_checked"
 
 
+def test_phase_one_allows_preview_but_blocks_project_conversion(
+    client, session, auth_header, monkeypatch, fake_repository
+):
+    monkeypatch.setenv("RELEASE_PHASE", "consumer_intake_preview")
+
+    preview = client.post(
+        f"/api/intake/sessions/{session['session_id']}/preview",
+        headers={"X-Analysis-Session": session["session_token"]},
+    )
+    converted = client.post(
+        f"/api/intake/sessions/{session['session_id']}/convert",
+        headers={**auth_header, "X-Analysis-Session": session["session_token"]},
+        json={"project_name": "不应在第一阶段创建"},
+    )
+
+    assert preview.status_code == 200
+    assert converted.status_code == 404
+    assert converted.json() == {"detail": "operation unavailable in current release phase"}
+    assert fake_repository.created_properties == []
+
+
+def test_managed_environment_without_release_phase_fails_closed(client, monkeypatch):
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.delenv("RELEASE_PHASE", raising=False)
+
+    health = client.get("/health/live")
+    create = client.post(
+        "/api/intake/sessions",
+        json={"purpose": "self_use", "consent_version": "privacy-2026-08"},
+    )
+
+    assert health.status_code == 200
+    assert create.status_code == 404
+    assert create.json() == {"detail": "operation unavailable in current release phase"}
+
+
 def test_convert_uses_authenticated_user_not_request_body(client, session, auth_header, fake_repository):
     client.post(
         f"/api/intake/sessions/{session['session_id']}/preview",

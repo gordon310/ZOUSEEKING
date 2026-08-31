@@ -12,6 +12,8 @@ services:
         value: "3.12.11"
       - key: ENVIRONMENT
         value: staging
+      - key: RELEASE_PHASE
+        value: consumer_intake_preview
       - key: INIT_SCHEMA
         value: "false"
       - key: APP_VERSION

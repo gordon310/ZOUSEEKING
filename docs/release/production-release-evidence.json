@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-09-01",
+  "phase_one_scope": "consumer_intake_preview",
+  "status": "NOT_EXECUTED",
+  "release_ready": false,
+  "deployment": {
+    "commit": null,
+    "artifact_sha256": null,
+    "render_api_service": null,
+    "web_service": null,
+    "supabase_project_ref": null,
+    "storage_bucket": "property-intake",
+    "dns_change": false
+  },
+  "provider_evidence": {
+    "database_backup_id": null,
+    "storage_object_backup_id": null,
+    "isolated_clone_restore": false,
+    "forward_fix_id": null
+  },
+  "checks": {
+    "live_health": false,
+    "ready_health": false,
+    "synthetic_smoke": false,
+    "browser_network_audit": false,
+    "console_clean": false,
+    "auth_storage_rls_matrix": false,
+    "retention_cleanup": false,
+    "rollback_smoke": false
+  },
+  "blockers": [
+    "migration_baseline_status=canonical_local_pass_live_reconciliation_required",
+    "provider backup/restore and isolated clone not authorized under JPY 0",
+    "staging live reconciliation and later-ID forward-fix not executed",
+    "production targets, secrets, privacy/legal approval and deployment window not approved"
+  ],
+  "prohibited_actions": [
+    "do not populate this file with secrets or real tokens",
+    "do not mark a local/offline test as production evidence",
+    "do not execute linked db push, migration repair, reset, deployment or DNS from this template"
+  ]
+}

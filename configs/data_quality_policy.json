@@ -1,0 +1,17 @@
+{
+  "version": "trend-policy-v1",
+  "trend": {
+    "minimum_periods": 3,
+    "minimum_samples_per_period": 5,
+    "minimum_total_samples": 15,
+    "group_by": [
+      "prefecture",
+      "ward",
+      "market",
+      "status",
+      "data_class",
+      "amount_unit",
+      "currency"
+    ]
+  }
+}

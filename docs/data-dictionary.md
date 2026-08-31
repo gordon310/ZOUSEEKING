@@ -1,6 +1,6 @@
 # 数据字典
 
-每行代表一条**已获得使用许可**且人工核验过的租售样本。
+正式数据每行代表一条**已获得使用许可**且人工核验过的租售样本；严格多月份流程之外的 sample 只可作为明确标注的离线 fixture，不得据此推断真实市场。
 
 | 字段 | 示例 | 说明 |
 | --- | --- | --- |
@@ -19,6 +19,25 @@
 可选字段如 `layout`、`station`、`walk_minutes`、`floor`、`built_year` 可用于后续细分分析。
 
 测试或版式演示数据应增加 `is_synthetic=yes`，并与人工核验的真实数据分文件保存，不得作为真实市场数据发布。
+
+## 严格多月份准备字段
+
+`prepare` 流程要求每条记录增加以下字段，并与本地 source registry 和 snapshot manifest 交叉核验：
+
+| 字段 | 示例 | 说明 |
+| --- | --- | --- |
+| `record_id` | `source-2026-08-001` | 稳定主键；重复会阻塞。 |
+| `amount_unit` | `jpy_total` / `jpy_monthly` | 出售必须是 `jpy_total`，出租必须是 `jpy_monthly`。 |
+| `currency` | `JPY` | 当前分析口径固定为 JPY。 |
+| `source_id` | `mlit-transactions-v1` | 对应来源登记项。 |
+| `snapshot_id` | `snap-2026-08-01` | 对应本地快照 manifest。 |
+| `snapshot_hash` | SHA-256 hex | 必须与本地快照字节重新计算的 hash 相同。 |
+| `snapshot_captured_at` | `2026-08-01T00:00:00+00:00` | 必须带时区并和 manifest 一致。 |
+| `source_period_from/to` | `2026-08-01` / `2026-08-31` | 来源覆盖期间；记录日期必须落在期间内。 |
+| `parser_version` | `parser-v1` | 解析器/转换契约版本，须和来源及快照一致。 |
+| `is_synthetic` | `yes` / `no` | 必须和 `data_class` 匹配；synthetic 不得冒充事实。 |
+
+`monthly_metrics.csv` 会按区域、租售、`listing`/`closed`、数据类别、单位和币种分组，输出每月样本量、中位数、期间、聚合方法、来源/快照 hash、趋势资格与限制。`modeled_estimate` 不进入事实指标；趋势不足时只显示明确的 `trend_insufficient_periods` 或 `trend_insufficient_sample`，不能称为趋势。来源 URL 本身不等于授权，当前 placeholder registry 仍为 `pending`。
 
 ## 第一阶段项目数据契约
 

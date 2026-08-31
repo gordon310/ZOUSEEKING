@@ -91,3 +91,12 @@ def test_report_separates_data_classes_with_same_period_and_market(tmp_path):
             "median_price_per_sqm_yen": "2000000",
         },
     ]
+
+
+def test_report_rejects_modeled_estimates_as_factual_metrics(tmp_path):
+    path = tmp_path / "records.csv"
+    write_csv(path, [record(100_000_000, "modeled_estimate")])
+    records = normalize(read_records(path))
+
+    with pytest.raises(ValueError, match="modeled_estimate"):
+        make_report(records, "不应发布", tmp_path / "report")

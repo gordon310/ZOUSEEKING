@@ -161,6 +161,14 @@
 - TDD 证据：先运行缺失实现的 RED（collection `ModuleNotFoundError`），再运行 `tests/unit/test_usage_ledger.py tests/api/test_usage_routes.py` → `13 passed`；覆盖日本时间边界、幂等冲突、配额不变性、scope 隔离、跨日 reservation、释放状态与 8 路并发 limit=1。
 - 本轮未执行：真实 PostgreSQL/multi-instance 原子性、migration baseline reconciliation、Auth/RLS、真实会员/组织配额、Stripe entitlement 绑定、staging/production UAT、provider backup/restore、部署、DNS、billing 或线上写入；C14 Go/No-Go 继续为 `BLOCK / NOT AUTHORIZED`。
 
+## C19 数据质量与来源登记离线候选（2026-09-01）
+
+- 已整合 `src/jp_property_publisher/pipeline.py` 与 CLI `prepare`/`quality-check`：严格 CSV、来源 registry、snapshot manifest、本地 SHA-256/字节数重算、捕获时间/source period/parser version、数值/单位/币种、重复、异常值、权限和数据类别门禁均可离线重放。
+- `configs/data_quality_policy.json` 固定 `trend-policy-v1`：至少 3 个可比月份、每月 5 条、总计 15 条，并按区域、租售、`listing`/`closed`、数据类别、单位和币种分组；指标用中位数并保留样本数、期间、来源/快照和限制。`modeled_estimate` 不进入事实指标，`synthetic_fixture` 只允许 fixture scope，混合 fixture/事实会阻断发布。
+- 新增 `data/source_registry.json` 的 pending placeholder 与可重放 `tests/fixtures/data_pipeline/` synthetic fixture；没有自动补写 rights/provenance，也没有改写现有输入数据。
+- TDD 证据：先运行缺失 pipeline 的 RED（collection `ModuleNotFoundError`），再运行数据流水线/CLI/既有 CLI 聚焦测试 → `34 passed`；整合回归 `tests/unit tests/architecture tests/smoke tests/api tests/billing` → `216 passed`，CLI fixture prepare 退出码 `0`（30 条 prepared、6 条指标、`publishable=true`、`publication_scope=fixture_only`），Playwright Chromium `25 passed`，compileall、JS syntax、pip check、release policy、secret scan、JSON parse 和 diff check 均为 `PASS`。
+- 本轮未执行：联网抓取、真实来源授权或历史重建、数据库/migration/RLS、生产 provenance 写入、真实数据发布、staging/production UAT、provider backup/restore、部署、DNS、billing 或线上写入；P1-5 privacy/retention 顺延 C20，C14 Go/No-Go 继续 `BLOCK / NOT AUTHORIZED`。
+
 ## Important decisions
 
 - `data/content_library.json` 作为本地 canonical content library

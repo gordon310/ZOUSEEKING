@@ -1,0 +1,18 @@
+{
+  "registry_version": "source-registry-v1",
+  "sources": [
+    {
+      "source_id": "fixture",
+      "name": "Local synthetic fixture",
+      "source_type": "synthetic_fixture",
+      "canonical_url": "https://example.invalid/synthetic",
+      "permission_status": "not_applicable",
+      "rights_evidence": "fixture-only",
+      "terms_reviewed_on": "2026-08-01",
+      "permitted_use": "internal",
+      "owner": "data-pipeline-tests",
+      "update_frequency": "manual",
+      "parser_version": "parser-v1"
+    }
+  ]
+}

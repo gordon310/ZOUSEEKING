@@ -173,16 +173,29 @@
       "id": "P1-4",
       "label": "data quality and source registry",
       "state": "offline_candidate",
-      "disposition": "deferred",
-      "defer_until": "C19",
-      "reason": "质量流水线候选可离线运行，真实来源 rights 与历史重建未完成。"
+      "disposition": "integrated",
+      "integrated_ref": "release candidate working tree (C19 offline data quality)",
+      "target_paths": [
+        "src/jp_property_publisher/pipeline.py",
+        "src/jp_property_publisher/cli.py",
+        "src/jp_property_publisher/__main__.py",
+        "configs/data_quality_policy.json",
+        "data/source_registry.json",
+        "docs/release/data-quality-offline-contract.md",
+        "docs/data-dictionary.md",
+        "tests/unit/test_data_pipeline.py",
+        "tests/unit/test_data_pipeline_cli.py",
+        "tests/unit/test_cli.py",
+        "tests/fixtures/data_pipeline/"
+      ],
+      "reason": "已整合严格 CSV、来源 registry、快照 SHA-256/字节数、数据类别/单位、重复与异常值、listing/closed 分组及多月趋势门禁；真实来源 rights、历史重建、线上 provenance 与正式发布仍保持阻塞。"
     },
     {
       "id": "P1-5",
       "label": "privacy and retention operations",
       "state": "offline_candidate",
       "disposition": "deferred",
-      "defer_until": "C19",
+      "defer_until": "C20",
       "reason": "文档与离线候选存在，真实删除、Auth/RLS/Storage 与 retention 尚未验证。"
     },
     {

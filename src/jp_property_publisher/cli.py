@@ -5,7 +5,18 @@ from collections import defaultdict
 from datetime import date, datetime
 from pathlib import Path
 from statistics import median
-from typing import Dict, Iterable, List
+from typing import Any, Dict, Iterable, List, Optional
+
+from .pipeline import (
+    STRICT_COLUMNS,
+    load_policy,
+    load_registry,
+    load_snapshots,
+    prepare_records,
+    quality_check,
+    read_strict_csv,
+    write_csv as write_pipeline_csv,
+)
 
 REQUIRED_COLUMNS = {
     "record_date", "market", "status", "prefecture", "ward", "building_name",
@@ -74,6 +85,8 @@ def write_csv(path: Path, records: List[Dict[str, str]]) -> None:
 
 
 def make_report(records: List[Dict[str, str]], title: str, output_dir: Path) -> None:
+    if any(record.get("data_class") == "modeled_estimate" for record in records):
+        raise ValueError("modeled_estimate rows cannot be rendered as factual metrics")
     output_dir.mkdir(parents=True, exist_ok=True)
     groups = defaultdict(list)
     for record in records:
@@ -120,7 +133,102 @@ def render_draft(summary: Dict) -> str:
     return "\n".join(lines) + "\n"
 
 
-def main() -> None:
+METRIC_COLUMNS = [
+    "prefecture",
+    "ward",
+    "market",
+    "status",
+    "data_class",
+    "amount_unit",
+    "currency",
+    "month",
+    "sample_count",
+    "period_from",
+    "period_to",
+    "source_ids",
+    "snapshot_ids",
+    "snapshot_hashes",
+    "snapshot_captured_at_from",
+    "snapshot_captured_at_to",
+    "median_amount_yen",
+    "median_price_per_sqm_yen",
+    "aggregation_method",
+    "missing_value_policy",
+    "trend_eligible",
+    "trend_reason",
+    "limitation",
+]
+
+
+def _json_dump(path: Path, value: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _summary_for_prepared(records: List[Dict[str, Any]], report: Any, policy: Dict[str, Any]) -> Dict[str, Any]:
+    classes = sorted({str(record.get("data_class", "")) for record in records if record.get("data_class")})
+    periods = [str(record.get("record_date", "")) for record in records if record.get("record_date")]
+    trend_items = report.trend_eligibility
+    return {
+        "generated_on": date.today().isoformat(),
+        "record_count": len(records),
+        "data_class": classes[0] if len(classes) == 1 else "mixed",
+        "data_classes": classes,
+        "period": {"from": min(periods), "to": max(periods)} if periods else None,
+        "groups": report.groups,
+        "trend_policy_version": policy.get("version", "unknown"),
+        "trend_eligible": bool(trend_items) and all(item.eligible for item in trend_items),
+        "quality_status": "pass" if report.publishable else "blocked",
+        "publication_scope": report.publication_scope,
+        "limitations": [
+            "指标按明确区域、租售类型、挂牌/成交状态、数据类别和单位分组。",
+            "样本结果不代表完整市场；趋势必须满足版本化最低样本门槛。",
+            "synthetic_fixture 仅用于离线流程验证，不代表真实市场。",
+            "modeled_estimate 不进入事实指标或趋势。",
+        ],
+    }
+
+
+def prepare_dataset(input_path: Path, registry_path: Path, snapshots_path: Path, policy_path: Path, output_dir: Path) -> int:
+    """Prepare strict rows and always retain a quality report for audit."""
+
+    records = read_strict_csv(input_path)
+    registry = load_registry(registry_path)
+    snapshots = load_snapshots(snapshots_path)
+    policy = load_policy(policy_path)
+    report = quality_check(records, registry, snapshots, policy)
+    prepared = prepare_records(records)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    prepared_fields = list(prepared[0].keys()) if prepared else list(STRICT_COLUMNS) + ["month", "price_per_sqm_yen"]
+    write_pipeline_csv(output_dir / "prepared.csv", prepared, fieldnames=prepared_fields)
+    metric_fields = list(dict.fromkeys(list(policy["trend"].get("group_by") or []) + METRIC_COLUMNS))
+    write_pipeline_csv(output_dir / "monthly_metrics.csv", report.groups, fieldnames=metric_fields)
+    quality_payload = report.to_dict()
+    quality_payload["policy_version"] = policy.get("version", "unknown")
+    quality_payload["input_record_count"] = len(records)
+    _json_dump(output_dir / "quality_report.json", quality_payload)
+    _json_dump(output_dir / "summary.json", _summary_for_prepared(records, report, policy))
+    return 0 if report.publishable else 2
+
+
+def quality_check_command(input_path: Path, registry_path: Path, snapshots_path: Path, policy_path: Path, output_path: Optional[Path]) -> int:
+    records = read_strict_csv(input_path)
+    registry = load_registry(registry_path)
+    snapshots = load_snapshots(snapshots_path)
+    policy = load_policy(policy_path)
+    report = quality_check(records, registry, snapshots, policy)
+    payload = report.to_dict()
+    payload["policy_version"] = policy.get("version", "unknown")
+    payload["input_record_count"] = len(records)
+    rendered = json.dumps(payload, ensure_ascii=False, indent=2)
+    if output_path:
+        _json_dump(output_path, payload)
+    else:
+        print(rendered)
+    return 0 if report.publishable else 2
+
+
+def main() -> int:
     parser = argparse.ArgumentParser(description="日本房产授权数据整理与草稿生成")
     commands = parser.add_subparsers(dest="command", required=True)
     normalize_parser = commands.add_parser("normalize", help="校验并标准化人工录入的数据")
@@ -130,7 +238,27 @@ def main() -> None:
     report_parser.add_argument("--input", required=True, type=Path)
     report_parser.add_argument("--title", required=True)
     report_parser.add_argument("--output-dir", required=True, type=Path)
+    prepare_parser = commands.add_parser("prepare", help="准备严格多月份数据并运行离线质量门禁")
+    prepare_parser.add_argument("--input", required=True, type=Path)
+    prepare_parser.add_argument("--registry", required=True, type=Path)
+    prepare_parser.add_argument("--snapshots", required=True, type=Path)
+    prepare_parser.add_argument("--policy", required=True, type=Path)
+    prepare_parser.add_argument("--output-dir", required=True, type=Path)
+    quality_parser = commands.add_parser("quality-check", help="只运行严格数据质量检查")
+    quality_parser.add_argument("--input", required=True, type=Path)
+    quality_parser.add_argument("--registry", required=True, type=Path)
+    quality_parser.add_argument("--snapshots", required=True, type=Path)
+    quality_parser.add_argument("--policy", required=True, type=Path)
+    quality_parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+
+    try:
+        if args.command == "prepare":
+            return prepare_dataset(args.input, args.registry, args.snapshots, args.policy, args.output_dir)
+        if args.command == "quality-check":
+            return quality_check_command(args.input, args.registry, args.snapshots, args.policy, args.output)
+    except (OSError, ValueError, json.JSONDecodeError) as error:
+        parser.error(str(error))
 
     records = read_records(args.input)
     normalized = normalize(records)
@@ -138,6 +266,7 @@ def main() -> None:
         write_csv(args.output, normalized)
     else:
         make_report(normalized, args.title, args.output_dir)
+    return 0
 
 
 if __name__ == "__main__":

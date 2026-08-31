@@ -1,0 +1,31 @@
+{
+  "registry_version": "source-registry-v1",
+  "sources": [
+    {
+      "source_id": "placeholder-authorized-records",
+      "name": "Placeholder for a separately authorized manual record set",
+      "source_type": "partner",
+      "canonical_url": "https://example.com/authorized-record",
+      "permission_status": "pending",
+      "rights_evidence": "",
+      "terms_reviewed_on": "",
+      "permitted_use": "none",
+      "owner": "",
+      "update_frequency": "manual",
+      "parser_version": "unparsed"
+    },
+    {
+      "source_id": "local-synthetic-fixture",
+      "name": "Local synthetic fixture (test-only)",
+      "source_type": "synthetic_fixture",
+      "canonical_url": "https://example.invalid/synthetic",
+      "permission_status": "not_applicable",
+      "rights_evidence": "fixture-only",
+      "terms_reviewed_on": "2026-08-01",
+      "permitted_use": "internal",
+      "owner": "data-pipeline-tests",
+      "update_frequency": "manual",
+      "parser_version": "parser-v1"
+    }
+  ]
+}

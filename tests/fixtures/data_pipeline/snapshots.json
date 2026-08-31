@@ -1,0 +1,15 @@
+{
+  "snapshots": [
+    {
+      "snapshot_id": "snap-fixture-v1",
+      "source_id": "fixture",
+      "source_url": "https://example.invalid/synthetic",
+      "captured_at": "2026-01-31T00:00:00+00:00",
+      "content_path": "snapshots/fixture.txt",
+      "content_hash": "1d740ad80c49244bf95149e20c32256dc26865952d9a9c4ac9c5b0136efbd4be",
+      "byte_size": 40,
+      "http_status": 200,
+      "parser_version": "parser-v1"
+    }
+  ]
+}

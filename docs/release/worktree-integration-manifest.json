@@ -1,0 +1,205 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-08-31",
+  "release_branch": "codex/release-candidate",
+  "base_ref": "codex/release-candidate@78714fb",
+  "upstream_ref": "origin/main@daa0707",
+  "phase_one_scope": "consumer_intake_preview",
+  "status": "baseline_review_complete",
+  "rules": {
+    "dispositions": ["integrated", "deferred", "rejected"],
+    "integrated_requires_reviewed_files": true,
+    "live_provider_changes_allowed": false,
+    "generated_or_secret_files_allowed": false
+  },
+  "candidates": [
+    {
+      "id": "P0-1",
+      "label": "phase-one scope freeze",
+      "state": "offline_candidate",
+      "disposition": "integrated",
+      "integrated_ref": "codex/release-candidate working tree (C02)",
+      "target_paths": [
+        "backend/app/release_scope.py",
+        "docs/architecture/adr-0002-phase-one-release-scope.md",
+        "docs/architecture/phase-one-release-boundaries.json",
+        "docs/release/phase-one-dependencies.md",
+        "docs/release/phase-one-release-checklist.md",
+        "web/js/release-boundary.js"
+      ],
+      "reason": "已在发布候选工作区落地 allowlist、旧路径冻结、B/admin 网络门闩与离线契约测试。"
+    },
+    {
+      "id": "P0-2",
+      "label": "canonical migration baseline",
+      "state": "offline_candidate",
+      "disposition": "integrated",
+      "integrated_ref": "codex/release-candidate working tree (C03)",
+      "target_paths": [
+        "supabase/migrations/",
+        "docs/architecture/migration-reconciliation-report.md",
+        "docs/architecture/staging-schema-inventory.md",
+        "tests/sql/",
+        "tests/security/test_rls_v1_identity_matrix.sql"
+      ],
+      "reason": "11-file canonical history 已通过本机 disposable fresh reset、lint、五组 assertions 与 dump/restore assertions；staging ledger drift 与 live gate 仍保持阻塞。"
+    },
+    {
+      "id": "P0-3",
+      "label": "database recovery runbook",
+      "state": "offline_candidate",
+      "disposition": "integrated",
+      "integrated_ref": "codex/release-candidate working tree (C04 local-only)",
+      "target_paths": [
+        "scripts/database_recovery.py",
+        "docs/operations/database-recovery-runbook.md",
+        "docs/operations/database-recovery-evidence.template.json",
+        "tests/unit/test_database_recovery.py"
+      ],
+      "live_gate": "blocked_provider_approval",
+      "reason": "local-only checksum/TOC、restore、五组 assertions 与自动清理已验证；provider backup、Storage backup 与隔离 clone 仍需明确授权。"
+    },
+    {
+      "id": "P0-4",
+      "label": "Auth/RLS offline audit",
+      "state": "audit_candidate",
+      "disposition": "deferred",
+      "defer_until": "C05",
+      "reason": "SQL 矩阵尚未连接到目标数据库；禁止据此宣称生产授权已验证。"
+    },
+    {
+      "id": "P0-5",
+      "label": "production Render/Supabase package",
+      "state": "offline_candidate",
+      "disposition": "deferred",
+      "defer_until": "C08-C14",
+      "reason": "配置兼容性可离线检查，provider 部署、密钥与 readiness 证据缺失。"
+    },
+    {
+      "id": "P0-6",
+      "label": "authoritative report worker",
+      "state": "offline_candidate",
+      "disposition": "deferred",
+      "defer_until": "C07",
+      "reason": "worker 与 lease 候选已完成离线测试，持久化迁移与切换仍待基线修复。"
+    },
+    {
+      "id": "P0-7",
+      "label": "formal provenance contract",
+      "state": "offline_candidate",
+      "disposition": "deferred",
+      "defer_until": "C06",
+      "reason": "合同候选可离线运行，但历史数据重建与 rights 证据尚未授权。"
+    },
+    {
+      "id": "P0-8",
+      "label": "reliability, rate limits, observability",
+      "state": "offline_candidate",
+      "disposition": "deferred",
+      "defer_until": "C09",
+      "reason": "实现与测试候选存在，provider 级监控、告警及容量证据尚未形成。"
+    },
+    {
+      "id": "P0-9",
+      "label": "staging smoke and release runner",
+      "state": "integrated",
+      "disposition": "integrated",
+      "integrated_ref": "codex/release-candidate@78714fb",
+      "target_paths": [
+        "backend/app/intake/",
+        "backend/app/routes/intake.py",
+        "tests/smoke/",
+        "tests/web/property-intake.spec.js"
+      ],
+      "reason": "发布候选分支已携带 staging intake 与 synthetic smoke 变更；仅作为预览阶段能力。"
+    },
+    {
+      "id": "P0-10",
+      "label": "CI and release gate",
+      "state": "offline_candidate",
+      "disposition": "deferred",
+      "defer_until": "C12-C14",
+      "reason": "离线 gate 候选存在，但依赖审计、数据库漂移与真实 CI 触发证据未闭合。"
+    },
+    {
+      "id": "P1-1",
+      "label": "membership and account controls",
+      "state": "audit_candidate",
+      "disposition": "deferred",
+      "defer_until": "C15",
+      "reason": "真实组织、会员、配额与账户生命周期尚未实现并验证。"
+    },
+    {
+      "id": "P1-2",
+      "label": "Stripe billing boundary",
+      "state": "offline_candidate",
+      "disposition": "deferred",
+      "defer_until": "C16",
+      "reason": "仅保留安全默认与离线边界；真实 billing、webhook 与迁移需单独授权。"
+    },
+    {
+      "id": "P1-3",
+      "label": "usage ledger and quota enforcement",
+      "state": "prototype",
+      "disposition": "deferred",
+      "defer_until": "C17",
+      "reason": "当前为 disposable prototype，尚无正式迁移与原子扣减证据。"
+    },
+    {
+      "id": "P1-4",
+      "label": "data quality and source registry",
+      "state": "offline_candidate",
+      "disposition": "deferred",
+      "defer_until": "C18",
+      "reason": "质量流水线候选可离线运行，真实来源 rights 与历史重建未完成。"
+    },
+    {
+      "id": "P1-5",
+      "label": "privacy and retention operations",
+      "state": "offline_candidate",
+      "disposition": "deferred",
+      "defer_until": "C19",
+      "reason": "文档与离线候选存在，真实删除、Auth/RLS/Storage 与 retention 尚未验证。"
+    },
+    {
+      "id": "P1-6",
+      "label": "capacity and performance",
+      "state": "audit_candidate",
+      "disposition": "deferred",
+      "defer_until": "C20",
+      "reason": "尚无 staging/provider 性能基线与容量测量。"
+    },
+    {
+      "id": "P2-1",
+      "label": "deferred Stripe and ledger audits",
+      "state": "audit_candidate",
+      "disposition": "deferred",
+      "defer_until": "C21",
+      "reason": "依赖 P0/P1 发布闸门，当前只保留审计结论。"
+    },
+    {
+      "id": "P2-2",
+      "label": "future architecture cleanup",
+      "state": "audit_candidate",
+      "disposition": "deferred",
+      "defer_until": "C22-C23",
+      "reason": "FastAPI/Supabase/Edge 路径收敛需在运行数据与正式 V1 后执行。"
+    },
+    {
+      "id": "P2-3",
+      "label": "post-launch operational hardening",
+      "state": "audit_candidate",
+      "disposition": "deferred",
+      "defer_until": "C23",
+      "reason": "生产观测与真实流量证据形成后再执行。"
+    },
+    {
+      "id": "renovation",
+      "label": "Japanese renovation analysis API",
+      "state": "unreleased_candidate",
+      "disposition": "deferred",
+      "defer_until": "C22",
+      "reason": "与第一阶段 consumer_intake_preview 不同的产品能力；需完成独立范围、数据与发布评审。"
+    }
+  ]
+}

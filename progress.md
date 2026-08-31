@@ -106,6 +106,7 @@
 - C13 staging synthetic smoke 离线 runner `16 passed`；`--mode offline --run-id c13-offline-20260831` 返回 `status=passed`，覆盖 health、匿名 session、text/PDF、location、preview、跨用户隔离、幂等与清理。该结果不代表 staging live 或 production。
 - C11 离线容量探针实测：FastAPI synthetic 100/100、DB pool 50/50、bounded queue 20/20 均通过预算；静态总量 `1,520,420B` 在 2MiB 内，但 `web/assets/logoELE.png` 为 `945,771B`，超过单文件 `524,288B`，所以整体 verdict 为 `FIX`。未据此进行图片删除或压缩。
 - C12 供应链补充检查：`npm audit --offline --audit-level=high` 返回 `found 0 vulnerabilities`，但 registry advisory 请求在当前环境 DNS 失败；`pip-audit`/`pip_audit` 不存在。因此仅记录为本地缓存结果，不能替代在线 advisory feed，C12 仍未达到完整 gate pass。
+- 当前 release candidate 直接 secret scan `PASS`；C12 policy scan `FAIL`，原因是 `.github/workflows/release-gate.yml`、`docs/release/release-gate.md`、`docs/release/rollback-checklist.md` 尚未集成，且 checker 仍要求旧的 `migration_baseline_status = reconciliation_required` 文本。未用手工标记掩盖该失败。
 - C07–C12 候选代码仍需逐文件 review 后再集成；未执行 GitHub Actions、`pip-audit`（当前环境无 `pip_audit` 模块）、staging load、线上 Auth/DB/Storage、deployment 或 DNS。SQL/RLS 与 provider 证据缺失时，任何候选均不得标为 production pass。
 
 ## C14 Go/No-Go 模板（2026-08-31）

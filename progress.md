@@ -107,13 +107,18 @@
 - C11 离线容量探针实测：FastAPI synthetic 100/100、DB pool 50/50、bounded queue 20/20 均通过预算；静态总量 `1,520,420B` 在 2MiB 内，但 `web/assets/logoELE.png` 为 `945,771B`，超过单文件 `524,288B`，所以整体 verdict 为 `FIX`。未据此进行图片删除或压缩。
 - C12 供应链补充检查：`npm audit --offline --audit-level=high` 返回 `found 0 vulnerabilities`，但 registry advisory 请求在当前环境 DNS 失败；`pip-audit`/`pip_audit` 不存在。因此仅记录为本地缓存结果，不能替代在线 advisory feed，C12 仍未达到完整 gate pass。
 - 当前 release candidate 直接 secret scan `PASS`；C12 policy scan 已在集成 release gate 后为 `PASS`。浏览器离线回归首次发现候选缺失 `data/content_library.json`；已从同哈希生成源补齐后重跑，当前 `22 passed`。
-- C07–C12 候选代码仍需逐文件 review 后再集成；未执行 GitHub Actions、`pip-audit`（当前环境无 `pip_audit` 模块）、staging load、线上 Auth/DB/Storage、deployment 或 DNS。SQL/RLS 与 provider 证据缺失时，任何候选均不得标为 production pass。
+- C07–C11 候选代码仍需逐文件 review 后再集成；C12 release gate 已纳入本候选。未执行 GitHub Actions、`pip-audit`（当前环境无 `pip_audit` 模块）、staging load、线上 Auth/DB/Storage、deployment 或 DNS。SQL/RLS 与 provider 证据缺失时，任何候选均不得标为 production pass。
 
 ## C14 Go/No-Go 模板（2026-08-31）
 
 - 已新增 `docs/release/production-go-live-approval.json` 与 `docs/release/production-release-evidence.json`；已写入已确认角色、保留期 7 天、清理窗口 `2026-09-01 02:00–03:00 JST`、费用上限 `JPY 0` 与 provider backup/clone 延后策略。
 - 模板中的 live action、provider change、deployment、DNS、backup ID、commit 和 checksum 均保持未授权/null；不会被脚本当作可执行目标。
 - C14 仍为 `NOT_EXECUTED`；在 C03–C13 证据闭合并取得逐项明确授权前，不执行任何 production 或 staging 写入。
+
+## C14 Go/No-Go 复核（2026-09-01）
+
+- 已复核角色、`retention_days=7`、`cost_cap_jpy=0`、`cleanup_window_jst=2026-09-01 02:00–03:00`、Storage `property-intake` 与 provider object backup 延后策略；模板目标、backup ID、deployment commit/checksum 继续为 null/false。
+- 当前结论仍为 `BLOCK / NOT AUTHORIZED`：migration baseline 尚需 live reconciliation，provider backup/isolated clone 在 JPY 0 下未获批，SQL/RLS、Auth/Storage、deployment/DNS/billing live 证据未执行；C06 provenance `70/70` 阻断、C11 单文件预算 `FIX`、C12 npm/pip advisory 未闭合。
 
 ## P1 离线候选预检（2026-09-01）
 

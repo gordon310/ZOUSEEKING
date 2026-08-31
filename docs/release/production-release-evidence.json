@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "reviewed_at": "2026-08-31",
+  "reviewed_at": "2026-09-01",
   "phase_one_scope": "consumer_intake_preview",
   "status": "NOT_EXECUTED",
   "release_ready": false,
@@ -30,7 +30,7 @@
     "rollback_smoke": false
   },
   "blockers": [
-    "migration_baseline_status=reconciliation_required",
+    "migration_baseline_status=canonical_local_pass_live_reconciliation_required",
     "provider backup/restore and isolated clone not authorized under JPY 0",
     "staging live reconciliation and later-ID forward-fix not executed",
     "production targets, secrets, privacy/legal approval and deployment window not approved"

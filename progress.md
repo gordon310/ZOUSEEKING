@@ -100,6 +100,12 @@
 - `content-library.json` 与 `web/content-library.json` SHA-256 均为 `eb0fefae86a04204d9c0682f69e76a21497fcd1f18f5b8c4aa631197a1b71d1e`，仅证明生成副本一致，不证明来源权利或统计代表性。
 - 审计报告：`docs/architecture/provenance-audit-2026-08.md`。未联网、未写数据库、未改生成文件；C06 的 formal contract 集成仍需 canonical 路径、授权 manifest 和 later-ID migration 评审，状态保持 `BLOCK / NOT AUTHORIZED`。
 
+## C07–C13 后续离线候选验收（2026-08-31）
+
+- 在各自隔离候选 worktree（未自动合入本 release candidate）完成专用回归：C07 durable worker `26 passed`，C07 legacy path retirement `16 passed`，C08 production config/auth/readiness `12 passed`，C09 reliability/rate-limit/observability `19 passed`，C10 privacy operations `16 passed`，C11 capacity/unit/api/performance `71 passed`，C12 release-gate/evidence/secret-scan/static-server `21 passed`。
+- C13 staging synthetic smoke 离线 runner `16 passed`；`--mode offline --run-id c13-offline-20260831` 返回 `status=passed`，覆盖 health、匿名 session、text/PDF、location、preview、跨用户隔离、幂等与清理。该结果不代表 staging live 或 production。
+- C07–C12 候选代码仍需逐文件 review 后再集成；未执行 GitHub Actions、`pip-audit`（当前环境无 `pip_audit` 模块）、staging load、线上 Auth/DB/Storage、deployment 或 DNS。SQL/RLS 与 provider 证据缺失时，任何候选均不得标为 production pass。
+
 ## Important decisions
 
 - `data/content_library.json` 作为本地 canonical content library

@@ -1,15 +1,17 @@
 # 生产发布集成决策
 
-审查日期：2026-08-31
+审查日期：2026-09-02
 
 ## C01 基线
 
-- 集成工作区：现有隔离分支 `codex/release-candidate`。
-- 当前基线：`78714fb`；上游参考 `origin/main@daa0707`。
-- `origin/main` 中新增的 renovation API 暂不纳入第一阶段，列为独立候选。
-- 主工作区存在用户未提交改动；本次不触碰、不清理、不覆盖。
+- 集成工作区：新建隔离分支 `codex/production-release-v1`。
+- 当前基线：`789f127`；上游参考 `origin/main@789f127`。
+- 本地 `main@aca2a334` 与 `origin/main@789f127` 无共同祖先；禁止直接合并两个 lineage。
+- `origin/main` 中的 renovation API 暂不纳入第一阶段，列为独立候选。
+- 主工作区存在用户未提交改动；已在仓库外保存 tracked diff 与 untracked inventory，本次不触碰、不清理、不覆盖。
 - 工作区中已有的 `test-results/` 等生成目录不纳入发布集成，也不删除。
 - 本次仅进行离线文件集成与验证；不执行数据库、Auth/RLS/Storage、部署、DNS、billing 或 destructive 操作。
+- 生产发布仍为 **BLOCK / NOT AUTHORIZED**；未执行任何 live provider 操作。
 
 ## 候选处置规则
 
@@ -29,6 +31,16 @@
 - Edge Node 测试：`2 passed`；相关 JavaScript `node --check` 通过。
 - Playwright release-scope 浏览器测试：`2 passed`。
 - 生产发布仍为 **BLOCK / NOT AUTHORIZED**；未执行任何 live provider 操作。
+
+## M0 执行证据（2026-09-02）
+
+- 已运行 `git fetch --prune origin`，并从最新 `origin/main@789f127` 建立隔离分支 `codex/production-release-v1`。
+- 已为新基线补充根目录 `.gitignore`，覆盖本地虚拟环境、缓存、测试结果、生成输出、Supabase CLI 状态和环境配置。
+- 本地未提交 UI 改动没有批量复制：它们与候选基线存在内容差异，其中部分会移除 release-boundary 与注册同意控件，因此列为 deferred，等待独立代码审查。
+- renovation 源文件已在上游基线中存在；本次不重复复制，也不将其误标为第一阶段能力。
+- 新基线离线验证：Python `253 passed`；架构 manifest/authoritative policy `12 passed`；compileall、JavaScript syntax、release policy、schema ownership、post-launch review 和 `git diff --check` 通过。
+- 使用已安装的本地 Playwright runner 完整回归两次，均为 `33 passed`；首次尝试出现的单个登出用例失败未能复现，未修改产品代码。
+- M0 只建立可审阅的统一基线；数据库、provider、真实用户和生产部署仍保持原有阻断状态。
 
 ## C03 执行证据
 

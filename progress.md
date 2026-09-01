@@ -206,6 +206,16 @@
 - Render cold start、production SLO/成本、真实 PostgreSQL saturation、CDN、provider quota、durable worker backlog 与 legacy 路径退出仍为 `NOT ASSESSED/BLOCKED`；未执行数据库、Auth/RLS/Storage、provider、部署、DNS、billing 或线上写入。
 - C23 当前状态：`PARTIAL/BLOCKED`，不满足 master plan 的 production evidence 与优化前后对比完成条件；待上线后取得脱敏 30/60 日聚合证据再重开。
 
+## M0 仓库统一与基线重建（2026-09-02）
+
+- 已从最新 `origin/main@789f127` 创建隔离分支 `codex/production-release-v1`；当前本地 `main@aca2a334` 保持原样，未覆盖或清理用户改动。
+- 已确认本地 `main` 与远端 `main` 无共同祖先；M0 不直接合并两个 lineage，所有本地改动先保留为可追溯候选。
+- 已新增根目录 `.gitignore`，忽略虚拟环境、缓存、测试结果、生成输出、Supabase CLI 状态和环境配置；未删除现有未追踪文件。
+- 已更新 integration manifest 与决策记录，标明实际 base/upstream、保留的 dirty main、renovation 候选和本地 UI 安全回归风险。
+- 新基线离线验证：全量 Python `253 passed`；架构 manifest/authoritative policy `12 passed`；compileall、JavaScript syntax、release policy、schema ownership、post-launch review、JSON 解析和 `git diff --check` 通过。
+- 使用已安装的本地 Playwright runner 完整回归两次，均为 `33 passed`；首次尝试的单个登出用例失败未能复现，未修改产品代码。
+- M0 不包含数据库/Auth/RLS/Storage、provider、部署、DNS、billing 或线上写入；生产发布继续 `BLOCK / NOT AUTHORIZED`。
+
 ## Last updated
 
-2026-09-01
+2026-09-02

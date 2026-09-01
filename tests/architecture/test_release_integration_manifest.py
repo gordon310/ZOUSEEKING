@@ -17,7 +17,19 @@ def test_release_manifest_covers_all_candidates_once():
 
     assert ids == expected
     assert len(ids) == len(set(ids))
-    assert manifest["release_branch"] == "codex/release-candidate"
+    assert manifest["release_branch"] == "codex/production-release-v1"
+    assert manifest["base_ref"] == "codex/production-release-v1@789f127"
+    assert manifest["upstream_ref"] == "origin/main@789f127"
+
+
+def test_manifest_records_preserved_dirty_main_without_machine_paths() -> None:
+    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    preserved = manifest["preserved_worktree"]
+    assert preserved["source_ref"] == "main@aca2a334"
+    assert preserved["status"] == "preserved_outside_release_branch"
+    assert preserved["tracked_change_count"] == len(preserved["tracked_paths"])
+    assert "web/theme.css" in preserved["untracked_source_groups"]
+    assert "local virtual environments" in preserved["excluded_artifact_groups"]
     assert set(manifest["rules"]["dispositions"]) == {"integrated", "deferred", "rejected"}
 
 

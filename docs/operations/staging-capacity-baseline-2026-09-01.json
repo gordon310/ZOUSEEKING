@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-01",
+  "scope": "local_synthetic",
+  "production_contacted": false,
+  "staging_contacted": false,
+  "config": {
+    "request_count": 100,
+    "concurrency": 8,
+    "synthetic_request_delay_ms": 2.0,
+    "pool_size": 5,
+    "pool_operations": 50,
+    "synthetic_db_delay_ms": 10.0,
+    "queue_capacity": 20,
+    "queue_jobs": 40,
+    "queue_workers": 1,
+    "queue_service_ms": 10.0,
+    "error_budget_fraction": 0.01,
+    "fastapi_p95_budget_ms": 250.0,
+    "fastapi_p99_budget_ms": 500.0,
+    "db_acquire_p95_budget_ms": 150.0,
+    "static_total_budget_bytes": 2097152,
+    "static_largest_budget_bytes": 524288,
+    "target_url": null
+  },
+  "fastapi": {
+    "probe": "local_in_process_asgi:/health/live",
+    "stats": {
+      "total": 100,
+      "succeeded": 100,
+      "failed": 0,
+      "error_rate": 0.0,
+      "p50_ms": 18.82885450000005,
+      "p95_ms": 33.010977400000066,
+      "p99_ms": 34.48322791999999,
+      "max_ms": 34.542917,
+      "max_in_flight": 8
+    },
+    "budget": {
+      "p95_ms": 33.010977400000066,
+      "p99_ms": 34.48322791999999,
+      "p95_budget_ms": 250.0,
+      "p99_budget_ms": 500.0,
+      "error_budget_fraction": 0.01,
+      "passed": true
+    }
+  },
+  "db_pool": {
+    "probe": "synthetic_semaphore_pool",
+    "pool_size": 5,
+    "stats": {
+      "request": {
+        "total": 50,
+        "succeeded": 50,
+        "failed": 0,
+        "error_rate": 0.0,
+        "p50_ms": 66.66308349999998,
+        "p95_ms": 121.19550364999999,
+        "p99_ms": 121.20502692000001,
+        "max_ms": 121.20737500000001,
+        "max_in_flight": 5
+      },
+      "acquire_wait_p95_ms": 109.13299214999999,
+      "max_in_flight": 5
+    },
+    "acquire_wait_p95_budget_ms": 150.0,
+    "passed": true
+  },
+  "queue": {
+    "probe": "synthetic_bounded_burst",
+    "overflow_policy": "reject",
+    "stats": {
+      "capacity": 20,
+      "offered": 40,
+      "accepted": 20,
+      "rejected": 20,
+      "completed": 20,
+      "max_depth": 20,
+      "drain_ms": 237.67083300000002
+    },
+    "bounded": true
+  },
+  "static": {
+    "inventory": {
+      "root": "web",
+      "file_count": 43,
+      "total_bytes": 1963542,
+      "largest_path": "assets/logoELE.png",
+      "largest_bytes": 945771,
+      "excluded_dirs": [
+        "library",
+        ".git"
+      ]
+    },
+    "total_budget_bytes": 2097152,
+    "largest_budget_bytes": 524288,
+    "passed": false
+  },
+  "declared_contracts": {
+    "upload_max_bytes": 20971520,
+    "storage_timeout_seconds": 8,
+    "geocoder_requests_per_session_per_hour": 5,
+    "geocoder_timeout_default_seconds": 5,
+    "geocoder_timeout_bounds_seconds": [
+      1,
+      15
+    ],
+    "render_plan": "free_web_service_with_possible_sleep",
+    "cdn_status": "not_configured_in_render_yaml"
+  },
+  "overall": {
+    "passed": false,
+    "verdict": "FIX"
+  },
+  "not_assessed": [
+    "staging cold-start/wake latency",
+    "staging PostgreSQL connection saturation",
+    "reverse-geocoder provider quota and latency",
+    "static response cache headers and CDN edge hit ratio",
+    "production error rate or user traffic"
+  ]
+}

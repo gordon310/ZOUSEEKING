@@ -124,6 +124,30 @@ def test_location_provider_failure_keeps_coordinate_and_returns_manual_fallback(
     assert saved_session["longitude"] == 135.4959
 
 
+def test_location_rate_limit_rejects_the_sixth_request_in_one_session(client, session, fake_geocoder):
+    payload = {
+        "latitude": 34.7025,
+        "longitude": 135.4959,
+        "accuracy_m": 18.5,
+        "captured_at": "2026-08-28T03:30:00Z",
+        "consent_version": "location-2026-08",
+        "source": "device_geolocation",
+    }
+
+    responses = [
+        client.put(
+            f"/api/intake/sessions/{session['session_id']}/location",
+            headers={"X-Analysis-Session": session["session_token"]},
+            json=payload,
+        )
+        for _ in range(6)
+    ]
+
+    assert [response.status_code for response in responses[:5]] == [200] * 5
+    assert responses[5].status_code == 429
+    assert responses[5].headers["Retry-After"] == "3600"
+
+
 def test_preview_has_no_fabricated_tax_amount(client, session):
     response = client.post(
         f"/api/intake/sessions/{session['session_id']}/preview",

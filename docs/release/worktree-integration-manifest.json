@@ -226,16 +226,24 @@
       "id": "P1-6",
       "label": "capacity and performance",
       "state": "audit_candidate",
-      "disposition": "deferred",
-      "defer_until": "C21",
-      "reason": "尚无 staging/provider 性能基线与容量测量。"
+      "disposition": "integrated",
+      "integrated_ref": "release candidate working tree (C21 offline capacity audit)",
+      "target_paths": [
+        "scripts/staging_capacity_probe.py",
+        "tests/performance/test_staging_capacity.py",
+        "tests/api/test_intake_routes.py",
+        "docs/operations/staging-capacity-validation.md",
+        "docs/operations/staging-capacity-baseline-2026-08-31.json",
+        "docs/operations/staging-capacity-baseline-2026-09-01.json"
+      ],
+      "reason": "已整合本地 synthetic ASGI/pool/队列探针、20 MiB 上传与 geocoder 第 6 次 429 回归、静态资源 inventory 与日期化 baseline；FastAPI/pool/队列模型通过，logo 单文件 945,771B 超 512KiB 提议预算，整体 verdict 为 FIX。Render 唤醒、真实 PostgreSQL/provider quota、CDN/CWV、生产错误率与 durable worker 容量仍为 NOT ASSESSED，未执行远程或线上操作。"
     },
     {
       "id": "P2-1",
       "label": "deferred Stripe and ledger audits",
       "state": "audit_candidate",
       "disposition": "deferred",
-      "defer_until": "C21",
+      "defer_until": "C22",
       "reason": "依赖 P0/P1 发布闸门，当前只保留审计结论。"
     },
     {

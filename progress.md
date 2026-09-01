@@ -183,6 +183,13 @@
 - 保留目标为内部运维 SLA，不是已执行的删除承诺；匿名资料清理窗口仍按已确认窗口记录，真实账号与资料不在本轮测试范围。
 - 未执行：Auth Admin 删除/会话撤销、RLS/Storage 清理、真实数据库或 migration、provider backup/clone/备份 purge、通知、真实账户/数据、staging/production UAT、部署、DNS、billing；C14 Go/No-Go 继续 `BLOCK / NOT AUTHORIZED`。P1-6 capacity/performance 顺延 C21。
 
+## C21 容量与性能离线审计（2026-09-01）
+
+- 已整合 `scripts/staging_capacity_probe.py`、性能测试与 runbook：默认只运行本地 synthetic async、ASGI `/health/live`、semaphore pool、bounded queue 和静态 inventory；加入 20 MiB 上传边界、Storage timeout、geocoder timeout/每 session 每小时 5 次限流（第 6 次 429）回归。未修改业务热路径或生成图片。
+- 当前日期化 baseline：FastAPI 100/100 成功，p50 `18.829ms`、p95 `33.011ms`、p99 `34.483ms`；pool=5 acquire p95 `109.13ms`；队列接受/拒绝/完成 `20/20/20`；`web/` 43 文件、`1,963,542B`，最大 `assets/logoELE.png` `945,771B` 超过单文件 `524,288B`。
+- 离线验证：性能与 intake 聚焦测试 `32 passed`；整合后全量 Python `244 passed`、Playwright Chromium `33 passed`（单 worker，避免并行网络竞态）；compileall、JS `node --check`、pip check、release policy、secret scan、JSON parse 和 diff check 均为 `PASS`。本地探针输出 `production_contacted=false`、`staging_contacted=false`，overall verdict `FIX`（仅静态单文件预算失败）。
+- Render 冷启动、真实 PostgreSQL 饱和、GSI 配额、CDN headers/edge hit ratio、生产错误率/CWV 均为 `NOT ASSESSED`；进程内 `BackgroundTasks` 与 legacy worker 路径没有 durable queue 容量证明。未执行远程探测、数据库/Auth/RLS/Storage、部署、DNS、billing 或清理操作。P2-1 deferred Stripe/ledger audits 顺延 C22，C14 Go/No-Go 继续 `BLOCK / NOT AUTHORIZED`。
+
 ## Last updated
 
 2026-09-01

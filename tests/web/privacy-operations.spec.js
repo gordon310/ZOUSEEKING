@@ -120,6 +120,7 @@ test("logout clears the local session when remote revocation fails", async ({ pa
     await route.fulfill({ status: 503, contentType: "application/json", body: '{"error":"synthetic unavailable"}' });
   });
   await page.goto("/profile.html");
+  await expect(page.locator("body")).toHaveClass(/auth-ready/, { timeout: 10_000 });
   await expect(page.locator("#logoutButton")).toBeVisible();
   await page.locator("#logoutButton").click();
   await expect(page.locator("#logoutButton")).toBeHidden();

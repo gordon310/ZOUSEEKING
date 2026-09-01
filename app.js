@@ -838,8 +838,8 @@ async function saveProfile(event) {
     }
     setMessage("资料已保存。小象记住了，但没有到处乱说。", "success");
     render();
-  } catch (error) {
-    setMessage(`资料保存失败：${error.message}。如果还没建表，先运行 user_profiles SQL。`, "error");
+  } catch {
+    setMessage("资料保存服务暂时不可用，未提交任何资料。", "error");
   }
 }
 

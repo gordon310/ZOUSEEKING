@@ -27,3 +27,5 @@ profile、project、query、report、organization、usage、payment、task、con
 ## 迁移与退出说明
 
 当前 `supabase/migrations/` 的 canonical history 已能在 disposable local Supabase 从空库重建并通过 SQL/RLS assertions；`backend/sql/` 仅保留为历史 bootstrap/reference。该结果不代表 staging 或 production 已协调：只读 inventory 显示 staging ledger 仍只有原三条 migration，任何 provider backup、clone restore、forward-fix、linked push 或 repair 都需要单独计划与明确批准。完成 live reconciliation 后，才可继续移除旧私有 caller、迁移 legacy queue、验证唯一 durable worker，并在取得部署批准后下线兼容路径。
+
+`backend/sql/` 与 canonical migration 的逐文件重叠、保留和 forward-fix 门槛见 [`schema-ownership-audit.md`](schema-ownership-audit.md)；审计命令只读本地文件，不代表 staging 或 production 已验证。

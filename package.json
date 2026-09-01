@@ -4,6 +4,7 @@
     "supabase": "^2.115.0"
   },
   "scripts": {
+    "check:schema-ownership": "python3 scripts/check_schema_ownership.py",
     "test:web": "playwright test tests/web --project=chromium"
   }
 }

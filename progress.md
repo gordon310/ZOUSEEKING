@@ -190,6 +190,14 @@
 - 离线验证：性能与 intake 聚焦测试 `32 passed`；整合后全量 Python `244 passed`、Playwright Chromium `33 passed`（单 worker，避免并行网络竞态）；compileall、JS `node --check`、pip check、release policy、secret scan、JSON parse 和 diff check 均为 `PASS`。本地探针输出 `production_contacted=false`、`staging_contacted=false`，overall verdict `FIX`（仅静态单文件预算失败）。
 - Render 冷启动、真实 PostgreSQL 饱和、GSI 配额、CDN headers/edge hit ratio、生产错误率/CWV 均为 `NOT ASSESSED`；进程内 `BackgroundTasks` 与 legacy worker 路径没有 durable queue 容量证明。未执行远程探测、数据库/Auth/RLS/Storage、部署、DNS、billing 或清理操作。P2-1 deferred Stripe/ledger audits 顺延 C22，C14 Go/No-Go 继续 `BLOCK / NOT AUTHORIZED`。
 
+## C22 Schema ownership 与开发文档收敛（2026-09-01）
+
+- 已整合 `scripts/check_schema_ownership.py`、`docs/architecture/schema-ownership.json` 与审计报告；机器检查确认 `supabase/migrations/` 为唯一 forward history（11 个 migration），`backend/sql/` 的 8 个文件均明确为历史/支持材料，状态保持 `canonical_local_pass_live_reconciliation_required`。
+- 已同步根 README、backend/migration/legacy SQL README、Supabase setup、Render 方案、数据字典、ADR、runtime conflict inventory 与历史计划；移除“运行 user_profiles SQL”提示，明确 `INIT_SCHEMA=true` 仅限 disposable local/development/test compatibility，不能作为 staging/production 建库入口。
+- 已完成 P2-1 C17/C18 离线 billing/ledger 审计：billing `38 passed`，usage/API `15 passed`；provider、正式 migration、多实例数据库原子性、真实 webhook/收费/退款和生产配额仍为 blocker。
+- C22 验证：schema ownership unittest `2 passed`、全量 Python `246 passed`、compileall/JS syntax/release policy/secret scan/JSON/diff 均 `PASS`；Playwright 运行 `32 passed、1 failed`（既有 logout synthetic 用例未显示登录按钮，需后续单独排查，未归因于 schema ownership 改动）。
+- 本轮未修改任何 `supabase/migrations/*.sql` 或 `backend/sql/*.sql`，未执行 SQL/RLS、linked migration、backup/restore、provider、部署、DNS、billing 或线上写入；renovation 候选仍按独立发布评审保持 deferred，C23 继续处理旧运行时退役与容量/ADR。
+
 ## Last updated
 
 2026-09-01

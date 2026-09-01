@@ -242,17 +242,41 @@
       "id": "P2-1",
       "label": "deferred Stripe and ledger audits",
       "state": "audit_candidate",
-      "disposition": "deferred",
-      "defer_until": "C22",
-      "reason": "依赖 P0/P1 发布闸门，当前只保留审计结论。"
+      "disposition": "integrated",
+      "integrated_ref": "release candidate working tree (C22 offline billing and ledger audit)",
+      "target_paths": [
+        "docs/architecture/billing-ledger-audit-2026-09-01.md",
+        "backend/app/billing/",
+        "backend/app/usage/",
+        "tests/billing/",
+        "tests/unit/test_usage_ledger.py",
+        "tests/api/test_usage_routes.py"
+      ],
+      "reason": "已完成 C17/C18 离线边界复核和可重跑测试；正式 migration、多实例原子性、provider、真实 webhook/收费/退款与生产配额仍保持阻塞。"
     },
     {
       "id": "P2-2",
       "label": "future architecture cleanup",
       "state": "audit_candidate",
-      "disposition": "deferred",
-      "defer_until": "C22-C23",
-      "reason": "FastAPI/Supabase/Edge 路径收敛需在运行数据与正式 V1 后执行。"
+      "disposition": "integrated",
+      "integrated_ref": "release candidate working tree (C22 schema ownership and developer documentation)",
+      "target_paths": [
+        "README.md",
+        "backend/README.md",
+        "backend/sql/README.md",
+        "docs/architecture/schema-ownership-audit.md",
+        "docs/architecture/schema-ownership.json",
+        "docs/architecture/adr-0001-authoritative-backend-and-schema.md",
+        "docs/architecture/runtime-conflict-inventory.md",
+        "docs/data-dictionary.md",
+        "docs/render-postgres-deploy.md",
+        "docs/supabase-setup.md",
+        "docs/superpowers/plans/2026-08-25-foundation-hardening.md",
+        "supabase/migrations/README.md",
+        "scripts/check_schema_ownership.py",
+        "tests/architecture/test_schema_ownership_audit.py"
+      ],
+      "reason": "已完成唯一 forward history、legacy SQL 分类、启动门槛和开发文档收敛；旧运行时路径退役、调用计数和 durable worker 切换仍依赖 C23/线上证据。"
     },
     {
       "id": "P2-3",

@@ -190,7 +190,7 @@ Expected: FAIL because the safety/runbook text is absent.
 Run:
 
 ```bash
-python3 -m pytest -q tests/billing
+python3 -m pytest -q tests/billing --confcutdir=tests/billing
 PYTHONPYCACHEPREFIX=/tmp/jp-property-pycache python3 -m compileall -q backend scripts src
 node --check web/app.js
 python3 -m pytest -q

@@ -1,9 +1,11 @@
 # ZOU SEEKING HOUSE Supabase 免费版接入
 
-这条路线适合当前阶段：
+> 本文包含历史 staging 接入说明。它不改变 `supabase/migrations/` 是唯一 forward history 的决策，也不授权本任务执行线上数据库、Auth、RLS、Storage 或部署操作。
+
+这条路线适合当前阶段的冻结兼容路径：
 
 ```text
-GitHub Pages 前端
+旧区域查询兼容页面（冻结）
   -> Supabase PostgreSQL 保存查询索引和历史结果
   -> 本地/后端 JPHOUSE 生成器补数据
 ```
@@ -14,6 +16,9 @@ GitHub Pages 前端
 Render FastAPI
   -> Supabase Auth / PostgreSQL / 私有 Storage
 ```
+
+新的私有产品读写统一经过 FastAPI；浏览器不得把 Supabase REST 或 Edge
+Function 当作第二条业务后端。
 
 `property-intake` bucket 必须保持 private，浏览器不直接访问或写入项目资料。FastAPI 使用 `SUPABASE_SERVICE_ROLE_KEY` 生成上传和删除请求；该 key 的实际值只能配置在 Render secret 或本地环境变量中，不能写入 `render.yaml`、`web/config.js` 或日志（`render.yaml` 只声明 `sync: false`）。文件上传限制为 PDF/JPG/PNG、单文件 20 MiB，匿名会话创建后 24 小时到期。阶段一只保存资料元数据并等待人工确认，不执行 OCR 或 AI 提取。
 
@@ -29,19 +34,14 @@ Render FastAPI
    - anon public key
    - service_role key（只给本地同步脚本或 Render API secret，不要放到前端）
 
-## 2. 建表
+## 2. Schema ownership 与历史 bootstrap
 
-打开 Supabase 项目：
+当前 canonical schema 只从 `supabase/migrations/` 前向演进。`backend/sql/`
+中的文件保留为历史 bootstrap/reference、生成支持或比对材料，不能在托管
+环境中作为新的建库命令执行。文件级清单见
+[`architecture/schema-ownership-audit.md`](architecture/schema-ownership-audit.md)。
 
-SQL Editor -> New query
-
-复制并执行：
-
-```text
-backend/sql/supabase_schema.sql
-```
-
-这会创建：
+历史 bootstrap 曾包含以下旧区域报告表（此处仅作结构说明，不是当前建库命令）：
 
 - `queries`：用户查询索引
 - `query_field_options`：首页查询字段选项，控制都道府县 / 市 / 区 / 房型 / 年 / 月
@@ -49,11 +49,16 @@ backend/sql/supabase_schema.sql
 - `property_reports`：生成后的房产数据和 Markdown
 - `data_sources`：数据源记录
 
-如果表已经建好，只想补首页查询字段，复制并执行：
+提交 schema 相关改动前，从仓库根目录运行只读审计：
 
-```text
-backend/sql/supabase_field_options.sql
+```bash
+python3 scripts/check_schema_ownership.py
+npm run check:schema-ownership
 ```
+
+在 `migration_baseline_status = canonical_local_pass_live_reconciliation_required`
+清除前，不运行 linked repair、`supabase db push`、staging reset 或 production
+reset，也不新增会员、计费、任务或后台 migration。
 
 现在已内置完整日本行政区划字段库：
 
@@ -71,13 +76,12 @@ backend/sql/supabase_field_options.sql
 scripts/build_japan_field_options.mjs
 ```
 
-如果表已经建好，只想补查询索引，复制并执行：
+`backend/sql/supabase_field_options.sql` 是生成支持 SQL，不能作为托管环境的
+独立 migration。字段选项源数据可由 `scripts/build_japan_field_options.mjs`
+离线生成后，先审查输出，再通过 canonical forward migration 发布。
 
-```text
-backend/sql/supabase_indexes.sql
-```
-
-索引覆盖：
+旧索引支持 SQL `backend/sql/supabase_indexes.sql` 仅用于比对和生成输入，不能
+绕过 migration history 直接执行。索引覆盖：
 
 - 查询条件：都道府县 / 市 / 区 / 房型 / 年 / 月
 - 历史命中：`query_key`
@@ -168,7 +172,10 @@ Webhook 必须由 FastAPI 读取原始 request body，先验证 `Stripe-Signatur
 - Stripe Dashboard Customer Portal 的 payment method、invoice history、取消/计划更新配置，test-mode webhook delivery 和失败重试演练。
 - provider backup/restore、税费/收据、退款/取消和支付失败降级演练；任何 provider 或生产数据库操作都必须停在明确授权门槛。
 
-## 8. 本地运行 JPHOUSE worker
+## 8. 本地运行 JPHOUSE worker（冻结兼容参考）
+
+以下 worker 不是 canonical durable worker，也不是当前 schema 建库命令。仅在
+已批准的 disposable/local 兼容环境使用；不得把它接入 staging/production 新功能。
 
 网站产生的新查询会进入 `generation_jobs`，需要 worker 消费队列。
 
@@ -191,7 +198,10 @@ worker 会：
 
 注意：worker 会在本地生成图片到 `web/library/...`。如果新报告需要在线显示图片，还要把 `web/` 同步到 GitHub Pages。
 
-## 9. 方案B：Supabase Edge Function 云端执行
+## 9. 方案B：Supabase Edge Function 云端执行（冻结兼容参考）
+
+以下部署命令只保留历史兼容路径的记录，不属于本轮 schema ownership 变更。
+当前 release baseline 打开时不得执行；新的私有业务必须走 FastAPI 唯一边界。
 
 现在项目里已经加入 `supabase/functions/jphouse-run`。
 

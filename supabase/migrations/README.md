@@ -2,6 +2,8 @@
 
 `supabase/migrations/` 是本项目 Supabase PostgreSQL 的唯一前向迁移历史。
 
+文件级 ownership 审计见 [`docs/architecture/schema-ownership-audit.md`](../../docs/architecture/schema-ownership-audit.md)，机器清单见 [`docs/architecture/schema-ownership.json`](../../docs/architecture/schema-ownership.json)。
+
 ## 当前状态
 
 仓库 fresh-install history 已在 disposable local Supabase 通过 reset 和 SQL/RLS
@@ -37,6 +39,13 @@ Fresh install 固定按以下顺序执行：
 `20260828000100` 继续拥有 photo/location/address/project-name fields、constraints
 和 owner-scoped indexes。已应用 migration 文件不可修改；任何 remote 修复只能
 新增更晚的 forward migration。
+
+本地文件清单变更必须先通过只读审计：
+
+```bash
+python3 scripts/check_schema_ownership.py
+npm run check:schema-ownership
+```
 
 ## Final schema decisions
 

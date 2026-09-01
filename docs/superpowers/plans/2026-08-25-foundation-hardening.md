@@ -1,5 +1,7 @@
 # 小象避坑基础安全与数据底座实施计划
 
+> **历史计划说明（C22）：** 本文记录迁移 ownership 决策前的实现草案。文中的 `backend/sql/` 执行命令仅作历史证据，当前不得照此作为建库入口；新的 schema 变更只能进入 `supabase/migrations/`，先运行 `python3 scripts/check_schema_ownership.py` 并遵循 [`docs/architecture/schema-ownership-audit.md`](../../architecture/schema-ownership-audit.md)。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 为小象避坑第一阶段建立可追溯、可扩展且默认私有的数据底座，并修复用户项目、会员权限和数据来源的基础安全问题。

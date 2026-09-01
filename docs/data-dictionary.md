@@ -72,3 +72,11 @@
 | `intake_rate_limits` | 按来源或会话限制操作频率 | 只保存 abuse key 的哈希、动作、窗口、次数和过期时间，不保存原始 IP |
 
 这些表启用 RLS，并撤销 `anon` 与 `authenticated` 的直接访问；只有 FastAPI 使用受信任的数据库连接写入。阶段一不执行 OCR、AI 提取、市场估价、税费金额计算或法律结论。缺少证据只标记为资料不足。
+
+## Schema 所有权与字段演进
+
+数据库字段的定义和约束必须沿唯一 forward history 演进：新字段先更新本数据字典，再新增 `supabase/migrations/` 中的 reviewed forward migration、解析映射和离线断言。`backend/sql/` 中的旧脚本只用于来源比对或 disposable local/test compatibility，不能作为新的建库入口。
+
+当前 `migration_baseline_status = canonical_local_pass_live_reconciliation_required`。这表示 canonical history 已通过本地验证，但 staging/production 的 ledger、backup/restore、existing-row provenance 和 later-ID forward-fix 仍未完成；不因此把旧 bootstrap 字段宣称为已协调的线上 schema。
+
+完整文件级盘点见 [`docs/architecture/schema-ownership-audit.md`](architecture/schema-ownership-audit.md)。金额、面积和位置继续以带单位/币种的数值列保存，展示文本不得反向作为分析输入。

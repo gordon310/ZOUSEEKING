@@ -14,6 +14,26 @@ export ALLOWED_ORIGINS="http://127.0.0.1:8790,http://localhost:8790,https://gord
 uvicorn app.main:app --reload --port 8000
 ```
 
+## Schema ownership and local development
+
+`supabase/migrations/` is the only forward migration history. The files in
+`backend/sql/` are frozen bootstrap/reference material and are not a second
+migration path. From the repository root, run the read-only ownership audit
+before changing schema-related code:
+
+```bash
+python3 scripts/check_schema_ownership.py
+npm run check:schema-ownership
+```
+
+The canonical history has passed disposable-local verification, but the live
+gate remains `canonical_local_pass_live_reconciliation_required`. Do not use
+`supabase db push`, `supabase migration repair`, or a staging/production reset
+while that gate is open. `INIT_SCHEMA=true` is retained only for disposable
+`local`/`development`/`test` compatibility with the legacy
+`backend/sql/schema.sql`; it does not apply `supabase/migrations/` and must not
+be used as a staging or production setup command.
+
 Health checks:
 
 ```bash
@@ -36,7 +56,7 @@ curl http://127.0.0.1:8000/health/ready
 - `SUPABASE_URL`: Supabase project URL used to verify bearer tokens
 - `SUPABASE_ANON_KEY`: Supabase anon key used only for Auth token verification
 - `ALLOWED_ORIGINS`: `https://gordon310.github.io,http://127.0.0.1:8790,http://localhost:8790`
-- `INIT_SCHEMA`: `false` in staging; apply reviewed SQL migrations separately
+- `INIT_SCHEMA`: `false` in staging; apply reviewed forward migrations through the canonical migration workflow
 - `ENVIRONMENT`: `staging`
 - `APP_VERSION`: deployed build identifier
 - `INTERNAL_DIAGNOSTICS_TOKEN`: optional secret for provenance metadata diagnostics

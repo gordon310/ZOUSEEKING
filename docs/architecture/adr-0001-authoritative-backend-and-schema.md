@@ -92,6 +92,12 @@ migration_baseline_status = canonical_local_pass_live_reconciliation_required
 
 `backend/sql/` 只作为历史 bootstrap/reference，不是新的 migration 路径。
 
+本次 schema ownership 审计的文件级结果和机器清单分别记录在
+[`schema-ownership-audit.md`](schema-ownership-audit.md) 与
+[`schema-ownership.json`](schema-ownership.json)。审计确认 `backend/sql/` 的
+8 个 SQL 文件均为历史/支持材料，未把它们拼接为第二条 forward history；清单
+变更必须通过只读 `scripts/check_schema_ownership.py`。
+
 ## 5. 旧路径过渡
 
 以下组件保留给现有 staging 兼容，但冻结，不得承载 V1 新功能：
@@ -121,6 +127,12 @@ migration_baseline_status = canonical_local_pass_live_reconciliation_required
 第一阶段可发布能力由 [ADR-0002：第一阶段只发布 C 端 intake 与免费预览](adr-0002-phase-one-release-scope.md) 进一步收窄。ADR-0001 规定“能力最终归谁”，不表示这些能力已经进入当前 release allowlist。
 
 ## 8. Verification 与下一道门槛
+
+2026-09-01 schema ownership 子项目的可重跑离线检查：
+
+- `python3 scripts/check_schema_ownership.py` 通过，唯一 canonical history 为 `supabase/migrations`，状态为 `canonical_local_pass_live_reconciliation_required`。
+- `npm run check:schema-ownership -- --json` 和 `python3 -m unittest discover -s tests/architecture -p 'test_schema_ownership_audit.py' -v` 通过。
+- 本轮未修改任何 `supabase/migrations/*.sql` 或 `backend/sql/*.sql`。
 
 本 ADR 的离线验证结果：
 

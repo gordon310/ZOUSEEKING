@@ -20,16 +20,17 @@ GitHub Pages / Render Static Site
 
 当前配置见根目录 `render.yaml`：`INIT_SCHEMA=false`，没有 `databases:`，`DATABASE_URL` 由 staging Supabase 提供。迁移到 Render PostgreSQL 前，必须另行完成 Auth、RLS、私有文件、备份恢复和 migration history 评估；不能只替换一个连接字符串。
 
-## 1. Render 上创建服务
+## 1. 当前 staging 与未来迁移边界
 
-推荐用仓库里的 `render.yaml` Blueprint：
+当前 staging 使用仓库里的 `render.yaml` Blueprint，但只创建 Render
+FastAPI/static service；`DATABASE_URL` 指向已批准的 Supabase staging，配置中
+没有 `databases:`。本节的 Render PostgreSQL 只作未来 ADR 评估，当前不创建。
 
-1. 登录 Render。
-2. New -> Blueprint。
-3. 选择 GitHub 仓库 `gordon310/ZOUSEEKING` 对应的源仓库。
-4. Render 会创建：
-   - `zouseeking-api` Web Service
-   - `zouseeking-postgres` PostgreSQL
+使用前先从仓库根目录运行只读 ownership 审计：
+
+```bash
+python3 scripts/check_schema_ownership.py
+```
 
 后端启动命令：
 
@@ -37,13 +38,22 @@ GitHub Pages / Render Static Site
 uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
 
-## 2. 必要环境变量
+## 2. 当前必要环境变量
 
-Render Blueprint 已写好：
+当前 staging Blueprint 使用：
 
-- `DATABASE_URL`：自动引用 Render PostgreSQL connection string
-- `INIT_SCHEMA=true`：后端启动时自动建表
+- `DATABASE_URL`：Supabase staging connection string（Render secret）
+- `INIT_SCHEMA=false`：禁止普通启动自动建表
+- `ENVIRONMENT=staging`
 - `ALLOWED_ORIGINS=https://gordon310.github.io,http://127.0.0.1:8790,http://localhost:8790`
+
+`INIT_SCHEMA=true` 仅可在 disposable `local`/`development`/`test` 环境用于
+legacy `backend/sql/schema.sql` compatibility；它不应用
+`supabase/migrations/`，也不能作为 staging/production 建库方式。
+
+当前 `migration_baseline_status = canonical_local_pass_live_reconciliation_required`。
+在 provider backup/restore、drift、later-ID forward-fix 和明确 live-change
+批准完成前，不执行 linked `db push`、`migration repair` 或 reset。
 
 ## 3. 前端连接后端
 

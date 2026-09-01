@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "audit_document": "docs/architecture/schema-ownership-audit.md",
+  "canonical_forward_history": "supabase/migrations",
+  "migration_baseline_status": "canonical_local_pass_live_reconciliation_required",
+  "forward_migration_files": [
+    "20260824000100_legacy_schema_baseline.sql",
+    "20260824000200_foundation_data_contract.sql",
+    "20260824000300_private_project_rls.sql",
+    "20260824000400_analysis_policy_versions.sql",
+    "20260824000500_provenance_and_immutable_contract.sql",
+    "20260824000600_provenance_contract_hardening.sql",
+    "20260824000700_user_submitted_source_rights.sql",
+    "20260825000400_property_intake.sql",
+    "20260827000500_legacy_private_data_rls.sql",
+    "20260828000100_property_photo_location.sql",
+    "20260829000100_baseline_access_contract.sql"
+  ],
+  "legacy_sql_files": [
+    "backend/sql/001_foundation_data_contract.sql",
+    "backend/sql/002_private_project_rls.sql",
+    "backend/sql/003_analysis_policy_versions.sql",
+    "backend/sql/schema.sql",
+    "backend/sql/supabase_field_options.sql",
+    "backend/sql/supabase_indexes.sql",
+    "backend/sql/supabase_schema.sql",
+    "backend/sql/supabase_user_profiles.sql"
+  ],
+  "legacy_sql_inventory": {
+    "backend/sql/001_foundation_data_contract.sql": {
+      "disposition": "historical_pre_migration_source",
+      "note": "foundation contract source; not a forward migration"
+    },
+    "backend/sql/002_private_project_rls.sql": {
+      "disposition": "historical_pre_migration_source",
+      "note": "historical RLS source; do not replay beside canonical history"
+    },
+    "backend/sql/003_analysis_policy_versions.sql": {
+      "disposition": "historical_pre_migration_source",
+      "note": "historical policy/immutability source"
+    },
+    "backend/sql/schema.sql": {
+      "disposition": "legacy_non_supabase_bootstrap",
+      "note": "disposable local/development/test compatibility only"
+    },
+    "backend/sql/supabase_field_options.sql": {
+      "disposition": "generated_support_sql",
+      "note": "generation/reference input; requires reviewed forward migration"
+    },
+    "backend/sql/supabase_indexes.sql": {
+      "disposition": "manual_support_sql",
+      "note": "comparison/reference input; not an independent migration"
+    },
+    "backend/sql/supabase_schema.sql": {
+      "disposition": "historical_staging_bootstrap",
+      "note": "frozen staging bootstrap/reference"
+    },
+    "backend/sql/supabase_user_profiles.sql": {
+      "disposition": "historical_staging_bootstrap",
+      "note": "frozen staging profile bootstrap/reference"
+    }
+  },
+  "required_documentation": [
+    "README.md",
+    "backend/README.md",
+    "backend/sql/README.md",
+    "docs/architecture/adr-0001-authoritative-backend-and-schema.md",
+    "docs/architecture/runtime-conflict-inventory.md",
+    "docs/data-dictionary.md",
+    "docs/render-postgres-deploy.md",
+    "docs/supabase-setup.md",
+    "supabase/migrations/README.md"
+  ],
+  "prohibited_operations": [
+    "edit_applied_migration",
+    "delete_restore_package",
+    "apply_live_database_change_without_explicit_approval",
+    "linked_migration_repair_or_push_without_approval",
+    "staging_or_production_reset_without_approval"
+  ]
+}

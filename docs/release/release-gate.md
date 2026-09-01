@@ -32,6 +32,7 @@ PYTHONPYCACHEPREFIX=/tmp/jp-property-pycache python3 -m compileall -q backend sc
 python3 -m pip check
 python3 scripts/ci/secret_scan.py --repo .
 python3 scripts/ci/check_release_policy.py
+python3 scripts/check_post_launch_review.py
 git diff --check
 ```
 

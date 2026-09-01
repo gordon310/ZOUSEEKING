@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "review_date": "2026-09-01",
+  "status": "blocked_pre_production",
+  "production_contacted": false,
+  "customer_content_read": false,
+  "evidence_window_days": [30, 60],
+  "metrics": {
+    "api_slo": "not_available",
+    "error_budget": "not_available",
+    "database_pool": "not_available",
+    "worker_backlog": "not_available",
+    "storage_growth": "not_available",
+    "cost": "not_available"
+  },
+  "local_baseline": {
+    "path": "docs/operations/staging-capacity-baseline-2026-09-01.json",
+    "scope": "local_synthetic",
+    "production_contacted": false,
+    "overall_verdict": "FIX",
+    "known_fix": "web/assets/logoELE.png exceeds the proposed 512 KiB single-file budget"
+  },
+  "optimization": {
+    "status": "not_started",
+    "reason": "no production aggregate metrics, traced query, or profile is available"
+  },
+  "render_postgres": {
+    "adr": "docs/architecture/adr-0002-render-postgres-future-migration.md",
+    "decision": "defer",
+    "migration_approved": false,
+    "live_write_approval": "required",
+    "production_reset": "forbidden"
+  },
+  "prohibited_actions": [
+    "read_customer_content_for_capacity_review",
+    "change_DATABASE_URL",
+    "create_Render_PostgreSQL",
+    "migrate_live_data",
+    "run_remote_probe_without_explicit_approval",
+    "deploy_or_change_DNS_without_explicit_approval"
+  ]
+}

@@ -282,9 +282,20 @@
       "id": "P2-3",
       "label": "post-launch operational hardening",
       "state": "audit_candidate",
-      "disposition": "deferred",
-      "defer_until": "C23",
-      "reason": "生产观测与真实流量证据形成后再执行。"
+      "disposition": "integrated",
+      "integrated_ref": "release candidate working tree (C23 offline SLO review and Render PostgreSQL ADR)",
+      "target_paths": [
+        "docs/architecture/adr-0002-render-postgres-future-migration.md",
+        "docs/render-postgres-deploy.md",
+        "docs/operations/post-launch-slo-review-2026-09-01.md",
+        "docs/operations/post-launch-slo-review-2026-09-01.json",
+        "docs/release/integration-decisions.md",
+        "docs/release/release-gate.md",
+        "scripts/check_post_launch_review.py",
+        "tests/architecture/test_post_launch_review.py",
+        "tests/architecture/test_render_postgres_migration_adr.py"
+      ],
+      "reason": "已完成离线 SLO/容量复盘门槛与 Render PostgreSQL future migration ADR；production 30/60 日聚合指标、traced profile、优化前后对比和真实成本仍不可用，故 C23 保持 PARTIAL/BLOCKED，不得宣称上线后稳定维护完成。"
     },
     {
       "id": "renovation",

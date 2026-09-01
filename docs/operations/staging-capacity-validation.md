@@ -3,7 +3,7 @@
 **日期：** 2026-09-01
 
 **范围：** FastAPI 协调层、asyncpg pool 边界、intake 上传与反向地址适配器、旧报告任务路径、Render Free 唤醒、静态资源/CDN 和错误率预算。
-**结论：** 本次只完成本地 synthetic 验证和可复现的 staging runbook。结果不能代表 staging 的 PostgreSQL、Render 或 CDN 实际容量，更不能代表 production。
+**结论：** 本次只完成本地 synthetic 验证和可复现的 staging runbook。结果不能代表 staging 的 PostgreSQL、Render 或 CDN 实际容量，更不能代表 production。上线后的 30/60 日聚合复盘门槛见 [`post-launch-slo-review-2026-09-01.md`](post-launch-slo-review-2026-09-01.md)。
 
 ## 安全门槛
 

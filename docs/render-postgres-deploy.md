@@ -1,99 +1,61 @@
-# ZOU SEEKING HOUSE 后端部署方案
+# Render PostgreSQL 未来迁移评估
 
-> 状态：暂缓方案（2026-08-27）。当前 staging 不创建 Render PostgreSQL；Render FastAPI 继续连接 Supabase staging 的 PostgreSQL、Auth 和私有 Storage。本文的 Render PostgreSQL 步骤不要用于当前 staging 部署，保留作未来迁移参考。
+> 状态：暂缓（2026-09-01）。本文件是 [ADR-0002](architecture/adr-0002-render-postgres-future-migration.md) 的非执行入口，不是当前 staging 或 production 的部署 runbook。
 
-未来迁移目标（尚未执行）：
-
-```text
-GitHub Pages 前端
-  -> Render FastAPI 后端
-  -> Render PostgreSQL
-```
-
-当前 staging 架构：
+## 当前路径（保持不变）
 
 ```text
 GitHub Pages / Render Static Site
-  -> Render FastAPI
+  -> Render FastAPI staging
   -> Supabase staging Auth / PostgreSQL / private Storage
 ```
 
-当前配置见根目录 `render.yaml`：`INIT_SCHEMA=false`，没有 `databases:`，`DATABASE_URL` 由 staging Supabase 提供。迁移到 Render PostgreSQL 前，必须另行完成 Auth、RLS、私有文件、备份恢复和 migration history 评估；不能只替换一个连接字符串。
+根目录 [`render.yaml`](../render.yaml) 目前只声明
+`zouseeking-api-staging` 和 `zouseeking-web-staging`，并设置
+`ENVIRONMENT=staging`、`INIT_SCHEMA=false`、`DATABASE_URL sync: false`。
+其中没有 `databases:`；因此 **Blueprint 不会创建 PostgreSQL**，也不能把未来评估
+示例当作当前资源清单。staging 不等于 production。
 
-## 1. 当前 staging 与未来迁移边界
+## 安全边界
 
-当前 staging 使用仓库里的 `render.yaml` Blueprint，但只创建 Render
-FastAPI/static service；`DATABASE_URL` 指向已批准的 Supabase staging，配置中
-没有 `databases:`。本节的 Render PostgreSQL 只作未来 ADR 评估，当前不创建。
+本评估只允许读取源码、SQL、配置、仓库文档和官方公开资料，并编写离线测试/文档。
+在取得针对确切环境和操作的明确授权前：
 
-使用前先从仓库根目录运行只读 ownership 审计：
+- 不得更换 `DATABASE_URL`、Supabase secrets 或前端 API 配置；
+- 不得创建 Render PostgreSQL、Supabase project、Auth user 或 Storage bucket；
+- 不得迁移数据、双写、复制、restore、backfill、`db push` 或执行生产 SQL；
+- 不执行线上数据库、Auth、RLS、Storage 或部署操作，也不修改 DNS 或 billing。
 
-```bash
-python3 scripts/check_schema_ownership.py
-```
+## 结论
 
-后端启动命令：
-
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port $PORT
-```
-
-## 2. 当前必要环境变量
-
-当前 staging Blueprint 使用：
-
-- `DATABASE_URL`：Supabase staging connection string（Render secret）
-- `INIT_SCHEMA=false`：禁止普通启动自动建表
-- `ENVIRONMENT=staging`
-- `ALLOWED_ORIGINS=https://gordon310.github.io,http://127.0.0.1:8790,http://localhost:8790`
-
-`INIT_SCHEMA=true` 仅可在 disposable `local`/`development`/`test` 环境用于
-legacy `backend/sql/schema.sql` compatibility；它不应用
-`supabase/migrations/`，也不能作为 staging/production 建库方式。
-
-当前 `migration_baseline_status = canonical_local_pass_live_reconciliation_required`。
-在 provider backup/restore、drift、later-ID forward-fix 和明确 live-change
-批准完成前，不执行 linked `db push`、`migration repair` 或 reset。
-
-## 3. 前端连接后端
-
-拿到 Render 后端地址后，例如：
+当前不迁移。Render PostgreSQL 只保留为未来候选；在 migration baseline、Supabase
+Auth issuer/用户映射、`auth.uid()`/RLS、private Storage、备份恢复、跨地区处理、
+连接池/PgBouncer、回滚、成本和停机窗口全部通过隔离环境证据前，结论保持：
 
 ```text
-https://zouseeking-api.onrender.com
+render_postgres_migration=not_approved
+live_write_approval=required
+production_reset=forbidden
 ```
 
-把 `web/config.js` 改为：
+明确的不迁移条件和方案比较见 [ADR-0002](architecture/adr-0002-render-postgres-future-migration.md)。
 
-```js
-window.ZOUSEEKING_API_BASE_URL = "https://zouseeking-api.onrender.com";
-```
+## 只读复评顺序
 
-然后重新同步 GitHub Pages。
+1. 核对 staging/production 的 schema、migration IDs、region、对象清单、规模和数据地图；不得把 staging 结果外推。
+2. 在 disposable target 复现 migration candidate、extensions、roles、grants、RLS claim contract 和四类身份矩阵。
+3. 在脱敏副本演练 logical restore/PITR、对象 checksum/retention、连接耗尽、PgBouncer transaction semantics、failover/reconnect 和应用 smoke。
+4. 形成含 write-freeze、最终同步、验证、rollback window、change owner、监控和用户通知的 cutover 方案；另取明确线上授权后才可执行。
 
-## 4. 查询保存逻辑
+当前容量证据见 [`docs/operations/staging-capacity-validation.md`](operations/staging-capacity-validation.md)，
+上线后 SLO 复盘门槛见 [`post-launch-slo-review-2026-09-01.md`](operations/post-launch-slo-review-2026-09-01.md)。
 
-查询唯一索引：
+## 官方资料（重评时重新核对）
 
-```text
-prefecture + city + ward + asset_type + year + month
-```
-
-同样条件再次查询时：
-
-- PostgreSQL 有结果：直接返回历史数据
-- PostgreSQL 没结果：创建 `generation_jobs`
-- 后端先检查本地已有 `content-library.json`
-- 命中本地历史数据：写入 PostgreSQL
-- 没命中：先保存待生成占位记录和备用数据源
-
-下一步要做真正自动采集时，把 `backend/app/jphouse_service.py` 里的占位生成逻辑替换成调用现有 JPHOUSE 抓取脚本即可。
-
-## 5. 备用数据源思路
-
-当前后端记录的备用源：
-
-- SUUMO：租赁相场
-- Tochidai：中古マンション成交相场
-- LIFULL HOME'S：备用租赁/买卖相场
-- At Home：备用房源检索
+- [Render PostgreSQL Recovery and Backups](https://render.com/docs/postgresql-backups)
+- [Render PostgreSQL connection pooling](https://render.com/docs/postgresql-connection-pooling)
+- [Render regions](https://render.com/docs/regions)
+- [Render free instance limitations](https://render.com/docs/free)
+- [Supabase Auth architecture](https://supabase.com/docs/guides/auth/architecture)
+- [Supabase Row Level Security](https://supabase.com/docs/guides/database/postgres/row-level-security)
+- [Supabase Storage access control](https://supabase.com/docs/guides/storage/security/access-control)

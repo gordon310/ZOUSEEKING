@@ -51,3 +51,10 @@
 - Storage `property-intake` bucket：对象数为 `0`；无需执行对象复制，未读取对象内容。
 - 按已确认的 `JPY 0` 费用上限，未启用任何可能收费的备份/clone 能力。
 - C04 的 provider backup 与隔离 clone 仍为 **BLOCKED**；不执行 C05 的 staging forward-fix 或任何 live migration。
+
+## C23 执行证据
+
+- 已集成 Render PostgreSQL future migration ADR 与非执行入口；默认结论为 `render_postgres_migration=not_approved`，不更换连接串、不创建数据库、不迁移数据。
+- 已集成 30/60 日 production 聚合 SLO/容量/成本复盘门槛；当前 `blocked_pre_production`，没有 production hostname、真实流量或客户内容读取。
+- 机器检查 `python3 scripts/check_post_launch_review.py`：`PASS`；该 PASS 只证明阻塞状态未被误标为生产完成。
+- 真实 PostgreSQL/provider、备份恢复、Render cold start、CDN、durable worker backlog、traced profile 和优化前后对比均为 `NOT_ASSESSED`；C23 不升级为 production-ready。

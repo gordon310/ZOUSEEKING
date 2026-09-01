@@ -198,6 +198,14 @@
 - C22 验证：schema ownership unittest `2 passed`、全量 Python `246 passed`、compileall/JS syntax/release policy/secret scan/JSON/diff 均 `PASS`；Playwright 运行 `32 passed、1 failed`（既有 logout synthetic 用例未显示登录按钮，需后续单独排查，未归因于 schema ownership 改动）。
 - 本轮未修改任何 `supabase/migrations/*.sql` 或 `backend/sql/*.sql`，未执行 SQL/RLS、linked migration、backup/restore、provider、部署、DNS、billing 或线上写入；renovation 候选仍按独立发布评审保持 deferred，C23 继续处理旧运行时退役与容量/ADR。
 
+## C23 上线后 SLO、容量与 Render PostgreSQL ADR（2026-09-01）
+
+- 已整合 `docs/architecture/adr-0002-render-postgres-future-migration.md` 与 Render 非执行入口；默认结论为 `render_postgres_migration=not_approved`，不更换 `DATABASE_URL`、不创建数据库、不迁移数据。
+- 已新增 `docs/operations/post-launch-slo-review-2026-09-01.{md,json}` 和 `scripts/check_post_launch_review.py`；机器门槛明确 30/60 日 production 聚合指标、错误预算、Storage、worker backlog、DB pool 与成本缺失时保持 `blocked_pre_production`。
+- C21 本地 synthetic baseline 仍为唯一容量证据：FastAPI `100/100`、pool 上限 `5`、队列 `20/20`，`logoELE.png` 单文件超 512KiB 保持 `FIX`；未读取客户内容，未执行真实 profile/query/index/cache 优化。
+- Render cold start、production SLO/成本、真实 PostgreSQL saturation、CDN、provider quota、durable worker backlog 与 legacy 路径退出仍为 `NOT ASSESSED/BLOCKED`；未执行数据库、Auth/RLS/Storage、provider、部署、DNS、billing 或线上写入。
+- C23 当前状态：`PARTIAL/BLOCKED`，不满足 master plan 的 production evidence 与优化前后对比完成条件；待上线后取得脱敏 30/60 日聚合证据再重开。
+
 ## Last updated
 
 2026-09-01

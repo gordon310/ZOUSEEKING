@@ -73,6 +73,11 @@
           <label><span data-i18n="account.username">用户名</span><input id="registerUsername" type="text" placeholder="比如：Gordon" data-i18n-placeholder="account.usernamePlaceholder" autocomplete="nickname" /></label>
           <label><span data-i18n="account.email">邮箱</span><input id="registerEmail" type="email" placeholder="name@example.com" autocomplete="email" /></label>
           <label><span data-i18n="account.password">密码</span><input id="registerPassword" type="password" placeholder="至少 12 位" data-i18n-placeholder="account.passwordShortPlaceholder" autocomplete="new-password" /></label>
+          <label class="consent-check">
+            <input id="registerConsent" type="checkbox" required />
+            <span><span data-i18n="account.consentPrefix">我已阅读并同意</span> <a href="privacy.html" target="_blank" rel="noopener" data-i18n="account.privacyPolicy">隐私政策</a> <span data-i18n="account.consentAnd">和</span> <a href="terms.html" target="_blank" rel="noopener" data-i18n="account.terms">服务条款</a>。</span>
+          </label>
+          <p class="consent-meta" data-i18n="account.consentVersion">版本 privacy-2026-08 / terms-2026-08；提交时记录 UTC 同意时间。</p>
           <button type="submit" data-i18n="account.registerAndLogin">注册并登录</button>
         </form>
 
@@ -169,12 +174,12 @@
               <p class="eyebrow">PRIVACY &amp; SECURITY</p>
               <h3 id="accountGovernanceHeading">隐私与账户</h3>
             </div>
-            <p>物件资料只在授权项目空间内使用。账户删除需要后端确认，当前页面不会假装已经删除。</p>
+            <p data-i18n="account.governanceCopy">物件资料只在授权项目空间内使用。账户删除需要后端确认，当前页面不会假装已经删除。</p>
             <div class="governance-meta">
-              <span>资料提交同意版本：privacy-2026-08</span>
-              <a href="property-analysis.html?demo=1">查看资料边界说明</a>
+              <span data-i18n="account.governanceVersion">资料提交同意版本：privacy-2026-08 · terms-2026-08</span>
+              <span class="governance-links"><a href="privacy.html" data-i18n="account.privacyPolicy">隐私政策</a><a href="terms.html" data-i18n="account.terms">服务条款</a><a href="support.html" data-i18n="account.support">客服与资料请求</a><a href="property-analysis.html?demo=1" data-i18n="account.dataBoundary">查看资料边界说明</a></span>
             </div>
-            <button class="danger-button" id="openDeleteAccountButton" type="button">申请删除账户</button>
+            <button class="danger-button" id="openDeleteAccountButton" type="button" data-i18n="account.deleteSubmit">提交删除申请</button>
           </section>
         </section>
       </section>
@@ -184,10 +189,11 @@
       <form method="dialog">
         <p class="eyebrow">ACCOUNT ACTION</p>
         <h2 id="deleteAccountHeading">申请删除账户？</h2>
-        <p>删除账户会影响项目、资料和报告访问。当前版本尚未接通删除服务，因此不会执行删除。</p>
+        <p data-i18n="account.deleteCopy">删除账户会影响项目、资料和报告访问。提交后需要后端确认；如果删除执行器未配置，系统不会执行任何删除。</p>
+        <label class="consent-check delete-confirmation"><input id="deleteAccountConfirm" type="checkbox" required /><span data-i18n="account.deleteConfirm">我确认提交账户删除申请，并理解法律保留和备份到期规则。</span></label>
         <div class="dialog-actions">
-          <button type="submit">取消</button>
-          <button id="confirmDeleteAccountButton" class="danger-button" type="button">确认并检查服务状态</button>
+          <button type="submit" formnovalidate data-i18n="common.cancel">取消</button>
+          <button id="confirmDeleteAccountButton" class="danger-button" type="button" data-i18n="account.deleteSubmit">提交删除申请</button>
         </div>
       </form>
     </dialog>

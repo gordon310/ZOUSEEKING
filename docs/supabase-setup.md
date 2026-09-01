@@ -127,6 +127,16 @@ https://gordon310.github.io/ZOUSEEKING/**
 - 默认邮件服务是否触发发送频率限制；免费默认 SMTP 适合测试，正式使用建议配置自定义 SMTP
 - 邮箱安全扫描是否提前打开确认链接，导致 token 失效
 
+## 4.1 隐私、同意和账户删除（离线发布门槛）
+
+当前契约版本为 `privacy-2026-08` / `terms-2026-08`。注册表单必须主动勾选隐私政策和服务条款；提交边界生成 UTC `consent_at`，并将版本写入 Auth metadata。浏览器时钟和 metadata 仍属于不可信输入，正式上线前需要受信任服务端/Auth 事件补充时间戳核验，不能把当前静态前端结果当作 production 证据。
+
+账户页的删除入口只会在有 FastAPI 地址、Supabase 会话和 bearer token 时调用 `POST /api/account/deletion-request`，请求包含当前版本及固定值 `DELETE_ACCOUNT`。当前 FastAPI 删除执行器未配置时明确返回 `503`（`no account data was changed`），页面显示未删除，不连接 Auth Admin、数据库、RLS、Storage 或备份，也不会发送客服通知。客服与数据主体请求使用静态 [support.html](../web/support.html) 和 `.example` 占位地址，不能视为已接通邮箱。
+
+密码找回使用 Supabase `/recover` 并保持账户枚举安全；登出尽力调用 `/logout` 后清理本地 UI；当前实现只证明当前会话退出，不能证明所有 refresh token 已撤销。旧区域路径仍可能由 `web/app.js` 直连 Supabase REST/Edge Function，FastAPI 唯一业务路径、RLS 四角色验证和受信任删除 worker 尚未收敛。
+
+上线前必须完成运营主体/隐私负责人确认、客服工单权限、近期重新认证、全会话撤销、Auth Admin 删除、RLS/Storage 删除、备份轮换、持续清理器、事故通知决定和恢复演练。当前 `migration_baseline_status = reconciliation_required`，本任务不执行这些线上动作、不发送通知、不使用真实账号或资料。
+
 ## 5. 同步已有网站数据到 Supabase
 
 在本地执行：

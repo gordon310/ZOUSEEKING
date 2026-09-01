@@ -175,6 +175,14 @@
 - 生成文件不作为主要源码判断依据
 - Codex 默认使用 scoped investigation，不做无必要全仓扫描
 
+## C20 隐私与保留期运维离线候选（2026-09-01）
+
+- 已整合隐私政策、服务条款、资料主体请求、事故响应与运维 runbook；注册记录 `privacy-2026-08` / `terms-2026-08` 同意版本和 UTC 时间，登录/注册/找回密码保持枚举安全，退出在远端撤销失败时仍清除本地会话。
+- 已整合 FastAPI `GET /api/privacy` 与认证删除申请契约：确认短语、当前政策/条款版本、允许字段、24 小时确认/访问限制目标、30 天主数据删除目标、90 天备份到期目标；执行器未配置时 fail-closed 返回 503 且不修改账户。
+- TDD 证据：先运行缺失 privacy service/routes 的 RED（`ModuleNotFoundError`），再运行 C20 Python 聚焦测试 `13 passed`；全量离线 Python `tests/unit tests/architecture tests/smoke tests/api tests/billing` 为 `229 passed`；Playwright Chromium `33 passed`；compileall、JS `node --check`、`pip check`、release policy、secret scan、JSON parse、`git diff --check` 均为 `PASS`。
+- 保留目标为内部运维 SLA，不是已执行的删除承诺；匿名资料清理窗口仍按已确认窗口记录，真实账号与资料不在本轮测试范围。
+- 未执行：Auth Admin 删除/会话撤销、RLS/Storage 清理、真实数据库或 migration、provider backup/clone/备份 purge、通知、真实账户/数据、staging/production UAT、部署、DNS、billing；C14 Go/No-Go 继续 `BLOCK / NOT AUTHORIZED`。P1-6 capacity/performance 顺延 C21。
+
 ## Last updated
 
 2026-09-01

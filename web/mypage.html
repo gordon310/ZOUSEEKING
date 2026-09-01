@@ -73,6 +73,11 @@
           <label><span data-i18n="account.username">用户名</span><input id="registerUsername" type="text" placeholder="比如：Gordon" data-i18n-placeholder="account.usernamePlaceholder" autocomplete="nickname" /></label>
           <label><span data-i18n="account.email">邮箱</span><input id="registerEmail" type="email" placeholder="name@example.com" autocomplete="email" /></label>
           <label><span data-i18n="account.password">密码</span><input id="registerPassword" type="password" placeholder="至少 12 位" data-i18n-placeholder="account.passwordShortPlaceholder" autocomplete="new-password" /></label>
+          <label class="consent-check">
+            <input id="registerConsent" type="checkbox" required />
+            <span><span data-i18n="account.consentPrefix">我已阅读并同意</span> <a href="privacy.html" target="_blank" rel="noopener" data-i18n="account.privacyPolicy">隐私政策</a> <span data-i18n="account.consentAnd">和</span> <a href="terms.html" target="_blank" rel="noopener" data-i18n="account.terms">服务条款</a>。</span>
+          </label>
+          <p class="consent-meta" data-i18n="account.consentVersion">版本 privacy-2026-08 / terms-2026-08；提交时记录 UTC 同意时间。</p>
           <button type="submit" data-i18n="account.registerAndLogin">注册并登录</button>
         </form>
 

@@ -25,6 +25,7 @@ from .models import JobResponse, QueryRequest, QueryResponse
 from .routes.health import router as health_router
 from .routes.intake import cleanup_expired_sessions, router as intake_router
 from .routes.renovation import router as renovation_router
+from .routes.privacy import router as privacy_router
 from .release_scope import request_allowed
 from .billing.routes import router as billing_router
 from .usage.routes import router as usage_router
@@ -82,6 +83,7 @@ app.include_router(intake_router)
 app.include_router(renovation_router)
 app.include_router(billing_router)
 app.include_router(usage_router)
+app.include_router(privacy_router)
 
 
 @app.get("/internal/provenance/diagnostics")

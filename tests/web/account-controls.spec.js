@@ -3,6 +3,7 @@ const { test, expect } = require("@playwright/test");
 test("未配置 Supabase 时注册不会创建本地密码凭据", async ({ page }) => {
   await page.goto("/data-query.html");
   await page.getByRole("button", { name: "注册" }).click();
+  await page.locator("#registerConsent").check();
   await page.getByLabel("用户名").fill("local-only-user");
   await page.locator("#registerEmail").fill("local-only@example.com");
   await page.locator("#registerPassword").fill("Correct Horse Battery Staple");

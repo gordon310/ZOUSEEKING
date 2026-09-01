@@ -6,6 +6,9 @@ const SESSION_PROVIDERS = new Set(["supabase", "demo"]);
 const API_BASE_URL = (window.ZOUSEEKING_API_BASE_URL || localStorage.getItem("zou_house_api_base") || "").replace(/\/$/, "");
 const SUPABASE_URL = (window.ZOUSEEKING_SUPABASE_URL || localStorage.getItem("zou_house_supabase_url") || "").replace(/\/$/, "");
 const SUPABASE_ANON_KEY = window.ZOUSEEKING_SUPABASE_ANON_KEY || localStorage.getItem("zou_house_supabase_anon_key") || "";
+const PRIVACY_POLICY_VERSION = "privacy-2026-08";
+const TERMS_VERSION = "terms-2026-08";
+const ACCOUNT_DELETION_CONFIRMATION = "DELETE_ACCOUNT";
 
 const DEFAULT_FIELD_OPTIONS = {
   prefectures: [
@@ -237,6 +240,20 @@ function escapeHtml(text) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+function readRegistrationConsent() {
+  const checkbox = $("#registerConsent");
+  if (!checkbox?.checked) {
+    setMessage(uiText("account.consentRequired", "请先阅读并同意隐私政策和服务条款。"), "error");
+    checkbox?.focus();
+    return null;
+  }
+  return {
+    consentVersion: PRIVACY_POLICY_VERSION,
+    termsVersion: TERMS_VERSION,
+    consentAt: new Date().toISOString(),
+  };
 }
 
 function getQueryHistory() {
@@ -484,7 +501,7 @@ async function handleAuthRedirect() {
   const error = params.get("error_description") || params.get("error");
   if (error) {
     history.replaceState(null, "", appRedirectUrl());
-    setMessage(`邮箱确认失败：${decodeURIComponent(error)}`, "error");
+    setMessage("邮箱确认未完成，请重新发起确认链接。", "error");
     return;
   }
   const accessToken = params.get("access_token");
@@ -504,9 +521,9 @@ async function handleAuthRedirect() {
     );
     history.replaceState(null, "", appRedirectUrl());
     setMessage("邮箱确认成功，已经登录。可以开始搜房了。", "success");
-  } catch (authError) {
+  } catch {
     history.replaceState(null, "", appRedirectUrl());
-    setMessage(`邮箱确认成功但登录状态读取失败：${authError.message}`, "error");
+    setMessage("邮箱确认成功但登录状态读取失败，请重新登录。", "error");
   }
 }
 
@@ -902,6 +919,40 @@ async function updatePassword(event) {
     setMessage("密码更新未完成，请稍后再试。", "error");
   } finally {
     submitButton.disabled = false;
+  }
+}
+
+async function requestAccountDeletion() {
+  const confirmation = $("#deleteAccountConfirm");
+  if (!confirmation?.checked) {
+    setMessage(uiText("account.deleteRequired", "请勾选确认后再提交删除申请。"), "error");
+    confirmation?.focus();
+    return;
+  }
+  $("#deleteAccountDialog")?.close();
+  if (!isLoggedIn() || state.session?.provider !== "supabase" || !state.session?.accessToken || !hasBackend()) {
+    setMessage(uiText("account.deleteUnavailable", "账户删除服务尚未接通，未删除任何内容；请查看客服入口。"), "error");
+    return;
+  }
+  const submitButton = $("#confirmDeleteAccountButton");
+  try {
+    if (submitButton) submitButton.disabled = true;
+    setMessage(uiText("account.deleteSubmitting", "正在提交删除申请……"));
+    await apiFetch("/api/account/deletion-request", {
+      method: "POST",
+      body: JSON.stringify({
+        privacy_policy_version: PRIVACY_POLICY_VERSION,
+        terms_version: TERMS_VERSION,
+        confirmation: ACCOUNT_DELETION_CONFIRMATION,
+      }),
+    });
+    await logout();
+    setMessage(uiText("account.deleteSubmitted", "删除申请已提交；当前会话已退出，请留意客服确认。"), "success");
+  } catch {
+    setMessage(uiText("account.deleteFailed", "删除申请未完成，未删除任何内容；请查看客服入口。"), "error");
+  } finally {
+    if (submitButton) submitButton.disabled = false;
+    if (confirmation) confirmation.checked = false;
   }
 }
 
@@ -1794,6 +1845,8 @@ async function register(event) {
     setMessage("账户服务还未配置，暂时无法注册；没有保存密码。", "error");
     return;
   }
+  const consent = readRegistrationConsent();
+  if (!consent) return;
 
   try {
     submitButton.disabled = true;
@@ -1803,7 +1856,13 @@ async function register(event) {
       body: JSON.stringify({
         email,
         password,
-        data: { username },
+        data: {
+          username,
+          consent_version: consent.consentVersion,
+          consent_at: consent.consentAt,
+          terms_version: consent.termsVersion,
+          consent_source: "registration",
+        },
       }),
     });
     const session = sessionFromAuth(data, { username, email });
@@ -1967,14 +2026,30 @@ function closeImage() {
 }
 
 async function init() {
-  const response = await fetch("content-library.json", { cache: "no-store" });
-  state.records = await response.json();
+  try {
+    const response = await fetch("content-library.json", { cache: "no-store" });
+    if (!response.ok) throw new Error(`content-library.json ${response.status}`);
+    state.records = await response.json();
+  } catch {
+    // Generated content is optional for account/privacy controls and may be absent in a clean checkout.
+    state.records = [];
+  }
   await loadFieldOptions();
   await handleAuthRedirect();
   await refreshSupabaseSession();
   await loadRemoteReports();
-  await ensureUserProfile();
-  await loadMyPage();
+  try {
+    await ensureUserProfile();
+  } catch {
+    state.profile = null;
+    state.profileLoaded = true;
+  }
+  try {
+    await loadMyPage();
+  } catch {
+    state.myTasks = [];
+    state.myPageLoaded = true;
+  }
   on("#showLogin", "click", () => showMode("login"));
   on("#showRegister", "click", () => showMode("register"));
   on("#forgotPasswordLink", "click", (event) => {
@@ -2012,10 +2087,11 @@ async function init() {
   on("#profileForm", "submit", saveProfile);
   on("#passwordForm", "submit", updatePassword);
   on("#openDeleteAccountButton", "click", () => $("#deleteAccountDialog")?.showModal());
-  on("#confirmDeleteAccountButton", "click", () => {
-    $("#deleteAccountDialog")?.close();
-    setMessage("当前版本尚未接通账户删除服务，未删除任何内容。", "error");
+  on("#deleteAccountDialog", "close", () => {
+    const confirmation = $("#deleteAccountConfirm");
+    if (confirmation) confirmation.checked = false;
   });
+  on("#confirmDeleteAccountButton", "click", requestAccountDeletion);
   on("#analysisForm", "submit", (event) => {
     event.preventDefault();
     renderAnalysis();

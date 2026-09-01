@@ -21,6 +21,15 @@ curl http://127.0.0.1:8000/health/live
 curl http://127.0.0.1:8000/health/ready
 ```
 
+## 隐私与账户运营边界（离线契约）
+
+- `GET /api/privacy` 公开返回 `privacy-2026-08`、`terms-2026-08`、同意字段、资料保留目标和客服占位入口；它不返回用户资料。
+- `POST /api/account/deletion-request` 只接受已验证 Supabase bearer、当前政策/条款版本和固定确认值 `DELETE_ACCOUNT`。默认删除执行器为 fail-closed：返回 `503` 和 `no account data was changed`，不连接 Auth Admin、数据库或 Storage，也不模拟已删除。
+- 注册同意由前端在提交边界写入 Supabase Auth metadata（版本与 UTC ISO 时间）；当前 legacy localStorage 回退仅供演示，不能作为 production 认证或同意证据。
+- `/recover`、`/logout` 和密码更新仍由 Supabase Auth 负责；FastAPI 不接收密码、refresh token 或客服正文。登录、注册和找回密码文案必须保持账户枚举安全。
+
+`migration_baseline_status = reconciliation_required` 时，本仓库不会新增同意/删除/审计 migration，也不会执行 Auth Admin 删除、RLS/Storage 操作、备份清除或生产部署；本任务不发送通知。运营主体、客服邮箱、近期重新认证、全会话撤销、持续清理器和删除执行器仍需单独授权与演练；详见 `docs/legal/privacy-operations-runbook.md`。
+
 ## Render environment variables
 
 - `DATABASE_URL`: staging Supabase/PostgreSQL connection string; keep it as an uncommitted Render secret

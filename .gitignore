@@ -1,0 +1,42 @@
+node_modules/
+__pycache__/
+*.pyc
+
+# Local environments and caches
+backups/
+backend/.venv/
+**/.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Generated outputs and test artifacts
+data/collected/
+data/output/
+output/
+tmp/
+test-results/
+coverage/
+*.egg-info/
+
+# Local configuration and OS files
+.env
+.env.*
+.DS_Store
+
+# Build artifacts
+dist/
+build/
+.next/
+
+# Editor and local tooling
+.~lock.*
+*.save
+.tools/
+
+# Supabase local CLI state
+supabase/.temp/
+
+# Generated website assets owned by a source workflow
+web/library/
+web/content-library.json

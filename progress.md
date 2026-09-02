@@ -254,8 +254,10 @@
   `PASS`。linked dry-run/push 只包含 `20260902000200`；staging 最终 ledger
   为原三条加两条 later-ID，实时 schema dump 确认 22/22 张表的
   worker grants。应用后再次重跑 Auth/RLS/Storage 行为验收与 fixture cleanup，
-  全部为 `PASS`。本地浏览器单用例与 33 用例全量回归均为 `PASS`；
-  GitHub CI 待重跑确认。
+  全部为 `PASS`。本地浏览器单用例与 33 用例全量回归均为 `PASS`。
+- 修复提交 `72a9ece` 的 GitHub Actions run `33598129212` 七项全绿：
+  Playwright、Disposable SQL/RLS、Python、Node、Supply-chain、Repository policy
+  与 Release evidence 均为 `PASS`。
 
 ## Last updated
 

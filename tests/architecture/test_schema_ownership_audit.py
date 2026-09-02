@@ -32,7 +32,7 @@ class SchemaOwnershipAuditTest(unittest.TestCase):
             report["migration_baseline_status"],
             "canonical_staging_reconciled_production_pending",
         )
-        self.assertEqual(len(report["forward_migration_files"]), 12)
+        self.assertEqual(len(report["forward_migration_files"]), 13)
         self.assertEqual(len(report["legacy_sql_files"]), 8)
         self.assertEqual(report["errors"], [])
 

@@ -46,6 +46,14 @@ begin
     raise exception 'missing M1 reconciliation migration ledger entry';
   end if;
 
+  if not exists (
+    select 1
+    from supabase_migrations.schema_migrations
+    where version = '20260902000200'
+  ) then
+    raise exception 'missing M1 service_role portability migration ledger entry';
+  end if;
+
   select array_agg(c.relname order by c.relname)
     into rls_disabled_tables
   from pg_class c

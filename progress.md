@@ -244,6 +244,18 @@
   均为 `PASS`。浏览器首次完整回归出现既有 logout fixture 的单次
   `auth-ready` 超时（32/33）；该用例单独重跑通过，随后第二次完整回归 33/33
   通过，未修改产品前端代码。
+- PR #2 首次 CI 暴露两个环境便携性问题：logout Playwright fixture 以
+  空字符串试图禁用 API，但被 `config.js` 的 staging Render 默认值覆盖，导致测试
+  意外等待外部网络；Supabase CLI `2.115.0` 的 disposable stack
+  未自动赋予 `service_role` 完整表权限。发布门改为单 worker，并新增
+  显式本地 API fixture 与 `20260902000200_service_role_grant_portability.sql`，未改写
+  已应用 migration。
+- 新迁移本地 fresh reset（13 条）、六组 SQL/RLS assertions 与 lint 均为
+  `PASS`。linked dry-run/push 只包含 `20260902000200`；staging 最终 ledger
+  为原三条加两条 later-ID，实时 schema dump 确认 22/22 张表的
+  worker grants。应用后再次重跑 Auth/RLS/Storage 行为验收与 fixture cleanup，
+  全部为 `PASS`。本地浏览器单用例与 33 用例全量回归均为 `PASS`；
+  GitHub CI 待重跑确认。
 
 ## Last updated
 

@@ -25,6 +25,9 @@ REQUIRED_WORKFLOW_MARKERS = (
     "evidence:",
     "release_ready",
     "NOT_EXECUTED",
+    "sql-provenance",
+    "sql-identity",
+    "sql-m1",
 )
 FORBIDDEN_WORKFLOW_MARKERS = (
     "supabase db push",

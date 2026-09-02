@@ -34,6 +34,10 @@ def test_staging_reconciliation_closes_m1_without_opening_production_gate():
     assert statuses["staging_inventory"] == "pass"
     assert statuses["drift_review"] == "pass"
     assert statuses["blocking_drift"] == "cleared_by_20260902000100"
+    assert (
+        statuses["service_role_grant_portability"]
+        == "pass_20260902000200"
+    )
     assert statuses["logical_backup"] == "pass"
     assert statuses["isolated_restore"] == "pass"
     assert statuses["forward_fix"] == "pass"

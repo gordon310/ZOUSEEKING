@@ -16,7 +16,9 @@ future_live_write_approval = required
 production_reset = forbidden
 ```
 
-2026-09-02 仅应用更晚的 `20260902000100`；三条原有 ledger ID 保持不变，
+2026-09-02 应用更晚的 `20260902000100`，并新增
+`20260902000200` 显式固定不同 Supabase CLI 版本下的 `service_role`
+表权限；三条原有 ledger ID 保持不变，
 没有伪造或 repair 缺失的历史 ID。完整逻辑备份已恢复到第二套隔离本地
 Supabase，恢复后的 ledger/catalog 与迁移前 staging 一致。该结果关闭 M1 staging
 门槛，不代表 production 已协调或可发布。
@@ -37,6 +39,7 @@ Fresh install 固定按以下顺序执行：
 10. `20260828000100_property_photo_location.sql`
 11. `20260829000100_baseline_access_contract.sql`
 12. `20260902000100_staging_baseline_reconciliation.sql`
+13. `20260902000200_service_role_grant_portability.sql`
 
 三条原有且已应用的 migration 保持原字节不变。特别是
 `20260828000100` 继续拥有 photo/location/address/project-name fields、constraints

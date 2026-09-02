@@ -101,6 +101,7 @@ def test_migration_policy_records_staging_reconciliation_and_blocks_production()
     assert "20260828000100_property_photo_location.sql" in text
     assert "20260829000100_baseline_access_contract.sql" in text
     assert "20260902000100_staging_baseline_reconciliation.sql" in text
+    assert "20260902000200_service_role_grant_portability.sql" in text
     assert "migration_baseline_status = canonical_staging_reconciled_production_pending" in text
     assert "禁止 migration repair、staging reset、production reset" in text
     assert "完整逻辑备份" in text

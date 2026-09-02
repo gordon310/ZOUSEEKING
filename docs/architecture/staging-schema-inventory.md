@@ -7,9 +7,10 @@
 - `staging_reconciliation=pass`
 - `production_inventory=not_executed`
 - 最终计数：22 public tables、300 columns、75 indexes、16 policies、0 张 RLS
-  disabled application table、170 selected-role table grants、4 migration IDs。
+  disabled application table、170 selected-role table grants、5 migration IDs。
 - 最终 ledger：`20260825000400`、`20260827000500`、`20260828000100`、
-  `20260902000100`。七条早期 fresh-install migration 没有被伪造到 staging ledger。
+  `20260902000100`、`20260902000200`。七条早期 fresh-install migration
+  没有被伪造到 staging ledger。
 - 最终清理：Auth users `0`、public rows `0`、Storage objects `0`。
 
 以下是 reconciliation 前的 2026-08-30 只读 inventory，保留用于 drift 和恢复

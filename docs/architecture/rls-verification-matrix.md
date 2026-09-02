@@ -48,7 +48,11 @@ session。本验收不把“refresh 已撤销”误写为“所有已签发 acce
 - selected-role grant count：`anon=1`、`authenticated=15`、`service_role=154`。
 - 只有 active field-options anonymous policy；property client write policies 已移除。
 - staging ledger 只在原三条 ID 后增加
-  `20260902000100_staging_baseline_reconciliation.sql`，未执行 migration repair。
+  `20260902000100_staging_baseline_reconciliation.sql` 和
+  `20260902000200_service_role_grant_portability.sql`，未执行 migration repair。
+- CI 发现 Supabase CLI `2.115.0` 不自动提供完整 worker grants 后，第二条
+  forward migration 显式固定 22 张 application table 的 `service_role` 权限；
+  staging 实时 schema dump 与重跑四身份验收均为 `PASS`。
 - 最终 fixture 清理：Auth users `0`、public 业务行 `0`、Storage objects `0`。
 
 ## 可重跑入口与限制

@@ -155,8 +155,10 @@ reset、未经批准的 linked push 或 live SQL；M1 的 staging 授权不能�
 
 2026-09-02 M1 staging reconciliation：在明确授权下先完成 transaction dry-run 和
 回滚确认，再导出 roles/schema/data/migration-history 并恢复到第二套隔离本地
-Supabase；随后仅 push 更晚的 `20260902000100`。最终 staging ledger 为原三条 ID
-加该 later-ID，未执行 repair。四身份数据库 RLS、Auth signup/confirm/recovery/
+Supabase；随后 push 更晚的 `20260902000100`。CI 在 Supabase CLI `2.115.0`
+暴露 worker grant 便携性差异后，再以 `20260902000200` 显式固定 22 张表的
+`service_role` 权限。最终 staging ledger 为原三条 ID 加这两条 later-ID，
+未执行 repair。四身份数据库 RLS、Auth signup/confirm/recovery/
 refresh/logout/delete，以及 private Storage worker upload/download/delete/restore 均
 通过，fixture 清理后 Auth users、业务行和 Storage objects 均为 0。现状更新为
 `migration_baseline_status = canonical_staging_reconciled_production_pending`；不代表

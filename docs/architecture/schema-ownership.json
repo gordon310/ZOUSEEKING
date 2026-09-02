@@ -15,7 +15,8 @@
     "20260827000500_legacy_private_data_rls.sql",
     "20260828000100_property_photo_location.sql",
     "20260829000100_baseline_access_contract.sql",
-    "20260902000100_staging_baseline_reconciliation.sql"
+    "20260902000100_staging_baseline_reconciliation.sql",
+    "20260902000200_service_role_grant_portability.sql"
   ],
   "legacy_sql_files": [
     "backend/sql/001_foundation_data_contract.sql",

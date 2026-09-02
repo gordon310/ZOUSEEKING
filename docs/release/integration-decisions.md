@@ -69,10 +69,14 @@
 - 经明确授权，仅对命名 staging 执行。先在 transaction 内运行 later-ID migration
   与断言并 `ROLLBACK`，确认无残留；随后完整逻辑导出 roles/schema/data/history，
   在第二套隔离本地 Supabase 中单 transaction 恢复并核对 catalog/ledger。
-- linked dry-run 只列出 `20260902000100_staging_baseline_reconciliation.sql`；正式
-  push 也只应用该 ID，没有执行 `migration repair`、重写已应用 migration 或 reset。
+- 首次 linked dry-run/push 只包含
+  `20260902000100_staging_baseline_reconciliation.sql`；CI 发现 CLI 版本的 worker
+  grant 差异后，第二次 linked dry-run/push 只包含
+  `20260902000200_service_role_grant_portability.sql`。两次均未执行
+  `migration repair`、重写已应用 migration 或 reset。
 - staging 最终为 22 tables、300 columns、75 indexes、16 policies、0 个未启用 RLS
-  的 application tables；ledger 为原三条 ID 加 `20260902000100`。
+  的 application tables；ledger 为原三条 ID 加 `20260902000100`、
+  `20260902000200`。
 - 匿名/本人/他人/worker 数据库 RLS、私有 Storage 权限与对象删除/恢复、Auth
   signup confirmation、password recovery、refresh rotation、global logout、hard
   delete 和 profile cascade 均为 `PASS`；测试 fixture 清理为 `PASS`。

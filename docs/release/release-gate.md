@@ -50,7 +50,7 @@ pip-audit -r backend/requirements.txt -r backend/requirements-dev.txt
 
 ```bash
 npx playwright install chromium
-npm run test:web
+npm run test:web -- --workers=1
 ```
 
 SQL/RLS 检查只能使用 disposable 数据库。当前 migration baseline 已知不完整，因此 reset 失败必须记录为 `FAIL`/`BLOCKED`：

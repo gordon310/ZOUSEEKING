@@ -13,7 +13,17 @@
     "linked_dry_run_only_listed_this_id": true,
     "apply": "pass",
     "migration_repair_used": false,
-    "staging_reset_used": false
+    "staging_reset_used": false,
+    "service_role_portability_forward_fix": {
+      "id": "20260902000200",
+      "file": "supabase/migrations/20260902000200_service_role_grant_portability.sql",
+      "sha256": "d6872949b94b47488fa8c39e1f6328ac9b25af7fb13e6a2ce1564adcf7206bb0",
+      "reason": "explicit managed and disposable CLI parity",
+      "linked_dry_run_only_listed_this_id": true,
+      "apply": "pass",
+      "post_apply_service_role_all_table_grants": 22,
+      "post_apply_schema_dump_sha256": "bc13f99606b1def793d3c513a2063661031b19f1965722128be31e0b401f5bce"
+    }
   },
   "backup_restore": {
     "mode": "supabase_cli_logical_to_isolated_local_supabase",
@@ -48,7 +58,7 @@
     "public_policies": 16,
     "rls_disabled_application_tables": 0,
     "selected_role_grants": 170,
-    "migration_ids": 4
+    "migration_ids": 5
   },
   "acceptance": {
     "database_rls_anonymous_owner_other_worker": "pass",
@@ -56,6 +66,7 @@
     "storage_anonymous_owner_other_worker": "pass",
     "storage_synthetic_delete_restore_hash": "pass",
     "fixture_cleanup": "pass",
+    "post_portability_fix_acceptance_rerun": "pass",
     "public_recovery_email_delivery": "not_executed_no_smtp_sink"
   },
   "cleanup_inventory": {

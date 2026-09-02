@@ -9,7 +9,7 @@ transaction dry-run、later-ID push、逻辑备份隔离恢复及运行验收。
 
 **本地与 staging ownership contract：SHIP。production baseline：BLOCKED。**
 
-- `supabase/migrations/` 是唯一允许新增的 forward migration history，当前清单为 12 个文件。
+- `supabase/migrations/` 是唯一允许新增的 forward migration history，当前清单为 13 个文件。
 - `backend/sql/` 的 8 个 SQL 文件分别属于历史 bootstrap、迁移前来源、生成支持或手工支持材料，不能拼接成第二条 migration history。
 - `backend/app/db.py::init_schema` 仍读取 `backend/sql/schema.sql`，但 `backend/app/main.py::should_init_schema` 只在显式 `INIT_SCHEMA=true` 且 `ENVIRONMENT` 为 `local`、`development` 或 `test` 时调用；Render staging 的 `INIT_SCHEMA=false`。该路径保留为 disposable local/test compatibility，不是托管环境建库入口。
 - `migration_baseline_status = canonical_staging_reconciled_production_pending`：
@@ -46,6 +46,7 @@ render.yaml           ->  staging ENVIRONMENT=staging, INIT_SCHEMA=false
 | `20260828000100_property_photo_location.sql` | project name、坐标、地址候选、精度和 owner-scoped indexes |
 | `20260829000100_baseline_access_contract.sql` | 22 张 application table 的最终 RLS/grant/access contract |
 | `20260902000100_staging_baseline_reconciliation.sql` | 在不伪造旧 ledger 的前提下协调 staging provenance、constraints、least-privilege RLS/grants 与 Storage policy 边界 |
+| `20260902000200_service_role_grant_portability.sql` | 显式固定 22 张 application table 的 trusted `service_role` 权限，消除 managed staging 与 disposable CLI 版本差异 |
 
 文件名必须保持唯一 14 位时间戳并按顺序应用。已应用文件不可编辑；任何线上修复只能新增更晚的 reviewed forward migration。
 
@@ -82,7 +83,7 @@ python3 -m unittest discover -s tests/architecture -p 'test_schema_ownership_aud
 
 - `check_schema_ownership.py` 对照本地 migration/legacy SQL 清单、标准命名、文档存在性和禁止操作；`status=pass` 只证明 ownership 文档/layout，不证明 SQL/RLS runtime 行为。
 - disposable local fresh reset、六组 SQL assertions 与 lint 均通过。
-- 获批 staging transaction dry-run、仅一条 later-ID push、最终 ledger/catalog、
+- 获批 staging transaction dry-run、两条审核后 later-ID push、最终 ledger/catalog、
   四身份 RLS、Auth 生命周期和私有 Storage 行为均通过；合成用户和对象已清理。
 - 免费层完整逻辑备份恢复到第二套隔离本地 Supabase 后，22 tables、263
   pre-migration columns、72 indexes、20 policies、三条原 ledger ID、0 Auth users、

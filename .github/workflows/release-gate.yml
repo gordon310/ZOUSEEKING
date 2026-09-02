@@ -17,7 +17,7 @@ concurrency:
 env:
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "22"
-  REQUIRED_CHECKS: "python-pytest,python-compileall,pip-check,node-syntax,node-edge,browser,sql-start,sql-reset,sql-foundation,sql-intake,sql-rls,npm-audit,pip-audit,secret-scan,policy,diff"
+  REQUIRED_CHECKS: "python-pytest,python-compileall,pip-check,node-syntax,node-edge,browser,sql-start,sql-reset,sql-foundation,sql-intake,sql-provenance,sql-rls,sql-identity,sql-m1,npm-audit,pip-audit,secret-scan,policy,diff"
 
 jobs:
   python:
@@ -107,7 +107,7 @@ jobs:
         run: mkdir -p ci-results
       - name: Run Playwright
         continue-on-error: true
-        run: python3 scripts/ci/release_evidence.py record --name browser --output ci-results/browser.json -- npm run test:web
+        run: python3 scripts/ci/release_evidence.py record --name browser --output ci-results/browser.json -- npm run test:web -- --workers=1
       - name: Fail if browser checks failed
         if: always()
         run: python3 scripts/ci/release_evidence.py validate --results-dir ci-results --required browser

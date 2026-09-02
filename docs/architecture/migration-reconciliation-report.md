@@ -28,6 +28,7 @@ policy_version_choice=gist_exclusion
 staging_inventory=pass
 drift_review=pass
 blocking_drift=cleared_by_20260902000100
+service_role_grant_portability=pass_20260902000200
 logical_backup=pass
 isolated_restore=pass
 backup_restore=pass
@@ -46,7 +47,7 @@ migration_baseline_status=canonical_staging_reconciled_production_pending
 ## Canonical history decision
 
 `supabase/migrations/` 是唯一 canonical forward history。Fresh install 必须按
-文件名执行以下 12 个 ID：
+文件名执行以下 13 个 ID：
 
 | ID | 责任 |
 | --- | --- |
@@ -62,6 +63,7 @@ migration_baseline_status=canonical_staging_reconciled_production_pending
 | `20260828000100` | applied photo/location/address/project-name fields and indexes |
 | `20260829000100` | final canonical RLS、least-privilege grants 和 public field-option exception |
 | `20260902000100` | staging baseline reconciliation、complete provenance、constraints 与 final least-privilege access contract |
+| `20260902000200` | 显式固定 managed/disposable 环境一致的 `service_role` 表权限 |
 
 三条已经应用且原本存在于当前 history 的文件没有被改写：
 
@@ -234,16 +236,27 @@ canonical local now包含 staging inventory 中的 photo/location/address 列和
 
 ### Later-ID apply 与最终库存
 
-- linked push dry-run 只列出
+- 首次 linked push dry-run 只列出
   `20260902000100_staging_baseline_reconciliation.sql`；正式 push 也只应用这一条。
   migration SHA-256 为
   `77c229259060bee1c6b9dde94224adc7bfa65cf7e550a1e627687a0f20c756cd`。
+- GitHub CI 使用的 Supabase CLI `2.115.0` 暴露了 disposable stack 未自动
+  赋予完整 `service_role` 表权限的版本差异。因 `20260902000100` 已应用，
+  未改写旧文件，而是新增
+  `20260902000200_service_role_grant_portability.sql`。它的 linked dry-run 与
+  push 都只包含这一条，SHA-256 为
+  `d6872949b94b47488fa8c39e1f6328ac9b25af7fb13e6a2ce1564adcf7206bb0`。
 - 最终 staging ledger 为 `20260825000400`、`20260827000500`、
-  `20260828000100`、`20260902000100`。未执行 migration repair，未修改前三个
-  migration 文件，未伪造早期 ID。
+  `20260828000100`、`20260902000100`、`20260902000200`。未执行 migration
+  repair，未修改任何已应用 migration 文件，未伪造早期 ID。
 - 最终 catalog 为 22 tables、300 columns、75 indexes、16 policies、0 张 RLS
   disabled application table、170 selected-role grants；M1 contract assertion 返回
   `M1_STAGING_RECONCILIATION_PASS`。
+- post-fix 实时 schema dump 包含 22/22 条 application table
+  `GRANT ALL ... TO service_role`，dump SHA-256 为
+  `bc13f99606b1def793d3c513a2063661031b19f1965722128be31e0b401f5bce`。
+- 最终 local fresh reset 重放 13 条 canonical migration，六组 SQL/RLS
+  assertions 全部通过；database lint 返回 `No schema errors found`。
 
 ### 行为验收与清理
 
@@ -261,6 +274,8 @@ canonical local now包含 staging inventory 中的 photo/location/address 列和
   有效，验收不把它误写为立即失效。
 - 清理为 `PASS`：最终 Auth users、public 业务行、Storage objects 和 synthetic
   Storage objects 均为 0。
+- `20260902000200` 应用后重跑完整行为验收，四身份、Auth、Storage 和
+  fixture cleanup 再次全部 `PASS`。
 
 ## Remaining production blockers
 

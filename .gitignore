@@ -1,6 +1,15 @@
 node_modules/
 __pycache__/
 *.pyc
+*.egg-info/
+
+backend/.venv/
+output/
+test-results/
+tmp/
+supabase/.temp/
+design-system/zouseeking-frontend/
+CLAUDE-unzipcontext.md
 
 backups/
 

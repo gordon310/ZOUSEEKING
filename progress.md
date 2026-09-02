@@ -203,6 +203,25 @@
 - 本次验收不等于真实会员、支付、额度、任务、数据库或报告生成服务验收；后端/SQL commit `57762f5` 仍只在本地，未部署或应用新的业务 migration。
 - 下一道门槛：完成 Supabase migration baseline reconciliation、schema/RLS/备份恢复验证，再冻结已验收字段并进入后端 staging。
 
+## Staging connection and Render health verification (2026-08-30)
+
+- 已确认 Render `zouseeking-api-staging` 的 `DATABASE_URL` 已配置，并指向 Supabase `zoubeacon-staging`（project ref `fnogxuytbabxmqousifh`）的 pooler 连接；未重置密码、未修改生产项目。
+- 只读 PostgreSQL 核验通过：TLS 连接成功，服务器 PostgreSQL 17.6；public schema 有 22 张基础表，22 张均启用 RLS，存在 20 条 public policy。
+- Supabase migration history 核验通过：`20260825000400_property_intake`、`20260827000500_legacy_private_data_rls`、`20260828000100_property_photo_location`。
+- Render staging 健康端点返回 HTTP 200：`status=ready`、`database=ok`、`version=staging`；本次只读检查未执行数据库写入或迁移。
+- 本地未持久化数据库密码或 `STAGING_DATABASE_URL`；完整 migration baseline reconciliation、RLS 身份矩阵和备份恢复演练仍按既有门槛待完成。
+
+## Release candidate execution (2026-08-31—2026-09-01)
+
+- 隔离分支 `codex/release-candidate` 已完成 C01/C02/C03 的受控归档与整合回归：C01/C02 提交 `fe4b9dd`、`110358e`，C03 提交 `41cafc7`；整合后 Python `95 passed`、Edge `2 passed`、compileall、JS syntax 和机器 JSON 解析均通过。
+- C04 本地恢复演练与 C05 本地 baseline/RLS 预检保持通过；staging dry-run 只读显示 8 条早期 migration 与 `20260829000100` 待处理，未执行 push、repair、reset 或线上写入。
+- C06 只读 provenance 审计发现历史内容库 70/70 阻断、两份 CSV 均缺正式 provenance 字段；未补写 rights、未联网、未发布。
+- C07–C13 离线候选已完成专项回归；C11 静态单文件预算为 `FIX`，C12 在线 advisory/CI 与 C13 live smoke 仍未闭合。C14 Go/No-Go 模板保持 `BLOCK / NOT AUTHORIZED`，费用上限 `JPY 0`、保留期 7 天、清理窗口 `2026-09-01 02:00–03:00 JST`。
+- C12/C13 首次候选证据记录：Python `95 passed`、Edge `2 passed`、compileall/JS syntax/secret scan/diff 为 `PASS`；浏览器本地 `22` 项为 `18 passed / 4 failed`，失败原因是候选缺失 `data/content_library.json`；npm advisory 为 DNS `FAIL`、`pip-audit` 为 `BLOCKED`、policy 为 `FAIL`。该历史 manifest `offline_gate_passed=false`、`release_ready=false`。
+- 后续已补齐候选 `data/content_library.json`，集成 offline release gate/policy/rollback 文件并通过新增 17 项聚焦测试；最新离线回归为 Python `112 passed`、browser `22 passed`、policy `PASS`，synthetic smoke `c13-offline-20260901` `PASS`。npm advisory 仍因 DNS `FAIL`、`pip-audit` 缺失 `BLOCKED`，SQL/RLS 与全部线上检查仍 `NOT_EXECUTED`。
+- C14 Go/No-Go 复核仍为 `BLOCK / NOT AUTHORIZED`：角色、7 天保留、`JPY 0` 费用上限和清理窗口已记录；migration live reconciliation、provider backup/isolated clone、C06 provenance、C11 单文件预算、SQL/RLS 与所有线上检查仍未闭合。
+- 生产上线仍被 migration reconciliation、provider backup/clone、provenance 授权、CI/供应链和精确目标审批阻断；主工作区既有未提交代码与生成资产未被本轮覆盖或清理。
+
 ## Last updated
 
-2026-08-29
+2026-09-01

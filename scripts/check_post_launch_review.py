@@ -85,7 +85,7 @@ def audit(root: Path) -> tuple[dict[str, Any], list[str]]:
     adr_text = (root / ADR).read_text(encoding="utf-8") if (root / ADR).is_file() else ""
     for marker in (
         "状态：Accepted（暂缓，非迁移批准）",
-        "migration_baseline_status = reconciliation_required",
+        "canonical_staging_reconciled_production_pending",
         "live_write_approval=required",
         "production_reset=forbidden",
         "不得更换 `DATABASE_URL`",

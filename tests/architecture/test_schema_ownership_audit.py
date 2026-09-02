@@ -30,9 +30,9 @@ class SchemaOwnershipAuditTest(unittest.TestCase):
         self.assertEqual(report["canonical_forward_history"], "supabase/migrations")
         self.assertEqual(
             report["migration_baseline_status"],
-            "canonical_local_pass_live_reconciliation_required",
+            "canonical_staging_reconciled_production_pending",
         )
-        self.assertEqual(len(report["forward_migration_files"]), 11)
+        self.assertEqual(len(report["forward_migration_files"]), 12)
         self.assertEqual(len(report["legacy_sql_files"]), 8)
         self.assertEqual(report["errors"], [])
 

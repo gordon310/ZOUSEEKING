@@ -14,10 +14,11 @@
 `release_ready=true` 需要所有自动化检查为 `PASS`、外部检查有单独的真实证据、人工批准记录和可恢复的发布窗口。本仓库当前仍有：
 
 ```text
-migration_baseline_status = canonical_local_pass_live_reconciliation_required
+migration_baseline_status = canonical_staging_reconciled_production_pending
 ```
 
-fresh disposable reset 未通过前，不得执行 linked `db push`、migration repair 或 production reset，也不得把 staging 结果当作 production 结果。
+M1 staging 已通过，但不得执行 migration repair、staging/production reset、
+未经批准的 linked push，也不得把 staging 结果当作 production 结果。
 
 ## 本地 gate 命令
 
@@ -59,7 +60,10 @@ npx supabase start
 npx supabase db reset --local
 psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f tests/sql/test_foundation_schema.sql
 psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f tests/sql/test_property_intake_schema.sql
+psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f tests/sql/test_provenance_policy_metric_contract.sql
 psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f tests/security/test_rls_private_projects.sql
+psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f tests/security/test_rls_v1_identity_matrix.sql
+psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f tests/sql/test_m1_reconciliation_contract.sql
 npx supabase stop --no-backup
 ```
 
@@ -93,7 +97,10 @@ python3 scripts/ci/release_evidence.py evidence \
 
 ## 外部检查门槛
 
-本地和 CI 不得猜测以下状态：staging schema/RLS drift、production database、Auth、Storage、deployment、DNS、billing、真实账号、真实文件和真实报告。它们必须在获得单独授权后，由受控 runbook 记录真实命令、审批人、时间、migration ID、备份 artifact 和 rollback 结果；否则保持 `NOT_EXECUTED`。
+M1 staging schema/RLS/Auth/Storage 已有单独受控证据；production database、Auth、
+Storage、deployment、DNS、billing、真实账号、真实文件和真实报告仍不得由本地或
+CI 猜测。它们必须另获授权并记录 migration、备份和回滚证据，否则保持
+`NOT_EXECUTED`。
 
 ## CI 失败处理
 

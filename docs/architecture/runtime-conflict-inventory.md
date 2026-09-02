@@ -10,7 +10,7 @@
 | `supabase/functions/jphouse-run/` | legacy regional report generator | frozen | 不加入会员、额度、账单、任务、授权或后台逻辑 | 清空/迁移 queue 并经批准下线函数 |
 | `scripts/run_jphouse_worker.py` | local service-role REST report worker | frozen | 不加入 V1 worker handler | canonical worker 验证且 legacy queue 退役 |
 | `backend/app/main.py::run_generation_job` | in-process report executor | frozen | 不执行 V1 durable job | canonical queue/worker 接管报告生成 |
-| `backend/sql/` and `supabase/migrations/` | historical bootstrap vs canonical history | local canonical / live blocked | 只允许 `supabase/migrations/` 新增前向变更 | linked/staging ledger 经备份、clone restore、forward-fix 和批准完成协调 |
+| `backend/sql/` and `supabase/migrations/` | historical bootstrap vs canonical history | local + staging canonical / production pending | 只允许 `supabase/migrations/` 新增前向变更 | production 经独立备份、恢复、reviewed migration 和批准完成协调 |
 | `docs/supabase-setup.md` | 混合历史 setup 和当前 staging 指引 | conflict documented | ADR-0001 优先 | 重叠工作区改动整合后更新 |
 | `docs/render-postgres-deploy.md` | deferred Render PostgreSQL option | defer; see [ADR-0002](adr-0002-render-postgres-future-migration.md) | 仅作非执行评估；禁止替换 connection string、创建 DB 或迁移数据 | 全部迁移门槛与独立线上变更批准均满足 |
 
@@ -26,6 +26,11 @@ profile、project、query、report、organization、usage、payment、task、con
 
 ## 迁移与退出说明
 
-当前 `supabase/migrations/` 的 canonical history 已能在 disposable local Supabase 从空库重建并通过 SQL/RLS assertions；`backend/sql/` 仅保留为历史 bootstrap/reference。当前状态为 `canonical_local_pass_live_reconciliation_required`，不代表 staging 或 production 已协调：只读 inventory 显示 staging ledger 仍只有原三条 migration，任何 provider backup、clone restore、forward-fix、linked push 或 repair 都需要单独计划与明确批准。完成 live reconciliation 后，才可继续移除旧私有 caller、迁移 legacy queue、验证唯一 durable worker，并在取得部署批准后下线兼容路径。
+当前 `supabase/migrations/` 的 canonical history 已能在 disposable local Supabase
+从空库重建并通过 SQL/RLS assertions；`backend/sql/` 仅保留为历史
+bootstrap/reference。状态为 `canonical_staging_reconciled_production_pending`：
+staging 在 2026-09-02 通过备份、隔离恢复、later-ID reconciliation 和运行验收，
+但 production 没有连接或修改。旧私有 caller、legacy queue 与 durable worker 的
+退出仍需各自的等价性、监控、回滚和部署批准，不能由 M1 自动放行。
 
-`backend/sql/` 与 canonical migration 的逐文件重叠、保留和 forward-fix 门槛见 [`schema-ownership-audit.md`](schema-ownership-audit.md)；Render PostgreSQL 的未来评估见 [`adr-0002-render-postgres-future-migration.md`](adr-0002-render-postgres-future-migration.md)；审计命令只读本地文件，不代表 staging 或 production 已验证。
+`backend/sql/` 与 canonical migration 的逐文件重叠、保留和 forward-fix 门槛见 [`schema-ownership-audit.md`](schema-ownership-audit.md)；Render PostgreSQL 的未来评估见 [`adr-0002-render-postgres-future-migration.md`](adr-0002-render-postgres-future-migration.md)；文件审计不替代运行证据，M1 staging 证据也不代表 production 已验证。

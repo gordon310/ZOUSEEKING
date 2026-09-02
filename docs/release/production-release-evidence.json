@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "reviewed_at": "2026-09-01",
+  "reviewed_at": "2026-09-02",
   "phase_one_scope": "consumer_intake_preview",
   "status": "NOT_EXECUTED",
   "release_ready": false,
@@ -30,14 +30,13 @@
     "rollback_smoke": false
   },
   "blockers": [
-    "migration_baseline_status=canonical_local_pass_live_reconciliation_required",
-    "provider backup/restore and isolated clone not authorized under JPY 0",
-    "staging live reconciliation and later-ID forward-fix not executed",
+    "migration_baseline_status=canonical_staging_reconciled_production_pending",
+    "production backup/restore RPO and RTO not approved or verified",
     "production targets, secrets, privacy/legal approval and deployment window not approved"
   ],
   "prohibited_actions": [
     "do not populate this file with secrets or real tokens",
     "do not mark a local/offline test as production evidence",
-    "do not execute linked db push, migration repair, reset, deployment or DNS from this template"
+    "do not execute an unapproved linked db push, migration repair, reset, deployment or DNS from this template"
   ]
 }

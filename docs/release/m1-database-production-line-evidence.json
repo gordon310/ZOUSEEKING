@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "milestone": "M1_database_production_line",
+  "environment": "authorized_staging",
+  "recorded_on": "2026-09-02",
+  "gate_status": "pass",
+  "migration_baseline_status": "canonical_staging_reconciled_production_pending",
+  "migration": {
+    "id": "20260902000100",
+    "file": "supabase/migrations/20260902000100_staging_baseline_reconciliation.sql",
+    "sha256": "77c229259060bee1c6b9dde94224adc7bfa65cf7e550a1e627687a0f20c756cd",
+    "transaction_dry_run": "pass",
+    "linked_dry_run_only_listed_this_id": true,
+    "apply": "pass",
+    "migration_repair_used": false,
+    "staging_reset_used": false
+  },
+  "backup_restore": {
+    "mode": "supabase_cli_logical_to_isolated_local_supabase",
+    "status": "pass",
+    "artifact_count": 5,
+    "artifact_total_bytes": 106656,
+    "checksums_verified": true,
+    "artifact_sha256": {
+      "roles": "168a95a9c745af5ed4679751f90419ac9dc434240a213b03e32a06d5664c2308",
+      "schema": "6797a79aab074079fae62ce6d16015e821837082f88d036782c24db10a7bab8f",
+      "data": "95017a0139c52ebe9a4fd9d43c649b7c121afc76bcf62e6d535defe7c9786c8b",
+      "migration_history_schema": "18b99fbbb3ec9fbb964bb255a56171329acd99b6977ece2addd89fdf5aa5105b",
+      "migration_history_data": "ab1c249b02b0452d0183f20998f0e7925ada6e84ef2d49e6a04447ed364de8cc"
+    },
+    "restored_pre_change_inventory": {
+      "public_tables": 22,
+      "public_columns": 263,
+      "public_indexes": 72,
+      "public_policies": 20,
+      "migration_ids": 3,
+      "auth_users": 0,
+      "public_rows": 0,
+      "storage_objects": 0
+    },
+    "provider_physical_backup": "not_available_free",
+    "pitr": "not_enabled"
+  },
+  "staging_final_inventory": {
+    "public_tables": 22,
+    "public_columns": 300,
+    "public_indexes": 75,
+    "public_policies": 16,
+    "rls_disabled_application_tables": 0,
+    "selected_role_grants": 170,
+    "migration_ids": 4
+  },
+  "acceptance": {
+    "database_rls_anonymous_owner_other_worker": "pass",
+    "auth_confirmation_recovery_refresh_logout_delete": "pass",
+    "storage_anonymous_owner_other_worker": "pass",
+    "storage_synthetic_delete_restore_hash": "pass",
+    "fixture_cleanup": "pass",
+    "public_recovery_email_delivery": "not_executed_no_smtp_sink"
+  },
+  "cleanup_inventory": {
+    "auth_users": 0,
+    "public_rows": 0,
+    "storage_objects": 0,
+    "synthetic_storage_objects": 0
+  },
+  "not_executed": [
+    "production_database_auth_storage",
+    "production_deployment_dns_billing",
+    "provider_physical_backup_or_pitr",
+    "real_recovery_email_delivery",
+    "real_customer_or_storage_object_tests"
+  ],
+  "release_ready": false
+}

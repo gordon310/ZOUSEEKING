@@ -64,6 +64,23 @@
 - 按已确认的 `JPY 0` 费用上限，未启用任何可能收费的备份/clone 能力。
 - C04 的 provider backup 与隔离 clone 仍为 **BLOCKED**；不执行 C05 的 staging forward-fix 或任何 live migration。
 
+## M1 数据库生产线执行证据（2026-09-02）
+
+- 经明确授权，仅对命名 staging 执行。先在 transaction 内运行 later-ID migration
+  与断言并 `ROLLBACK`，确认无残留；随后完整逻辑导出 roles/schema/data/history，
+  在第二套隔离本地 Supabase 中单 transaction 恢复并核对 catalog/ledger。
+- linked dry-run 只列出 `20260902000100_staging_baseline_reconciliation.sql`；正式
+  push 也只应用该 ID，没有执行 `migration repair`、重写已应用 migration 或 reset。
+- staging 最终为 22 tables、300 columns、75 indexes、16 policies、0 个未启用 RLS
+  的 application tables；ledger 为原三条 ID 加 `20260902000100`。
+- 匿名/本人/他人/worker 数据库 RLS、私有 Storage 权限与对象删除/恢复、Auth
+  signup confirmation、password recovery、refresh rotation、global logout、hard
+  delete 和 profile cascade 均为 `PASS`；测试 fixture 清理为 `PASS`。
+- 公开恢复邮件的真实投递为 `NOT_EXECUTED`（无专用 SMTP sink）；production
+  数据库/Auth/Storage、physical backup/PITR、部署、DNS 与 billing 均未执行。
+- 状态更新为 `canonical_staging_reconciled_production_pending`；M1 staging 闭环不
+  等于 production-ready。
+
 ## C23 执行证据
 
 - 已集成 Render PostgreSQL future migration ADR 与非执行入口；默认结论为 `render_postgres_migration=not_approved`，不更换连接串、不创建数据库、不迁移数据。

@@ -26,10 +26,10 @@ python3 scripts/check_schema_ownership.py
 npm run check:schema-ownership
 ```
 
-The canonical history has passed disposable-local verification, but the live
-gate remains `canonical_local_pass_live_reconciliation_required`. Do not use
-`supabase db push`, `supabase migration repair`, or a staging/production reset
-while that gate is open. `INIT_SCHEMA=true` is retained only for disposable
+The canonical history and the approved staging reconciliation have passed;
+the gate is now `canonical_staging_reconciled_production_pending`. Do not use
+`supabase migration repair`, a staging/production reset, or an unapproved
+linked push. `INIT_SCHEMA=true` is retained only for disposable
 `local`/`development`/`test` compatibility with the legacy
 `backend/sql/schema.sql`; it does not apply `supabase/migrations/` and must not
 be used as a staging or production setup command.
@@ -48,7 +48,11 @@ curl http://127.0.0.1:8000/health/ready
 - 注册同意由前端在提交边界写入 Supabase Auth metadata（版本与 UTC ISO 时间）；当前 legacy localStorage 回退仅供演示，不能作为 production 认证或同意证据。
 - `/recover`、`/logout` 和密码更新仍由 Supabase Auth 负责；FastAPI 不接收密码、refresh token 或客服正文。登录、注册和找回密码文案必须保持账户枚举安全。
 
-`migration_baseline_status = reconciliation_required` 时，本仓库不会新增同意/删除/审计 migration，也不会执行 Auth Admin 删除、RLS/Storage 操作、备份清除或生产部署；本任务不发送通知。运营主体、客服邮箱、近期重新认证、全会话撤销、持续清理器和删除执行器仍需单独授权与演练；详见 `docs/legal/privacy-operations-runbook.md`。
+`migration_baseline_status = canonical_staging_reconciled_production_pending`；M1 已用
+合成 staging 账号验证 Auth Admin 删除、RLS/Storage 与清理，但没有接通本应用的
+删除执行器、发送通知或执行生产部署。运营主体、客服邮箱、近期重新认证、持续清理器和删除
+执行器仍需单独授权与演练；详见 `docs/legal/privacy-operations-runbook.md`。
+本验收不发送通知，也不使用真实账号或资料。
 
 ## Render environment variables
 

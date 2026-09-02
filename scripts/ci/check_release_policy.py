@@ -10,7 +10,9 @@ REQUIRED_FILES = (
     "supabase/migrations/README.md",
     "tests/sql/test_foundation_schema.sql",
     "tests/sql/test_property_intake_schema.sql",
+    "tests/sql/test_m1_reconciliation_contract.sql",
     "tests/security/test_rls_private_projects.sql",
+    "tests/security/test_rls_v1_identity_matrix.sql",
 )
 REQUIRED_WORKFLOW_MARKERS = (
     "contents: read",
@@ -55,8 +57,8 @@ def check_policy(repo: Path) -> list[str]:
     if migration_policy.is_file():
         migration_text = migration_policy.read_text(encoding="utf-8")
         for marker in (
-            "migration_baseline_status = canonical_local_pass_live_reconciliation_required",
-            "禁止 linked push、migration repair、staging reset、production reset",
+            "migration_baseline_status = canonical_staging_reconciled_production_pending",
+            "禁止 migration repair、staging reset、production reset",
         ):
             if marker not in migration_text:
                 violations.append(f"migration policy missing marker: {marker}")

@@ -18,7 +18,7 @@ from typing import Any
 
 MIGRATION_NAME = re.compile(r"^(?P<timestamp>\d{14})_[a-z0-9][a-z0-9_]*\.sql$")
 EXPECTED_CANONICAL_HISTORY = "supabase/migrations"
-EXPECTED_BASELINE_STATUS = "canonical_local_pass_live_reconciliation_required"
+EXPECTED_BASELINE_STATUS = "canonical_staging_reconciled_production_pending"
 REQUIRED_PROHIBITIONS = {
     "edit_applied_migration",
     "delete_restore_package",

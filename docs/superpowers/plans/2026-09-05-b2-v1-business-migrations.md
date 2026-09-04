@@ -39,4 +39,5 @@
 - [x] 无 `using(true)`/`with check(true)` 于业务表；authenticated 无越权写
 - [x] 每表 ENABLE RLS（17/17）；匿名/认证 grant 正确；service_role 全权
 - [x] 测试文件为可执行 psql DO 块断言（00200–00500 已在一次性 Postgres 容器真实验证；四身份行为矩阵待 baseline gate 后补）
-- [ ] 后端 store/port 实现对接（billing store、usage DB adapter、task/consent 服务）——P1 后续任务
+- [ ] 后端对接：billing store（PostgresBillingStore）+ usage DB ledger（PostgresLedger）——进行中（2026-09-05，适配器实现中）
+- [ ] task/consent 服务——**延后至 P4（随小象数据 B 端）**：任务池与邮箱授权前端仍为 demo，C/B 端闭环未开工前不建服务层

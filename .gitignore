@@ -40,3 +40,9 @@ supabase/.temp/
 # Generated website assets owned by a source workflow
 web/library/
 web/content-library.json
+
+# Local legacy docs (root)
+AGENTS-OLD.md
+CLAUDE-old.md
+CLAUDE-unzipcontext.md
+design-system/zouseeking-frontend/

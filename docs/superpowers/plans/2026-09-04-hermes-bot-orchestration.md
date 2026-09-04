@@ -2,7 +2,9 @@
 
 日期：2026-09-04 · 编制：Hermes Agent（规划/总控） · 执行：Codex CLI（各 BOT）
 
-> **决策记录（2026-09-04 用户已确认）**：① BOT 方案 = 推荐版（4 开发 BOT + H 管家）；② 仓库策略 = 方案 A（ZOUSEEKING 一库三主线，JPPGSKILL 独立成库 gordon310/JPPGSKILL）；③ Hermes cron 已建：每周一 09:00 里程碑回顾 + P0–P4 出口前 3 天验收提醒；④ P0 首批动作已启动：JPPGSKILL git init + 本地提交（远端推送待 gh 授权）。
+> **决策记录（2026-09-04 用户已确认）**：① BOT 方案 = 推荐版（4 开发 BOT + H 管家）；② 仓库策略 = 方案 A（ZOUSEEKING 一库三主线，JPPGSKILL 独立成库 gordon310/JPPGSKILL）；③ Hermes cron 已建：每周一 09:00 里程碑回顾 + P0–P4 出口前 3 天验收提醒，投递渠道 = QQ 机器人（qqbot 已连通，OpenID D6AF3…8383A）；④ P0 首批动作已启动。
+
+> **双线分叉已解决（2026-09-04 晚）**：本地 main（root c848b09）与 origin/main（root 349e310）无共同祖先。仲裁结论与全量清单见 `2026-09-04-divergence-arbitration.md` + `2026-09-04-divergence-file-manifest.txt`。执行：origin/main 为权威基线，5 个重放 commit 并入 main 并已推送远端（`5672877`）。原工作分支与状态存于 `backup/workspace-20260904-{main,intake,originmain}`、`codex/replay-carryover`（含未部署的 renovation migration wip）。
 
 > 本文是 Hermes 侧的项目总控文件：回答"配几个 BOT、各自边界、按什么里程碑推进、如何验收"。
 > Codex 各会话只读本文件的「自己的章节 + 仓库 AGENTS.md」即可开工，无需全量上下文。

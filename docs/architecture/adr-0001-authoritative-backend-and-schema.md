@@ -73,22 +73,30 @@ Payment provider
 
 ## 4. Schema 与 migration 契约
 
-当前 V1 的数据库实现是 Supabase PostgreSQL，`supabase/migrations/` 是唯一前向 migration history。仓库 canonical history 已在 disposable local Supabase 从空库重建并通过 SQL/RLS assertions，但 linked/staging migration ledger 尚未协调，当前状态为：
+当前 V1 的数据库实现是 Supabase PostgreSQL，`supabase/migrations/` 是唯一前向
+migration history。仓库 canonical history 已从空库重建；获批 staging 也已通过
+later-ID reconciliation、恢复和运行验收，当前状态为：
 
 ```text
-migration_baseline_status = canonical_local_pass_live_reconciliation_required
+migration_baseline_status = canonical_staging_reconciled_production_pending
 ```
 
-本地完成项包括：
+已完成项包括：
 
 1. 从审核后的仓库 SQL 和只读 staging schema inventory 推导缺失基础表；
 2. 新增确定性的早期 migration，并保持三条已应用 migration 字节不变；
 3. 在空的 disposable local Supabase 完成 fresh reset；
 4. 运行 foundation、intake、provenance、匿名/owner/other-user/service-worker SQL/RLS 断言；
 5. 对比只读 staging inventory，不导出客户数据；
-6. 完成 local backup/restore 演练与 forward-fix runbook。
+6. 完成 local backup/restore 演练与 forward-fix runbook；
+7. 对 staging 做 transaction dry-run，只应用
+   `20260902000100_staging_baseline_reconciliation.sql`；
+8. 完成 staging 逻辑备份隔离恢复、四身份 RLS、Auth 生命周期和私有 Storage
+   行为验收并清理全部合成 fixture。
 
-这只证明仓库 canonical history 可 fresh install，不代表 staging 或 production 已协调。provider-supported staging backup、isolated clone restore、existing-row provenance classification、reviewed later-ID forward migration 和明确 live-write 批准仍是线上门槛。禁止 linked push、migration repair、staging reset、production reset 或 live SQL；也不得据此增加 V1 业务 migration。
+这不代表 production 已协调。禁止 migration repair、staging reset、production
+reset、未经批准的 linked push 或 live SQL；M1 的 staging 授权不能自动扩展到后续
+业务 migration 或 production。
 
 `backend/sql/` 只作为历史 bootstrap/reference，不是新的 migration 路径。
 
@@ -144,3 +152,14 @@ migration_baseline_status = canonical_local_pass_live_reconciliation_required
 上述为 ADR 最初的验证记录；当时没有执行 SQL/RLS 行为、fresh migration reset、linked Supabase 检查、backup/restore、浏览器交互或部署验证。
 
 2026-08-30 离线 reconciliation 补充验证：canonical 11-file history 已通过 fresh local reset、schema/provenance assertions、匿名/owner/other-user/service-worker RLS matrix，以及 local full-dump restore drill。现状更新为 `migration_baseline_status = canonical_local_pass_live_reconciliation_required`。这不代表 staging 或 production 已协调；本次没有执行 linked Supabase、migration repair、staging reset、production 操作或部署。live baseline gate 通过前，不得增加 V1 membership、billing、task、contact-consent 或 admin migration。
+
+2026-09-02 M1 staging reconciliation：在明确授权下先完成 transaction dry-run 和
+回滚确认，再导出 roles/schema/data/migration-history 并恢复到第二套隔离本地
+Supabase；随后 push 更晚的 `20260902000100`。CI 在 Supabase CLI `2.115.0`
+暴露 worker grant 便携性差异后，再以 `20260902000200` 显式固定 22 张表的
+`service_role` 权限。最终 staging ledger 为原三条 ID 加这两条 later-ID，
+未执行 repair。四身份数据库 RLS、Auth signup/confirm/recovery/
+refresh/logout/delete，以及 private Storage worker upload/download/delete/restore 均
+通过，fixture 清理后 Auth users、业务行和 Storage objects 均为 0。现状更新为
+`migration_baseline_status = canonical_staging_reconciled_production_pending`；不代表
+production 已协调。

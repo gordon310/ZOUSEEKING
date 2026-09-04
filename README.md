@@ -48,8 +48,9 @@ python3 -m http.server 8787 -d web
 
 `supabase/migrations/` 是唯一允许新增的 forward migration history。
 `backend/sql/` 仅保留历史 bootstrap、恢复、生成或比对材料，不能拼接成新的建库入口。
-当前 `migration_baseline_status = canonical_local_pass_live_reconciliation_required`；
-这表示 canonical history 已通过本地验证，但 staging/production reconciliation 仍未获批。
+当前 `migration_baseline_status = canonical_staging_reconciled_production_pending`。
+2026-09-02 已在获批 staging 完成 later-ID reconciliation、逻辑备份/隔离恢复、
+四身份 RLS、Auth 生命周期和私有 Storage 验收；production 仍未执行或批准。
 
 提交 schema 相关改动前，从仓库根目录运行只读审计：
 
@@ -60,7 +61,7 @@ npm run check:schema-ownership
 
 审计清单、重复对象与 forward-fix/恢复门槛见
 [`docs/architecture/schema-ownership-audit.md`](docs/architecture/schema-ownership-audit.md)。
-不要执行 linked `db push`、`migration repair`、staging/production reset 或未经批准的 live SQL。
+不要执行 `migration repair`、staging/production reset、未经批准的 linked push 或 live SQL。
 
 ## 输入字段与发布原则
 

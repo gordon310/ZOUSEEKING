@@ -56,9 +56,9 @@ python3 scripts/check_schema_ownership.py
 npm run check:schema-ownership
 ```
 
-在 `migration_baseline_status = canonical_local_pass_live_reconciliation_required`
-清除前，不运行 linked repair、`supabase db push`、staging reset 或 production
-reset，也不新增会员、计费、任务或后台 migration。
+当前 `migration_baseline_status = canonical_staging_reconciled_production_pending`。
+禁止 linked repair、staging reset、production reset 或未经批准的 `supabase db push`；
+M1 staging 授权不包含会员、计费、任务、后台 migration 或 production 操作。
 
 现在已内置完整日本行政区划字段库：
 
@@ -124,7 +124,9 @@ https://gordon310.github.io/ZOUSEEKING/
 https://gordon310.github.io/ZOUSEEKING/**
 ```
 
-当前阶段先关闭邮箱确认，注册后直接登录。后面如果要重新开启邮箱确认，重点检查：
+当前 staging 要求邮箱确认。M1 使用合成 `.invalid` 账号和 Admin 生成的 token
+完成 signup/verify 行为验收，不发送真实邮件；公开恢复邮件投递因没有专用 SMTP
+sink 为 `NOT_EXECUTED`。正式上线前重点检查：
 
 - `Site URL` 是否是 `https://gordon310.github.io/ZOUSEEKING/`
 - `Redirect URLs` 是否包含 `https://gordon310.github.io/ZOUSEEKING/**`
@@ -137,9 +139,15 @@ https://gordon310.github.io/ZOUSEEKING/**
 
 账户页的删除入口只会在有 FastAPI 地址、Supabase 会话和 bearer token 时调用 `POST /api/account/deletion-request`，请求包含当前版本及固定值 `DELETE_ACCOUNT`。当前 FastAPI 删除执行器未配置时明确返回 `503`（`no account data was changed`），页面显示未删除，不连接 Auth Admin、数据库、RLS、Storage 或备份，也不会发送客服通知。客服与数据主体请求使用静态 [support.html](../web/support.html) 和 `.example` 占位地址，不能视为已接通邮箱。
 
-密码找回使用 Supabase `/recover` 并保持账户枚举安全；登出尽力调用 `/logout` 后清理本地 UI；当前实现只证明当前会话退出，不能证明所有 refresh token 已撤销。旧区域路径仍可能由 `web/app.js` 直连 Supabase REST/Edge Function，FastAPI 唯一业务路径、RLS 四角色验证和受信任删除 worker 尚未收敛。
+密码找回使用 Supabase Auth 并保持账户枚举安全。M1 已在 staging 验证 token
+确认、密码恢复、refresh rotation、global logout/revocation、Admin hard delete 与
+profile cascade；access JWT 在自身到期前仍可能有效，这是 Supabase 的会话边界。
+这些 provider 行为测试不等于 FastAPI 账户删除执行器已经接通。旧区域路径仍可能
+由 `web/app.js` 直连 Supabase REST/Edge Function，受信任删除 worker 尚未收敛。
 
-上线前必须完成运营主体/隐私负责人确认、客服工单权限、近期重新认证、全会话撤销、Auth Admin 删除、RLS/Storage 删除、备份轮换、持续清理器、事故通知决定和恢复演练。当前 `migration_baseline_status = reconciliation_required`，本任务不执行这些线上动作、不发送通知、不使用真实账号或资料。
+上线前仍必须完成运营主体/隐私负责人确认、客服工单权限、近期重新认证、
+生产 SMTP、持续清理器、事故通知决定和 production 恢复策略。M1 仅在 staging
+以合成账号验证 Auth Admin 删除、RLS/Storage 和恢复，不发送通知、不使用真实资料。
 
 ## 5. 同步已有网站数据到 Supabase
 
@@ -167,7 +175,7 @@ Webhook 必须由 FastAPI 读取原始 request body，先验证 `Stripe-Signatur
 
 上线前必须同时完成并记录：
 
-- `migration_baseline_status = reconciliation_required` 清除后的 canonical membership/billing forward migration、RLS 与四类身份断言；在此之前不得增加或执行 billing migration。
+- 独立评审 canonical membership/billing forward migration、额度原子性、RLS 与四类身份断言；M1 baseline 通过不自动批准 billing migration。
 - 不得执行 linked repair、db push 或 production reset，除非另有明确授权、备份和 forward-fix 计划。
 - Stripe Dashboard Customer Portal 的 payment method、invoice history、取消/计划更新配置，test-mode webhook delivery 和失败重试演练。
 - provider backup/restore、税费/收据、退款/取消和支付失败降级演练；任何 provider 或生产数据库操作都必须停在明确授权门槛。

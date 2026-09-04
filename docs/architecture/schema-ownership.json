@@ -2,7 +2,7 @@
   "schema_version": 1,
   "audit_document": "docs/architecture/schema-ownership-audit.md",
   "canonical_forward_history": "supabase/migrations",
-  "migration_baseline_status": "canonical_local_pass_live_reconciliation_required",
+  "migration_baseline_status": "canonical_staging_reconciled_production_pending",
   "forward_migration_files": [
     "20260824000100_legacy_schema_baseline.sql",
     "20260824000200_foundation_data_contract.sql",
@@ -14,7 +14,9 @@
     "20260825000400_property_intake.sql",
     "20260827000500_legacy_private_data_rls.sql",
     "20260828000100_property_photo_location.sql",
-    "20260829000100_baseline_access_contract.sql"
+    "20260829000100_baseline_access_contract.sql",
+    "20260902000100_staging_baseline_reconciliation.sql",
+    "20260902000200_service_role_grant_portability.sql"
   ],
   "legacy_sql_files": [
     "backend/sql/001_foundation_data_contract.sql",

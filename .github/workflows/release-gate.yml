@@ -17,7 +17,7 @@ concurrency:
 env:
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "22"
-  REQUIRED_CHECKS: "python-pytest,python-compileall,pip-check,node-syntax,node-edge,browser,sql-start,sql-reset,sql-foundation,sql-intake,sql-rls,npm-audit,pip-audit,secret-scan,policy,diff"
+  REQUIRED_CHECKS: "python-pytest,python-compileall,pip-check,node-syntax,node-edge,browser,sql-start,sql-reset,sql-foundation,sql-intake,sql-provenance,sql-rls,sql-identity,sql-m1,npm-audit,pip-audit,secret-scan,policy,diff"
 
 jobs:
   python:
@@ -107,7 +107,7 @@ jobs:
         run: mkdir -p ci-results
       - name: Run Playwright
         continue-on-error: true
-        run: python3 scripts/ci/release_evidence.py record --name browser --output ci-results/browser.json -- npm run test:web
+        run: python3 scripts/ci/release_evidence.py record --name browser --output ci-results/browser.json -- npm run test:web -- --workers=1
       - name: Fail if browser checks failed
         if: always()
         run: python3 scripts/ci/release_evidence.py validate --results-dir ci-results --required browser
@@ -145,15 +145,24 @@ jobs:
       - name: Run property intake SQL assertions
         continue-on-error: true
         run: python3 scripts/ci/release_evidence.py record --name sql-intake --output ci-results/sql-intake.json -- psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/sql/test_property_intake_schema.sql
+      - name: Run provenance and metric SQL assertions
+        continue-on-error: true
+        run: python3 scripts/ci/release_evidence.py record --name sql-provenance --output ci-results/sql-provenance.json -- psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/sql/test_provenance_policy_metric_contract.sql
       - name: Run private project RLS assertions
         continue-on-error: true
         run: python3 scripts/ci/release_evidence.py record --name sql-rls --output ci-results/sql-rls.json -- psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/security/test_rls_private_projects.sql
+      - name: Run V1 identity matrix assertions
+        continue-on-error: true
+        run: python3 scripts/ci/release_evidence.py record --name sql-identity --output ci-results/sql-identity.json -- psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/security/test_rls_v1_identity_matrix.sql
+      - name: Run M1 reconciliation assertions
+        continue-on-error: true
+        run: python3 scripts/ci/release_evidence.py record --name sql-m1 --output ci-results/sql-m1.json -- psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/sql/test_m1_reconciliation_contract.sql
       - name: Stop disposable Supabase
         if: always()
         run: npx supabase stop --no-backup || true
       - name: Fail if SQL or RLS checks failed
         if: always()
-        run: python3 scripts/ci/release_evidence.py validate --results-dir ci-results --required sql-start,sql-reset,sql-foundation,sql-intake,sql-rls
+        run: python3 scripts/ci/release_evidence.py validate --results-dir ci-results --required sql-start,sql-reset,sql-foundation,sql-intake,sql-provenance,sql-rls,sql-identity,sql-m1
       - name: Upload SQL/RLS evidence
         if: always()
         uses: actions/upload-artifact@v4

@@ -2,17 +2,17 @@
 
 ## Scope and evidence boundary
 
-本报告只核对仓库 migration history、2026-08-30 的只读 staging metadata
-inventory，以及 disposable local Supabase PostgreSQL。它没有执行 linked
-`supabase db push`、`supabase migration repair`、staging reset、staging
-SQL/RLS/Auth/Storage 写入或任何 production reset／production 操作。
+本报告记录仓库 migration history、2026-08-30 的只读 staging metadata
+inventory、disposable local Supabase，以及 2026-09-02 经明确授权完成的 staging
+reconciliation、逻辑备份隔离恢复与运行验收。没有执行 migration repair、
+staging/production reset 或任何 production 操作。
 
 staging inventory 来自获准的 Supabase SQL Editor 只读 catalog 查询，记录了
 22 张 `public` 表、263 列、97 个约束、72 个索引、20 条 policy、18 个
 trigger event、8 个 application function、6 个 extension、5 个 enum label、
 315 条所选角色 table grant，以及 3 个 migration ID。该 inventory 不含客户行、
 邮箱、姓名、Storage 对象、token、数据库 URL 或 secret。staging 不是 production；
-该 inventory 不能证明 production schema、数据或备份状态。
+该历史 inventory 和后续 staging 结果都不能证明 production schema、数据或备份状态。
 
 ## Gate status
 
@@ -21,30 +21,33 @@ fresh_reset=pass
 schema_assertions=pass
 rls_identity_matrix=pass
 local_restore_drill=pass
+staging_transaction_dry_run=pass
 canonical_history=selected
 retained_photo_address_migration=pass
 policy_version_choice=gist_exclusion
 staging_inventory=pass
 drift_review=pass
-blocking_drift=present
-schema_only_dump=blocked
-forward_fix=blocked
-backup_restore=blocked
-live_write_approval=required
+blocking_drift=cleared_by_20260902000100
+service_role_grant_portability=pass_20260902000200
+logical_backup=pass
+isolated_restore=pass
+backup_restore=pass
+forward_fix=pass
+staging_rls_auth_storage=pass
+provider_physical_backup=not_available_free
+future_live_write_approval=required
 production_reset=forbidden
-migration_baseline_status=canonical_local_pass_live_reconciliation_required
+migration_baseline_status=canonical_staging_reconciled_production_pending
 ```
 
-`fresh_reset=pass` 只表示仓库选择的单一 history 可以从空的 local Supabase
-重建。`drift_review=pass` 只表示 inventory 中的差异已分类，不表示 staging
-与 local 相同。`backup_restore=blocked` 指 provider-supported staging backup
-及 isolated staging-clone restore 尚未完成；它与 `local_restore_drill=pass`
-不矛盾。任何 local PASS 都不授权 live write。
+`backup_restore=pass` 是 Supabase Free 可执行的 roles/schema/data/history 完整逻辑
+导出与第二套隔离本地 Supabase 恢复，不是付费 physical backup/PITR。M1 授权仅
+覆盖命名 staging 和本次 later-ID；任何 future live write 及 production 仍须另行批准。
 
 ## Canonical history decision
 
 `supabase/migrations/` 是唯一 canonical forward history。Fresh install 必须按
-文件名执行以下 11 个 ID：
+文件名执行以下 13 个 ID：
 
 | ID | 责任 |
 | --- | --- |
@@ -59,6 +62,8 @@ migration_baseline_status=canonical_local_pass_live_reconciliation_required
 | `20260827000500` | applied legacy private-data RLS hardening |
 | `20260828000100` | applied photo/location/address/project-name fields and indexes |
 | `20260829000100` | final canonical RLS、least-privilege grants 和 public field-option exception |
+| `20260902000100` | staging baseline reconciliation、complete provenance、constraints 与 final least-privilege access contract |
+| `20260902000200` | 显式固定 managed/disposable 环境一致的 `service_role` 表权限 |
 
 三条已经应用且原本存在于当前 history 的文件没有被改写：
 
@@ -178,23 +183,17 @@ canonical local now包含 staging inventory 中的 photo/location/address 列和
   不得用 `--include-all` 绕过历史顺序；必须先取得 provider backup、隔离恢复和
   existing-row provenance 分类，再设计审核后的 later-ID reconciliation migration。
 
-## Remaining live blockers
+## Pre-M1 live blockers（2026-09-02 已闭合）
 
-1. 没有 direct staging database URL，因此没有 staging schema-only dump；现有
-   SQL Editor inventory 不能替代 dump。
-2. 没有 provider-supported encrypted staging backup，也没有 isolated staging
-   clone restore drill，因此 `backup_restore=blocked`。
-3. 需要在 restored staging clone 上审计 existing rows，确认哪些 provenance
-   可由证据回填；缺失事实不得编造，旧 published rows 不能静默通过新约束。
-4. 需要新增 ID 晚于 `20260829000100` 的 expand/backfill/validate forward
-   migration，并在 clone 上验证。旧 `20260824000100–00700` 只定义 fresh
-   history，不能直接补写 staging ledger。
-5. database owner 与 release owner 仍须批准 exact target、backup identifier /
-   checksum、forward migration IDs、restore result、maintenance window 和 stop /
-   forward-fix owner。
-
-在以上 blocker 解决前，禁止 linked push、migration repair、staging reset、
-production reset 和 V1 membership/billing/task/contact-consent/admin migration。
+1. 已通过 CLI 生成 staging roles/schema/data/history 逻辑备份，并校验 SHA-256。
+2. 已在第二套隔离本地 Supabase 单 transaction 恢复；ledger/catalog 与迁移前
+   staging 一致。Free 没有 physical backup/PITR，明确记为不可用而非 PASS。
+3. staging Auth users、22 张业务表和 Storage objects 均为 0；migration preflight
+   也会在发现无法安全分类的既有数据时 fail closed，没有伪造 provenance。
+4. 新增并审核晚于全部既有 ID 的 `20260902000100`；没有把七条早期 ID 补写进
+   remote ledger，也没有执行 repair。
+5. exact staging target 与本次 live write 已获用户明确授权；transaction dry-run、
+   backup/restore 和 stop conditions 均先于正式 push 完成。
 
 ## 2026-08-31 本轮 disposable 执行证据
 
@@ -212,3 +211,79 @@ production reset 和 V1 membership/billing/task/contact-consent/admin migration�
 - `supabase storage ls` 只发现 `property-intake/` bucket；递归 object count 为 `0`，未读取或复制对象内容。
 - 费用上限 `JPY 0`，未启用 PITR、clone、临时 compute、retention 或其他可能收费的 provider 配置。
 - 因 provider backup 缺失，`backup_restore=blocked`、`forward_fix=blocked` 和 live reconciliation blocker 保持不变。
+
+以上小节是 2026-08-31 的历史预检快照；其 blocker 已由下面的零费用逻辑恢复
+路径和 later-ID reconciliation 在 2026-09-02 关闭，不应再作为当前 staging 状态。
+
+## 2026-09-02 M1 staging reconciliation 证据
+
+### Dry-run、备份与恢复
+
+- 在 staging transaction 中执行 `20260902000100`、临时 ledger 记录和 M1 SQL
+  assertion 后回滚，结果为 `M1_STAGING_TRANSACTION_DRY_RUN_PASS`；回滚后新 ledger
+  ID 和新 provenance column 均不存在。
+- pre-change logical backup 包含 roles、public schema/data 和 migration-history
+  schema/data。五个 artifact 总计 `106656` bytes，SHA-256 分别为：
+  - roles: `168a95a9c745af5ed4679751f90419ac9dc434240a213b03e32a06d5664c2308`
+  - schema: `6797a79aab074079fae62ce6d16015e821837082f88d036782c24db10a7bab8f`
+  - data: `95017a0139c52ebe9a4fd9d43c649b7c121afc76bcf62e6d535defe7c9786c8b`
+  - history schema: `18b99fbbb3ec9fbb964bb255a56171329acd99b6977ece2addd89fdf5aa5105b`
+  - history data: `ab1c249b02b0452d0183f20998f0e7925ada6e84ef2d49e6a04447ed364de8cc`
+- 在第二套隔离本地 Supabase 中以 provider-compatible admin role 单 transaction
+  恢复成功。恢复结果与 pre-change staging 一致：22 tables、263 columns、72
+  indexes、20 policies、三条原 ledger ID、0 Auth users、0 业务行和 0 Storage
+  objects。artifact 与隔离 target 都不进入 Git。
+
+### Later-ID apply 与最终库存
+
+- 首次 linked push dry-run 只列出
+  `20260902000100_staging_baseline_reconciliation.sql`；正式 push 也只应用这一条。
+  migration SHA-256 为
+  `77c229259060bee1c6b9dde94224adc7bfa65cf7e550a1e627687a0f20c756cd`。
+- GitHub CI 使用的 Supabase CLI `2.115.0` 暴露了 disposable stack 未自动
+  赋予完整 `service_role` 表权限的版本差异。因 `20260902000100` 已应用，
+  未改写旧文件，而是新增
+  `20260902000200_service_role_grant_portability.sql`。它的 linked dry-run 与
+  push 都只包含这一条，SHA-256 为
+  `d6872949b94b47488fa8c39e1f6328ac9b25af7fb13e6a2ce1564adcf7206bb0`。
+- 最终 staging ledger 为 `20260825000400`、`20260827000500`、
+  `20260828000100`、`20260902000100`、`20260902000200`。未执行 migration
+  repair，未修改任何已应用 migration 文件，未伪造早期 ID。
+- 最终 catalog 为 22 tables、300 columns、75 indexes、16 policies、0 张 RLS
+  disabled application table、170 selected-role grants；M1 contract assertion 返回
+  `M1_STAGING_RECONCILIATION_PASS`。
+- post-fix 实时 schema dump 包含 22/22 条 application table
+  `GRANT ALL ... TO service_role`，dump SHA-256 为
+  `bc13f99606b1def793d3c513a2063661031b19f1965722128be31e0b401f5bce`。
+- 最终 local fresh reset 重放 13 条 canonical migration，六组 SQL/RLS
+  assertions 全部通过；database lint 返回 `No schema errors found`。
+
+### 行为验收与清理
+
+- 数据库匿名/本人/他人/worker 四身份矩阵为 `PASS`：匿名只读 active field
+  options，本人只读自身业务记录并只改 profile preferences，他人记录不可见，
+  worker 可受信写入但仍受数据库 constraints。
+- 私有 Storage 四身份矩阵为 `PASS`：匿名、本人和他人均不能直接访问；worker
+  完成 upload/download/delete/restore/delete，恢复前后内容 hash 一致。当前架构
+  故意采用 service-only Storage，owner denial 是契约，不是缺陷。
+- Auth 生命周期为 `PASS`：email confirmation required、未确认登录拒绝、token
+  verify、确认后登录、重复注册不泄露既有 user ID、密码恢复、refresh rotation、
+  global logout/revocation、Admin hard delete 与 profile cascade。
+- 公开 `/recover` 的真实邮件投递为 `NOT_EXECUTED`，因为没有专用 SMTP sink；
+  使用 Admin recovery token 的密码重置行为已通过。access JWT 在自身到期前仍可能
+  有效，验收不把它误写为立即失效。
+- 清理为 `PASS`：最终 Auth users、public 业务行、Storage objects 和 synthetic
+  Storage objects 均为 0。
+- `20260902000200` 应用后重跑完整行为验收，四身份、Auth、Storage 和
+  fixture cleanup 再次全部 `PASS`。
+
+## Remaining production blockers
+
+- production database/Auth/Storage 未连接、未修改、未验证；production deploy、
+  DNS、billing 和真实用户/文件也为 `NOT_EXECUTED`。
+- Free staging 没有 provider physical backup/PITR。M1 用官方支持的逻辑导出和
+  隔离恢复关闭 staging 恢复门槛；首次接收不可丢失数据前仍需选择 production
+  RPO/RTO、数据库备份与独立 Storage object backup 策略。
+- 正式恢复邮件投递需要专用 SMTP、模板/redirect allowlist、频率与送达性验收。
+- 任一后续 migration 都需要新的 reviewed later-ID、备份/恢复、明确 target 和
+  live-write approval；M1 授权不能复用。

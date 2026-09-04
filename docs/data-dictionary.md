@@ -77,6 +77,9 @@
 
 数据库字段的定义和约束必须沿唯一 forward history 演进：新字段先更新本数据字典，再新增 `supabase/migrations/` 中的 reviewed forward migration、解析映射和离线断言。`backend/sql/` 中的旧脚本只用于来源比对或 disposable local/test compatibility，不能作为新的建库入口。
 
-当前 `migration_baseline_status = canonical_local_pass_live_reconciliation_required`。这表示 canonical history 已通过本地验证，但 staging/production 的 ledger、backup/restore、existing-row provenance 和 later-ID forward-fix 仍未完成；不因此把旧 bootstrap 字段宣称为已协调的线上 schema。
+当前 `migration_baseline_status = canonical_staging_reconciled_production_pending`。
+canonical history 与 staging 的 later-ID reconciliation、provenance constraints、
+逻辑备份隔离恢复和权限验收已通过；production 字段状态仍未验证。旧 bootstrap
+字段仍不是新的 schema 来源。
 
 完整文件级盘点见 [`docs/architecture/schema-ownership-audit.md`](architecture/schema-ownership-audit.md)。金额、面积和位置继续以带单位/币种的数值列保存，展示文本不得反向作为分析输入。

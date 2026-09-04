@@ -1,5 +1,24 @@
 # Staging schema metadata inventory
 
+## Current status after M1（2026-09-02）
+
+- `inventory_status=complete`
+- `migration_baseline_status=canonical_staging_reconciled_production_pending`
+- `staging_reconciliation=pass`
+- `production_inventory=not_executed`
+- 最终计数：22 public tables、300 columns、75 indexes、16 policies、0 张 RLS
+  disabled application table、170 selected-role table grants、5 migration IDs。
+- 最终 ledger：`20260825000400`、`20260827000500`、`20260828000100`、
+  `20260902000100`、`20260902000200`。七条早期 fresh-install migration
+  没有被伪造到 staging ledger。
+- 最终清理：Auth users `0`、public rows `0`、Storage objects `0`。
+
+以下是 reconciliation 前的 2026-08-30 只读 inventory，保留用于 drift 和恢复
+对照；其中的 `reconciliation_required`、263 columns、20 policies 和 3 migration
+IDs 是历史快照，不是当前 staging 状态。
+
+## Pre-M1 inventory（2026-08-30）
+
 - `inventory_status=complete`
 - `migration_inventory_status=complete`
 - `migration_baseline_status=reconciliation_required`
@@ -264,9 +283,13 @@ again on an isolated staging restore before any grant or policy change.
 
 盘点当时用于对照的候选 fresh-install branch 尚未包含 staging 的
 `20260827000500` 与 `20260828000100`；最终 canonical branch 已保留这两条原文件。
-staging ledger 仍不含 `20260824000100`–`20260824000700`，也不含最终 access
-contract。不得通过改写 timestamp、`migration repair` 或 reset 强行对齐。
+当时 staging ledger 不含 `20260824000100`–`20260824000700`，也不含最终 access
+contract。2026-09-02 通过 later-ID reconciliation 关闭差异，没有通过改写
+timestamp、`migration repair` 或 reset 强行对齐。
 
 ## Reproduction boundary
 
-本次浏览器盘点没有生成 schema-only dump，也没有读取 provider backup。完整对象定义的 drift 分类记录在 [migration-reconciliation-report.md](migration-reconciliation-report.md)；恢复门禁记录在 [backup-restore-forward-fix.md](backup-restore-forward-fix.md)。
+2026-08-30 浏览器盘点没有生成 dump；2026-09-02 已另行完成完整逻辑备份与
+隔离恢复。完整 drift、hash 和 M1 证据记录在
+[migration-reconciliation-report.md](migration-reconciliation-report.md)；恢复门禁记录在
+[database-recovery-runbook.md](../operations/database-recovery-runbook.md)。

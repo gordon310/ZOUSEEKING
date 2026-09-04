@@ -1,17 +1,20 @@
 # Schema ownership 审计
 
-**审计日期：** 2026-09-01
+**审计日期：** 2026-09-02
 **范围：** `supabase/migrations/`、`backend/sql/`、数据库启动入口及开发/部署文档。
-**方式：** 只读文件清单、manifest 对照和文档/配置复核；不连接数据库、不执行 SQL、不访问 provider。
+**方式：** 文件/manifest 审计、disposable local reset、获批 staging
+transaction dry-run、later-ID push、逻辑备份隔离恢复及运行验收。
 
 ## 结论与边界
 
-**本地 ownership contract：SHIP。线上 baseline：BLOCKED。**
+**本地与 staging ownership contract：SHIP。production baseline：BLOCKED。**
 
-- `supabase/migrations/` 是唯一允许新增的 forward migration history，当前清单为 11 个文件。
+- `supabase/migrations/` 是唯一允许新增的 forward migration history，当前清单为 13 个文件。
 - `backend/sql/` 的 8 个 SQL 文件分别属于历史 bootstrap、迁移前来源、生成支持或手工支持材料，不能拼接成第二条 migration history。
 - `backend/app/db.py::init_schema` 仍读取 `backend/sql/schema.sql`，但 `backend/app/main.py::should_init_schema` 只在显式 `INIT_SCHEMA=true` 且 `ENVIRONMENT` 为 `local`、`development` 或 `test` 时调用；Render staging 的 `INIT_SCHEMA=false`。该路径保留为 disposable local/test compatibility，不是托管环境建库入口。
-- `migration_baseline_status = canonical_local_pass_live_reconciliation_required`：canonical history 的本地 reset/断言已通过，但 staging ledger、provider backup/isolated clone、existing-row provenance、later-ID forward-fix 和 live approval 仍未闭合。
+- `migration_baseline_status = canonical_staging_reconciled_production_pending`：
+  canonical history 的本地 reset、staging later-ID reconciliation、逻辑备份隔离
+  恢复及运行验收已通过；production 没有连接、修改或验证。
 
 机器清单见 [`schema-ownership.json`](schema-ownership.json)，只读护栏见
 [`scripts/check_schema_ownership.py`](../../scripts/check_schema_ownership.py)。
@@ -42,6 +45,8 @@ render.yaml           ->  staging ENVIRONMENT=staging, INIT_SCHEMA=false
 | `20260827000500_legacy_private_data_rls.sql` | 已有区域报告表的 legacy private-data RLS hardening |
 | `20260828000100_property_photo_location.sql` | project name、坐标、地址候选、精度和 owner-scoped indexes |
 | `20260829000100_baseline_access_contract.sql` | 22 张 application table 的最终 RLS/grant/access contract |
+| `20260902000100_staging_baseline_reconciliation.sql` | 在不伪造旧 ledger 的前提下协调 staging provenance、constraints、least-privilege RLS/grants 与 Storage policy 边界 |
+| `20260902000200_service_role_grant_portability.sql` | 显式固定 22 张 application table 的 trusted `service_role` 权限，消除 managed staging 与 disposable CLI 版本差异 |
 
 文件名必须保持唯一 14 位时间戳并按顺序应用。已应用文件不可编辑；任何线上修复只能新增更晚的 reviewed forward migration。
 
@@ -58,7 +63,8 @@ render.yaml           ->  staging ENVIRONMENT=staging, INIT_SCHEMA=false
 | `backend/sql/supabase_field_options.sql` | `generated_support_sql` | 生成/比对输入；托管环境需另有 reviewed forward migration |
 | `backend/sql/supabase_indexes.sql` | `manual_support_sql` | 比对/来源输入；不能独立构成 migration |
 
-这些文件本轮不删除、不改名、不改写。历史文件退役前必须完成 reviewed later-ID forward-fix、空库 reset、schema/RLS 断言、metadata-only drift、backup/restore 和明确的 linked/production 批准。
+这些文件本轮不删除、不改名、不改写。历史文件退役或 production 应用前仍需
+production 备份策略、schema/RLS 断言、metadata drift、恢复方案和明确批准。
 
 ## 开发命令
 
@@ -76,5 +82,13 @@ python3 -m unittest discover -s tests/architecture -p 'test_schema_ownership_aud
 ## 审计证据与未评估项
 
 - `check_schema_ownership.py` 对照本地 migration/legacy SQL 清单、标准命名、文档存在性和禁止操作；`status=pass` 只证明 ownership 文档/layout，不证明 SQL/RLS runtime 行为。
-- 本轮不执行 linked `db push`、`migration repair`、staging/production reset、live SQL、provider backup/clone、部署、DNS 或 billing。
-- fresh reset、SQL/RLS、backup/restore 和 staging drift 证据沿用 [`migration-reconciliation-report.md`](migration-reconciliation-report.md)，其 `migration_baseline_status` 仍保持 live reconciliation required。
+- disposable local fresh reset、六组 SQL assertions 与 lint 均通过。
+- 获批 staging transaction dry-run、两条审核后 later-ID push、最终 ledger/catalog、
+  四身份 RLS、Auth 生命周期和私有 Storage 行为均通过；合成用户和对象已清理。
+- 免费层完整逻辑备份恢复到第二套隔离本地 Supabase 后，22 tables、263
+  pre-migration columns、72 indexes、20 policies、三条原 ledger ID、0 Auth users、
+  0 业务行与 0 Storage objects 均一致。
+- 未执行 production 数据库/Auth/Storage、部署、DNS、billing、physical backup/PITR
+  或真实恢复邮件投递。详细证据见
+  [`migration-reconciliation-report.md`](migration-reconciliation-report.md) 与
+  [`rls-verification-matrix.md`](rls-verification-matrix.md)。

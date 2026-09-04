@@ -5,28 +5,39 @@
 ```text
 local_archive_checksum_and_toc=pass
 candidate_local_restore=pass
-current_main_restore_acceptance=blocked
-provider_backup=deferred_prelaunch_jpy0
-isolated_provider_restore=deferred_prelaunch_jpy0
-migration_forward_fix=blocked_pending_history_decision
+current_canonical_restore_acceptance=pass
+staging_logical_backup=pass
+staging_isolated_logical_restore=pass
+staging_storage_object_restore=pass_synthetic
+provider_physical_backup=not_available_free
+migration_forward_fix=pass_20260902000100_and_20260902000200_staging_only
 production_restore=not_authorized
-migration_baseline_status=canonical_local_pass_live_reconciliation_required
+migration_baseline_status=canonical_staging_reconciled_production_pending
 ```
 
-本 runbook 只提供离线工具、验收标准和获得授权后的操作顺序，不授权任何线上备份、恢复、migration、Auth、RLS、Storage、部署、DNS 或 billing 操作。`production reset` 始终禁止；production restore 必须另立事故恢复决策并获得明确批准。
+本 runbook 记录离线工具、验收标准，以及 2026-09-02 已获授权的 staging M1
+执行证据；它不授权未来线上变更。`production reset` 始终禁止；production restore
+必须另立事故恢复决策并获得明确批准。
 
-2026-08-31 本机 local-only drill 已通过：custom-format checksum/TOC、恢复、五组 schema/RLS assertions 与自动清理均为 `pass`。该结果不改变 provider backup、Storage backup、隔离 clone 或 live forward-fix 的阻塞状态。
+2026-08-31 本机 local-only drill 已通过；2026-09-02 又完成 staging Free 逻辑
+备份、隔离恢复、later-ID reconciliation 和 synthetic Storage object 恢复。
+physical backup/PITR 仍不可用，production 状态不变。
 
 ## 前期零成本模式（2026-08-31 已确认）
 
 - 项目尚未上线，费用上限为 `JPY 0`，当前不创建 Render 付费 PostgreSQL，也不启用 Supabase PITR、Restore to a new project 或临时 compute。
 - 前期数据库/Auth/Storage 继续使用 Supabase Free；该计划包含 500 MB database quota、1 GB Storage 和 5 GB egress，但没有 automatic database backup/PITR，低活跃项目可能在一周后暂停。[Supabase Pricing](https://supabase.com/pricing) · [Database Backups](https://supabase.com/docs/guides/platform/backups) · [Project Pausing](https://supabase.com/docs/guides/platform/free-project-pausing)
-- 只允许 synthetic/empty custom-format artifact 的本地 checksum、restore 和清理演练；不把本地结果写成 staging 或 production recovery 证据。
-- 首次接收真实用户或不可丢失数据前，必须重新选择付费备份方案并完成 provider backup、独立 Storage object backup、隔离恢复和费用/保留审批；在此之前 C04 的 provider 部分保持 `blocked/deferred`，不能作为 production release pass。
+- 获明确授权时，可按 Supabase 官方 CLI 流程导出 roles/schema/data 并在隔离
+  target 恢复；artifact 必须受限保存、校验 checksum，并且不进入 Git。
+- 首次接收真实用户或不可丢失数据前，必须依据 RPO/RTO 选择可持续的 production
+  备份方案（定期逻辑备份或付费 physical/PITR）、独立 Storage object backup、
+  隔离恢复和费用/保留审批。M1 Free staging 证据不能作为 production release pass。
 
 Render paid Postgres 的 PITR/恢复能力不能抵消当前架构迁移成本：本项目现有 migration、Supabase Auth（`auth.users`/`auth.uid()`）和 private Storage 仍以 Supabase 为边界。若以后迁移到 Render，必须另立架构决策、重建 migration baseline 并重新验收 Auth/RLS/Storage。
 
 ## 2026-08-31 staging provider 预检
+
+本节是 M1 前的历史快照；当前结果见下一节。
 
 - 目标：Supabase staging `zoubeacon-staging`（ref `fnogxuytbabxmqousifh`）。
 - `supabase backups list`：`walg_enabled=true`、`pitr_enabled=false`、`backups=[]`；没有可引用的 provider physical backup。
@@ -34,6 +45,20 @@ Render paid Postgres 的 PITR/恢复能力不能抵消当前架构迁移成本�
 - 没有启用 PITR、创建 clone、执行 provider restore、读取 Storage 对象内容或写入远端资源。
 - 费用上限为 `JPY 0`，因此不启用可能收费的 PITR、Restore to a new project、临时 compute 或 retention 变更。
 - 结论：`provider_backup` 与 `isolated_provider_restore` 继续 blocked；须提供现有 provider backup/restore 证据，或另行批准费用后再继续。
+
+## 2026-09-02 M1 Free 逻辑备份与隔离恢复
+
+- 迁移前导出 staging roles、public schema/data 和 migration-history schema/data；
+  五个 artifact 共 `106656` bytes，均记录并复核 SHA-256，没有提交到 Git。
+- 第二套隔离本地 Supabase 以匹配 provider 权限的 admin role 在单 transaction 中
+  恢复成功。恢复结果为 22 tables、263 columns、72 indexes、20 policies、三条
+  原 ledger ID、0 Auth users、0 public rows 和 0 Storage objects，与源 inventory
+  一致。
+- 数据库备份不包含 Storage blob。因为源 bucket 对象数为 0，另以 synthetic
+  fixture 验证 worker upload/download/delete/restore/delete，内容 hash 一致且最终
+  object count 回到 0；这不是 production 对象备份证据。
+- 逻辑恢复满足 M1 staging 的零费用恢复验收。Supabase Free 的 physical backup /
+  PITR 仍记为 `not_available_free`，没有启用付费功能。
 
 2026-08-30 本地审阅确认现有 custom-format artifact `jpp-local-baseline-full-94644b6.dump` 的大小为 `545277` bytes，SHA-256 为 `4c7c555a543c9a89c009ba7cc99cf31d2442847d553de5ba586c56a4da612b3d`，源 PostgreSQL 为 `17.6`，生成工具为 `pg_dump 18.6`，TOC 有 `1067` 个条目和 `70` 个 `TABLE DATA` 条目。检查只读取 artifact bytes 和 `pg_restore --list` TOC，没有导出或查看表行。
 
@@ -96,7 +121,10 @@ Supabase 的数据库 backup 只包含 Storage 元数据，不包含 Storage API
 7. `security_reviewer` 对 anonymous、owner、other authenticated user 和 service worker 分别验收 RLS/grants；`database_owner` 对 migration ledger、constraints、indexes、policies 和 extensions 验收；`release_owner` 复核所有 stop condition。
 8. clone 的保留或删除是 billing 和破坏性操作。`recovery_lead` 记录处置时间与审批，不能由本 runbook 自动删除 provider project。
 
-如果 provider physical restore 不可用，Supabase 提供 logical backup/restore 流程，分别导出 roles、schema 和 data；这会读取和导出客户行，只能由获批 operator 在加密受限位置执行，本任务没有运行。操作前重新核对 [Backup and Restore using the CLI](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore)，因为 provider 命令和限制会变化。
+如果 provider physical restore 不可用，Supabase 提供 logical backup/restore 流程，
+分别导出 roles、schema 和 data；这会读取和导出数据库内容，只能由获批 operator
+在加密受限位置执行。M1 staging 已在空业务数据前提下运行并完成隔离恢复；未来
+重复执行前仍需重新核对 [Backup and Restore using the CLI](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore)，因为 provider 命令和限制会变化。
 
 ## Metadata-only restore 验收
 
@@ -245,8 +273,12 @@ python3 scripts/database_recovery.py validate-record "$JPP_RECOVERY_REPORT"
 
 ## 上线前仍未完成的风险
 
-- 没有创建、下载、读取或恢复任何 staging/production provider backup；provider gate 仍为 blocked。
-- 没有 Storage object backup/restore 流程与演练；数据库 backup 不能覆盖该缺口。
-- 当前 main 与 candidate archive 存在 location/address blocking drift，canonical migration history 和更晚 forward-fix 尚未批准。
-- 没有在 provider clone 上验证 Auth、RLS、extensions、webhooks、Realtime、network restrictions 或费用处置。
-- `migration_baseline_status=canonical_local_pass_live_reconciliation_required` 保持不变；本地 pass 不代表 production-ready。
+- production backup/restore、RPO/RTO 和保留策略未批准或验证。
+- staging 只验证了 synthetic Storage object 恢复；真实 production object inventory、
+  versioning/retention 和批量 restore 未执行。数据库 backup 不能覆盖该缺口。
+- physical backup/PITR 在 Free 不可用；如果 production 需要更短 RPO/RTO，必须先
+  批准相应费用和隔离恢复演练。
+- provider clone 上的 extensions、webhooks、Realtime、network restrictions 和费用
+  处置未验证；当前逻辑恢复证据不覆盖这些 provider settings。
+- `migration_baseline_status=canonical_staging_reconciled_production_pending`；M1
+  staging pass 不代表 production-ready。

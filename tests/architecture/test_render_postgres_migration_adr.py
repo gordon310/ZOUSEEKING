@@ -29,7 +29,7 @@ def test_render_postgres_adr_covers_requested_decision_axes_and_gates() -> None:
         "成本",
         "停机窗口",
         "不迁移条件",
-        "migration_baseline_status = reconciliation_required",
+        "canonical_staging_reconciled_production_pending",
         "live_write_approval=required",
         "production_reset=forbidden",
         "staging 不等于 production",

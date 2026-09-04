@@ -57,7 +57,7 @@ def test_manifest_selects_one_authoritative_path() -> None:
         "forward_migration_history": "supabase/migrations",
         "payment_webhook_boundary": "fastapi_verified_webhook_then_outbox",
         "background_execution": "postgres_job_outbox_single_worker",
-        "migration_baseline_status": "canonical_local_pass_live_reconciliation_required",
+        "migration_baseline_status": "canonical_staging_reconciled_production_pending",
         "allowed_browser_supabase_surfaces": [
             "auth/v1",
             "rest/v1/query_field_options:select",
@@ -81,8 +81,8 @@ def test_adr_records_non_overlapping_responsibilities() -> None:
         "`supabase/migrations/` 是唯一前向迁移历史",
         "支付 webhook 先验签，再写入去重事件与 outbox",
         "一个 PostgreSQL-backed durable worker",
-        "migration_baseline_status = canonical_local_pass_live_reconciliation_required",
-        "不代表 staging 或 production 已协调",
+        "migration_baseline_status = canonical_staging_reconciled_production_pending",
+        "不代表 production 已协调",
     )
     for statement in required:
         assert statement in text
@@ -92,7 +92,7 @@ MIGRATION_POLICY_PATH = ROOT / "supabase/migrations/README.md"
 LEGACY_SQL_POLICY_PATH = ROOT / "backend/sql/README.md"
 
 
-def test_migration_policy_blocks_live_v1_until_reconciliation() -> None:
+def test_migration_policy_records_staging_reconciliation_and_blocks_production() -> None:
     text = MIGRATION_POLICY_PATH.read_text(encoding="utf-8")
 
     assert "唯一前向迁移历史" in text
@@ -100,9 +100,11 @@ def test_migration_policy_blocks_live_v1_until_reconciliation() -> None:
     assert "20260825000400_property_intake.sql" in text
     assert "20260828000100_property_photo_location.sql" in text
     assert "20260829000100_baseline_access_contract.sql" in text
-    assert "migration_baseline_status = canonical_local_pass_live_reconciliation_required" in text
-    assert "禁止 linked push、migration repair、staging reset、production reset" in text
-    assert "provider-supported staging backup" in text
+    assert "20260902000100_staging_baseline_reconciliation.sql" in text
+    assert "20260902000200_service_role_grant_portability.sql" in text
+    assert "migration_baseline_status = canonical_staging_reconciled_production_pending" in text
+    assert "禁止 migration repair、staging reset、production reset" in text
+    assert "完整逻辑备份" in text
 
 
 def test_backend_sql_is_non_authoritative_reference() -> None:

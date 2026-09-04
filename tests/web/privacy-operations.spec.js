@@ -94,7 +94,7 @@ test("password reset submits a uniform response without revealing account existe
 
 test("logout clears the local session when remote revocation fails", async ({ page }) => {
   await page.addInitScript(() => {
-    window.ZOUSEEKING_API_BASE_URL = "";
+    window.ZOUSEEKING_API_BASE_URL = "http://api.test";
     window.ZOUSEEKING_SUPABASE_URL = "https://auth.example.invalid";
     window.ZOUSEEKING_SUPABASE_ANON_KEY = "publishable-test-key";
     window.ZOUSEEKING_RELEASE_SCOPE = { phase: "development", businessOperations: true, adminOperations: true };
@@ -114,6 +114,9 @@ test("logout clears the local session when remote revocation fails", async ({ pa
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ id: "00000000-0000-0000-0000-000000000030", email: "member@example.invalid" }) });
   });
   await page.route("https://auth.example.invalid/rest/v1/**", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+  });
+  await page.route("http://api.test/**", async (route) => {
     await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
   });
   await page.route("https://auth.example.invalid/auth/v1/logout", async (route) => {

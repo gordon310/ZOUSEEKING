@@ -216,6 +216,49 @@
 - 使用已安装的本地 Playwright runner 完整回归两次，均为 `33 passed`；首次尝试的单个登出用例失败未能复现，未修改产品代码。
 - M0 不包含数据库/Auth/RLS/Storage、provider、部署、DNS、billing 或线上写入；生产发布继续 `BLOCK / NOT AUTHORIZED`。
 
+## M1 数据库生产线闭环（2026-09-02）
+
+- 在隔离分支新增 later-ID migration
+  `20260902000100_staging_baseline_reconciliation.sql`，前三条 staging 已应用
+  migration 的字节与 ledger 均保持不变；没有执行 migration repair 或 reset。
+- disposable local fresh reset、六组 SQL/RLS assertions 与 database lint 为
+  `PASS`；staging transaction dry-run 执行 assertion 后回滚并确认无残留。
+- migration 前完整逻辑导出 roles/schema/data/history，共 5 个 artifact、106656
+  bytes、SHA-256 全部复核；在第二套隔离本地 Supabase 单 transaction 恢复后，
+  pre-change ledger/catalog 与 staging 一致。
+- linked dry-run 和正式 push 均只包含 `20260902000100`；staging 最终 ledger 为
+  原三条 ID 加这一条，catalog 为 22 tables、300 columns、75 indexes、16
+  policies、0 张 RLS-disabled application table、170 selected-role grants。
+- 匿名/本人/他人/worker 数据库 RLS、私有 Storage 权限与 synthetic 对象
+  delete/restore/hash、Auth confirmation/password recovery/refresh/global logout/
+  hard delete/profile cascade 为 `PASS`；fixture cleanup 后 Auth users、public rows、
+  Storage objects 均为 0。
+- 公开恢复邮件真实投递为 `NOT_EXECUTED`（没有专用 SMTP sink）；production
+  database/Auth/Storage、physical backup/PITR、部署、DNS、billing 和真实客户数据
+  均未执行。状态更新为
+  `canonical_staging_reconciled_production_pending`，M1 staging 闭环不等于
+  production-ready。
+- 最终仓库回归：Python `256 passed`、Edge authority `2 passed`、Playwright
+  Chromium `33 passed`；compileall、JavaScript syntax、pip check、schema ownership、
+  release policy、post-launch review、secret scan、JSON parse 和 `git diff --check`
+  均为 `PASS`。浏览器首次完整回归出现既有 logout fixture 的单次
+  `auth-ready` 超时（32/33）；该用例单独重跑通过，随后第二次完整回归 33/33
+  通过，未修改产品前端代码。
+- PR #2 首次 CI 暴露两个环境便携性问题：logout Playwright fixture 以
+  空字符串试图禁用 API，但被 `config.js` 的 staging Render 默认值覆盖，导致测试
+  意外等待外部网络；Supabase CLI `2.115.0` 的 disposable stack
+  未自动赋予 `service_role` 完整表权限。发布门改为单 worker，并新增
+  显式本地 API fixture 与 `20260902000200_service_role_grant_portability.sql`，未改写
+  已应用 migration。
+- 新迁移本地 fresh reset（13 条）、六组 SQL/RLS assertions 与 lint 均为
+  `PASS`。linked dry-run/push 只包含 `20260902000200`；staging 最终 ledger
+  为原三条加两条 later-ID，实时 schema dump 确认 22/22 张表的
+  worker grants。应用后再次重跑 Auth/RLS/Storage 行为验收与 fixture cleanup，
+  全部为 `PASS`。本地浏览器单用例与 33 用例全量回归均为 `PASS`。
+- 修复提交 `72a9ece` 的 GitHub Actions run `33598129212` 七项全绿：
+  Playwright、Disposable SQL/RLS、Python、Node、Supply-chain、Repository policy
+  与 Release evidence 均为 `PASS`。
+
 ## Last updated
 
 2026-09-02

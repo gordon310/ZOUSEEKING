@@ -1,6 +1,6 @@
 # P1 · V1 业务域 Forward Migration 设计冻结（B2）
 
-日期：2026-09-05 · 负责人：Hermes（B2 代理执行） · 状态：**字段冻结，文件待评审入库；应用前必须过 baseline gate**
+日期：2026-09-05 · 负责人：Hermes（B2 代理执行） · 状态：**字段冻结，已评审入库（main `2e00113`，2026-09-05）；应用前必须过 baseline gate**
 
 > 权威依据（均已入库 main）：`docs/superpowers/specs/2026-08-28-membership-billing-task-marketplace-design.md`（V1 领域规格）、`docs/superpowers/specs/2026-08-31-stripe-billing-boundary-design.md`、`docs/release/usage-ledger-offline-contract.md`、`docs/release/account-controls-offline-contract.md`、`docs/superpowers/plans/2026-08-29-v1-contract-migration-baseline.md`（Task 7：每域一个 forward migration，测试先行）。实施分解按规格 §16 的 2–7 子项目映射到 5 个迁移文件。
 > 红线：数据字段已冻结——本组迁移落库后，任何字段变动只允许新增 forward migration。浏览器/前端一律不得写服务端管理字段。
@@ -33,9 +33,10 @@
 2. 每文件过 SQL 审查 +（恢复本地 Postgres/psql 后）空库 reset 演练 + 四身份 RLS 测试。
 3. 后端 store/port 实现（billing store、usage DB adapter、task/consent 服务）随本组表逐个对接。
 
-## 评审清单（文件落盘后逐条打勾）
-- [ ] 与现有 23 表无重名/无 FK 悬空；编号顺序符合依赖（00100→00500）
-- [ ] 风格一致：DO 前置检查、text+CHECK 枚举、uuid pk、RLS+revoke+最小 policy、索引有据
-- [ ] 无 `using(true)`/`with check(true)` 于业务表；authenticated 无越权写
-- [ ] 每表 ENABLE RLS；匿名/认证 grant 正确；service_role 全权
-- [ ] 测试文件为可执行 psql DO 块断言
+## 评审清单（2026-09-05 已勾选）
+- [x] 与现有 23 表无重名/无 FK 悬空；编号顺序符合依赖（00100→00500）
+- [x] 风格一致：DO 前置检查、text+CHECK 枚举、uuid pk、RLS+revoke+最小 policy、索引有据
+- [x] 无 `using(true)`/`with check(true)` 于业务表；authenticated 无越权写
+- [x] 每表 ENABLE RLS（17/17）；匿名/认证 grant 正确；service_role 全权
+- [x] 测试文件为可执行 psql DO 块断言（00200–00500 已在一次性 Postgres 容器真实验证；四身份行为矩阵待 baseline gate 后补）
+- [ ] 后端 store/port 实现对接（billing store、usage DB adapter、task/consent 服务）——P1 后续任务

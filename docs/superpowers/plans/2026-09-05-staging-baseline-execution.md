@@ -58,3 +58,8 @@ supabase db push --dry-run --db-url "$STAGING_URL"   # 应只剩 0904 + V1×5 �
 - staging migration history = 13 条已应用，与 main 的 24000xx→20260902xx 链完全一致；对象零改动（repair 只写 `supabase_migrations.schema_migrations`）。
 - 待处理（有意）：`20260904000100`（B1/P2 联调应用）、`20260905000100–00500`（V1 域，另批 gate）。
 - §4 遗留：29000100 对全新库整链应用的 intake-policy 缺陷 → 待架构 forward-fix 登记。
+
+## 7. 备份恢复演练豁免决策（2026-09-05，用户批准）
+
+本次 baseline 收尾采用 **repair-mark 方式**：仅 INSERT `supabase_migrations.schema_migrations` history 行，**零对象 DDL、零数据操作**；回滚 = `supabase migration repair --status reverted <id> --db-url <url>`，秒级且无对象风险。备份/恢复演练针对"真跑 migration 的破坏性重建"场景，对本次 repair 操作**不适用 → 豁免**。`docs/release/rollback-checklist.md` 保持模板态，待 P3 production migration（真跑对象 DDL）前按 C01–C14 门禁执行备份→恢复→验证。
+

@@ -237,17 +237,25 @@ def collect_local_readin(
     return CollectResult(rows=_rows_from_ward_record(matched), meta=meta)
 
 
-def _canonical_payload(snapshot: dict) -> bytes:
+def canonical_snapshot_payload(snapshot: Mapping) -> bytes:
     """Canonical JSON bytes used for the snapshot_hash.
 
     ``collected_at`` (the per-run persistence timestamp) is excluded so that
     identical collected content produces an identical hash - deterministic
-    replay / idempotent runs share a fingerprint.
+    replay / idempotent runs share a fingerprint.  This is the single
+    canonicalisation rule for the jphouse snapshot fingerprint; the collection
+    sweeper/QA reuses it to verify an on-disk snapshot against the hash the
+    runner recorded on its ``collection_runs`` row.
     """
     payload = {key: value for key, value in snapshot.items() if key != "collected_at"}
     return json.dumps(
         payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
     ).encode("utf-8")
+
+
+# Backwards-compatible alias kept for any caller still importing the private
+# name (no behaviour change).
+_canonical_payload = canonical_snapshot_payload
 
 
 def _snapshot_dict(

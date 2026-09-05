@@ -259,6 +259,16 @@
   Playwright、Disposable SQL/RLS、Python、Node、Supply-chain、Repository policy
   与 Release evidence 均为 `PASS`。
 
+## P1.3 采集质检/告警 sweeper（2026-09-05 晚班）
+
+- 新增 `backend/app/collection/sweeper.py` + `scripts/collection_sweep.py`：双看门狗覆盖 `collection_runs`——
+  ① **stale-running 恢复**：`running` 且 `started_at <= now - stale_after`（默认 6h，远超任何预期运行时长）视为被弃，单事务内翻转为 `failed`（error_message 注明 swept，非 runner 栈）+ 追加 `admin.collection.run_swept` 审计行；UPDATE 带 `where status='running'` 守卫，`for update skip locked` 支持并发 sweeper 分片、绝不双恢复；`dry_run` 只报不写。被恢复 run 按 `failed` 计入调度窗口（防队列风暴，运营可从后台手动重投）。
+  ② **快照哈希 QA**（只读）：对最近 succeeded 的 jphouse 家族 run，用 runner 同款 canonical 规则（`canonical_snapshot_payload`，排除 `collected_at`）重算 `data/collected/jphouse_runs/` 落盘文件指纹，比对记录的 `snapshot_hash`/`rows_collected`；mismatch/missing/unreadable 产出 `ok=false` 事件。fixture/未知前缀不落盘、天然跳过。
+- `jphouse_runners._canonical_payload` 升为公开 `canonical_snapshot_payload`（保留别名，零行为变化）——哈希规则单一来源，防两处实现漂移。
+- CLI JSONL 输出（`kind=recover|verify`）；发现异常（stale run 或 QA 失败）退出码 1，供 cron 包装告警。未接任何外部通知渠道（后续 ops 单元可接）。
+- 验证：`tests/unit/test_collection_sweeper.py` 13 passed（纯单测 + docker PG 集成：恢复/幂等/dry-run/并发不双恢复/哈希 ok·篡改·缺失/rows 漂移/路径防穿越）；采集链+admin 回归 148 passed；`tests/unit` 全量 **304 passed**（DATABASE_URL=supabase_admin@localhost:55432 disposable PG）；`compileall backend scripts src` 通过；CLI 实跑：`--verify-only` 对遗留篡改行报 `file_missing` + exit 1，`--recover-only --dry-run` exit 0。
+- 红线：零 migration、零 DB 写（仅 disposable 测试库）、未触碰 staging/production/凭据/冻结字段、无删除操作。
+
 ## Last updated
 
-2026-09-02
+2026-09-05

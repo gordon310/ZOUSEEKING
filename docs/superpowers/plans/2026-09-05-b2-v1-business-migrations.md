@@ -42,3 +42,23 @@
 - [x] 测试文件为可执行 psql DO 块断言（00200–00500 已在一次性 Postgres 容器真实验证；四身份行为矩阵待 baseline gate 后补）
 - [x] 后端对接：billing store（PostgresBillingStore）+ usage DB ledger（PostgresLedger）——已实现并入库（main `4712adf`，2026-09-05；真库验证 160 passed；接入仍走 env gate）
 - [ ] task/consent 服务——**延后至 P4（随小象数据 B 端）**：任务池与邮箱授权前端仍为 demo，C/B 端闭环未开工前不建服务层
+
+---
+
+## 增补批（2026-09-05 用户批准"两项都做"）
+
+### 增补 A · `20260905000600_member_status.sql` — 会员状态
+- `user_profiles.status text not null default 'active'` + `check (status in ('active','suspended'))`（列级）
+- **列级 REVOKE**：`revoke update (status) on public.user_profiles from authenticated`（防 29000100 的 profile update policy 被借道自改状态）+ 注释服务端管理
+- admin 写端点：`POST /api/admin/members/{user_id}/status`（member_ops|super_admin；success 写 audit `admin.member.status_changed`；同值幂等返回 200）
+- 前端：会员页签"暂停/恢复"按钮 live 化（member_ops+super_admin 可见可用，403 提示）
+
+### 增补 B · `20260905000601_collection_runs.sql` — 采集任务域
+- `collection_runs(id uuid pk, source_key text not null, source_type text check('authorized_csv','official_open','partner','user_submitted','aggregate_authorized'), status text check('queued','running','succeeded','failed','cancelled') default 'queued', rows_collected int default 0 check>=0, snapshot_hash char(64), error_message text, operator_user_id uuid null refs auth.users on delete set null, started_at timestamptz, completed_at timestamptz, created_at default now(), check(completed_at is null or started_at is not null))`
+- 索引：`(status, created_at desc)`、`(source_key, created_at desc)`
+- RLS：service_role 全权；authenticated 零；后台经服务端读（沿用 internal 域惯例）
+- admin 端点：`GET /api/admin/collection/runs?status=&source_key=&page=`（member_ops|data_ops|super_admin）；`POST /api/admin/collection/runs`（data_ops|super_admin 入队 queued，写审计 `admin.collection.queued`；不在此批执行采集——worker 执行器 = P1 尾单独单元）
+- 前端：采集页签 live 列表（状态/行数/哈希/错误）+ "发起采集"表单（data_ops 可见）；审核子流程待 worker 单元后接
+- 依赖说明：source_key 语义对齐 `configs/jphouse_23ku/<ward>.json` 等本地配置键与 `data/source_registry.json`；registry 入 DB 不属本批
+
+> 两批均为 forward-only；应用 staging 需单独批准（repair/push 惯例同前）。

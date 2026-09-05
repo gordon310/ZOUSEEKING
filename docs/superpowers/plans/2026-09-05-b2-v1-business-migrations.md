@@ -28,10 +28,11 @@
 - **审计**：role/套餐/额度/退款/任务/授权/价格变更全入审计日志；日志禁完整邮箱/令牌/支付凭证/raw payload/异常堆栈；后台角色逐项授予（含 super_admin），无万能 admin 布尔。
 - **RLS**：业务表全部 enable；匿名零权限；authenticated 仅读自身 scope；服务端管理字段（等级/额度/状态/归属/退款）浏览器不可写；service_role 全权；webhook 事件 id 幂等去重。
 
-## 应用门禁（未到，勿 push 到任何 DB）
-1. staging migration baseline reconcile 收尾（24000xx 处置 + 29000100 forward）→ C01–C14 门禁 → 才允许 `supabase db push` 本组到 staging；production 另行批准。
-2. 每文件过 SQL 审查 +（恢复本地 Postgres/psql 后）空库 reset 演练 + 四身份 RLS 测试。
-3. 后端 store/port 实现（billing store、usage DB adapter、task/consent 服务）随本组表逐个对接。
+## 应用门禁（2026-09-05 状态更新）
+- ✅ **staging 已应用 V1×5**（2026-09-05 用户批准；表 22→39，39/39 开 RLS，0 裸表；0904 wip 保持 pending 未推）
+- ⏸ **production：未配置/未触碰**（维持原状）
+- 后端 store/port 实现已完成（billing/usage 适配器，main `4712adf`）；**运行时接线**（env gate 开启指向 DB 适配器）随后台真实化批次推进
+- 应用方式记录：`db push` 前临时移出 0904 文件 → push V1×5 → 还原（git 树无净变化）
 
 ## 评审清单（2026-09-05 已勾选）
 - [x] 与现有 23 表无重名/无 FK 悬空；编号顺序符合依赖（00100→00500）

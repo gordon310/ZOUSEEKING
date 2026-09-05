@@ -62,3 +62,5 @@
 - 依赖说明：source_key 语义对齐 `configs/jphouse_23ku/<ward>.json` 等本地配置键与 `data/source_registry.json`；registry 入 DB 不属本批
 
 > 两批均为 forward-only；应用 staging 需单独批准（repair/push 惯例同前）。
+
+> **应用状态（2026-09-05）**：00600+00601 已由用户批准应用 staging ✓（20 条 history，仅 0904 wip 剩 pending；user_profiles.status 列级 revoke 生效，authenticated UPDATE 权限=0；collection_runs RLS on；public 表 40 张）。production 未触碰。

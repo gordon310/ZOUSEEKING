@@ -1,8 +1,11 @@
-"""Read-only data access for the back-office admin API (unit one).
+"""Data access for the back-office admin API.
 
-Every public method runs plain ``SELECT`` statements against the Supabase V1
-tables and never mutates a row: the admin surface is deliberately read-only in
-this unit.  Queries target the tables created by the applied migrations:
+The member / audit / finance / role-list surface is SELECT-only, and the two
+role-assignment writes (grant / revoke) are the only mutating methods.  Every
+write runs inside one transaction together with its ``audit_events`` insert,
+so an assignment is never created or revoked without an audit row (the
+append-only triggers forbid UPDATE/DELETE but allow INSERT).  Queries target
+the tables created by the applied migrations:
 
 * ``public.user_profiles`` (``20260824000100_legacy_schema_baseline``) - the
   member directory;
@@ -74,6 +77,16 @@ REFUND_STATUSES = ("pending", "succeeded", "failed")
 # Subscription statuses that count as an active entitlement; inline constant,
 # never user input, so it is safe inside the SQL text.
 _ACTIVE_SUBSCRIPTION_STATUSES_SQL = "('trialing', 'active')"
+
+# Shared role-assignment SELECT (list rows and freshly inserted rows).  The
+# caller appends its own ``where`` / ``order by`` clauses.
+_ROLE_ASSIGNMENT_SELECT = (
+    "select ra.id, ra.user_id, ra.role, ra.granted_by_user_id,"
+    " ra.granted_at, ra.expires_at, ra.note,"
+    " up.username, up.display_name"
+    " from public.internal_role_assignments ra"
+    " left join public.user_profiles up on up.user_id = ra.user_id"
+)
 
 
 def mask_email(email: str) -> str:
@@ -494,14 +507,117 @@ class AdminService:
         """Every internal role assignment (current state, incl. expiring)."""
         async with self._acquire().acquire() as conn:
             rows = await conn.fetch(
-                "select ra.id, ra.user_id, ra.role, ra.granted_by_user_id,"
-                " ra.granted_at, ra.expires_at, ra.note,"
-                " up.username, up.display_name"
-                " from public.internal_role_assignments ra"
-                " left join public.user_profiles up on up.user_id = ra.user_id"
-                " order by ra.role, ra.granted_at desc, ra.id"
+                _ROLE_ASSIGNMENT_SELECT
+                + " order by ra.role, ra.granted_at desc, ra.id"
             )
         return {"items": [_serialize_role_assignment(row) for row in rows]}
+
+    # -- role assignment writes (super_admin only, audited) -----------------
+
+    async def user_exists(self, user_id: UUID) -> bool:
+        """True when the target is a real ``auth.users`` row.
+
+        Roles write to ``internal_role_assignments.user_id`` which carries an
+        FK to ``auth.users(id)``; the route pre-checks existence so a typo in
+        the user_id yields a clean 400 instead of a constraint error.
+        """
+        async with self._acquire().acquire() as conn:
+            found = await conn.fetchval(
+                "select 1 from auth.users where id = $1", user_id
+            )
+        return found is not None
+
+    async def grant_role(
+        self,
+        *,
+        user_id: UUID,
+        role: str,
+        granted_by: UUID,
+        note: Optional[str] = None,
+        expires_at: Optional[datetime] = None,
+    ) -> dict[str, Any]:
+        """Insert one role assignment plus its audit row in one transaction.
+
+        Raises 409 when the (user_id, role) pair already exists (the table's
+        unique constraint - an expired assignment still blocks a re-grant, so
+        the caller should revoke first) and 400 when the auth.users FK fails
+        (target deleted between the route's existence check and this insert).
+        Either way the transaction is rolled back: a failed grant never leaves
+        an audit row behind.
+        """
+        async with self._acquire().acquire() as conn:
+            try:
+                async with conn.transaction():
+                    assignment_id = await conn.fetchval(
+                        "insert into public.internal_role_assignments"
+                        " (user_id, role, granted_by_user_id, note, expires_at)"
+                        " values ($1, $2, $3, $4, $5)"
+                        " returning id",
+                        user_id,
+                        role,
+                        granted_by,
+                        note or None,
+                        expires_at,
+                    )
+                    row = await conn.fetchrow(
+                        _ROLE_ASSIGNMENT_SELECT + " where ra.id = $1",
+                        assignment_id,
+                    )
+                    await conn.execute(
+                        "insert into public.audit_events"
+                        " (actor_user_id, action, target_type, target_id, summary)"
+                        " values ($1, 'admin.role.granted', 'user', $2, $3::jsonb)",
+                        granted_by,
+                        str(user_id),
+                        json.dumps(
+                            {"role": role, "granted_by": str(granted_by)},
+                            ensure_ascii=False,
+                        ),
+                    )
+            except asyncpg.UniqueViolationError as exc:
+                raise HTTPException(
+                    status_code=409, detail="该用户已持有此内部角色"
+                ) from exc
+            except asyncpg.ForeignKeyViolationError as exc:
+                raise HTTPException(
+                    status_code=400, detail="目标用户不存在"
+                ) from exc
+        return _serialize_role_assignment(row)
+
+    async def revoke_role(
+        self, *, user_id: UUID, role: str, revoked_by: UUID
+    ) -> dict[str, Any]:
+        """Remove one role assignment plus its audit row in one transaction.
+
+        Raises 404 when no such assignment exists.  The route already guards
+        against a super_admin revoking their own super_admin role, so the
+        only way to lock the console out is by editing the database directly.
+        """
+        async with self._acquire().acquire() as conn:
+            async with conn.transaction():
+                deleted = await conn.fetchval(
+                    "delete from public.internal_role_assignments"
+                    " where user_id = $1 and role = $2"
+                    " returning id",
+                    user_id,
+                    role,
+                )
+                if deleted is None:
+                    raise HTTPException(
+                        status_code=404, detail="该角色分配不存在"
+                    )
+                await conn.execute(
+                    "insert into public.audit_events"
+                    " (actor_user_id, action, target_type, target_id, summary)"
+                    " values ($1, 'admin.role.revoked', 'user', $2, $3::jsonb)",
+                    revoked_by,
+                    str(user_id),
+                    json.dumps(
+                        {"role": role, "revoked_by": str(revoked_by)},
+                        ensure_ascii=False,
+                    ),
+                )
+        return {"revoked": True, "user_id": str(user_id), "role": role}
 
 
 def get_admin_service() -> AdminService:

@@ -272,6 +272,49 @@
     return lines.join("\n");
   }
 
+  // ---------- live roles (internal_role_assignments) ----------
+
+  // 7 columns: 用户 / 角色 / 授予人 / 授予时间 / 过期 / 备注 / 操作
+  const ROLE_HEADERS = `
+    <tr>
+      <th scope="col">用户</th><th scope="col">角色</th><th scope="col">授予人</th>
+      <th scope="col">授予时间</th><th scope="col">过期时间</th><th scope="col">备注</th><th scope="col">操作</th>
+    </tr>`;
+
+  function roleRowsHtml(items, options = {}) {
+    const {
+      canManage = false,
+      currentUserId = "",
+      revokeLabel = "撤销",
+      selfBlockedTitle = "",
+      expiredLabel = "已过期",
+    } = options;
+    if (!items || !items.length) {
+      return emptyRow(7, t("admin.emptyRoles", "暂无角色分配记录。"));
+    }
+    return items
+      .map((row) => {
+        const name = row.display_name || row.username || shortId(row.user_id, 12);
+        const isExpired = row.expires_at ? new Date(row.expires_at).getTime() <= Date.now() : false;
+        const expiresText = row.expires_at ? escape(fmtDateTime(row.expires_at)) : "—";
+        const isSelfSuper = row.role === "super_admin" && String(row.user_id) === String(currentUserId);
+        const actionCell = canManage
+          ? `<button class="admin-action" type="button" data-role-action="revoke" data-role-user="${escape(row.user_id)}" data-role-name="${escape(row.role)}" ${isSelfSuper ? "disabled" : ""} ${isSelfSuper ? `title="${escape(selfBlockedTitle)}"` : ""}>${escape(revokeLabel)}</button>`
+          : "—";
+        return `
+        <tr data-role-row data-role-user="${escape(row.user_id)}" data-role-name="${escape(row.role)}">
+          <th scope="row">${escape(name)}<span>${escape(shortId(row.user_id, 12))}</span></th>
+          <td><code>${escape(row.role)}</code>${isExpired ? ` <span class="admin-table-status status-paused">${escape(expiredLabel)}</span>` : ""}</td>
+          <td>${escape(shortId(row.granted_by_user_id))}</td>
+          <td>${escape(fmtDateTime(row.granted_at))}</td>
+          <td>${expiresText}</td>
+          <td class="admin-wrap">${escape(row.note || "") || "—"}</td>
+          <td class="member-actions">${actionCell}</td>
+        </tr>`;
+      })
+      .join("");
+  }
+
   // ---------- live audit ----------
 
   function auditRowsHtml(items) {
@@ -369,6 +412,8 @@
     memberLiveHeaders,
     memberLiveRowsHtml,
     memberDetailText,
+    ROLE_HEADERS,
+    roleRowsHtml,
     auditRowsHtml,
     orderRowsHtml,
     refundRowsHtml,

@@ -95,6 +95,7 @@
           <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="members" data-i18n="admin.members">会员管理</button>
           <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="audit" data-i18n="admin.tabAudit">审计记录</button>
           <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="finance" data-i18n="admin.tabFinance">财务管理</button>
+          <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="roles" data-i18n="admin.tabRoles">内部角色</button>
         </div>
         <label class="admin-status-filter">
           状态
@@ -324,6 +325,60 @@
                 </table>
               </div>
               <div class="admin-pager" id="refundPager"></div>
+            </div>
+          </section>
+
+          <section class="admin-panel" id="roles" data-admin-section="roles">
+            <div class="admin-panel-heading">
+              <div>
+                <p class="eyebrow">INTERNAL ROLES</p>
+                <h2 data-i18n="admin.tabRoles">内部角色</h2>
+              </div>
+              <span class="admin-panel-count" id="roleCount">—</span>
+            </div>
+            <p class="admin-panel-note" id="roleNote">内部角色分配仅由真实后台提供，写入会记录到审计日志。演示模式不虚构内部角色记录，也不允许任何本地“分配”。</p>
+            <p class="admin-live-status" id="roleStatus" aria-live="polite"></p>
+
+            <div class="member-toolbar role-grant-toolbar" id="roleGrantPanel" hidden style="display:none">
+              <label>
+                <span data-i18n="admin.roleColUser">目标用户 user_id</span>
+                <input id="roleUserId" type="text" autocomplete="off" data-i18n-placeholder="admin.roleUserIdPlaceholder" placeholder="粘贴目标用户的 user_id（必填）" />
+              </label>
+              <label>
+                <span data-i18n="admin.roleColRole">角色</span>
+                <select id="roleSelect">
+                  <option value="member_ops">member_ops</option>
+                  <option value="data_ops">data_ops</option>
+                  <option value="task_dispatcher">task_dispatcher</option>
+                  <option value="reviewer">reviewer</option>
+                  <option value="finance">finance</option>
+                  <option value="super_admin">super_admin</option>
+                </select>
+              </label>
+              <label>
+                <span data-i18n="admin.roleExpiresLabel">过期时间（可选）</span>
+                <input id="roleExpires" type="datetime-local" />
+              </label>
+              <label>
+                <span data-i18n="admin.roleNoteLabel">备注（可选）</span>
+                <input id="roleGrantNote" type="text" autocomplete="off" maxlength="200" />
+              </label>
+              <button class="admin-action" type="button" id="roleGrantBtn">授予角色</button>
+            </div>
+
+            <div class="admin-table-wrap">
+              <table class="admin-table role-table">
+                <caption id="roleTableCaption">内部角色分配（写入 internal_role_assignments，全程审计）</caption>
+                <thead id="roleTableHead">
+                  <tr>
+                    <th scope="col">用户</th><th scope="col">角色</th><th scope="col">授予人</th>
+                    <th scope="col">授予时间</th><th scope="col">过期时间</th><th scope="col">备注</th><th scope="col">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="roleList">
+                  <tr><td colspan="7"><div class="admin-empty">角色分配仅由真实后台提供；演示模式不虚构内部角色记录。</div></td></tr>
+                </tbody>
+              </table>
             </div>
           </section>
         </div>

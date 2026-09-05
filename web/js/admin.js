@@ -51,6 +51,18 @@
   const refundList = document.querySelector("#refundList");
   const refundTotals = document.querySelector("#refundTotals");
   const refundPager = document.querySelector("#refundPager");
+  const roleList = document.querySelector("#roleList");
+  const roleTableHead = document.querySelector("#roleTableHead");
+  const roleCount = document.querySelector("#roleCount");
+  const roleStatus = document.querySelector("#roleStatus");
+  const roleNote = document.querySelector("#roleNote");
+  const roleTableCaption = document.querySelector("#roleTableCaption");
+  const roleGrantPanel = document.querySelector("#roleGrantPanel");
+  const roleUserId = document.querySelector("#roleUserId");
+  const roleSelect = document.querySelector("#roleSelect");
+  const roleExpires = document.querySelector("#roleExpires");
+  const roleNoteInput = document.querySelector("#roleGrantNote");
+  const roleGrantBtn = document.querySelector("#roleGrantBtn");
   const menuToggle = document.querySelector("#adminMenuToggle");
   const menu = document.querySelector("#adminMenu");
   const fixtureTag = document.querySelector("#adminFixtureTag");
@@ -72,6 +84,12 @@
 
   function setText(node, text) {
     if (node) node.textContent = text;
+  }
+
+  function interp(text, params = {}) {
+    return String(text).replace(/\{(\w+)\}/g, (match, key) =>
+      Object.prototype.hasOwnProperty.call(params, key) ? String(params[key]) : match,
+    );
   }
 
   function setStatus(node, text, kind = "") {
@@ -340,6 +358,246 @@
     }
   }
 
+  // ---- live roles (internal role assignments) -------------------------------
+  const ROLES_COLSPAN = 7;
+  const roleState = {
+    booted: false,
+    busy: false,
+    canManage: false,
+    currentUserId: "",
+    roles: [],
+  };
+
+  function roleGateText() {
+    return t("admin.rolesGate", "需要 super_admin 角色。");
+  }
+
+  function roleStatusHint() {
+    if (!roleState.roles.length) {
+      return t(
+        "admin.roleNoAccess",
+        "当前账号没有任何后台角色，无法查看或分配内部角色。",
+      );
+    }
+    return interp(
+      t(
+        "admin.roleNoPermissionHint",
+        "仅 super_admin 可查看与分配内部角色；当前账号角色：{roles}。",
+      ),
+      { roles: roleState.roles.join("、") },
+    );
+  }
+
+  function setRolePanelVisible(visible) {
+    if (!roleGrantPanel) return;
+    roleGrantPanel.hidden = !visible;
+    // .member-toolbar display rules would override the hidden attribute, so
+    // toggle inline display as well.
+    roleGrantPanel.style.display = visible ? "" : "none";
+  }
+
+  async function ensureRoleTabData() {
+    if (!isLive || !roleList) return;
+    if (roleState.booted) {
+      if (roleState.canManage && !roleState.busy) loadLiveRoles(); // re-open refreshes
+      return;
+    }
+    roleState.booted = true;
+    await bootstrapRoleTab();
+  }
+
+  async function bootstrapRoleTab() {
+    if (roleState.busy) return;
+    roleState.busy = true;
+    setText(roleCount, "…");
+    setStatus(roleStatus, t("admin.loading", "正在从后台加载……"));
+    if (roleList) roleList.innerHTML = views.loadingRow(ROLES_COLSPAN);
+    let canManage = false;
+    try {
+      const me = await api.getMe();
+      const roles = Array.isArray(me?.roles) ? me.roles.map(String) : [];
+      roleState.currentUserId = String(me?.user_id || "");
+      roleState.roles = roles;
+      roleState.canManage = roles.includes("super_admin");
+      canManage = roleState.canManage;
+      if (!canManage) {
+        // No super_admin: no list, no controls - honest hint only.
+        setRolePanelVisible(false);
+        renderRoleListState({ hint: roleStatusHint(), info: true });
+      } else {
+        setRolePanelVisible(true);
+      }
+    } catch (error) {
+      roleState.canManage = false;
+      renderRoleListState({
+        hint: `${apiErrorMessage(error, roleGateText())}${notRealFallbackNote()}`,
+        error: true,
+      });
+    } finally {
+      roleState.busy = false;
+    }
+    if (canManage) await loadLiveRoles();
+  }
+
+  function renderRoleListState({ hint, error = false, info = false } = {}) {
+    if (roleTableHead && views.ROLE_HEADERS) roleTableHead.innerHTML = views.ROLE_HEADERS;
+    if (roleList) roleList.innerHTML = "";
+    setText(roleCount, "—");
+    if (roleNote) {
+      roleNote.textContent = t(
+        "admin.roleListLiveNote",
+        "角色分配实时写入 internal_role_assignments 并记录审计；撤销自己的 super_admin 会被后端拒绝（需另一位 super_admin 或人工处理）。",
+      );
+    }
+    if (roleTableCaption) {
+      roleTableCaption.textContent = "内部角色分配（仅 super_admin 可见与操作）";
+    }
+    if (hint) setStatus(roleStatus, hint, error ? "error" : info ? "info" : "");
+  }
+
+  async function loadLiveRoles(keepStatus = false) {
+    if (!roleList || roleState.busy) return;
+    roleState.busy = true;
+    if (roleTableHead && views.ROLE_HEADERS) roleTableHead.innerHTML = views.ROLE_HEADERS;
+    if (!keepStatus) {
+      setText(roleCount, "…");
+      setStatus(roleStatus, t("admin.loading", "正在从后台加载……"));
+    }
+    roleList.innerHTML = views.loadingRow(ROLES_COLSPAN);
+    try {
+      const payload = await api.listRoles();
+      const items = payload?.items || [];
+      roleList.innerHTML = views.roleRowsHtml(items, {
+        canManage: roleState.canManage,
+        currentUserId: roleState.currentUserId,
+        revokeLabel: t("admin.roleRevoke", "撤销"),
+        selfBlockedTitle: t(
+          "admin.roleSelfBlocked",
+          "不能撤销自己的 super_admin（需另一 super_admin 或人工处理）",
+        ),
+        expiredLabel: "已过期",
+      });
+      setText(roleCount, `${items.length} 条`);
+      if (!keepStatus) {
+        setStatus(
+          roleStatus,
+          items.length ? t("admin.liveSource", "数据来源：真实后台") : t("admin.emptyRoles", "暂无角色分配记录。"),
+          items.length ? "" : "info",
+        );
+      }
+      if (roleNote) {
+        roleNote.textContent = t(
+          "admin.roleListLiveNote",
+          "角色分配实时写入 internal_role_assignments 并记录审计；撤销自己的 super_admin 会被后端拒绝（需另一位 super_admin 或人工处理）。",
+        );
+      }
+      if (roleTableCaption) {
+        roleTableCaption.textContent = "内部角色分配（写入 internal_role_assignments，全程审计）";
+      }
+    } catch (error) {
+      roleList.innerHTML = "";
+      setText(roleCount, "—");
+      setStatus(
+        roleStatus,
+        `${apiErrorMessage(error, roleGateText())}${notRealFallbackNote()}`,
+        "error",
+      );
+    } finally {
+      roleState.busy = false;
+    }
+  }
+
+  function roleGrantInput() {
+    const user = (roleUserId?.value || "").trim();
+    if (!user) {
+      setStatus(roleStatus, t("admin.roleNeedUserId", "请先填写目标用户 user_id。"), "error");
+      roleUserId?.focus();
+      return null;
+    }
+    const role = roleSelect?.value || "";
+    if (!role) {
+      setStatus(roleStatus, t("admin.roleNeedRole", "请选择角色。"), "error");
+      return null;
+    }
+    let expiresIso = "";
+    if (roleExpires?.value) {
+      const when = new Date(roleExpires.value);
+      if (!Number.isFinite(when.getTime()) || when.getTime() <= Date.now()) {
+        setStatus(roleStatus, t("admin.roleInvalidExpiry", "过期时间须为未来时间。"), "error");
+        return null;
+      }
+      expiresIso = when.toISOString();
+    }
+    return { user_id: user, role, note: (roleNoteInput?.value || "").trim(), expires_at: expiresIso };
+  }
+
+  function roleWriteErrorText(error) {
+    const status = Number(error?.status);
+    if (status === 403) {
+      return `${t("admin.error403", "当前账号无权访问该模块（403）。")} ${roleGateText()}`;
+    }
+    if (status === 409) {
+      return t("admin.roleDuplicate", "该用户已持有此角色（409）。如需重新分配请先撤销。");
+    }
+    const detail = error?.message || "";
+    return `${t("admin.errorHttp", "后台请求失败")}（HTTP ${status || "?"}）：${detail}`;
+  }
+
+  async function submitRoleGrant() {
+    if (!roleState.canManage || !roleGrantBtn) return;
+    const payload = roleGrantInput();
+    if (!payload) return;
+    roleGrantBtn.disabled = true;
+    setStatus(roleStatus, t("admin.loading", "正在从后台加载……"));
+    try {
+      await api.grantRole(payload);
+      if (roleUserId) roleUserId.value = "";
+      if (roleExpires) roleExpires.value = "";
+      if (roleNoteInput) roleNoteInput.value = "";
+      setStatus(
+        roleStatus,
+        interp(
+          t("admin.roleGrantedNotice", "已授予 {role}（user_id：{user}），审计已记录。"),
+          { role: payload.role, user: payload.user_id },
+        ),
+        "info",
+      );
+      await loadLiveRoles(true);
+    } catch (error) {
+      setStatus(roleStatus, roleWriteErrorText(error), "error");
+    } finally {
+      roleGrantBtn.disabled = false;
+    }
+  }
+
+  async function submitRoleRevoke(userId, role) {
+    if (!roleState.canManage || !userId || !role) return;
+    const confirmed = window.confirm(
+      t("admin.roleRevokeConfirm", "确认撤销该用户的此角色？立即生效并写入审计。"),
+    );
+    if (!confirmed) return;
+    setStatus(roleStatus, t("admin.loading", "正在从后台加载……"));
+    try {
+      await api.revokeRole(userId, role);
+      setStatus(
+        roleStatus,
+        interp(
+          t("admin.roleRevokedNotice", "已撤销 {role}（user_id：{user}），审计已记录。"),
+          { role, user: userId },
+        ),
+        "info",
+      );
+      await loadLiveRoles(true);
+    } catch (error) {
+      const detail = error?.message || "";
+      if (Number(error?.status) === 400 && detail) {
+        setStatus(roleStatus, detail, "error");
+      } else {
+        setStatus(roleStatus, roleWriteErrorText(error), "error");
+      }
+    }
+  }
+
   function onPagerClick(event) {
     const button = event.target.closest("[data-pager-dir]");
     if (!button || button.disabled) return;
@@ -399,7 +657,10 @@
   }
 
   tabs.forEach((tab) => {
-    tab.addEventListener("click", () => applyTab(tab.dataset.adminTab));
+    tab.addEventListener("click", () => {
+      applyTab(tab.dataset.adminTab);
+      if (tab.dataset.adminTab === "roles") ensureRoleTabData();
+    });
   });
 
   statusFilter?.addEventListener("change", applyStatusFilter);
@@ -445,6 +706,18 @@
       if (detail) setText(detailHeading, "会员详情");
       showLiveMemberDetail(userId);
     }
+  });
+
+  roleGrantBtn?.addEventListener("click", () => {
+    if (isLive) submitRoleGrant();
+  });
+
+  roleList?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-role-action]");
+    if (!button || !isLive || button.disabled) return;
+    const userId = button.dataset.roleUser;
+    const role = button.dataset.roleName;
+    if (button.dataset.roleAction === "revoke") submitRoleRevoke(userId, role);
   });
 
   // ---- filters / events --------------------------------------------------------
@@ -505,28 +778,34 @@
     }
     setText(
       fixtureTag,
-      t("admin.fixtureLive", "已接线真实后台 · member/audit/finance 实时"),
+      t(
+        "admin.fixtureLive",
+        "已接线真实后台 · member/audit/finance 实时 · roles 可分配/撤销",
+      ),
     );
     setText(
       fixtureLabel,
       t(
         "admin.fixtureLiveHeading",
-        "会员、审计与财务页签读取真实后台；总览 / 采集 / 审核 / 派单仍为演示域（对应后端未实现），其中的按钮不会产生真实操作。",
+        "会员、审计、财务页签读取真实后台；内部角色页签支持真实分配与撤销（写入审计）。总览 / 采集 / 审核 / 派单仍为演示域（对应后端未实现），其中的按钮不会产生真实操作。",
       ),
     );
     if (demoToolbarText) {
       demoToolbarText.textContent = t(
         "admin.toolbarLive",
-        "已配置 API_BASE_URL。会员 / 审计 / 财务页签请求 /api/admin/*（Bearer）；采集与任务页签标注待后端。",
+        "已配置 API_BASE_URL。会员 / 审计 / 财务页签请求 /api/admin/*（Bearer）；内部角色页签在 super_admin 下可真实分配与撤销。",
       );
     }
     setGlobalNotice(
       t(
         "admin.noticeLive",
-        "已连接真实后台：会员、审计、财务为只读实时数据。采集 / 审核 / 派单（总览）为演示域，等待对应后端实现；无写端点前，状态切换按钮禁用。403 表示当前登录账号缺少所需后台角色。",
+        "已连接真实后台：会员、审计、财务为只读实时数据；内部角色页签可真实分配/撤销并写入审计（super_admin 专属，且不能撤销自己的 super_admin）。采集 / 审核 / 派单（总览）为演示域，等待对应后端实现。403 表示当前登录账号缺少所需后台角色。",
       ),
     );
-    setText(detailBoundary, t("admin.boundaryLive", "只读端点 · 写操作待后端"));
+    setText(
+      detailBoundary,
+      t("admin.boundaryLive", "只读端点 + roles 分配写端点（super_admin）"),
+    );
     setText(detailAuditMeta, t("admin.auditLive", "审计页签实时"));
     if (auditNote) {
       auditNote.textContent = t("admin.liveAuditNote", "筛选支持 actor（user_id）、action 前缀、since 与 limit。member_ops 仅能看到会员域审计，super_admin 可见全量。");

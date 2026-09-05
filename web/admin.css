@@ -237,6 +237,17 @@
   font-size: 12px;
 }
 
+/* Grant toolbar (roles tab): user_id wide, role/expiry medium, note flexible,
+   action button pinned to the end of the row. */
+.role-grant-toolbar {
+  grid-template-columns: minmax(0, 2.2fr) minmax(130px, 0.9fr) minmax(170px, 1.1fr) minmax(0, 1.6fr) auto;
+  align-items: end;
+}
+.role-grant-toolbar .admin-action {
+  height: 36px;
+  margin: 0;
+}
+
 .admin-member-notice {
   min-height: 18px;
   margin: 0 0 6px;

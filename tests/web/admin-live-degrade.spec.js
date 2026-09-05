@@ -291,3 +291,190 @@ test("reads /api/admin/* with a Bearer token when configured; 403 degrades visib
     await expect(page.locator("#memberList")).not.toContainText("演示会员");
     expect(errors).toEqual([]);
   });
+
+  test("roles tab as super_admin shows live assignments and grants/revokes through the API", async ({ page }) => {
+    const SELF_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+    const OTHER_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+    const writes = [];
+    let roleListGets = 0;
+
+    await page.addInitScript(
+      ({ token, selfId }) => {
+        window.ZOUSEEKING_API_BASE_URL = "https://admin-backend.test";
+        window.ZOUSEEKING_RELEASE_SCOPE = Object.freeze({
+          phase: "consumer_intake_preview",
+          businessOperations: true,
+          adminOperations: true,
+        });
+        window.localStorage.setItem(
+          "zou_house_session",
+          JSON.stringify({ provider: "supabase", accessToken: token }),
+        );
+        window.__test_self_id = selfId;
+      },
+      { token: MOCK_TOKEN, selfId: SELF_ID },
+    );
+
+    const errors = collectErrors(page);
+    const seenAuth = [];
+
+    await page.route("https://admin-backend.test/api/admin/**", async (route) => {
+      const request = route.request();
+      const url = new URL(request.url());
+      const path = url.pathname;
+      const method = request.method();
+      seenAuth.push(request.headers()["authorization"] || "");
+      if (path === "/api/admin/members" && method === "GET") {
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ total: 1, page: 1, page_size: 20, items: [MOCK_MEMBER] }) });
+        return;
+      }
+      if (path === "/api/admin/audit" && method === "GET") {
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_AUDIT) });
+        return;
+      }
+      if (path === "/api/admin/finance/orders" && method === "GET") {
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_ORDERS) });
+        return;
+      }
+      if (path === "/api/admin/finance/refunds" && method === "GET") {
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_REFUNDS) });
+        return;
+      }
+      if (path === "/api/admin/internal/me" && method === "GET") {
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ user_id: SELF_ID, roles: ["super_admin", "finance"] }) });
+        return;
+      }
+      if (path === "/api/admin/internal/roles" && method === "GET") {
+        roleListGets += 1;
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            items: [
+              { id: "r1", user_id: SELF_ID, role: "super_admin", granted_by_user_id: SELF_ID, granted_at: "2026-09-01T00:00:00+00:00", expires_at: null, note: "bootstrap", username: "me", display_name: "Me" },
+              { id: "r2", user_id: OTHER_ID, role: "finance", granted_by_user_id: SELF_ID, granted_at: "2026-09-02T00:00:00+00:00", expires_at: null, note: "", username: "other", display_name: "Other" },
+            ],
+          }),
+        });
+        return;
+      }
+      if (path === "/api/admin/internal/roles" && method === "POST") {
+        writes.push({ method, path, body: request.postDataJSON() });
+        await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ id: "r3", user_id: OTHER_ID, role: "data_ops", granted_by_user_id: SELF_ID, granted_at: "2026-09-05T00:00:00+00:00", expires_at: null, note: "" }) });
+        return;
+      }
+      const revokeMatch = path.match(/^\/api\/admin\/internal\/roles\/([^/]+)\/([^/]+)$/);
+      if (revokeMatch && method === "DELETE") {
+        writes.push({ method, path, user: decodeURIComponent(revokeMatch[1]), role: decodeURIComponent(revokeMatch[2]) });
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ revoked: true, user_id: decodeURIComponent(revokeMatch[1]), role: decodeURIComponent(revokeMatch[2]) }) });
+        return;
+      }
+      await route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
+    });
+
+    page.on("dialog", (dialog) => dialog.accept());
+
+    await page.goto("/admin.html");
+    await expect(page.locator("#adminFixtureLabel")).toContainText("真实后台");
+    await page.getByRole("tab", { name: /内部角色/ }).click();
+
+    // super_admin sees the list plus the assign controls.
+    await expect(page.locator("#roleList tr[data-role-row]")).toHaveCount(2);
+    await expect(page.locator("#roleList")).toContainText("super_admin");
+    await expect(page.locator("#roleGrantPanel")).toBeVisible();
+    // Own super_admin row cannot be revoked (self-lockout guard surfaced in UI).
+    const selfRow = page.locator("#roleList [data-role-name='super_admin'][data-role-action='revoke']");
+    await expect(selfRow).toBeDisabled();
+    // Another user's row can be revoked.
+    const otherRevoke = page.locator("#roleList button[data-role-action='revoke'][data-role-user='" + OTHER_ID + "'][data-role-name='finance']");
+    await expect(otherRevoke).toBeEnabled();
+
+    // Grant: fill the form and submit.
+    await page.fill("#roleUserId", OTHER_ID);
+    await page.selectOption("#roleSelect", "data_ops");
+    await page.fill("#roleGrantNote", "spec-grant");
+    await page.click("#roleGrantBtn");
+    await expect(page.locator("#roleStatus")).toContainText("已授予 data_ops");
+    await expect.poll(() => writes.filter((w) => w.method === "POST" && w.path === "/api/admin/internal/roles").length).toBe(1);
+    const granted = writes.find((w) => w.method === "POST");
+    expect(granted.body).toEqual({ user_id: OTHER_ID, role: "data_ops", note: "spec-grant" });
+
+    // Revoke the other user's finance assignment (dialog auto-accepted).
+    await otherRevoke.click();
+    await expect(page.locator("#roleStatus")).toContainText("已撤销 finance");
+    await expect.poll(() => writes.filter((w) => w.method === "DELETE").length).toBe(1);
+    const revoked = writes.find((w) => w.method === "DELETE");
+    expect(revoked.user).toBe(OTHER_ID);
+    expect(revoked.role).toBe("finance");
+
+    // List was re-read after each write and every request carried the token.
+    expect(roleListGets).toBeGreaterThanOrEqual(3);
+    seenAuth.forEach((auth) => expect(auth).toBe(`Bearer ${MOCK_TOKEN}`));
+    expect(errors).toEqual([]);
+  });
+
+  test("roles tab as finance shows a super_admin-only hint and never fetches the list", async ({ page }) => {
+    await page.addInitScript(
+      ({ token }) => {
+        window.ZOUSEEKING_API_BASE_URL = "https://admin-backend.test";
+        window.ZOUSEEKING_RELEASE_SCOPE = Object.freeze({
+          phase: "consumer_intake_preview",
+          businessOperations: true,
+          adminOperations: true,
+        });
+        window.localStorage.setItem(
+          "zou_house_session",
+          JSON.stringify({ provider: "supabase", accessToken: token }),
+        );
+      },
+      { token: MOCK_TOKEN },
+    );
+
+    const errors = collectErrors(page);
+    const roleListRequests = [];
+    await page.route("https://admin-backend.test/api/admin/**", async (route) => {
+      const request = route.request();
+      const url = new URL(request.url());
+      const path = url.pathname;
+      const method = request.method();
+      if (path === "/api/admin/members" && method === "GET") {
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ total: 1, page: 1, page_size: 20, items: [MOCK_MEMBER] }) });
+        return;
+      }
+      if (path === "/api/admin/audit" && method === "GET") {
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_AUDIT) });
+        return;
+      }
+      if (path === "/api/admin/finance/orders" && method === "GET") {
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_ORDERS) });
+        return;
+      }
+      if (path === "/api/admin/finance/refunds" && method === "GET") {
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_REFUNDS) });
+        return;
+      }
+      if (path === "/api/admin/internal/me" && method === "GET") {
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ user_id: MOCK_MEMBER.user_id, roles: ["finance"] }) });
+        return;
+      }
+      if (path === "/api/admin/internal/roles") {
+        roleListRequests.push(method);
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ items: [] }) });
+        return;
+      }
+      await route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
+    });
+
+    await page.goto("/admin.html");
+    await page.getByRole("tab", { name: /内部角色/ }).click();
+
+    // Read-only hint instead of fabricated rows or assignment controls.
+    await expect(page.locator("#roleGrantPanel")).toBeHidden();
+    await expect(page.locator("#roleStatus")).toContainText("仅 super_admin");
+    await expect(page.locator("#roleStatus")).toContainText("finance");
+    await expect(page.locator("#roleList")).not.toContainText("super_admin");
+    await expect(page.locator("#roleList tr[data-role-row]")).toHaveCount(0);
+    // The assignments list itself is super_admin-only, so it must never be called.
+    expect(roleListRequests).toEqual([]);
+    expect(errors).toEqual([]);
+  });

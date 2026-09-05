@@ -19,7 +19,10 @@
     "GET /api/admin/audit",
     "GET /api/admin/finance/orders",
     "GET /api/admin/finance/refunds",
-    "GET /api/admin/internal/roles"
+    "GET /api/admin/internal/me",
+    "GET /api/admin/internal/roles",
+    "POST /api/admin/internal/roles",
+    "DELETE /api/admin/internal/roles/{user_id}/{role}"
   ],
   "project_conversion": "disabled",
   "business_and_admin_operations": "demo_only_no_network_writes",

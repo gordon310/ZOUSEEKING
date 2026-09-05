@@ -48,20 +48,24 @@
     return query ? `?${query}` : "";
   }
 
-  async function request(path, params = {}) {
+  async function request(path, options = {}) {
+    const { method = "GET", body = null, params = {} } = options;
     const token = getAccessToken();
     if (!token) {
       throw new AdminApiError("未检测到有效登录会话，无法访问后台。", 401, null, "no_session");
     }
     const url = `${window.ZouAdminMode.apiBaseUrl}${path}${buildQuery(params)}`;
+    const headers = { Accept: "application/json" };
+    if (body !== null && body !== undefined) headers["Content-Type"] = "application/json";
     let response;
     try {
       response = await fetch(url, {
-        method: "GET",
+        method,
         headers: {
-          Accept: "application/json",
+          ...headers,
           Authorization: `Bearer ${token}`,
         },
+        body: body !== null && body !== undefined ? JSON.stringify(body) : undefined,
       });
     } catch (error) {
       throw new AdminApiError("无法连接后台服务，请检查网络后重试。", 0, null, "network");
@@ -86,7 +90,7 @@
   window.ZouAdminApi = Object.freeze({
     // GET /api/admin/members?q=&page=&page_size=
     listMembers({ q = "", page = 1, page_size = 20 } = {}) {
-      return request("/api/admin/members", { q, page, page_size });
+      return request("/api/admin/members", { params: { q, page, page_size } });
     },
     // GET /api/admin/members/{user_id}
     getMember(userId) {
@@ -94,15 +98,37 @@
     },
     // GET /api/admin/audit?actor=&action=&since=&limit=
     listAudit({ actor = "", action = "", since = "", limit = 100 } = {}) {
-      return request("/api/admin/audit", { actor, action, since, limit });
+      return request("/api/admin/audit", { params: { actor, action, since, limit } });
     },
     // GET /api/admin/finance/orders?status=&page=
     listOrders({ status = "", page = 1, page_size = 20 } = {}) {
-      return request("/api/admin/finance/orders", { status, page, page_size });
+      return request("/api/admin/finance/orders", { params: { status, page, page_size } });
     },
     // GET /api/admin/finance/refunds?status=&page=
     listRefunds({ status = "", page = 1, page_size = 20 } = {}) {
-      return request("/api/admin/finance/refunds", { status, page, page_size });
+      return request("/api/admin/finance/refunds", { params: { status, page, page_size } });
+    },
+    // GET /api/admin/internal/me  -> { user_id, roles: [...] }
+    getMe() {
+      return request("/api/admin/internal/me");
+    },
+    // GET /api/admin/internal/roles -> { items: [...] }
+    listRoles() {
+      return request("/api/admin/internal/roles");
+    },
+    // POST /api/admin/internal/roles { user_id, role, note?, expires_at? }
+    grantRole({ user_id, role, note = "", expires_at = "" } = {}) {
+      return request("/api/admin/internal/roles", {
+        method: "POST",
+        body: { user_id, role, note: note || undefined, expires_at: expires_at || undefined },
+      });
+    },
+    // DELETE /api/admin/internal/roles/{user_id}/{role}
+    revokeRole(userId, role) {
+      return request(
+        `/api/admin/internal/roles/${encodeURIComponent(userId)}/${encodeURIComponent(role)}`,
+        { method: "DELETE" },
+      );
     },
     getAccessToken,
     AdminApiError,

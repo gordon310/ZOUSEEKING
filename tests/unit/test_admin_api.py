@@ -19,6 +19,7 @@ is created and dropped by this module itself.
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -26,6 +27,7 @@ from pathlib import Path
 from urllib.parse import urlparse, urlunparse
 
 import asyncpg
+import httpx
 import pytest
 import pytest_asyncio
 from fastapi import FastAPI, HTTPException
@@ -60,6 +62,7 @@ UTC = timezone.utc
 ACTOR = uuid.UUID("00000000-0000-0000-0000-000000000001")
 VIEWER = uuid.UUID("00000000-0000-0000-0000-000000000002")
 MEMBER = uuid.UUID("00000000-0000-0000-0000-000000000003")
+UNKNOWN = uuid.UUID("00000000-0000-0000-0000-000000000099")
 
 SAMPLE_USER = AuthUser(user_id=VIEWER, email="viewer@example.com", username="viewer")
 
@@ -99,14 +102,18 @@ FAKE_ROLES_PAGE = {
 class FakeAdminService:
     """In-memory stand-in for AdminService; records role checks, no DB."""
 
-    def __init__(self, roles=None, members=None):
+    def __init__(self, roles=None, members=None, missing_users=()):
         self.roles = list(roles or [])
         self.members = members
+        self.missing_users = {str(u) for u in missing_users}
         self.audit_scopes = []
         self.audit_calls = 0
         self.orders_calls = 0
         self.refunds_calls = 0
         self.roles_calls = 0
+        self.grants = []
+        self.revokes = []
+        self.user_exists_calls = 0
 
     async def fetch_active_roles(self, user_id):
         return list(self.roles)
@@ -149,6 +156,26 @@ class FakeAdminService:
     async def list_role_assignments(self):
         self.roles_calls += 1
         return FAKE_ROLES_PAGE
+
+    async def user_exists(self, user_id):
+        self.user_exists_calls += 1
+        return str(user_id) not in self.missing_users
+
+    async def grant_role(self, **kwargs):
+        self.grants.append(kwargs)
+        return {
+            "id": str(uuid.uuid4()),
+            "user_id": str(kwargs["user_id"]),
+            "role": kwargs["role"],
+            "granted_by_user_id": str(kwargs["granted_by"]),
+            "granted_at": "2026-09-05T00:00:00+00:00",
+            "expires_at": kwargs.get("expires_at"),
+            "note": kwargs.get("note"),
+        }
+
+    async def revoke_role(self, **kwargs):
+        self.revokes.append(kwargs)
+        return {"revoked": True, "user_id": str(kwargs["user_id"]), "role": kwargs["role"]}
 
 
 def _build_app(fake_service: FakeAdminService) -> FastAPI:
@@ -281,6 +308,113 @@ def test_internal_roles_reachable_by_super_admin_only() -> None:
     assert payload["items"][0]["role"] == "finance"
 
 
+# -- role assignment writes: unit gates (fake service, no DB) ---------------
+
+def test_me_returns_own_active_roles_for_any_authenticated_user() -> None:
+    app = _build_app(FakeAdminService(roles=["finance"]))
+    payload = _call(app, "get", "/api/admin/internal/me").json()
+    assert payload["user_id"] == str(VIEWER)
+    assert payload["roles"] == ["finance"]
+
+
+def test_me_returns_empty_roles_when_caller_holds_none() -> None:
+    app = _build_app(FakeAdminService(roles=[]))
+    payload = _call(app, "get", "/api/admin/internal/me").json()
+    assert payload["user_id"] == str(VIEWER)
+    assert payload["roles"] == []
+
+
+def test_role_write_endpoints_are_super_admin_only() -> None:
+    # POST with a valid body: the 403 must come from the role gate, not from
+    # body validation, so every non-super_admin role is rejected.
+    for role in ("finance", "member_ops", "data_ops", "reviewer"):
+        app = _build_app(FakeAdminService(roles=[role]))
+        granted = _call(
+            app, "post", "/api/admin/internal/roles",
+            json={"user_id": str(MEMBER), "role": "finance"},
+        )
+        assert granted.status_code == 403, (role, granted.text)
+        revoked = _call(
+            app, "delete", f"/api/admin/internal/roles/{MEMBER}/finance"
+        )
+        assert revoked.status_code == 403, (role, revoked.text)
+
+
+def test_super_admin_grant_and_revoke_reach_service() -> None:
+    fake = FakeAdminService(roles=["super_admin"])
+    app = _build_app(fake)
+    granted = _call(
+        app, "post", "/api/admin/internal/roles",
+        json={"user_id": str(MEMBER), "role": "data_ops", "note": "unit"},
+    )
+    assert granted.status_code == 201, granted.text
+    assert granted.json()["role"] == "data_ops"
+    assert granted.json()["granted_by_user_id"] == str(VIEWER)
+    assert fake.grants[0]["role"] == "data_ops"
+    assert fake.grants[0]["granted_by"] == VIEWER
+
+    revoked = _call(
+        app, "delete", f"/api/admin/internal/roles/{MEMBER}/data_ops"
+    )
+    assert revoked.status_code == 200, revoked.text
+    assert revoked.json() == {"revoked": True, "user_id": str(MEMBER), "role": "data_ops"}
+    assert fake.revokes[0]["revoked_by"] == VIEWER
+
+
+def test_grant_validation_rejects_bad_role_user_and_expiry() -> None:
+    fake = FakeAdminService(roles=["super_admin"], missing_users=[UNKNOWN])
+    app = _build_app(fake)
+    cases = [
+        # unknown role outside the six-value vocabulary
+        {"user_id": str(MEMBER), "role": "root"},
+        # malformed user_id
+        {"user_id": "not-a-uuid", "role": "finance"},
+        # user not present in auth.users
+        {"user_id": str(UNKNOWN), "role": "finance"},
+        # expiry in the past
+        {"user_id": str(MEMBER), "role": "finance", "expires_at": "2000-01-01T00:00:00Z"},
+        # unparseable expiry
+        {"user_id": str(MEMBER), "role": "finance", "expires_at": "soon"},
+    ]
+    for body in cases:
+        response = _call(app, "post", "/api/admin/internal/roles", json=body)
+        assert response.status_code == 400, (body, response.text)
+    assert fake.grants == []
+    assert fake.user_exists_calls == 1  # only the auth.users case reached DB
+
+
+def test_grant_accepts_future_expiry_and_note() -> None:
+    fake = FakeAdminService(roles=["super_admin"])
+    app = _build_app(fake)
+    future = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+    response = _call(
+        app, "post", "/api/admin/internal/roles",
+        json={"user_id": str(MEMBER), "role": "reviewer", "expires_at": future, "note": "tmp"},
+    )
+    assert response.status_code == 201, response.text
+    assert fake.grants[0]["note"] == "tmp"
+    assert fake.grants[0]["expires_at"] is not None
+
+
+def test_revoke_rejects_unknown_role_or_user_shape() -> None:
+    fake = FakeAdminService(roles=["super_admin"])
+    app = _build_app(fake)
+    assert _call(app, "delete", "/api/admin/internal/roles/abc/finance").status_code == 400
+    assert _call(app, "delete", f"/api/admin/internal/roles/{MEMBER}/root").status_code == 400
+    assert fake.revokes == []
+
+
+def test_super_admin_cannot_revoke_own_super_admin() -> None:
+    fake = FakeAdminService(roles=["super_admin"])
+    app = _build_app(fake)
+    response = _call(
+        app, "delete", f"/api/admin/internal/roles/{VIEWER}/super_admin"
+    )
+    assert response.status_code == 400, response.text
+    assert "super_admin" in response.json()["detail"]
+    assert fake.revokes == []  # guard fires before any service call
+
+
 def test_unauthenticated_request_is_401() -> None:
     app = FastAPI()
     app.include_router(admin_router)
@@ -322,12 +456,19 @@ def test_admin_routes_are_on_phase_one_allowlist(monkeypatch) -> None:
         "/api/admin/audit",
         "/api/admin/finance/orders",
         "/api/admin/finance/refunds",
+        "/api/admin/internal/me",
         "/api/admin/internal/roles",
     ):
         assert request_allowed("GET", path), path
+    # role-assignment writes are allowlisted under their exact verbs only
+    assert request_allowed("POST", "/api/admin/internal/roles")
+    assert request_allowed(
+        "DELETE", "/api/admin/internal/roles/00000000-0000-0000-0000-000000000003/finance"
+    )
     # non-allowlisted verbs / paths stay blocked in the managed phase
     assert not request_allowed("DELETE", "/api/admin/members")
     assert not request_allowed("POST", "/api/admin/members")
+    assert not request_allowed("PUT", "/api/admin/internal/roles")
     assert not request_allowed("GET", "/api/admin/members/extra/segment")
 
 
@@ -752,3 +893,226 @@ async def test_list_role_assignments_real_query(
     async with seeded_pool.acquire() as conn:
         after = await _table_counts(conn)
     assert after == before
+
+
+# ============================================================================
+# Role-assignment writes against real Postgres (disposable local server)
+# ============================================================================
+
+def _actor_auth() -> AuthUser:
+    return AuthUser(user_id=ACTOR, email="actor@example.com", username="actor")
+
+
+def _viewer_auth() -> AuthUser:
+    return AuthUser(user_id=VIEWER, email="viewer@example.com", username="viewer")
+
+
+def _build_real_app(pool: asyncpg.Pool, auth: AuthUser) -> FastAPI:
+    app = FastAPI()
+    app.include_router(admin_router)
+    app.dependency_overrides[require_user] = lambda: auth
+    app.dependency_overrides[get_admin_service] = lambda: AdminService(pool=pool)
+    return app
+
+
+async def _audit_actions(
+    pool: asyncpg.Pool, action: str = "", target: str = ""
+) -> list[dict]:
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "select actor_user_id, action, target_type, target_id, summary"
+            " from public.audit_events"
+            " where ($1 = '' or action = $1)"
+            "   and ($2 = '' or target_id = $2)"
+            " order by occurred_at, id",
+            action,
+            target,
+        )
+    return [
+        {
+            "actor_user_id": row["actor_user_id"],
+            "action": row["action"],
+            "target_type": row["target_type"],
+            "target_id": row["target_id"],
+            "summary": json.loads(row["summary"]),
+        }
+        for row in rows
+    ]
+
+
+@pytestmark_db
+async def test_http_grant_role_writes_assignment_and_audit(
+    seeded_pool: asyncpg.Pool,
+) -> None:
+    app = _build_real_app(seeded_pool, _actor_auth())
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/api/admin/internal/roles",
+            json={"user_id": str(MEMBER), "role": "data_ops", "note": "http-integration"},
+        )
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["user_id"] == str(MEMBER)
+    assert body["role"] == "data_ops"
+    assert body["granted_by_user_id"] == str(ACTOR)
+    assert body["note"] == "http-integration"
+    assert body["expires_at"] is None
+
+    service = AdminService(pool=seeded_pool)
+    assert "data_ops" in await service.fetch_active_roles(MEMBER)
+
+    rows = await _audit_actions(seeded_pool, "admin.role.granted", str(MEMBER))
+    assert len(rows) == 1
+    assert rows[0]["actor_user_id"] == ACTOR
+    assert rows[0]["target_type"] == "user"
+    assert rows[0]["target_id"] == str(MEMBER)
+    assert rows[0]["summary"]["role"] == "data_ops"
+    assert rows[0]["summary"]["granted_by"] == str(ACTOR)
+
+
+@pytestmark_db
+async def test_http_grant_honours_future_expiry(seeded_pool: asyncpg.Pool) -> None:
+    app = _build_real_app(seeded_pool, _actor_auth())
+    transport = httpx.ASGITransport(app=app)
+    future = (datetime.now(timezone.utc) + timedelta(days=14)).isoformat()
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/api/admin/internal/roles",
+            json={"user_id": str(MEMBER), "role": "task_dispatcher", "expires_at": future},
+        )
+    assert response.status_code == 201, response.text
+    stored = await _audit_actions(seeded_pool, "admin.role.granted", str(MEMBER))
+    assert len(stored) == 1
+    # an expiring assignment is still active until expires_at
+    service = AdminService(pool=seeded_pool)
+    assert "task_dispatcher" in await service.fetch_active_roles(MEMBER)
+
+
+@pytestmark_db
+async def test_http_duplicate_grant_is_409_without_audit_row(
+    seeded_pool: asyncpg.Pool,
+) -> None:
+    app = _build_real_app(seeded_pool, _actor_auth())
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        # MEMBER already holds finance in the seed data.
+        response = await client.post(
+            "/api/admin/internal/roles",
+            json={"user_id": str(MEMBER), "role": "finance"},
+        )
+    assert response.status_code == 409, response.text
+    # failed grant leaves no audit trail (transaction rolled back)
+    rows = await _audit_actions(seeded_pool, "admin.role.granted", str(MEMBER))
+    assert rows == []
+
+
+@pytestmark_db
+async def test_http_grant_missing_user_is_400_without_audit_row(
+    seeded_pool: asyncpg.Pool,
+) -> None:
+    app = _build_real_app(seeded_pool, _actor_auth())
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/api/admin/internal/roles",
+            json={"user_id": str(UNKNOWN), "role": "data_ops"},
+        )
+    assert response.status_code == 400, response.text
+    rows = await _audit_actions(seeded_pool, "admin.role.granted", str(UNKNOWN))
+    assert rows == []
+
+
+@pytestmark_db
+async def test_http_non_super_admin_cannot_write_or_list_roles(
+    seeded_pool: asyncpg.Pool,
+) -> None:
+    app = _build_real_app(seeded_pool, _viewer_auth())  # VIEWER is finance only
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        assert (await client.post(
+            "/api/admin/internal/roles",
+            json={"user_id": str(MEMBER), "role": "data_ops"},
+        )).status_code == 403
+        assert (await client.delete(
+            f"/api/admin/internal/roles/{MEMBER}/finance"
+        )).status_code == 403
+        assert (await client.get("/api/admin/internal/roles")).status_code == 403
+        # but the viewer may always read their own roles
+        me = await client.get("/api/admin/internal/me")
+    assert me.status_code == 200
+    assert me.json()["user_id"] == str(VIEWER)
+    assert me.json()["roles"] == ["finance"]
+
+
+@pytestmark_db
+async def test_http_revoke_removes_assignment_and_audits(
+    seeded_pool: asyncpg.Pool,
+) -> None:
+    app = _build_real_app(seeded_pool, _actor_auth())
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        granted = await client.post(
+            "/api/admin/internal/roles",
+            json={"user_id": str(VIEWER), "role": "task_dispatcher"},
+        )
+        assert granted.status_code == 201, granted.text
+        revoked = await client.delete(
+            f"/api/admin/internal/roles/{VIEWER}/task_dispatcher"
+        )
+        assert revoked.status_code == 200, revoked.text
+        assert revoked.json() == {"revoked": True, "user_id": str(VIEWER), "role": "task_dispatcher"}
+        # gone from the active role set and from the raw table
+        service = AdminService(pool=seeded_pool)
+        assert "task_dispatcher" not in await service.fetch_active_roles(VIEWER)
+        async with seeded_pool.acquire() as conn:
+            remaining = await conn.fetchval(
+                "select count(*) from public.internal_role_assignments"
+                " where user_id = $1 and role = 'task_dispatcher'",
+                VIEWER,
+            )
+        assert remaining == 0
+        # revoking again is a 404 and writes no second audit row
+        again = await client.delete(
+            f"/api/admin/internal/roles/{VIEWER}/task_dispatcher"
+        )
+        assert again.status_code == 404
+    rows = await _audit_actions(seeded_pool, "admin.role.revoked", str(VIEWER))
+    assert len(rows) == 1
+    assert rows[0]["summary"]["role"] == "task_dispatcher"
+    assert rows[0]["summary"]["revoked_by"] == str(ACTOR)
+
+
+@pytestmark_db
+async def test_http_self_revoke_super_admin_blocked_and_other_super_admin_can(
+    seeded_pool: asyncpg.Pool,
+) -> None:
+    app = _build_real_app(seeded_pool, _actor_auth())
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        # a super_admin cannot revoke their own super_admin (self-lockout guard)
+        blocked = await client.delete(f"/api/admin/internal/roles/{ACTOR}/super_admin")
+        assert blocked.status_code == 400, blocked.text
+        assert "super_admin" in blocked.json()["detail"]
+        # ...but another super_admin can revoke it (add a second one first)
+        granted = await client.post(
+            "/api/admin/internal/roles",
+            json={"user_id": str(VIEWER), "role": "super_admin"},
+        )
+        assert granted.status_code == 201, granted.text
+    service = AdminService(pool=seeded_pool)
+    assert "super_admin" in await service.fetch_active_roles(VIEWER)
+    # VIEWER (now super_admin) still may not revoke themself
+    viewer_app = _build_real_app(seeded_pool, _viewer_auth())
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=viewer_app), base_url="http://test"
+    ) as client:
+        self_blocked = await client.delete(f"/api/admin/internal/roles/{VIEWER}/super_admin")
+        assert self_blocked.status_code == 400
+    # ACTOR revokes VIEWER's super_admin: allowed and audited
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        revoked = await client.delete(f"/api/admin/internal/roles/{VIEWER}/super_admin")
+    assert revoked.status_code == 200, revoked.text
+    assert "super_admin" not in await service.fetch_active_roles(VIEWER)

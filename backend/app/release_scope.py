@@ -20,15 +20,21 @@ PHASE_ONE_API_CONTRACT = (
     "POST /api/intake/sessions/{session_id}/preview",
 )
 
-# Read-only back-office surface (ADMIN_ENABLED gate still applies at the
-# service layer; the allowlist only decides whether the route is reachable).
+# Back-office surface (ADMIN_ENABLED gate still applies at the service layer;
+# the allowlist only decides whether a route is reachable).  Members/audit/
+# finance and the roles list are read-only; the two role-assignment writes
+# (grant / revoke) are the only write methods and are super_admin-gated with
+# an audit_events row on every success.
 ADMIN_API_CONTRACT = (
     "GET /api/admin/members",
     "GET /api/admin/members/{user_id}",
     "GET /api/admin/audit",
     "GET /api/admin/finance/orders",
     "GET /api/admin/finance/refunds",
+    "GET /api/admin/internal/me",
     "GET /api/admin/internal/roles",
+    "POST /api/admin/internal/roles",
+    "DELETE /api/admin/internal/roles/{user_id}/{role}",
 )
 
 PHASE_ONE_API_CONTRACT = PHASE_ONE_API_CONTRACT + ADMIN_API_CONTRACT

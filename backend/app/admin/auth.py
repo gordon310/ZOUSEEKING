@@ -57,6 +57,29 @@ class AdminPrincipal:
         return bool(self.role_set & frozenset(roles))
 
 
+async def _resolve_principal(user: AuthUser, service: AdminService) -> AdminPrincipal:
+    """Load the caller's active roles into an :class:`AdminPrincipal`.
+
+    Shared by every admin dependency; the caller decides whether an empty role
+    set is an error (require_admin_role) or a legitimate answer (viewer / me).
+    """
+    active = await service.fetch_active_roles(user.user_id)
+    return AdminPrincipal(user=user, roles=active)
+
+
+async def _require_admin_roles_checker(
+    allowed: frozenset[str],
+    user: AuthUser,
+    service: AdminService,
+) -> AdminPrincipal:
+    principal = await _resolve_principal(user, service)
+    if not principal.roles:
+        raise HTTPException(status_code=403, detail="当前账号没有后台访问权限")
+    if not (allowed & set(principal.roles)):
+        raise HTTPException(status_code=403, detail="当前账号无权访问该后台资源")
+    return principal
+
+
 def require_admin_role(*roles: str):
     """Build a FastAPI dependency that authenticates and enforces a role.
 
@@ -76,11 +99,24 @@ def require_admin_role(*roles: str):
         user: AuthUser = Depends(require_user),
         service: AdminService = Depends(get_admin_service),
     ) -> AdminPrincipal:
-        active = await service.fetch_active_roles(user.user_id)
-        if not active:
-            raise HTTPException(status_code=403, detail="当前账号没有后台访问权限")
-        if not (allowed & set(active)):
-            raise HTTPException(status_code=403, detail="当前账号无权访问该后台资源")
-        return AdminPrincipal(user=user, roles=active)
+        return await _require_admin_roles_checker(allowed, user, service)
+
+    return _checker
+
+
+def require_admin_viewer():
+    """Authenticate + env-gate only; no role 403.
+
+    Used by ``GET /api/admin/internal/me``: a caller learns their own role set
+    (possibly empty) so the front end can decide which controls to show.  The
+    response only ever describes the caller themselves, so no role check is
+    needed beyond a valid Supabase session.
+    """
+
+    async def _checker(
+        user: AuthUser = Depends(require_user),
+        service: AdminService = Depends(get_admin_service),
+    ) -> AdminPrincipal:
+        return await _resolve_principal(user, service)
 
     return _checker

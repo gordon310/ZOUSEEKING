@@ -35,6 +35,7 @@ from fastapi.testclient import TestClient
 
 from backend.app.admin import auth as admin_auth
 from backend.app.admin.auth import (
+    DATA_OPS,
     FINANCE,
     MEMBER_OPS,
     SUPER_ADMIN,
@@ -46,6 +47,8 @@ from backend.app.admin.service import (
     DEFAULT_AUDIT_LIMIT,
     EMAIL_VISIBLE_ROLES,
     MEMBER_OPS_ACTION_PREFIXES,
+    RUN_STATUSES,
+    SOURCE_TYPES,
     AdminService,
     current_month_period_key,
     get_admin_service,
@@ -78,6 +81,7 @@ FAKE_MEMBER_PAGE = {
             "email": "alice@example.com",
             "membership_tier": "pro",
             "daily_query_limit": 50,
+            "status": "active",
             "roles": [{"role": "member_ops", "expires_at": None}],
             "subscriptions": [],
             "usage_quotas": [],
@@ -98,6 +102,20 @@ FAKE_ROLES_PAGE = {
     ]
 }
 
+FAKE_RUN_ITEM = {
+    "id": str(uuid.uuid4()),
+    "source_key": "jphouse_23ku/minato",
+    "source_type": "authorized_csv",
+    "status": "queued",
+    "rows_collected": 0,
+    "snapshot_hash": None,
+    "error_message": None,
+    "operator_user_id": str(VIEWER),
+    "started_at": None,
+    "completed_at": None,
+    "created_at": "2026-09-05T00:00:00+00:00",
+}
+
 
 class FakeAdminService:
     """In-memory stand-in for AdminService; records role checks, no DB."""
@@ -114,6 +132,9 @@ class FakeAdminService:
         self.grants = []
         self.revokes = []
         self.user_exists_calls = 0
+        self.collection_list_calls = 0
+        self.collection_enqueues = []
+        self.status_calls = []
 
     async def fetch_active_roles(self, user_id):
         return list(self.roles)
@@ -157,6 +178,25 @@ class FakeAdminService:
         self.roles_calls += 1
         return FAKE_ROLES_PAGE
 
+    async def list_collection_runs(self, status=None, source_key="", page=1, page_size=20):
+        self.collection_list_calls += 1
+        return {
+            "total": 1,
+            "page": page,
+            "page_size": page_size,
+            "items": [FAKE_RUN_ITEM] if status in (None, "queued") else [],
+        }
+
+    async def enqueue_collection_run(self, *, source_key, source_type, operator_user_id):
+        self.collection_enqueues.append(
+            {
+                "source_key": source_key,
+                "source_type": source_type,
+                "operator_user_id": operator_user_id,
+            }
+        )
+        return dict(FAKE_RUN_ITEM, source_key=source_key, source_type=source_type)
+
     async def user_exists(self, user_id):
         self.user_exists_calls += 1
         return str(user_id) not in self.missing_users
@@ -176,6 +216,19 @@ class FakeAdminService:
     async def revoke_role(self, **kwargs):
         self.revokes.append(kwargs)
         return {"revoked": True, "user_id": str(kwargs["user_id"]), "role": kwargs["role"]}
+
+    async def set_member_status(self, *, user_id, status, actor):
+        self.status_calls.append(
+            {"user_id": user_id, "status": status, "actor": actor}
+        )
+        if str(user_id) in self.missing_users:
+            return None
+        return {
+            "user_id": str(user_id),
+            "status": status,
+            "previous_status": "active",
+            "changed": True,
+        }
 
 
 def _build_app(fake_service: FakeAdminService) -> FastAPI:
@@ -260,6 +313,13 @@ def test_admin_principal_role_set_and_has_role() -> None:
         ("/api/admin/audit", "get", ["super_admin"], 200),
         ("/api/admin/audit", "get", ["member_ops"], 200),
         ("/api/admin/audit", "get", ["reviewer"], 403),
+        # collection runs read: member_ops, data_ops or super_admin
+        ("/api/admin/collection/runs", "get", ["member_ops"], 200),
+        ("/api/admin/collection/runs", "get", ["data_ops"], 200),
+        ("/api/admin/collection/runs", "get", ["super_admin"], 200),
+        ("/api/admin/collection/runs", "get", ["finance"], 403),
+        ("/api/admin/collection/runs", "get", ["reviewer"], 403),
+        ("/api/admin/collection/runs", "get", [], 403),
         # roles: super_admin only
         ("/api/admin/internal/roles", "get", ["super_admin"], 200),
         ("/api/admin/internal/roles", "get", ["finance"], 403),
@@ -315,6 +375,87 @@ def test_me_returns_own_active_roles_for_any_authenticated_user() -> None:
     payload = _call(app, "get", "/api/admin/internal/me").json()
     assert payload["user_id"] == str(VIEWER)
     assert payload["roles"] == ["finance"]
+
+
+# -- collection runs: unit gates and validation (fake service, no DB) -------
+
+def test_collection_runs_list_roles_matrix_is_enforced() -> None:
+    # GET reachable for member_ops/data_ops/super_admin; the matrix above
+    # asserts 403s. Here: member_ops can read (role matrix in the spec).
+    scoped = FakeAdminService(roles=["member_ops"])
+    payload = _call(_build_app(scoped), "get", "/api/admin/collection/runs").json()
+    assert payload["total"] == 1
+    assert scoped.collection_list_calls == 1
+    assert payload["items"][0]["status"] == "queued"
+
+
+def test_collection_enqueue_endpoint_is_data_ops_or_super_admin_only() -> None:
+    body = {"source_key": "jphouse_23ku/minato", "source_type": "authorized_csv"}
+    for role in ("finance", "member_ops", "reviewer", "task_dispatcher"):
+        fake = FakeAdminService(roles=[role])
+        response = _call(
+            _build_app(fake), "post", "/api/admin/collection/runs", json=body
+        )
+        assert response.status_code == 403, (role, response.text)
+        assert fake.collection_enqueues == []
+    empty = FakeAdminService(roles=[])
+    assert (
+        _call(_build_app(empty), "post", "/api/admin/collection/runs", json=body).status_code
+        == 403
+    )
+
+
+def test_data_ops_and_super_admin_enqueue_reach_service() -> None:
+    for role in ("data_ops", "super_admin"):
+        fake = FakeAdminService(roles=[role])
+        response = _call(
+            _build_app(fake),
+            "post",
+            "/api/admin/collection/runs",
+            json={"source_key": " jphouse_23ku/shinjuku ", "source_type": "official_open"},
+        )
+        assert response.status_code == 201, (role, response.text)
+        assert response.json()["status"] == "queued"
+        assert response.json()["source_key"] == "jphouse_23ku/shinjuku"
+        assert fake.collection_enqueues[0]["source_key"] == "jphouse_23ku/shinjuku"
+        assert fake.collection_enqueues[0]["source_type"] == "official_open"
+        assert fake.collection_enqueues[0]["operator_user_id"] == VIEWER
+
+
+def test_collection_enqueue_validation_rejects_bad_source_key_and_type() -> None:
+    fake = FakeAdminService(roles=["data_ops"])
+    app = _build_app(fake)
+    cases = [
+        # blank source_key
+        {"source_key": "   ", "source_type": "authorized_csv"},
+        # empty source_key
+        {"source_key": "", "source_type": "authorized_csv"},
+        # source_type outside the five-value vocabulary
+        {"source_key": "jphouse_23ku/minato", "source_type": "scraped_aggregate"},
+        {"source_key": "jphouse_23ku/minato", "source_type": ""},
+    ]
+    for body in cases:
+        response = _call(app, "post", "/api/admin/collection/runs", json=body)
+        assert response.status_code == 400, (body, response.text)
+    assert fake.collection_enqueues == []
+
+
+def test_collection_enqueue_rejects_missing_body_fields() -> None:
+    fake = FakeAdminService(roles=["super_admin"])
+    app = _build_app(fake)
+    assert _call(app, "post", "/api/admin/collection/runs", json={}).status_code == 422
+    assert fake.collection_enqueues == []
+
+
+def test_collection_run_vocabularies_match_database_check() -> None:
+    assert SOURCE_TYPES == (
+        "authorized_csv",
+        "official_open",
+        "partner",
+        "user_submitted",
+        "aggregate_authorized",
+    )
+    assert RUN_STATUSES == ("queued", "running", "succeeded", "failed", "cancelled")
 
 
 def test_me_returns_empty_roles_when_caller_holds_none() -> None:
@@ -427,6 +568,66 @@ def test_unauthenticated_request_is_401() -> None:
     assert _call(app, "get", "/api/admin/members").status_code == 401
 
 
+# -- member status write: unit gates (fake service, no DB) -----------------
+
+def test_member_status_write_roles_member_ops_and_super_admin_only() -> None:
+    path = f"/api/admin/members/{MEMBER}/status"
+    body = {"status": "suspended"}
+    for role, expected in (
+        ("member_ops", 200),
+        ("super_admin", 200),
+        ("finance", 403),
+        ("data_ops", 403),
+        ("reviewer", 403),
+        ("task_dispatcher", 403),
+        (None, 403),  # no roles at all
+    ):
+        fake = FakeAdminService(roles=[role] if role else [])
+        app = _build_app(fake)
+        response = _call(app, "post", path, json=body)
+        assert response.status_code == expected, (role, response.text)
+    # a successful call reaches the service with the caller as actor
+    fake = FakeAdminService(roles=["member_ops"])
+    ok = _call(_build_app(fake), "post", path, json=body)
+    assert ok.status_code == 200, ok.text
+    assert ok.json()["status"] == "suspended"
+    assert ok.json()["changed"] is True
+    assert fake.status_calls[-1]["actor"] == VIEWER  # SAMPLE_USER
+
+
+def test_member_status_write_validation_and_404() -> None:
+    # unknown member (no profile row) -> 404; service is consulted but the
+    # fake records no change since it returns None (route maps to 404)
+    fake = FakeAdminService(roles=["member_ops"], missing_users=[UNKNOWN])
+    app = _build_app(fake)
+    missing = _call(app, "post", f"/api/admin/members/{UNKNOWN}/status", json={"status": "suspended"})
+    assert missing.status_code == 404
+    assert fake.status_calls == [{"user_id": UNKNOWN, "status": "suspended", "actor": VIEWER}]
+
+    # out-of-vocabulary status -> 400 (no further service calls)
+    bad = _call(app, "post", f"/api/admin/members/{MEMBER}/status", json={"status": "banned"})
+    assert bad.status_code == 400
+    assert len(fake.status_calls) == 1
+
+    # malformed user_id -> 422
+    malformed = _call(app, "post", "/api/admin/members/not-a-uuid/status", json={"status": "suspended"})
+    assert malformed.status_code == 422
+
+    # missing body / missing field -> 422 (pydantic)
+    no_body = _call(app, "post", f"/api/admin/members/{MEMBER}/status", json={})
+    assert no_body.status_code == 422
+
+
+def test_member_status_write_accepts_active_and_records_call() -> None:
+    fake = FakeAdminService(roles=["super_admin"])
+    response = _call(
+        _build_app(fake), "post", f"/api/admin/members/{MEMBER}/status", json={"status": "active"}
+    )
+    assert response.status_code == 200
+    assert fake.status_calls[-1]["status"] == "active"
+    assert fake.status_calls[-1]["user_id"] == MEMBER
+
+
 # -- env gate ----------------------------------------------------------------
 
 def test_admin_env_gate_503_when_disabled(monkeypatch) -> None:
@@ -456,12 +657,18 @@ def test_admin_routes_are_on_phase_one_allowlist(monkeypatch) -> None:
         "/api/admin/audit",
         "/api/admin/finance/orders",
         "/api/admin/finance/refunds",
+        "/api/admin/collection/runs",
         "/api/admin/internal/me",
         "/api/admin/internal/roles",
     ):
         assert request_allowed("GET", path), path
     # role-assignment writes are allowlisted under their exact verbs only
     assert request_allowed("POST", "/api/admin/internal/roles")
+    assert request_allowed("POST", "/api/admin/collection/runs")
+    assert request_allowed(
+        "POST",
+        "/api/admin/members/00000000-0000-0000-0000-000000000003/status",
+    )
     assert request_allowed(
         "DELETE", "/api/admin/internal/roles/00000000-0000-0000-0000-000000000003/finance"
     )
@@ -469,6 +676,8 @@ def test_admin_routes_are_on_phase_one_allowlist(monkeypatch) -> None:
     assert not request_allowed("DELETE", "/api/admin/members")
     assert not request_allowed("POST", "/api/admin/members")
     assert not request_allowed("PUT", "/api/admin/internal/roles")
+    assert not request_allowed("POST", "/api/admin/collection/runs/extra")
+    assert not request_allowed("DELETE", "/api/admin/collection/runs")
     assert not request_allowed("GET", "/api/admin/members/extra/segment")
 
 
@@ -502,6 +711,8 @@ MIGRATIONS = [
     REPO_ROOT / "supabase" / "migrations" / "20260905000200_v1_products_subscriptions.sql",
     REPO_ROOT / "supabase" / "migrations" / "20260905000300_v1_usage_ledger.sql",
     REPO_ROOT / "supabase" / "migrations" / "20260905000500_v1_finance_admin_audit.sql",
+    REPO_ROOT / "supabase" / "migrations" / "20260905000600_member_status.sql",
+    REPO_ROOT / "supabase" / "migrations" / "20260905000601_collection_runs.sql",
 ]
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
@@ -545,6 +756,12 @@ async def _bootstrap_and_migrate(url: str) -> None:
             create or replace function auth.uid() returns uuid
             language sql stable as $$
               select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
+            $$;
+            create or replace function public.is_service_role() returns boolean
+            language sql stable set search_path = public as $$
+              select current_user in ('postgres', 'service_role', 'supabase_admin')
+                  or coalesce(current_setting('request.jwt.claim.role', true), '')
+                     in ('service_role', 'supabase_admin');
             $$;
             create or replace function public.set_updated_at()
             returns trigger language plpgsql as $$
@@ -613,6 +830,7 @@ async def seeded_pool(_migrated_database: str):
                 "truncate table"
                 " public.payment_orders, public.refunds, public.payment_events,"
                 " public.internal_role_assignments, public.audit_events,"
+                " public.collection_runs,"
                 " public.subscriptions, public.billing_customers,"
                 " public.usage_quotas, public.usage_events, public.usage_idempotency,"
                 " public.organization_members, public.organizations,"
@@ -733,6 +951,37 @@ async def seeded_pool(_migrated_database: str):
                 " values ($1, 2900, 'CNY', 'customer_request', 'succeeded', 're_seed_1')",
                 order_id,
             )
+            # Collection runs: one succeeded (with hash + both timestamps),
+            # one queued (no start yet) and one failed with an error message.
+            # created_at is staggered so newest-first assertions are
+            # deterministic (seeds share one transaction's now() otherwise).
+            await conn.execute(
+                "insert into public.collection_runs"
+                " (source_key, source_type, status, rows_collected, snapshot_hash,"
+                "  operator_user_id, started_at, completed_at, created_at)"
+                " values ($1, 'authorized_csv', 'succeeded', 240, $2, $3,"
+                "         now() - interval '2 hours', now() - interval '1 hour',"
+                "         now() - interval '3 hours')",
+                "jphouse_23ku/minato",
+                "ab" * 32,
+                ACTOR,
+            )
+            await conn.execute(
+                "insert into public.collection_runs"
+                " (source_key, source_type, operator_user_id, created_at)"
+                " values ($1, 'official_open', $2, now() - interval '2 hours')",
+                "jphouse_23ku/shinjuku",
+                ACTOR,
+            )
+            await conn.execute(
+                "insert into public.collection_runs"
+                " (source_key, source_type, status, error_message, operator_user_id,"
+                "  started_at, created_at)"
+                " values ($1, 'partner', 'failed', 'snapshot read timeout', $2,"
+                "         now() - interval '30 minutes', now() - interval '1 hour')",
+                "jphouse_osaka_wards/nishi",
+                ACTOR,
+            )
     yield pool
     await pool.close()
 
@@ -753,6 +1002,7 @@ async def _table_counts(conn: asyncpg.Connection) -> dict:
         "public.audit_events",
         "public.payment_orders",
         "public.refunds",
+        "public.collection_runs",
     ):
         counts[table] = await conn.fetchval(f"select count(*) from {table}")
     return counts
@@ -905,6 +1155,10 @@ def _actor_auth() -> AuthUser:
 
 def _viewer_auth() -> AuthUser:
     return AuthUser(user_id=VIEWER, email="viewer@example.com", username="viewer")
+
+
+def _member_auth() -> AuthUser:
+    return AuthUser(user_id=MEMBER, email="member@example.com", username="member")
 
 
 def _build_real_app(pool: asyncpg.Pool, auth: AuthUser) -> FastAPI:
@@ -1116,3 +1370,310 @@ async def test_http_self_revoke_super_admin_blocked_and_other_super_admin_can(
         revoked = await client.delete(f"/api/admin/internal/roles/{VIEWER}/super_admin")
     assert revoked.status_code == 200, revoked.text
     assert "super_admin" not in await service.fetch_active_roles(VIEWER)
+
+
+# ============================================================================
+# Collection runs against real Postgres (disposable local server)
+# ============================================================================
+
+@pytestmark_db
+async def test_list_collection_runs_real_query(
+    admin_service: AdminService, seeded_pool: asyncpg.Pool
+) -> None:
+    async with seeded_pool.acquire() as conn:
+        before = await _table_counts(conn)
+    result = await admin_service.list_collection_runs(page=1, page_size=20)
+    assert result["total"] == 3
+    # newest first: queued seed inserted last of the three
+    assert result["items"][0]["source_key"] == "jphouse_osaka_wards/nishi"
+    assert result["items"][0]["status"] == "failed"
+    assert result["items"][0]["error_message"] == "snapshot read timeout"
+
+    succeeded = next(i for i in result["items"] if i["status"] == "succeeded")
+    assert succeeded["source_key"] == "jphouse_23ku/minato"
+    assert succeeded["source_type"] == "authorized_csv"
+    assert succeeded["rows_collected"] == 240
+    # char(64) hash is stripped of bpchar padding before serialisation
+    assert succeeded["snapshot_hash"] == "ab" * 32
+    assert succeeded["started_at"] and succeeded["completed_at"]
+    assert succeeded["operator_user_id"] == str(ACTOR)
+
+    queued = next(i for i in result["items"] if i["status"] == "queued")
+    assert queued["source_key"] == "jphouse_23ku/shinjuku"
+    assert queued["started_at"] is None and queued["completed_at"] is None
+    assert queued["rows_collected"] == 0 and queued["snapshot_hash"] is None
+
+    # status + source_key filters
+    only_failed = await admin_service.list_collection_runs(status="failed")
+    assert only_failed["total"] == 1
+    only_23ku = await admin_service.list_collection_runs(source_key="jphouse_23ku")
+    assert only_23ku["total"] == 2
+    with pytest.raises(HTTPException) as exc:
+        await admin_service.list_collection_runs(status="nonsense")
+    assert exc.value.status_code == 422
+
+    async with seeded_pool.acquire() as conn:
+        after = await _table_counts(conn)
+    assert after == before  # SELECT-only proof
+
+
+@pytestmark_db
+async def test_http_collection_enqueue_creates_run_and_audit(
+    seeded_pool: asyncpg.Pool,
+) -> None:
+    app = _build_real_app(seeded_pool, _actor_auth())
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/api/admin/collection/runs",
+            json={"source_key": "jphouse_23ku/minato", "source_type": "authorized_csv"},
+        )
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["status"] == "queued"
+    assert body["source_key"] == "jphouse_23ku/minato"
+    assert body["source_type"] == "authorized_csv"
+    assert body["operator_user_id"] == str(ACTOR)
+    assert body["rows_collected"] == 0
+    assert body["snapshot_hash"] is None
+
+    service = AdminService(pool=seeded_pool)
+    page = await service.list_collection_runs(page=1, page_size=20)
+    assert page["total"] == 4  # 3 seeds + the new queued row
+    newest = page["items"][0]
+    assert newest["id"] == body["id"] and newest["status"] == "queued"
+
+    rows = await _audit_actions(seeded_pool, "admin.collection.queued", body["id"])
+    assert len(rows) == 1
+    assert rows[0]["actor_user_id"] == ACTOR
+    assert rows[0]["target_type"] == "collection_run"
+    assert rows[0]["target_id"] == body["id"]
+    assert rows[0]["summary"]["source_key"] == "jphouse_23ku/minato"
+    assert rows[0]["summary"]["source_type"] == "authorized_csv"
+    assert rows[0]["summary"]["queued_by"] == str(ACTOR)
+
+
+@pytestmark_db
+async def test_http_collection_enqueue_forbidden_for_non_data_ops(
+    seeded_pool: asyncpg.Pool,
+) -> None:
+    body = {"source_key": "jphouse_23ku/taito", "source_type": "official_open"}
+    for auth in (_viewer_auth(), _member_auth()):
+        app = _build_real_app(seeded_pool, auth)  # finance / member_ops+finance
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            assert (await client.post(
+                "/api/admin/collection/runs", json=body
+            )).status_code == 403
+    async with seeded_pool.acquire() as conn:
+        remaining = await conn.fetchval(
+            "select count(*) from public.collection_runs"
+            " where source_key = $1",
+            "jphouse_23ku/taito",
+        )
+    assert remaining == 0
+    assert await _audit_actions(seeded_pool, "admin.collection.queued") == []
+
+
+@pytestmark_db
+async def test_http_collection_runs_role_gate_and_validation(
+    seeded_pool: asyncpg.Pool,
+) -> None:
+    # member_ops may read (GET), finance may not.
+    member_app = _build_real_app(seeded_pool, _member_auth())
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=member_app), base_url="http://test"
+    ) as client:
+        listed = await client.get("/api/admin/collection/runs")
+    assert listed.status_code == 200, listed.text
+    assert listed.json()["total"] == 3
+
+    viewer_app = _build_real_app(seeded_pool, _viewer_auth())  # finance only
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=viewer_app), base_url="http://test"
+    ) as client:
+        assert (await client.get("/api/admin/collection/runs")).status_code == 403
+
+    actor_app = _build_real_app(seeded_pool, _actor_auth())  # super_admin
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=actor_app), base_url="http://test"
+    ) as client:
+        # unknown status filter -> 422
+        bad_status = await client.get(
+            "/api/admin/collection/runs", params={"status": "done"}
+        )
+        assert bad_status.status_code == 422
+        # POST validation: blank source_key / unknown source_type -> 400
+        blank_key = await client.post(
+            "/api/admin/collection/runs",
+            json={"source_key": "   ", "source_type": "partner"},
+        )
+        assert blank_key.status_code == 400, blank_key.text
+        bad_type = await client.post(
+            "/api/admin/collection/runs",
+            json={"source_key": "jphouse_23ku/minato", "source_type": "scraped"},
+        )
+        assert bad_type.status_code == 400, bad_type.text
+    async with seeded_pool.acquire() as conn:
+        remaining = await conn.fetchval(
+            "select count(*) from public.collection_runs"
+        )
+    assert remaining == 3  # validation failures wrote nothing
+    assert await _audit_actions(seeded_pool, "admin.collection.queued") == []
+
+
+@pytestmark_db
+async def test_http_data_ops_can_enqueue_after_grant(
+    seeded_pool: asyncpg.Pool,
+) -> None:
+    # VIEWER starts as finance-only; ACTOR grants data_ops, then VIEWER may
+    # enqueue and the audit row names VIEWER as the actor.
+    actor_app = _build_real_app(seeded_pool, _actor_auth())
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=actor_app), base_url="http://test"
+    ) as client:
+        granted = await client.post(
+            "/api/admin/internal/roles",
+            json={"user_id": str(VIEWER), "role": "data_ops"},
+        )
+        assert granted.status_code == 201, granted.text
+    viewer_app = _build_real_app(seeded_pool, _viewer_auth())
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=viewer_app), base_url="http://test"
+    ) as client:
+        assert (await client.get("/api/admin/collection/runs")).status_code == 200
+        response = await client.post(
+            "/api/admin/collection/runs",
+            json={"source_key": "jphouse_yokohama_wards/naka", "source_type": "user_submitted"},
+        )
+    assert response.status_code == 201, response.text
+    assert response.json()["operator_user_id"] == str(VIEWER)
+    rows = await _audit_actions(seeded_pool, "admin.collection.queued", response.json()["id"])
+    assert len(rows) == 1
+    assert rows[0]["actor_user_id"] == VIEWER
+    assert rows[0]["summary"]["queued_by"] == str(VIEWER)
+
+
+# ============================================================================
+# Member status writes against real Postgres (disposable local server)
+# ============================================================================
+
+async def _member_status_rows(pool: asyncpg.Pool) -> list[dict]:
+    return await _audit_actions(pool, "admin.member.status_changed", str(MEMBER))
+
+
+@pytestmark_db
+async def test_http_member_status_suspend_idempotent_resume_audited(
+    seeded_pool: asyncpg.Pool,
+) -> None:
+    app = _build_real_app(seeded_pool, _actor_auth())
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        # active -> suspended: real change, one audit row
+        suspended = await client.post(
+            f"/api/admin/members/{MEMBER}/status", json={"status": "suspended"}
+        )
+    assert suspended.status_code == 200, suspended.text
+    body = suspended.json()
+    assert body["user_id"] == str(MEMBER)
+    assert body["status"] == "suspended"
+    assert body["previous_status"] == "active"
+    assert body["changed"] is True
+    service = AdminService(pool=seeded_pool)
+    member = await service.get_member(MEMBER, email_visible=True)
+    assert member is not None
+    assert member["status"] == "suspended"
+
+    rows = await _member_status_rows(seeded_pool)
+    assert len(rows) == 1
+    assert rows[0]["actor_user_id"] == ACTOR
+    assert rows[0]["target_type"] == "user"
+    assert rows[0]["target_id"] == str(MEMBER)
+    assert rows[0]["summary"] == {"status": "suspended", "previous_status": "active"}
+
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        # same value again: idempotent 200, changed=false, no second audit row
+        again = await client.post(
+            f"/api/admin/members/{MEMBER}/status", json={"status": "suspended"}
+        )
+    assert again.status_code == 200, again.text
+    assert again.json()["changed"] is False
+    assert len(await _member_status_rows(seeded_pool)) == 1
+
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        # suspended -> active: second real change, second audit row
+        resumed = await client.post(
+            f"/api/admin/members/{MEMBER}/status", json={"status": "active"}
+        )
+    assert resumed.status_code == 200, resumed.text
+    assert resumed.json()["status"] == "active"
+    assert resumed.json()["previous_status"] == "suspended"
+    assert resumed.json()["changed"] is True
+    rows = await _member_status_rows(seeded_pool)
+    assert len(rows) == 2
+    # _audit_actions orders ascending by occurred_at/id: first row = suspend
+    assert rows[0]["summary"] == {"status": "suspended", "previous_status": "active"}
+    assert rows[1]["summary"] == {"status": "active", "previous_status": "suspended"}
+    member = await service.get_member(MEMBER, email_visible=True)
+    assert member is not None
+    assert member["status"] == "active"
+
+
+@pytestmark_db
+async def test_http_member_status_missing_member_is_404_without_audit(
+    seeded_pool: asyncpg.Pool,
+) -> None:
+    app = _build_real_app(seeded_pool, _actor_auth())
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            f"/api/admin/members/{UNKNOWN}/status", json={"status": "suspended"}
+        )
+    assert response.status_code == 404, response.text
+    assert response.json()["detail"] == "会员不存在"
+    assert await _audit_actions(seeded_pool, "admin.member.status_changed") == []
+
+
+@pytestmark_db
+async def test_http_member_status_role_gate_and_validation_real(
+    seeded_pool: asyncpg.Pool,
+) -> None:
+    # finance-only viewer cannot write member status (403)
+    viewer_app = _build_real_app(seeded_pool, _viewer_auth())
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=viewer_app), base_url="http://test"
+    ) as client:
+        assert (await client.post(
+            f"/api/admin/members/{MEMBER}/status", json={"status": "suspended"}
+        )).status_code == 403
+
+    # member_ops may write (MEMBER holds member_ops + finance in the seed)
+    member_app = _build_real_app(seeded_pool, _member_auth())
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=member_app), base_url="http://test"
+    ) as client:
+        ok = await client.post(
+            f"/api/admin/members/{MEMBER}/status", json={"status": "suspended"}
+        )
+        assert ok.status_code == 200, ok.text
+        assert ok.json()["changed"] is True
+
+    # validation: out-of-vocabulary status -> 400, malformed id -> 422
+    actor_app = _build_real_app(seeded_pool, _actor_auth())
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=actor_app), base_url="http://test"
+    ) as client:
+        bad_status = await client.post(
+            f"/api/admin/members/{MEMBER}/status", json={"status": "banned"}
+        )
+        assert bad_status.status_code == 400, bad_status.text
+        malformed = await client.post(
+            "/api/admin/members/not-a-uuid/status", json={"status": "suspended"}
+        )
+        assert malformed.status_code == 422, malformed.text
+    # none of the rejected calls produced an audit row
+    rows = await _member_status_rows(seeded_pool)
+    assert len(rows) == 1  # only the member_ops suspension above
+    assert rows[0]["actor_user_id"] == MEMBER
+

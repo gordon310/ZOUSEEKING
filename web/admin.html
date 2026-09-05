@@ -89,7 +89,7 @@
       <section class="admin-toolbar" aria-label="后台视图筛选">
         <div class="admin-tabs" role="tablist" aria-label="后台模块">
           <button class="admin-tab is-active" type="button" role="tab" aria-selected="true" data-admin-tab="overview">总览</button>
-          <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="collection">采集任务<span class="admin-tab-note">待后端接入</span></button>
+          <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="collection">采集任务<span class="admin-tab-note" id="collectionTabNote">待后端接入</span></button>
           <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="quality">质量审核<span class="admin-tab-note">待后端接入</span></button>
           <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="service">服务派单<span class="admin-tab-note">待后端接入</span></button>
           <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="members" data-i18n="admin.members">会员管理</button>
@@ -117,37 +117,87 @@
                 <p class="eyebrow">COLLECTION RUNS</p>
                 <h2>采集任务</h2>
               </div>
-              <span class="admin-panel-count">4 条演示记录</span>
+              <span class="admin-panel-count" id="collectionCount">4 条演示记录</span>
             </div>
-            <div class="admin-table-wrap">
-              <table class="admin-table">
-                <caption>授权数据源与内部计算任务的最近状态</caption>
-                <thead>
-                  <tr><th scope="col">任务</th><th scope="col">范围</th><th scope="col">拟产出数据类</th><th scope="col">上次执行</th><th scope="col">状态</th><th scope="col">操作</th></tr>
-                </thead>
-                <tbody>
-                  <tr data-admin-row data-status="已完成" data-detail="大阪住宅聚合数据已完成格式检查，等待下一次来源周期确认。">
-                    <th scope="row">JPHOUSE 大阪住宅<span>COL-001</span></th>
-                    <td>大阪府 / 2026-08</td><td><code>scraped_aggregate</code></td><td>2026-08-27 09:40</td>
-                    <td><span class="admin-table-status status-complete">已完成</span></td><td><button class="admin-action" type="button" data-admin-action="inspect">查看</button></td>
-                  </tr>
-                  <tr data-admin-row data-status="待复核" data-detail="东京人工确认样本缺少一项来源时间，需要工作人员补齐后才能发布。">
-                    <th scope="row">东京人工确认样本<span>COL-002</span></th>
-                    <td>东京都港区 / 2026-08</td><td><code>verified_observation</code></td><td>2026-08-27 08:15</td>
-                    <td><span class="admin-table-status status-review">待复核</span></td><td><button class="admin-action" type="button" data-admin-action="review">标记复核</button></td>
-                  </tr>
-                  <tr data-admin-row data-status="运行中" data-detail="横滨租售比计算正在根据最新快照重算，完成后需要检查单位和样本数。">
-                    <th scope="row">横滨租售比重算<span>CALC-014</span></th>
-                    <td>神奈川县 / 多月</td><td><code>modeled_estimate</code></td><td>2026-08-28 10:05</td>
-                    <td><span class="admin-table-status status-active">运行中</span></td><td><button class="admin-action" type="button" data-admin-action="inspect">查看</button></td>
-                  </tr>
-                  <tr data-admin-row data-status="失败" data-detail="名古屋来源快照读取失败，当前仅保留失败分类和重试入口，不应发布旧数据。">
-                    <th scope="row">名古屋来源快照<span>COL-004</span></th>
-                    <td>爱知县 / 2026-08</td><td><code>scraped_aggregate</code></td><td>2026-08-28 07:50</td>
-                    <td><span class="admin-table-status status-failed">失败</span></td><td><button class="admin-action" type="button" data-admin-action="retry">重试</button></td>
-                  </tr>
-                </tbody>
-              </table>
+            <p class="admin-panel-note" id="collectionPanelNote">授权数据源与内部计算任务的最近状态。当前为演示数据；配置 API_BASE_URL 并登录 data_ops / super_admin 角色后将读取真实采集运行记录。</p>
+            <p class="admin-live-status" id="collectionStatus" aria-live="polite"></p>
+
+            <div id="collectionDemoWrap">
+              <div class="admin-table-wrap">
+                <table class="admin-table">
+                  <caption>授权数据源与内部计算任务的最近状态（演示）</caption>
+                  <thead>
+                    <tr><th scope="col">任务</th><th scope="col">范围</th><th scope="col">拟产出数据类</th><th scope="col">上次执行</th><th scope="col">状态</th><th scope="col">操作</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr data-admin-row data-status="已完成" data-detail="大阪住宅聚合数据已完成格式检查，等待下一次来源周期确认。">
+                      <th scope="row">JPHOUSE 大阪住宅<span>COL-001</span></th>
+                      <td>大阪府 / 2026-08</td><td><code>scraped_aggregate</code></td><td>2026-08-27 09:40</td>
+                      <td><span class="admin-table-status status-complete">已完成</span></td><td><button class="admin-action" type="button" data-admin-action="inspect">查看</button></td>
+                    </tr>
+                    <tr data-admin-row data-status="待复核" data-detail="东京人工确认样本缺少一项来源时间，需要工作人员补齐后才能发布。">
+                      <th scope="row">东京人工确认样本<span>COL-002</span></th>
+                      <td>东京都港区 / 2026-08</td><td><code>verified_observation</code></td><td>2026-08-27 08:15</td>
+                      <td><span class="admin-table-status status-review">待复核</span></td><td><button class="admin-action" type="button" data-admin-action="review">标记复核</button></td>
+                    </tr>
+                    <tr data-admin-row data-status="运行中" data-detail="横滨租售比计算正在根据最新快照重算，完成后需要检查单位和样本数。">
+                      <th scope="row">横滨租售比重算<span>CALC-014</span></th>
+                      <td>神奈川县 / 多月</td><td><code>modeled_estimate</code></td><td>2026-08-28 10:05</td>
+                      <td><span class="admin-table-status status-active">运行中</span></td><td><button class="admin-action" type="button" data-admin-action="inspect">查看</button></td>
+                    </tr>
+                    <tr data-admin-row data-status="失败" data-detail="名古屋来源快照读取失败，当前仅保留失败分类和重试入口，不应发布旧数据。">
+                      <th scope="row">名古屋来源快照<span>COL-004</span></th>
+                      <td>爱知县 / 2026-08</td><td><code>scraped_aggregate</code></td><td>2026-08-28 07:50</td>
+                      <td><span class="admin-table-status status-failed">失败</span></td><td><button class="admin-action" type="button" data-admin-action="retry">重试</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div id="collectionLiveWrap" hidden style="display:none">
+              <div class="admin-filter-row">
+                <label>状态
+                  <select id="collectionStatusFilter">
+                    <option value="">全部状态</option>
+                    <option value="queued">queued</option>
+                    <option value="running">running</option>
+                    <option value="succeeded">succeeded</option>
+                    <option value="failed">failed</option>
+                    <option value="cancelled">cancelled</option>
+                  </select>
+                </label>
+                <label class="admin-filter-grow">来源 source_key
+                  <input id="collectionSourceFilter" type="search" autocomplete="off" placeholder="如 jphouse_23ku/minato（配置标识前缀）" />
+                </label>
+              </div>
+              <div class="admin-table-wrap">
+                <table class="admin-table collection-table">
+                  <caption>采集运行记录（读取真实后台 /api/admin/collection/runs，只读）</caption>
+                  <thead id="collectionTableHead"></thead>
+                  <tbody id="collectionList">
+                    <tr><td colspan="8"><div class="admin-empty">采集运行记录仅由真实后台提供；演示模式不虚构采集记录。</div></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="admin-pager" id="collectionPager" hidden></div>
+              <div class="member-toolbar collection-enqueue-toolbar" id="collectionEnqueuePanel" hidden style="display:none">
+                <label>
+                  <span>发起采集 · 来源 source_key</span>
+                  <input id="collectionSourceKey" type="text" autocomplete="off" maxlength="200" placeholder="如 jphouse_23ku/minato（对应 configs/jphouse_23ku/&lt;ward&gt; 配置标识）" />
+                </label>
+                <label>
+                  <span>来源类型</span>
+                  <select id="collectionSourceType">
+                    <option value="authorized_csv">authorized_csv</option>
+                    <option value="official_open">official_open</option>
+                    <option value="partner">partner</option>
+                    <option value="user_submitted">user_submitted</option>
+                    <option value="aggregate_authorized">aggregate_authorized</option>
+                  </select>
+                </label>
+                <button class="admin-action" type="button" id="collectionEnqueueBtn">发起采集</button>
+              </div>
             </div>
           </section>
 

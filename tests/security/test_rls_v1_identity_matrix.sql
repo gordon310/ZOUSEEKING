@@ -78,8 +78,12 @@ begin
   get diagnostics changed_rows = row_count;
   if changed_rows <> 1 then raise exception 'owner preference update affected % rows', changed_rows; end if;
 
-  begin update public.user_profiles set membership_tier = 'matrix-tier' where user_id = '00000000-0000-0000-0000-000000000401'; raise exception 'owner changed membership_tier'; exception when raise_exception then if SQLERRM <> 'membership fields are server-managed' then raise; end if; end;
-  begin update public.user_profiles set daily_query_limit = 99 where user_id = '00000000-0000-0000-0000-000000000401'; raise exception 'owner changed daily_query_limit'; exception when raise_exception then if SQLERRM <> 'membership fields are server-managed' then raise; end if; end;
+  begin update public.user_profiles set membership_tier = 'matrix-tier' where user_id = '00000000-0000-0000-0000-000000000401'; raise exception 'owner changed membership_tier'; exception when insufficient_privilege then null; when raise_exception then if SQLERRM <> 'membership fields are server-managed' then raise; end if; end;
+  begin update public.user_profiles set daily_query_limit = 99 where user_id = '00000000-0000-0000-0000-000000000401'; raise exception 'owner changed daily_query_limit'; exception when insufficient_privilege then null; when raise_exception then if SQLERRM <> 'membership fields are server-managed' then raise; end if; end;
+  -- status is server-managed too (00600): the column grant was removed for
+  -- authenticated, so either the privilege layer (insufficient_privilege) or
+  -- the trigger guard may reject the write - both are acceptable.
+  begin update public.user_profiles set status = 'suspended' where user_id = '00000000-0000-0000-0000-000000000401'; raise exception 'owner changed member status'; exception when insufficient_privilege then null; when raise_exception then if SQLERRM <> 'member status is server-managed' then raise; end if; end;
   begin insert into public.properties(owner_user_id, project_type) values ('00000000-0000-0000-0000-000000000401', 'residential'); raise exception 'owner inserted property directly'; exception when insufficient_privilege then null; end;
   begin update public.properties set building_name = 'owner direct write' where id = '00000000-0000-0000-0000-000000000441'; raise exception 'owner updated property directly'; exception when insufficient_privilege then null; end;
   begin update public.queries set owner_user_id = '00000000-0000-0000-0000-000000000402' where id = '00000000-0000-0000-0000-000000000411'; raise exception 'owner changed query owner'; exception when insufficient_privilege then null; when raise_exception then if SQLERRM <> 'owner_user_id is server-managed' then raise; end if; end;

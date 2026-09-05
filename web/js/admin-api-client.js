@@ -96,6 +96,14 @@
     getMember(userId) {
       return request(`/api/admin/members/${encodeURIComponent(userId)}`);
     },
+    // POST /api/admin/members/{user_id}/status { status: 'active'|'suspended' }
+    // -> { user_id, status, previous_status, changed } (idempotent 200)
+    setMemberStatus(userId, status) {
+      return request(
+        `/api/admin/members/${encodeURIComponent(userId)}/status`,
+        { method: "POST", body: { status } },
+      );
+    },
     // GET /api/admin/audit?actor=&action=&since=&limit=
     listAudit({ actor = "", action = "", since = "", limit = 100 } = {}) {
       return request("/api/admin/audit", { params: { actor, action, since, limit } });
@@ -107,6 +115,20 @@
     // GET /api/admin/finance/refunds?status=&page=
     listRefunds({ status = "", page = 1, page_size = 20 } = {}) {
       return request("/api/admin/finance/refunds", { params: { status, page, page_size } });
+    },
+    // GET /api/admin/collection/runs?status=&source_key=&page=&page_size=
+    // -> { total, page, page_size, items: [...] }
+    listCollectionRuns({ status = "", source_key = "", page = 1, page_size = 20 } = {}) {
+      return request("/api/admin/collection/runs", {
+        params: { status, source_key, page, page_size },
+      });
+    },
+    // POST /api/admin/collection/runs { source_key, source_type } -> queued run
+    enqueueCollectionRun({ source_key, source_type } = {}) {
+      return request("/api/admin/collection/runs", {
+        method: "POST",
+        body: { source_key, source_type },
+      });
     },
     // GET /api/admin/internal/me  -> { user_id, roles: [...] }
     getMe() {

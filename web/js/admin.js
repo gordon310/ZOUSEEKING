@@ -63,6 +63,21 @@
   const roleExpires = document.querySelector("#roleExpires");
   const roleNoteInput = document.querySelector("#roleGrantNote");
   const roleGrantBtn = document.querySelector("#roleGrantBtn");
+  const collectionTabNote = document.querySelector("#collectionTabNote");
+  const collectionCount = document.querySelector("#collectionCount");
+  const collectionPanelNote = document.querySelector("#collectionPanelNote");
+  const collectionStatus = document.querySelector("#collectionStatus");
+  const collectionDemoWrap = document.querySelector("#collectionDemoWrap");
+  const collectionLiveWrap = document.querySelector("#collectionLiveWrap");
+  const collectionTableHead = document.querySelector("#collectionTableHead");
+  const collectionList = document.querySelector("#collectionList");
+  const collectionPager = document.querySelector("#collectionPager");
+  const collectionStatusFilter = document.querySelector("#collectionStatusFilter");
+  const collectionSourceFilter = document.querySelector("#collectionSourceFilter");
+  const collectionEnqueuePanel = document.querySelector("#collectionEnqueuePanel");
+  const collectionSourceKey = document.querySelector("#collectionSourceKey");
+  const collectionSourceType = document.querySelector("#collectionSourceType");
+  const collectionEnqueueBtn = document.querySelector("#collectionEnqueueBtn");
   const menuToggle = document.querySelector("#adminMenuToggle");
   const menu = document.querySelector("#adminMenu");
   const fixtureTag = document.querySelector("#adminFixtureTag");
@@ -73,7 +88,7 @@
   const t = (key, fallback = "") =>
     window.ZouI18n && typeof window.ZouI18n.t === "function" ? window.ZouI18n.t(key, fallback) : fallback;
 
-  const MEMBERS_COLSPAN = 7;
+  const MEMBERS_COLSPAN = 8;
 
   // ---- shared state ---------------------------------------------------------
   const debounceTimers = {};
@@ -184,6 +199,53 @@
     refunds: { busy: false, page: 1, pageSize: 20, total: 0 },
   };
 
+  // ---- member live write gate ----------------------------------------------
+  // Members tab status writes (POST /api/admin/members/{user_id}/status) are
+  // shown and enabled only when /api/admin/internal/me reports member_ops or
+  // super_admin. Demo mode never resolves this gate and keeps its local
+  // toggle fixtures untouched.
+  const memberState = {
+    booted: false,
+    busy: false,
+    canWrite: false,
+    roles: [],
+  };
+
+  function memberGateRolesHint() {
+    return t(
+      "admin.memberWriteBlocked",
+      "需要 member_ops / super_admin 角色才能停用/恢复会员。",
+    );
+  }
+
+  async function ensureMemberGate() {
+    if (!isLive || memberState.booted || memberState.busy) return;
+    memberState.booted = true;
+    memberState.busy = true;
+    try {
+      const me = await api.getMe();
+      const roles = Array.isArray(me?.roles) ? me.roles.map(String) : [];
+      memberState.roles = roles;
+      memberState.canWrite = roles.includes("member_ops") || roles.includes("super_admin");
+    } catch (error) {
+      // /me failures (401/403/503) leave the buttons disabled with the role
+      // hint; the members list loader reports the underlying problem itself.
+      memberState.canWrite = false;
+    } finally {
+      memberState.busy = false;
+    }
+  }
+
+  async function ensureMemberTabData() {
+    if (!isLive || !memberList) return;
+    if (memberState.booted) {
+      if (!memberState.busy) loadLiveMembers(liveState.members.page); // re-open refreshes
+      return;
+    }
+    await ensureMemberGate();
+    if (!memberState.busy) loadLiveMembers(1);
+  }
+
   async function loadLiveMembers(page = liveState.members.page) {
     if (!memberList || liveState.members.busy) return;
     liveState.members.busy = true;
@@ -199,10 +261,16 @@
         page_size: liveState.members.pageSize,
       });
       liveState.members.total = Number(payload?.total) || 0;
-      memberList.innerHTML = views.memberLiveRowsHtml(
-        payload?.items || [],
-        t("admin.writePending", "待后端写端点"),
-      );
+      memberList.innerHTML = views.memberLiveRowsHtml(payload?.items || [], {
+        canWrite: memberState.canWrite,
+        statusTexts: {
+          active: t("admin.memberStatusActive", "正常"),
+          suspended: t("admin.memberStatusSuspended", "已停用"),
+        },
+        suspendLabel: t("admin.memberSuspend", "停用"),
+        resumeLabel: t("admin.memberResume", "恢复"),
+        writeBlockedTitle: memberGateRolesHint(),
+      });
       if (memberPager) {
         memberPager.innerHTML = views.pagerHtml({
           page: liveState.members.page,
@@ -237,6 +305,55 @@
     } catch (error) {
       detail.textContent = apiErrorMessage(error, t("admin.rolesMemberOps", "需要 member_ops / super_admin 角色。"));
     }
+  }
+
+  // ---- member status writes (live, audited) ---------------------------------
+
+  function memberStatusWriteErrorText(error) {
+    const status = Number(error?.status);
+    if (status === 403) {
+      return `${t("admin.error403", "当前账号无权访问该模块（403）。")} ${memberGateRolesHint()}`;
+    }
+    if (status === 404) {
+      return t("admin.memberStatusMissing", "会员不存在或已被删除（404），未做任何变更。");
+    }
+    if (status === 400) {
+      return `${t("admin.errorHttp", "后台请求失败")}（400）：${error?.message || ""}`;
+    }
+    const detail = error?.message || "";
+    return `${t("admin.errorHttp", "后台请求失败")}（HTTP ${status || "?"}）：${detail}`;
+  }
+
+  async function submitMemberStatusChange(userId, action) {
+    if (!userId || !memberState.canWrite) return;
+    const suspend = action === "suspend";
+    const targetStatus = suspend ? "suspended" : "active";
+    const confirmed = window.confirm(
+      suspend
+        ? t("admin.memberSuspendConfirm", "确认停用该会员？立即生效并写入审计。")
+        : t("admin.memberResumeConfirm", "确认恢复该会员？立即生效并写入审计。"),
+    );
+    if (!confirmed) return;
+    const label = suspend
+      ? t("admin.memberStatusSuspended", "已停用")
+      : t("admin.memberStatusActive", "正常");
+    try {
+      await api.setMemberStatus(userId, targetStatus);
+      await loadLiveMembers(liveState.members.page); // refresh reflects new status
+      setMemberNotice(
+        interp(
+          t("admin.memberStatusNotice", "已将会员状态改为“{status}”（{name}），审计已记录。"),
+          { status: label, name: shortName(userId) },
+        ),
+      );
+      if (detail) setText(detailHeading, "会员详情");
+    } catch (error) {
+      setMemberNotice(memberStatusWriteErrorText(error));
+    }
+  }
+
+  function shortName(userId) {
+    return String(userId || "").slice(0, 8);
   }
 
   async function loadLiveAudit(page = liveState.audit.page) {
@@ -598,6 +715,224 @@
     }
   }
 
+  // ---- live collection runs (collection_runs, data_ops/super_admin) ------
+  const COLLECTION_COLSPAN = 8;
+  const collectionState = {
+    booted: false,
+    busy: false,
+    active: false,
+    page: 1,
+    pageSize: 20,
+    total: 0,
+    roles: [],
+  };
+
+  // Demo table stays visible only in demo mode; the live surface is used for
+  // every live state (loading rows, real runs or a role-gate hint).
+  function applyCollectionMode(mode) {
+    if (!collectionDemoWrap || !collectionLiveWrap) return;
+    const demoVisible = mode === "demo";
+    const liveVisible = mode === "live";
+    collectionDemoWrap.hidden = !demoVisible;
+    collectionDemoWrap.style.display = demoVisible ? "" : "none";
+    collectionLiveWrap.hidden = !liveVisible;
+    collectionLiveWrap.style.display = liveVisible ? "" : "none";
+  }
+
+  function collectionGateText() {
+    return t("admin.rolesCollection", "需要 data_ops / super_admin 角色。");
+  }
+
+  function collectionRoleHint() {
+    if (!collectionState.roles.length) {
+      return t(
+        "admin.collectionNoAccess",
+        "当前账号没有任何后台角色，无法查看采集任务。",
+      );
+    }
+    return interp(
+      t(
+        "admin.collectionNoPermissionHint",
+        "采集任务页签需要 data_ops / super_admin 角色；当前账号角色：{roles}。",
+      ),
+      { roles: collectionState.roles.join("、") },
+    );
+  }
+
+  function setCollectionEnqueueVisible(visible) {
+    if (!collectionEnqueuePanel) return;
+    collectionEnqueuePanel.hidden = !visible;
+    // .member-toolbar display rules would override the hidden attribute, so
+    // toggle inline display as well (same pattern as the role grant panel).
+    collectionEnqueuePanel.style.display = visible ? "" : "none";
+  }
+
+  function showCollectionLoading() {
+    if (collectionTableHead) collectionTableHead.innerHTML = views.collectionLiveHeaders;
+    if (collectionList) collectionList.innerHTML = views.loadingRow(COLLECTION_COLSPAN);
+    setText(collectionCount, "…");
+    if (collectionPager) collectionPager.innerHTML = "";
+  }
+
+  async function ensureCollectionTabData() {
+    if (!isLive || !collectionList) return;
+    if (collectionState.booted) {
+      // Re-opening the tab refreshes the list when the caller has access.
+      if (collectionState.active && !collectionState.busy) loadLiveCollectionRuns();
+      return;
+    }
+    collectionState.booted = true;
+    await bootstrapCollectionTab();
+  }
+
+  async function bootstrapCollectionTab() {
+    if (collectionState.busy) return;
+    collectionState.busy = true;
+    applyCollectionMode("live");
+    setStatus(collectionStatus, t("admin.loading", "正在从后台加载……"));
+    showCollectionLoading();
+    let active = false;
+    try {
+      const me = await api.getMe();
+      const roles = Array.isArray(me?.roles) ? me.roles.map(String) : [];
+      collectionState.roles = roles;
+      active = roles.includes("data_ops") || roles.includes("super_admin");
+      collectionState.active = active;
+      if (collectionPanelNote) {
+        collectionPanelNote.textContent = active
+          ? t(
+              "admin.collectionLiveNote",
+              "列表读取真实后台 /api/admin/collection/runs（只读）：状态、行数、快照哈希、错误与时间来自 collection_runs。发起采集会入队 queued 并写入审计 admin.collection.queued（仅 data_ops / super_admin）；worker 执行器接入前任务保持 queued，不会自动执行。",
+            )
+          : t(
+              "admin.collectionGateNote",
+              "采集任务页签仅对 data_ops / super_admin 展示真实运行记录；其他角色不读取该后台数据。",
+            );
+      }
+      if (!active) {
+        setCollectionEnqueueVisible(false);
+        setText(collectionCount, "—");
+        if (collectionTableHead) collectionTableHead.innerHTML = "";
+        if (collectionList) collectionList.innerHTML = "";
+        applyCollectionMode("hidden");
+        setStatus(collectionStatus, collectionRoleHint(), "info");
+        return;
+      }
+      setCollectionEnqueueVisible(true);
+    } catch (error) {
+      collectionState.active = false;
+      setCollectionEnqueueVisible(false);
+      if (collectionTableHead) collectionTableHead.innerHTML = "";
+      if (collectionList) collectionList.innerHTML = "";
+      setText(collectionCount, "—");
+      applyCollectionMode("hidden");
+      setStatus(
+        collectionStatus,
+        `${apiErrorMessage(error, collectionGateText())}${notRealFallbackNote()}`,
+        "error",
+      );
+      return;
+    } finally {
+      collectionState.busy = false;
+    }
+    if (active) await loadLiveCollectionRuns(1);
+  }
+
+  async function loadLiveCollectionRuns(page = collectionState.page, keepStatus = false) {
+    if (!collectionList || collectionState.busy || !collectionState.active) return;
+    collectionState.busy = true;
+    collectionState.page = Math.max(1, page);
+    if (!keepStatus) {
+      setStatus(collectionStatus, t("admin.loading", "正在从后台加载……"));
+      collectionList.innerHTML = views.loadingRow(COLLECTION_COLSPAN);
+    }
+    setText(collectionCount, "…");
+    if (collectionPager) collectionPager.innerHTML = "";
+    try {
+      const payload = await api.listCollectionRuns({
+        status: collectionStatusFilter?.value || "",
+        source_key: (collectionSourceFilter?.value || "").trim(),
+        page: collectionState.page,
+        page_size: collectionState.pageSize,
+      });
+      collectionState.total = Number(payload?.total) || 0;
+      const items = payload?.items || [];
+      collectionList.innerHTML = views.collectionRunsHtml(items);
+      if (collectionPager) {
+        collectionPager.innerHTML = views.pagerHtml({
+          page: collectionState.page,
+          pageSize: collectionState.pageSize,
+          total: collectionState.total,
+          target: "collection",
+        });
+      }
+      setText(collectionCount, `${items.length} / ${collectionState.total} 条`);
+      if (!keepStatus) {
+        setStatus(
+          collectionStatus,
+          items.length
+            ? t("admin.liveSource", "数据来源：真实后台")
+            : t("admin.emptyRuns", "暂无采集运行记录。"),
+          items.length ? "" : "info",
+        );
+      }
+    } catch (error) {
+      collectionList.innerHTML = "";
+      if (collectionPager) collectionPager.innerHTML = "";
+      setText(collectionCount, "—");
+      const message = `${apiErrorMessage(error, collectionGateText())}${notRealFallbackNote()}`;
+      setStatus(collectionStatus, message, "error");
+    } finally {
+      collectionState.busy = false;
+    }
+  }
+
+  function collectionWriteErrorText(error) {
+    const status = Number(error?.status);
+    if (status === 403) {
+      return `${t("admin.error403", "当前账号无权访问该模块（403）。")} ${collectionGateText()}`;
+    }
+    const detail = error?.message || "";
+    return `${t("admin.errorHttp", "后台请求失败")}（HTTP ${status || "?"}）：${detail}`;
+  }
+
+  async function submitCollectionEnqueue() {
+    if (!collectionState.active || !collectionEnqueueBtn) return;
+    const sourceKey = (collectionSourceKey?.value || "").trim();
+    if (!sourceKey) {
+      setStatus(collectionStatus, t("admin.collectionNeedSourceKey", "请先填写来源 source_key。"), "error");
+      collectionSourceKey?.focus();
+      return;
+    }
+    const sourceType = collectionSourceType?.value || "";
+    if (!views.COLLECTION_SOURCE_TYPES.includes(sourceType)) {
+      setStatus(collectionStatus, t("admin.collectionNeedSourceType", "请选择来源类型。"), "error");
+      return;
+    }
+    collectionEnqueueBtn.disabled = true;
+    setStatus(collectionStatus, t("admin.loading", "正在从后台加载……"));
+    try {
+      await api.enqueueCollectionRun({ source_key: sourceKey, source_type: sourceType });
+      if (collectionSourceKey) collectionSourceKey.value = "";
+      setStatus(
+        collectionStatus,
+        interp(
+          t(
+            "admin.collectionQueuedNotice",
+            "已发起采集：{source_key}（{source_type}）已入队（queued），审计已记录。",
+          ),
+          { source_key: sourceKey, source_type: sourceType },
+        ),
+        "info",
+      );
+      await loadLiveCollectionRuns(1, true);
+    } catch (error) {
+      setStatus(collectionStatus, collectionWriteErrorText(error), "error");
+    } finally {
+      collectionEnqueueBtn.disabled = false;
+    }
+  }
+
   function onPagerClick(event) {
     const button = event.target.closest("[data-pager-dir]");
     if (!button || button.disabled) return;
@@ -607,6 +942,7 @@
     if (target === "members") loadLiveMembers(liveState.members.page + dir);
     else if (target === "orders") loadLiveOrders(liveState.orders.page + dir);
     else if (target === "refunds") loadLiveRefunds(liveState.refunds.page + dir);
+    else if (target === "collection") loadLiveCollectionRuns(collectionState.page + dir);
   }
 
   // ---- tabs & legacy demo interactions ---------------------------------------
@@ -660,6 +996,8 @@
     tab.addEventListener("click", () => {
       applyTab(tab.dataset.adminTab);
       if (tab.dataset.adminTab === "roles") ensureRoleTabData();
+      if (tab.dataset.adminTab === "members") ensureMemberTabData();
+      if (tab.dataset.adminTab === "collection") ensureCollectionTabData();
     });
   });
 
@@ -705,6 +1043,12 @@
     if (button.dataset.memberAction === "view") {
       if (detail) setText(detailHeading, "会员详情");
       showLiveMemberDetail(userId);
+      return;
+    }
+    if (button.disabled) return;
+    const action = button.dataset.memberAction;
+    if (action === "suspend" || action === "resume") {
+      submitMemberStatusChange(userId, action);
     }
   });
 
@@ -742,6 +1086,14 @@
   orderStatusFilter?.addEventListener("change", () => loadLiveOrders(1));
   refundStatusFilter?.addEventListener("change", () => loadLiveRefunds(1));
 
+  collectionStatusFilter?.addEventListener("change", () => loadLiveCollectionRuns(1));
+  collectionSourceFilter?.addEventListener("input", () => {
+    debounce("collectionSource", 400, () => loadLiveCollectionRuns(1));
+  });
+  collectionEnqueueBtn?.addEventListener("click", () => {
+    if (isLive && collectionState.active) submitCollectionEnqueue();
+  });
+
   document.addEventListener("click", onPagerClick);
 
   menuToggle?.addEventListener("click", () => {
@@ -768,6 +1120,7 @@
   // ---- chrome copy per mode -----------------------------------------------------
   function applyModeChrome() {
     if (!isLive) {
+      applyCollectionMode("demo");
       setText(memberNotice, "");
       setText(auditCount, "—");
       setText(auditStatus, "");
@@ -776,37 +1129,54 @@
       setText(refundTotals, "—");
       return;
     }
+    if (collectionTabNote) collectionTabNote.hidden = true;
     setText(
       fixtureTag,
       t(
         "admin.fixtureLive",
-        "已接线真实后台 · member/audit/finance 实时 · roles 可分配/撤销",
+        "已接线真实后台 · member 可停用/恢复 · audit/finance/collection 实时 · roles 可分配/撤销 · 采集可入队",
       ),
     );
     setText(
       fixtureLabel,
       t(
         "admin.fixtureLiveHeading",
-        "会员、审计、财务页签读取真实后台；内部角色页签支持真实分配与撤销（写入审计）。总览 / 采集 / 审核 / 派单仍为演示域（对应后端未实现），其中的按钮不会产生真实操作。",
+        "会员页签读取真实后台并支持停用/恢复会员（member_ops / super_admin，写入审计）；审计、财务页签读取真实后台；采集页签展示真实采集运行记录（data_ops / super_admin 可发起采集，写入审计）；内部角色页签支持真实分配与撤销（写入审计）。审核 / 派单仍为演示域（对应后端未实现），其中的按钮不会产生真实操作。",
       ),
     );
     if (demoToolbarText) {
       demoToolbarText.textContent = t(
         "admin.toolbarLive",
-        "已配置 API_BASE_URL。会员 / 审计 / 财务页签请求 /api/admin/*（Bearer）；内部角色页签在 super_admin 下可真实分配与撤销。",
+        "已配置 API_BASE_URL。会员 / 审计 / 财务 / 采集页签请求 /api/admin/*（Bearer）；会员页签在 member_ops / super_admin 下可停用/恢复；内部角色页签在 super_admin 下可真实分配与撤销；采集入队在 data_ops / super_admin 下写入 collection_runs 并记录审计。",
       );
     }
     setGlobalNotice(
       t(
         "admin.noticeLive",
-        "已连接真实后台：会员、审计、财务为只读实时数据；内部角色页签可真实分配/撤销并写入审计（super_admin 专属，且不能撤销自己的 super_admin）。采集 / 审核 / 派单（总览）为演示域，等待对应后端实现。403 表示当前登录账号缺少所需后台角色。",
+        "已连接真实后台：会员页签支持停用/恢复会员（写 /api/admin/members/{user_id}/status 并记录审计 admin.member.status_changed，member_ops / super_admin）；审计、财务为只读实时数据；采集页签展示真实采集运行记录，data_ops / super_admin 可发起采集（入队 queued 并写入审计 admin.collection.queued）；内部角色页签可真实分配/撤销并写入审计（super_admin 专属，且不能撤销自己的 super_admin）。审核 / 派单（总览）为演示域。403 表示当前登录账号缺少所需后台角色。",
       ),
     );
     setText(
       detailBoundary,
-      t("admin.boundaryLive", "只读端点 + roles 分配写端点（super_admin）"),
+      t(
+        "admin.boundaryLive",
+        "member/audit/finance/collection 只读 + 会员状态写端点（member_ops / super_admin）+ roles 分配写端点（super_admin）+ 采集入队写端点（data_ops / super_admin）",
+      ),
     );
     setText(detailAuditMeta, t("admin.auditLive", "审计页签实时"));
+    const memberPanelNote = document.querySelector("#memberPanelNote");
+    if (memberPanelNote) {
+      memberPanelNote.textContent = t(
+        "admin.memberLiveNote",
+        "列表读取真实后台 /api/admin/members（只读）；停用/恢复调用 POST /api/admin/members/{user_id}/status 并写入审计（member_ops / super_admin 可见可用）。",
+      );
+    }
+    if (collectionPanelNote) {
+      collectionPanelNote.textContent = t(
+        "admin.collectionLiveNote",
+        "列表读取真实后台 /api/admin/collection/runs（只读）：状态、行数、快照哈希、错误与时间来自 collection_runs。发起采集会入队 queued 并写入审计 admin.collection.queued（仅 data_ops / super_admin）；worker 执行器接入前任务保持 queued，不会自动执行。",
+      );
+    }
     if (auditNote) {
       auditNote.textContent = t("admin.liveAuditNote", "筛选支持 actor（user_id）、action 前缀、since 与 limit。member_ops 仅能看到会员域审计，super_admin 可见全量。");
     }
@@ -824,10 +1194,16 @@
   applyModeChrome();
 
   if (isLive) {
-    loadLiveMembers(1);
+    // The member write gate resolves from /api/admin/internal/me before the
+    // first members render so suspend/resume buttons are correctly enabled
+    // (member_ops/super_admin) or disabled with the role hint from the start.
+    ensureMemberGate().finally(() => {
+      if (!liveState.members.busy) loadLiveMembers(1);
+    });
     loadLiveAudit(1);
     loadLiveOrders(1);
     loadLiveRefunds(1);
+    bootstrapCollectionTab();
   } else {
     renderDemoMembers();
   }

@@ -93,6 +93,38 @@ const MOCK_REFUNDS = {
   ],
 };
 
+const MOCK_RUN = {
+  id: "cr-0001",
+  source_key: "jphouse_23ku/minato",
+  source_type: "authorized_csv",
+  status: "queued",
+  rows_collected: 0,
+  snapshot_hash: null,
+  error_message: null,
+  operator_user_id: MOCK_MEMBER.user_id,
+  started_at: null,
+  completed_at: null,
+  created_at: "2026-09-05T03:00:00+00:00",
+};
+
+const MOCK_RUN_DONE = {
+  id: "cr-0002",
+  source_key: "jphouse_osaka_wards/nishi",
+  source_type: "official_open",
+  status: "succeeded",
+  rows_collected: 240,
+  snapshot_hash: `${"cd".repeat(32)}`,
+  error_message: null,
+  operator_user_id: MOCK_MEMBER.user_id,
+  started_at: "2026-09-05T01:00:00+00:00",
+  completed_at: "2026-09-05T02:00:00+00:00",
+  created_at: "2026-09-05T00:00:00+00:00",
+};
+
+function mockRunsPayload(items) {
+  return { total: items.length, page: 1, page_size: 20, items };
+}
+
 function collectErrors(page, { ignoreNetworkStatus = false } = {}) {
   const errors = [];
   page.on("pageerror", (error) => errors.push(`pageerror: ${String(error)}`));
@@ -208,6 +240,11 @@ test("reads /api/admin/* with a Bearer token when configured; 403 degrades visib
         await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_REFUNDS) });
         return;
       }
+      if (url.pathname === "/api/admin/internal/me") {
+        // collection tab role gate: member_ops may not view, so no runs fetch.
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ user_id: MOCK_MEMBER.user_id, roles: ["member_ops"] }) });
+        return;
+      }
       await route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
     });
 
@@ -217,12 +254,16 @@ test("reads /api/admin/* with a Bearer token when configured; 403 degrades visib
     expect(mode).toBe(true);
     await expect(page.locator("#adminFixtureLabel")).toContainText("真实后台");
 
-    // Members tab: real rows render, write button disabled with pending label.
+    // Members tab: real rows render; the /me gate reports member_ops so the
+    // suspend button is enabled (real status write, not a pending stub).
     await page.getByRole("tab", { name: /会员管理/ }).click();
     await expect(page.locator("#memberList tr[data-member-row]")).toHaveCount(1);
     await expect(page.locator("#memberList")).toContainText("真实会员甲");
-    await expect(page.locator("#memberList")).toContainText("待后端写端点");
-    await expect(page.locator("#memberList button[disabled]").first()).toBeVisible();
+    await expect(page.locator("#memberList")).toContainText("正常");
+    const suspendButton = page.locator("#memberList [data-member-action='suspend']").first();
+    await expect(suspendButton).toBeVisible();
+    await expect(suspendButton).toBeEnabled();
+    await expect(suspendButton).toHaveText("停用");
     await expect(page.locator("#memberCount")).toContainText("1 / 1 条");
 
     // Member detail view hits the detail endpoint and renders usage events.
@@ -253,6 +294,119 @@ test("reads /api/admin/* with a Bearer token when configured; 403 degrades visib
         "/api/admin/finance/refunds",
       ]),
     );
+    expect(errors).toEqual([]);
+  });
+
+  test("members tab suspends and reactivates a member through POST /status when the role gate allows", async ({ page }) => {
+    const SELF_ID = "33333333-3333-3333-3333-333333333333";
+    const member = { ...MOCK_MEMBER, status: "active" };
+    const statusWrites = [];
+
+    await page.addInitScript(
+      ({ token }) => {
+        window.ZOUSEEKING_API_BASE_URL = "https://admin-backend.test";
+        window.ZOUSEEKING_RELEASE_SCOPE = Object.freeze({
+          phase: "consumer_intake_preview",
+          businessOperations: true,
+          adminOperations: true,
+        });
+        window.localStorage.setItem(
+          "zou_house_session",
+          JSON.stringify({ provider: "supabase", accessToken: token }),
+        );
+      },
+      { token: MOCK_TOKEN },
+    );
+
+    const errors = collectErrors(page);
+    const seenAuth = [];
+
+    await page.route("https://admin-backend.test/api/admin/**", async (route) => {
+      const request = route.request();
+      const url = new URL(request.url());
+      const path = url.pathname;
+      const method = request.method();
+      seenAuth.push(request.headers()["authorization"] || "");
+      if (path === "/api/admin/internal/me" && method === "GET") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ user_id: SELF_ID, roles: ["member_ops"] }),
+        });
+        return;
+      }
+      if (path === "/api/admin/members" && method === "GET") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ total: 1, page: 1, page_size: 20, items: [member] }),
+        });
+        return;
+      }
+      if (path === "/api/admin/audit" && method === "GET") {
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ limit: 100, items: [] }) });
+        return;
+      }
+      if (path === "/api/admin/finance/orders" && method === "GET") {
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ total: 0, page: 1, page_size: 20, items: [] }) });
+        return;
+      }
+      if (path === "/api/admin/finance/refunds" && method === "GET") {
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ total: 0, page: 1, page_size: 20, items: [] }) });
+        return;
+      }
+      const statusMatch = path.match(/^\/api\/admin\/members\/([^/]+)\/status$/);
+      if (statusMatch && method === "POST") {
+        const body = request.postDataJSON();
+        statusWrites.push(body);
+        const previous = member.status;
+        member.status = body.status;
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            user_id: decodeURIComponent(statusMatch[1]),
+            status: member.status,
+            previous_status: previous,
+            changed: previous !== member.status,
+          }),
+        });
+        return;
+      }
+      await route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
+    });
+
+    page.on("dialog", (dialog) => dialog.accept());
+
+    await page.goto("/admin.html");
+    await page.getByRole("tab", { name: /会员管理/ }).click();
+
+    // active member: badge 正常, enabled 停用 button
+    await expect(page.locator("#memberList tr[data-member-row]")).toHaveCount(1);
+    await expect(page.locator("#memberList")).toContainText("真实会员甲");
+    const suspend = page.locator("#memberList [data-member-action='suspend']").first();
+    await expect(suspend).toBeEnabled();
+    await expect(suspend).toHaveText("停用");
+
+    // click 停用 -> POST {status:'suspended'} -> refreshed row shows 已停用 + 恢复
+    await suspend.click();
+    await expect.poll(() => statusWrites.length).toBe(1);
+    expect(statusWrites[0]).toEqual({ status: "suspended" });
+    await expect(page.locator("#memberList")).toContainText("已停用");
+    await expect(page.locator("#memberNotice")).toContainText("审计已记录");
+    const resume = page.locator("#memberList [data-member-action='resume']").first();
+    await expect(resume).toBeEnabled();
+    await expect(resume).toHaveText("恢复");
+
+    // click 恢复 -> POST {status:'active'} -> refreshed row back to 正常 + 停用
+    await resume.click();
+    await expect.poll(() => statusWrites.length).toBe(2);
+    expect(statusWrites[1]).toEqual({ status: "active" });
+    await expect(page.locator("#memberList")).toContainText("正常");
+    const suspendAgain = page.locator("#memberList [data-member-action='suspend']").first();
+    await expect(suspendAgain).toBeEnabled();
+
+    seenAuth.forEach((auth) => expect(auth).toBe(`Bearer ${MOCK_TOKEN}`));
     expect(errors).toEqual([]);
   });
 
@@ -342,6 +496,14 @@ test("reads /api/admin/* with a Bearer token when configured; 403 degrades visib
       }
       if (path === "/api/admin/internal/me" && method === "GET") {
         await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ user_id: SELF_ID, roles: ["super_admin", "finance"] }) });
+        return;
+      }
+      if (path === "/api/admin/collection/runs" && method === "GET") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(mockRunsPayload([MOCK_RUN])),
+        });
         return;
       }
       if (path === "/api/admin/internal/roles" && method === "GET") {
@@ -478,3 +640,184 @@ test("reads /api/admin/* with a Bearer token when configured; 403 degrades visib
     expect(roleListRequests).toEqual([]);
     expect(errors).toEqual([]);
   });
+
+test("collection tab as data_ops lists real runs and enqueues through the API", async ({ page }) => {
+  const SELF_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+  const runs = [MOCK_RUN_DONE, MOCK_RUN];
+  const writes = [];
+  let runsGets = 0;
+
+  await page.addInitScript(
+    ({ token, selfId }) => {
+      window.ZOUSEEKING_API_BASE_URL = "https://admin-backend.test";
+      window.ZOUSEEKING_RELEASE_SCOPE = Object.freeze({
+        phase: "consumer_intake_preview",
+        businessOperations: true,
+        adminOperations: true,
+      });
+      window.localStorage.setItem(
+        "zou_house_session",
+        JSON.stringify({ provider: "supabase", accessToken: token }),
+      );
+      window.__test_self_id = selfId;
+    },
+    { token: MOCK_TOKEN, selfId: SELF_ID },
+  );
+
+  const errors = collectErrors(page);
+  const seenAuth = [];
+
+  await page.route("https://admin-backend.test/api/admin/**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const path = url.pathname;
+    const method = request.method();
+    seenAuth.push(request.headers()["authorization"] || "");
+    if (path === "/api/admin/members" && method === "GET") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ total: 0, page: 1, page_size: 20, items: [] }) });
+      return;
+    }
+    if (path === "/api/admin/audit" && method === "GET") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ limit: 100, items: [] }) });
+      return;
+    }
+    if (path === "/api/admin/finance/orders" && method === "GET") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ total: 0, page: 1, page_size: 20, items: [] }) });
+      return;
+    }
+    if (path === "/api/admin/finance/refunds" && method === "GET") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ total: 0, page: 1, page_size: 20, items: [] }) });
+      return;
+    }
+    if (path === "/api/admin/internal/me" && method === "GET") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ user_id: SELF_ID, roles: ["data_ops"] }) });
+      return;
+    }
+    if (path === "/api/admin/collection/runs" && method === "GET") {
+      runsGets += 1;
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(mockRunsPayload(runs)) });
+      return;
+    }
+    if (path === "/api/admin/collection/runs" && method === "POST") {
+      writes.push({ method, path, body: request.postDataJSON() });
+      const created = {
+        id: `cr-${writes.length}`,
+        source_key: request.postDataJSON().source_key,
+        source_type: request.postDataJSON().source_type,
+        status: "queued",
+        rows_collected: 0,
+        snapshot_hash: null,
+        error_message: null,
+        operator_user_id: SELF_ID,
+        started_at: null,
+        completed_at: null,
+        created_at: "2026-09-05T04:00:00+00:00",
+      };
+      runs.unshift(created);
+      await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify(created) });
+      return;
+    }
+    await route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
+  });
+
+  await page.goto("/admin.html");
+  await expect(page.locator("#adminFixtureLabel")).toContainText("真实后台");
+  await page.getByRole("tab", { name: /采集任务/ }).click();
+
+  // Real runs render with status/rows/hash/error/time; demo rows are gone.
+  await expect(page.locator("#collectionList tr[data-collection-run]")).toHaveCount(2);
+  await expect(page.locator("#collectionList")).toContainText("jphouse_23ku/minato");
+  await expect(page.locator("#collectionList")).toContainText("jphouse_osaka_wards/nishi");
+  await expect(page.locator("#collectionList")).toContainText("240");
+  await expect(page.locator("#collectionList")).toContainText("cdcdcdcdcdcd");
+  await expect(page.locator("#collectionDemoWrap")).toBeHidden();
+  await expect(page.locator("#collectionList")).not.toContainText("COL-001");
+  await expect(page.locator("#collectionCount")).toContainText("2 / 2 条");
+
+  // Enqueue form is visible for data_ops and posts the queue request.
+  await expect(page.locator("#collectionEnqueuePanel")).toBeVisible();
+  await page.fill("#collectionSourceKey", "jphouse_23ku/shibuya");
+  await page.selectOption("#collectionSourceType", "official_open");
+  await page.click("#collectionEnqueueBtn");
+  await expect(page.locator("#collectionStatus")).toContainText("已入队");
+  await expect.poll(() => writes.length).toBe(1);
+  expect(writes[0].body).toEqual({ source_key: "jphouse_23ku/shibuya", source_type: "official_open" });
+  await expect(page.locator("#collectionList tr[data-collection-run]")).toHaveCount(3);
+  await expect(page.locator("#collectionList")).toContainText("jphouse_23ku/shibuya");
+  await expect(page.locator("#collectionCount")).toContainText("3 / 3 条");
+  // The list was re-read after the enqueue and every request carried the token.
+  expect(runsGets).toBeGreaterThanOrEqual(2);
+  seenAuth.forEach((auth) => expect(auth).toBe(`Bearer ${MOCK_TOKEN}`));
+  expect(errors).toEqual([]);
+});
+
+test("collection tab as non-data_ops shows the role hint and never fetches runs", async ({ page }) => {
+  const SELF_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+  let runsGets = 0;
+
+  await page.addInitScript(
+    ({ token, selfId }) => {
+      window.ZOUSEEKING_API_BASE_URL = "https://admin-backend.test";
+      window.ZOUSEEKING_RELEASE_SCOPE = Object.freeze({
+        phase: "consumer_intake_preview",
+        businessOperations: true,
+        adminOperations: true,
+      });
+      window.localStorage.setItem(
+        "zou_house_session",
+        JSON.stringify({ provider: "supabase", accessToken: token }),
+      );
+      window.__test_self_id = selfId;
+    },
+    { token: MOCK_TOKEN, selfId: SELF_ID },
+  );
+
+  const errors = collectErrors(page);
+
+  await page.route("https://admin-backend.test/api/admin/**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const path = url.pathname;
+    const method = request.method();
+    if (path === "/api/admin/members" && method === "GET") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ total: 0, page: 1, page_size: 20, items: [] }) });
+      return;
+    }
+    if (path === "/api/admin/audit" && method === "GET") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ limit: 100, items: [] }) });
+      return;
+    }
+    if (path === "/api/admin/finance/orders" && method === "GET") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ total: 0, page: 1, page_size: 20, items: [] }) });
+      return;
+    }
+    if (path === "/api/admin/finance/refunds" && method === "GET") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ total: 0, page: 1, page_size: 20, items: [] }) });
+      return;
+    }
+    if (path === "/api/admin/internal/me" && method === "GET") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ user_id: SELF_ID, roles: ["member_ops"] }) });
+      return;
+    }
+    if (path === "/api/admin/collection/runs") {
+      runsGets += 1;
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(mockRunsPayload([MOCK_RUN])) });
+      return;
+    }
+    await route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
+  });
+
+  await page.goto("/admin.html");
+  await page.getByRole("tab", { name: /采集任务/ }).click();
+
+  // Honest hint instead of demo rows or a relabelled live list.
+  await expect(page.locator("#collectionStatus")).toContainText("data_ops");
+  await expect(page.locator("#collectionStatus")).toContainText("member_ops");
+  await expect(page.locator("#collectionEnqueuePanel")).toBeHidden();
+  await expect(page.locator("#collectionList tr[data-collection-run]")).toHaveCount(0);
+  await expect(page.locator("#collectionList")).not.toContainText("jphouse_23ku");
+  await expect(page.locator("#collectionDemoWrap")).toBeHidden();
+  // The runs list is gated in the UI: member_ops never triggers the fetch.
+  expect(runsGets).toBe(0);
+  expect(errors).toEqual([]);
+});

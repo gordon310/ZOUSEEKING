@@ -22,15 +22,20 @@ PHASE_ONE_API_CONTRACT = (
 
 # Back-office surface (ADMIN_ENABLED gate still applies at the service layer;
 # the allowlist only decides whether a route is reachable).  Members/audit/
-# finance and the roles list are read-only; the two role-assignment writes
-# (grant / revoke) are the only write methods and are super_admin-gated with
-# an audit_events row on every success.
+# finance/collection reads are read-only; the mutators are the two
+# role-assignment writes (grant / revoke, super_admin), the member-status
+# write (POST /api/admin/members/{user_id}/status, member_ops/super_admin) and
+# the collection-run enqueue (POST /api/admin/collection/runs,
+# data_ops/super_admin), each with an audit_events row on every success.
 ADMIN_API_CONTRACT = (
     "GET /api/admin/members",
     "GET /api/admin/members/{user_id}",
+    "POST /api/admin/members/{user_id}/status",
     "GET /api/admin/audit",
     "GET /api/admin/finance/orders",
     "GET /api/admin/finance/refunds",
+    "GET /api/admin/collection/runs",
+    "POST /api/admin/collection/runs",
     "GET /api/admin/internal/me",
     "GET /api/admin/internal/roles",
     "POST /api/admin/internal/roles",

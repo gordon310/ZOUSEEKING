@@ -18,7 +18,10 @@ the tables created by the applied migrations:
   (``20260905000300_v1_usage_ledger``) - current UTC+8 month counters and the
   member's most recent metered events;
 * ``public.payment_orders`` / ``public.refunds``
-  (``20260905000500_v1_finance_admin_audit``) - finance read views.
+  (``20260905000500_v1_finance_admin_audit``) - finance read views;
+* ``public.collection_runs`` (``20260905000601_collection_runs``) - the
+  collection run ledger (queued here by the admin API; advanced later by the
+  collection worker).
 
 Privacy posture: admin endpoints never appear in application logs and this
 module performs no logging.  Email addresses are only ever returned by the
@@ -52,9 +55,11 @@ MAX_AUDIT_LIMIT = 500
 # String literals on purpose: admin.auth imports admin.service (one-way edge).
 EMAIL_VISIBLE_ROLES = frozenset({"member_ops", "finance", "super_admin"})
 
-# member_ops audit scope: actions whose dotted first segment belongs to the
+# member_ops audit scope: actions whose dotted prefix belongs to the
 # member/account domain.  super_admin sees the entire log.  Extend here when a
 # future trusted writer introduces a new member-domain action prefix.
+# "admin.member." admits the member-status writes (admin.member.status_changed,
+# member_ops/super_admin gated) while keeping admin.role.* super_admin-only.
 MEMBER_OPS_ACTION_PREFIXES = (
     "member.",
     "profile.",
@@ -62,7 +67,12 @@ MEMBER_OPS_ACTION_PREFIXES = (
     "account.",
     "role.member.",
     "usage.member.",
+    "admin.member.",
 )
+
+# user_profiles.status vocabulary (frozen by the user_profiles_status_allowed
+# CHECK in migration 20260905000600_member_status.sql).
+MEMBER_STATUSES = ("active", "suspended")
 
 ORDERS_STATUSES = (
     "pending",
@@ -73,6 +83,19 @@ ORDERS_STATUSES = (
     "partially_refunded",
 )
 REFUND_STATUSES = ("pending", "succeeded", "failed")
+
+# Collection runs domain (migration 20260905000601_collection_runs): the
+# source_type/status vocabularies are frozen by the table CHECK constraints
+# and mirrored here for route validation. String literals on purpose - the
+# DB CHECK is the single source of truth, this tuple is a defensive echo.
+SOURCE_TYPES = (
+    "authorized_csv",
+    "official_open",
+    "partner",
+    "user_submitted",
+    "aggregate_authorized",
+)
+RUN_STATUSES = ("queued", "running", "succeeded", "failed", "cancelled")
 
 # Subscription statuses that count as an active entitlement; inline constant,
 # never user input, so it is safe inside the SQL text.
@@ -142,6 +165,7 @@ def _serialize_member(row: asyncpg.Record, *, email_visible: bool) -> dict[str, 
         "bio": row["bio"] or "",
         "membership_tier": row["membership_tier"] or "free",
         "daily_query_limit": row["daily_query_limit"],
+        "status": row["status"] or "active",
         "created_at": _iso(row["created_at"]),
         "roles": _json_value(row["roles"]),
         "subscriptions": _json_value(row["subscriptions"]),
@@ -198,6 +222,31 @@ def _serialize_refund(row: asyncpg.Record) -> dict[str, Any]:
     }
 
 
+def _serialize_collection_run(row: asyncpg.Record) -> dict[str, Any]:
+    """Turn one collection_runs row into the admin API payload.
+
+    snapshot_hash is char(64) in Postgres; bpchar output preserves the
+    trailing padding, so it is stripped before serialisation.
+    """
+    raw_hash = row["snapshot_hash"]
+    snapshot_hash = str(raw_hash).rstrip() if raw_hash is not None else None
+    return {
+        "id": str(row["id"]),
+        "source_key": row["source_key"],
+        "source_type": row["source_type"],
+        "status": row["status"],
+        "rows_collected": int(row["rows_collected"] or 0),
+        "snapshot_hash": snapshot_hash or None,
+        "error_message": row["error_message"],
+        "operator_user_id": (
+            str(row["operator_user_id"]) if row["operator_user_id"] else None
+        ),
+        "started_at": _iso(row["started_at"]),
+        "completed_at": _iso(row["completed_at"]),
+        "created_at": _iso(row["created_at"]),
+    }
+
+
 def _serialize_role_assignment(row: asyncpg.Record) -> dict[str, Any]:
     return {
         "id": str(row["id"]),
@@ -225,6 +274,7 @@ _MEMBER_BASE_SELECT = """
           up.user_id, up.email, up.username, up.display_name,
           up.city, up.favorite_area, up.favorite_asset_type, up.bio,
           up.membership_tier, up.daily_query_limit,
+          up.status,
           up.created_at, up.updated_at,
           coalesce((
             select jsonb_agg(
@@ -501,6 +551,106 @@ class AdminService:
             "items": [_serialize_refund(row) for row in rows],
         }
 
+    # -- collection runs read / enqueue (internal domain) -------------------
+
+    async def list_collection_runs(
+        self,
+        status: Optional[str] = None,
+        source_key: str = "",
+        page: int = 1,
+        page_size: int = DEFAULT_PAGE_SIZE,
+    ) -> dict[str, Any]:
+        """Paginated collection run ledger, newest first.
+
+        ``status`` must be one of ``RUN_STATUSES`` (422 otherwise, mirroring
+        the finance views); ``source_key`` is a forgiving substring match so
+        an operator can filter by configuration identity prefix.
+        """
+        if status is not None and status not in RUN_STATUSES:
+            raise HTTPException(
+                status_code=422,
+                detail=f"unknown collection run status: {status}",
+            )
+        where = (
+            " where ($1::text is null or status = $1)"
+            "   and ($2 = '' or source_key ilike '%' || $2 || '%')"
+        )
+        offset = max(page - 1, 0) * page_size
+        async with self._acquire().acquire() as conn:
+            total = await conn.fetchval(
+                "select count(*) from public.collection_runs" + where,
+                status,
+                source_key,
+            )
+            rows = await conn.fetch(
+                "select id, source_key, source_type, status, rows_collected,"
+                " snapshot_hash, error_message, operator_user_id, started_at,"
+                " completed_at, created_at from public.collection_runs"
+                + where
+                + " order by created_at desc, id desc"
+                + " limit $3 offset $4",
+                status,
+                source_key,
+                page_size,
+                offset,
+            )
+        return {
+            "total": int(total or 0),
+            "page": page,
+            "page_size": page_size,
+            "items": [_serialize_collection_run(row) for row in rows],
+        }
+
+    async def enqueue_collection_run(
+        self,
+        *,
+        source_key: str,
+        source_type: str,
+        operator_user_id: UUID,
+    ) -> dict[str, Any]:
+        """Insert one queued collection run plus its audit row in one tx.
+
+        The route pre-validates source_type against ``SOURCE_TYPES`` and the
+        non-empty source_key shape; the DB CHECK constraints are the final
+        authority. Only the queue write happens here - no collection is ever
+        executed by this method (worker executor is a separate unit).
+        """
+        async with self._acquire().acquire() as conn:
+            async with conn.transaction():
+                run_id = await conn.fetchval(
+                    "insert into public.collection_runs"
+                    " (source_key, source_type, operator_user_id)"
+                    " values ($1, $2, $3)"
+                    " returning id",
+                    source_key,
+                    source_type,
+                    operator_user_id,
+                )
+                row = await conn.fetchrow(
+                    "select id, source_key, source_type, status, rows_collected,"
+                    " snapshot_hash, error_message, operator_user_id, started_at,"
+                    " completed_at, created_at from public.collection_runs"
+                    " where id = $1",
+                    run_id,
+                )
+                await conn.execute(
+                    "insert into public.audit_events"
+                    " (actor_user_id, action, target_type, target_id, summary)"
+                    " values ($1, 'admin.collection.queued', 'collection_run',"
+                    " $2, $3::jsonb)",
+                    operator_user_id,
+                    str(run_id),
+                    json.dumps(
+                        {
+                            "source_key": source_key,
+                            "source_type": source_type,
+                            "queued_by": str(operator_user_id),
+                        },
+                        ensure_ascii=False,
+                    ),
+                )
+        return _serialize_collection_run(row)
+
     # -- role assignments ----------------------------------------------------
 
     async def list_role_assignments(self) -> dict[str, Any]:
@@ -618,6 +768,75 @@ class AdminService:
                     ),
                 )
         return {"revoked": True, "user_id": str(user_id), "role": role}
+
+    # -- member status writes (member_ops / super_admin, audited) ------------
+
+    async def set_member_status(
+        self,
+        *,
+        user_id: UUID,
+        status: str,
+        actor: UUID,
+    ) -> Optional[dict[str, Any]]:
+        """Set one member's ``user_profiles.status``; audits on an actual change.
+
+        Idempotent by design: when the member already holds the requested
+        status the call returns 200-shaped ``changed=False`` and writes no
+        audit row.  A real transition updates ``user_profiles.status`` and
+        inserts its ``admin.member.status_changed`` audit row inside the same
+        transaction (``select ... for update`` serialises concurrent flips, so
+        the second caller sees the committed value and becomes a no-op).
+        Returns ``None`` when no such member profile exists (route -> 404).
+
+        ``status`` is validated against the DB CHECK vocabulary by the route;
+        the UPDATE itself runs on the trusted service connection, which is the
+        only path allowed to touch the column (column grant removed for
+        authenticated by migration 20260905000600, trigger-guarded as well).
+        """
+        async with self._acquire().acquire() as conn:
+            async with conn.transaction():
+                current = await conn.fetchrow(
+                    "select status from public.user_profiles"
+                    " where user_id = $1"
+                    " for update",
+                    user_id,
+                )
+                if current is None:
+                    return None
+                previous_status = current["status"]
+                if previous_status == status:
+                    return {
+                        "user_id": str(user_id),
+                        "status": status,
+                        "previous_status": previous_status,
+                        "changed": False,
+                    }
+                await conn.execute(
+                    "update public.user_profiles set status = $2"
+                    " where user_id = $1",
+                    user_id,
+                    status,
+                )
+                await conn.execute(
+                    "insert into public.audit_events"
+                    " (actor_user_id, action, target_type, target_id, summary)"
+                    " values ($1, 'admin.member.status_changed', 'user', $2, $3::jsonb)",
+                    actor,
+                    str(user_id),
+                    json.dumps(
+                        {
+                            "status": status,
+                            "previous_status": previous_status,
+                        },
+                        ensure_ascii=False,
+                    ),
+                )
+        return {
+            "user_id": str(user_id),
+            "status": status,
+            "previous_status": previous_status,
+            "changed": True,
+        }
 
 
 def get_admin_service() -> AdminService:

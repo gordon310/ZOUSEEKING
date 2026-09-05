@@ -64,6 +64,13 @@
     succeeded: "已退款",
     failed: "退款失败",
   };
+  const RUN_STATUS_TEXT = {
+    queued: "排队中",
+    running: "运行中",
+    succeeded: "已完成",
+    failed: "失败",
+    cancelled: "已取消",
+  };
   const MEMBER_TIER_TEXT = {
     free: "免费版",
     basic: "基础版",
@@ -71,6 +78,14 @@
     pro: "专业版",
     premium: "高级版",
   };
+  // source_type vocabulary (mirrors the DB CHECK + backend admin service).
+  const COLLECTION_SOURCE_TYPES = [
+    "authorized_csv",
+    "official_open",
+    "partner",
+    "user_submitted",
+    "aggregate_authorized",
+  ];
 
   function statusClassFor(status) {
     const map = {
@@ -83,7 +98,9 @@
       review: "status-review",
       failed: "status-failed",
       paused: "status-paused",
+      suspended: "status-paused",
       canceled: "status-paused",
+      cancelled: "status-paused",
       refunded: "status-paused",
       partially_refunded: "status-paused",
     };
@@ -183,9 +200,10 @@
 
   // ---------- live member list / detail ----------
 
+  // 8 columns: 会员 / 等级 / 状态 / 内部角色 / 订阅 / 当月用量 / 加入时间 / 操作
   const memberLiveHeaders = `
     <tr>
-      <th scope="col">会员</th><th scope="col">等级</th><th scope="col">内部角色</th>
+      <th scope="col">会员</th><th scope="col">等级</th><th scope="col">状态</th><th scope="col">内部角色</th>
       <th scope="col">订阅</th><th scope="col">当月用量</th><th scope="col">加入时间</th><th scope="col">操作</th>
     </tr>`;
   const memberDemoHeaders = `
@@ -226,25 +244,44 @@
       .join("、");
   }
 
-  function memberLiveRowsHtml(items, writePendingLabel) {
+  // Live member rows. ``canWrite`` comes from the /api/admin/internal/me role
+  // gate (member_ops/super_admin): with it the status toggle button is an
+  // enabled 停用/恢复 write; without it the button is disabled and explains
+  // the role requirement.  A missing payload status falls back to 'active'
+  // (the DB default) so a list response from an older backend stays safe.
+  function memberLiveRowsHtml(items, options = {}) {
+    const {
+      canWrite = false,
+      statusTexts = { active: "正常", suspended: "已停用" },
+      suspendLabel = "停用",
+      resumeLabel = "恢复",
+      writeBlockedTitle = "",
+    } = options;
     if (!items || !items.length) {
-      return emptyRow(7, t("admin.emptyMembers", "没有符合条件的会员。"));
+      return emptyRow(8, t("admin.emptyMembers", "没有符合条件的会员。"));
     }
     return items
       .map((member) => {
         const name = member.display_name || member.username || shortId(member.user_id, 12);
         const sub = [member.email, shortId(member.user_id)].filter(Boolean).join(" · ");
+        const status = member.status === "suspended" ? "suspended" : "active";
+        const statusText = statusTexts[status] || status || "—";
+        const isSuspended = status === "suspended";
+        const action = isSuspended ? "resume" : "suspend";
+        const actionLabel = isSuspended ? resumeLabel : suspendLabel;
+        const blocked = canWrite ? "" : ` disabled title="${escape(writeBlockedTitle)}"`;
         return `
-        <tr data-member-row data-member-id="${escape(member.user_id)}">
+        <tr data-member-row data-member-id="${escape(member.user_id)}" data-member-status="${escape(status)}">
           <th scope="row">${escape(name)}<span>${escape(sub)}</span></th>
           <td>${escape(tierLabel(member.membership_tier))}</td>
+          <td><span class="admin-table-status ${statusClassFor(status)}">${escape(statusText)}</span></td>
           <td>${escape(rolesText(member.roles))}</td>
           <td>${subscriptionsText(member.subscriptions)}</td>
           <td>${quotasText(member.usage_quotas)}</td>
           <td>${escape(fmtDateTime(member.created_at))}</td>
           <td class="member-actions">
             <button class="admin-action" type="button" data-member-action="view" data-member-id="${escape(member.user_id)}">查看</button>
-            <button class="admin-action" type="button" disabled title="${escape(writePendingLabel)}">${escape(writePendingLabel)}</button>
+            <button class="admin-action" type="button" data-member-action="${action}" data-member-id="${escape(member.user_id)}"${blocked}>${escape(actionLabel)}</button>
           </td>
         </tr>`;
       })
@@ -257,6 +294,7 @@
     lines.push(`会员：${name}`);
     if (member.email) lines.push(`邮箱（按角色显示）：${member.email}`);
     lines.push(`等级：${tierLabel(member.membership_tier)}（每日额度 ${member.daily_query_limit ?? "—"} 次）`);
+    lines.push(`状态：${member.status === "suspended" ? "已停用" : "正常"}`);
     lines.push(`加入时间：${fmtDateTime(member.created_at)}`);
     lines.push(`内部角色：${rolesText(member.roles)}`);
     const subs = Array.isArray(member.subscriptions) ? member.subscriptions : [];
@@ -382,6 +420,49 @@
       .join("");
   }
 
+  // ---------- live collection runs (collection_runs) ----------
+
+  // 8 columns: 来源 / 状态 / 行数 / 快照哈希 / 错误 / 操作人 / 创建时间 / 完成时间
+  const collectionLiveHeaders = `
+    <tr>
+      <th scope="col">来源</th><th scope="col">状态</th><th scope="col" class="num">行数</th>
+      <th scope="col">快照哈希</th><th scope="col">错误信息</th><th scope="col">操作人</th>
+      <th scope="col">创建时间</th><th scope="col">完成时间</th>
+    </tr>`;
+
+  function hashCell(hash) {
+    if (!hash) return "—";
+    const text = String(hash);
+    const shown = text.length > 12 ? `${text.slice(0, 12)}…` : text;
+    return `<code title="${escape(text)}">${escape(shown)}</code>`;
+  }
+
+  function errorCell(message) {
+    if (!message) return "—";
+    const text = String(message);
+    const shown = text.length > 40 ? `${text.slice(0, 40)}…` : text;
+    return `<span class="admin-wrap" title="${escape(text)}">${escape(shown)}</span>`;
+  }
+
+  function collectionRunsHtml(items) {
+    if (!items || !items.length) {
+      return emptyRow(8, t("admin.emptyRuns", "暂无采集运行记录。"));
+    }
+    return items
+      .map((run) => `
+        <tr data-collection-run data-run-id="${escape(run.id)}" data-run-status="${escape(run.status)}">
+          <th scope="row">${escape(run.source_key || shortId(run.id))}<span><code>${escape(run.source_type || "")}</code></span></th>
+          <td>${badge(run.status, statusLabel(run.status, RUN_STATUS_TEXT))}</td>
+          <td class="num">${escape(String(run.rows_collected ?? 0))}</td>
+          <td>${hashCell(run.snapshot_hash)}</td>
+          <td>${errorCell(run.error_message)}</td>
+          <td>${escape(shortId(run.operator_user_id, 12))}</td>
+          <td>${escape(fmtDateTime(run.created_at))}</td>
+          <td>${escape(fmtDateTime(run.completed_at))}</td>
+        </tr>`)
+      .join("");
+  }
+
   // ---------- pager ----------
 
   function totalPages(pageSize, total) {
@@ -417,9 +498,13 @@
     auditRowsHtml,
     orderRowsHtml,
     refundRowsHtml,
+    collectionLiveHeaders,
+    collectionRunsHtml,
     pagerHtml,
     totalPages,
     ORDER_STATUS_TEXT,
     REFUND_STATUS_TEXT,
+    RUN_STATUS_TEXT,
+    COLLECTION_SOURCE_TYPES,
   });
 })();

@@ -37,7 +37,6 @@
       "backend/app/routes/renovation.py",
       "tests/*renovation*",
       "docs/renovation-analysis-api.md",
-      "web/theme.css",
       "design-system/",
       "scripts/create_report_sample_pdf.py"
     ],
@@ -178,8 +177,7 @@
         "docs/release/account-controls-offline-contract.md",
         "tests/unit/test_account_controls.py",
         "tests/web/account-controls.spec.js",
-        "web/app.js",
-        "app.js"
+        "web/app.js"
       ],
       "reason": "已落地资料字段 allowlist、5 席位与 owner/member 规则、内部角色最小权限、近期认证和 Supabase-only 账户行为；真实组织表、Auth/RLS、配额与账户生命周期仍需基线 reconciliation 后另行授权。"
     },

@@ -28,7 +28,7 @@ def test_manifest_records_preserved_dirty_main_without_machine_paths() -> None:
     assert preserved["source_ref"] == "main@aca2a334"
     assert preserved["status"] == "preserved_outside_release_branch"
     assert preserved["tracked_change_count"] == len(preserved["tracked_paths"])
-    assert "web/theme.css" in preserved["untracked_source_groups"]
+    assert "backend/app/renovation/" in preserved["untracked_source_groups"]
     assert "local virtual environments" in preserved["excluded_artifact_groups"]
     assert set(manifest["rules"]["dispositions"]) == {"integrated", "deferred", "rejected"}
 

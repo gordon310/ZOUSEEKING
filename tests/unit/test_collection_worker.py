@@ -112,16 +112,23 @@ def test_resolve_runner_registered_async_runner_used_directly() -> None:
     assert resolve_runner("x/y", registry={"x": _direct}) is _direct
 
 
+def test_default_registry_includes_real_jphouse_prefixes() -> None:
+    # The real config-family runners (jphouse_runners.py) are registered into
+    # RUNNER_REGISTRY when worker.py is imported.
+    for prefix in ("jphouse_23ku", "jphouse_osaka_wards", "jphouse_yokohama_wards"):
+        assert prefix in RUNNER_REGISTRY
+        runner = resolve_runner(f"{prefix}/ward")
+        assert asyncio.iscoroutinefunction(runner)
+
+
 def test_unregistered_source_key_raises_no_runner() -> None:
+    # A source_key that matches no registered prefix fails explicitly.
     with pytest.raises(NoRunnerError) as excinfo:
-        resolve_runner("jphouse_23ku/minato")
-    assert excinfo.value.code == "no_runner"
-    # default registry carries only the fixture prefix in this unit
-    assert set(RUNNER_REGISTRY) == {"fixture"}
-    with pytest.raises(NoRunnerError):
-        resolve_runner("jphouse_osaka_wards/nishi")
-    with pytest.raises(NoRunnerError):
         resolve_runner("unknown/source")
+    assert excinfo.value.code == "no_runner"
+    # configs/jphouse_worker exists but is NOT a registered collection family.
+    with pytest.raises(NoRunnerError):
+        resolve_runner("jphouse_worker/anything")
 
 
 def test_normalize_outcome_rejects_bad_runner_results() -> None:
@@ -435,7 +442,7 @@ async def test_run_once_unregistered_source_key_fails_no_runner(
 ) -> None:
     # Real 23ku/Osaka/Yokohama source_keys have no runner in this unit; the
     # worker must record an explicit failed run, not crash.
-    run_id = await _enqueue(pool, "jphouse_23ku/minato", "authorized_csv")
+    run_id = await _enqueue(pool, "unknown/source", "authorized_csv")
 
     report = await run_once(pool)  # default registry: fixture prefix only
 
@@ -443,7 +450,7 @@ async def test_run_once_unregistered_source_key_fails_no_runner(
     assert report["status"] == "failed"
     assert report["code"] == "no_runner"
     assert "no_runner" in (report["error_message"] or "")
-    assert "jphouse_23ku/minato" in (report["error_message"] or "")
+    assert "unknown/source" in (report["error_message"] or "")
 
     row = await _fetch_run(pool, run_id)
     assert row["status"] == "failed"

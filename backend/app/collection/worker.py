@@ -40,10 +40,14 @@ zero-argument callable returning a Runner) so real runners can be parameterised
 by config in a later unit.  The longest matching prefix wins.
 
 * ``fixture`` - built-in deterministic runner for tests/self-checks.
-* ``jphouse_23ku/``, ``jphouse_osaka_wards/``, ``jphouse_yokohama_wards/`` -
-  real collection runners wired to ``configs/jphouse_23ku/<ward>.json`` etc.
-  arrive in the next unit; until they are registered such source_keys fail
-  explicitly with ``code='no_runner'`` instead of crashing the worker.
+* ``jphouse_23ku``, ``jphouse_osaka_wards``, ``jphouse_yokohama_wards`` -
+  real collection runners (``backend/app/collection/jphouse_runners.py``)
+  wired to ``configs/jphouse_23ku/<ward>.json`` etc.  Each runner resolves the
+  matching config, executes a collection data read-in, persists a per-source
+  snapshot under ``data/collected/jphouse_runs/<prefix>/`` and records
+  ``rows_collected`` + ``snapshot_hash``.  A source_key that matches no prefix
+  still fails explicitly with ``code='no_runner'`` instead of crashing the
+  worker.
 
 Access contract: the worker talks to ``collection_runs`` / ``audit_events``
 over the trusted (service-role/superuser) pool exactly like the back-office
@@ -149,13 +153,19 @@ def _fixture_factory() -> Runner:
     return cast(Runner, _fixture_run)
 
 
-# source_key prefix -> runner factory.  The longest matching prefix wins.
-# Real collection runners mapped from configs/jphouse_23ku/<ward>.json,
-# configs/jphouse_osaka_wards/*.json, configs/jphouse_yokohama_wards/*.json
-# are registered here by the NEXT unit (one factory per prefix, reading the
-# matching config to drive the live collector); until then their source_keys
-# fail with code='no_runner'.
+# source_key prefix -> runner (or zero-arg factory).  The longest matching
+# prefix wins.  ``fixture`` is the built-in deterministic runner; the real
+# jphouse config-family runners are imported/registered right below so their
+# source_keys no longer fail with code='no_runner'.
 RUNNER_REGISTRY: dict[str, RunnerFactory] = {"fixture": _fixture_factory}
+
+# Register the real jphouse collection runners.  The import sits here (after
+# RUNNER_REGISTRY and the shared symbols exist) on purpose: jphouse_runners
+# imports only the stdlib at module load, so this cannot create an import
+# cycle even though the runners raise worker.CollectionRunError at call time.
+from backend.app.collection import jphouse_runners as _jphouse_runners  # noqa: E402
+
+_jphouse_runners.register_defaults(RUNNER_REGISTRY)
 
 
 def resolve_runner(

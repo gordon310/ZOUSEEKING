@@ -16,7 +16,13 @@
     "20260828000100_property_photo_location.sql",
     "20260829000100_baseline_access_contract.sql",
     "20260902000100_staging_baseline_reconciliation.sql",
-    "20260902000200_service_role_grant_portability.sql"
+    "20260902000200_service_role_grant_portability.sql",
+    "20260904000100_intake_renovation_observations.sql",
+    "20260905000100_v1_organizations.sql",
+    "20260905000200_v1_products_subscriptions.sql",
+    "20260905000300_v1_usage_ledger.sql",
+    "20260905000400_v1_service_tasks_contacts.sql",
+    "20260905000500_v1_finance_admin_audit.sql"
   ],
   "legacy_sql_files": [
     "backend/sql/001_foundation_data_contract.sql",

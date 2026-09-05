@@ -13,7 +13,13 @@
     "POST /api/intake/sessions/{session_id}/files",
     "PUT /api/intake/sessions/{session_id}/location",
     "PUT /api/intake/sessions/{session_id}/fields/{field_name}",
-    "POST /api/intake/sessions/{session_id}/preview"
+    "POST /api/intake/sessions/{session_id}/preview",
+    "GET /api/admin/members",
+    "GET /api/admin/members/{user_id}",
+    "GET /api/admin/audit",
+    "GET /api/admin/finance/orders",
+    "GET /api/admin/finance/refunds",
+    "GET /api/admin/internal/roles"
   ],
   "project_conversion": "disabled",
   "business_and_admin_operations": "demo_only_no_network_writes",

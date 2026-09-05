@@ -19,15 +19,28 @@ PHASE_ONE_API_CONTRACT = (
     "PUT /api/intake/sessions/{session_id}/fields/{field_name}",
     "POST /api/intake/sessions/{session_id}/preview",
 )
+
+# Read-only back-office surface (ADMIN_ENABLED gate still applies at the
+# service layer; the allowlist only decides whether the route is reachable).
+ADMIN_API_CONTRACT = (
+    "GET /api/admin/members",
+    "GET /api/admin/members/{user_id}",
+    "GET /api/admin/audit",
+    "GET /api/admin/finance/orders",
+    "GET /api/admin/finance/refunds",
+    "GET /api/admin/internal/roles",
+)
+
+PHASE_ONE_API_CONTRACT = PHASE_ONE_API_CONTRACT + ADMIN_API_CONTRACT
 _ALWAYS_ALLOWED = PHASE_ONE_API_CONTRACT[:4]
 
 
 def _compile_rule(contract: str) -> tuple[str, re.Pattern[str]]:
     method, path = contract.split(" ", 1)
     pattern = re.escape(path)
-    pattern = pattern.replace(r"\{session_id\}", r"[^/]+").replace(
-        r"\{field_name\}", r"[^/]+"
-    )
+    # Turn every URL placeholder ({session_id}, {user_id}, ...) into a
+    # non-slash path segment matcher.
+    pattern = re.sub(r"\\\{[a-zA-Z_][a-zA-Z0-9_]*\\\}", r"[^/]+", pattern)
     return method, re.compile(f"^{pattern}$")
 
 

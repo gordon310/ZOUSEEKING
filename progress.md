@@ -2,10 +2,12 @@
 
 ## Current status
 
-- 当前正在开发：会员查询与房产报告生成流程
-- 当前主要前端：`web/`
-- 当前主要后端：`backend/app/`
-- Supabase 与 FastAPI 路径仍未完全统一
+- 当前阶段：P1（数据库定稿 + 后台真实化，出口 09-28）接近闭环
+- 采集管道全链已落地：worker 原子认领 → real runners → scheduler 投料 → sweeper 质检（stale 恢复 + 哈希 QA）→ 后台健康队列/重投
+- 后台管理全 8 区接真实数据（member/audit/finance/roles/collection/quality/service/KPI），synthetic_fixture 零残留
+- 来源登记表 collection_sources（P1.3）已入 repo（migration 20260906000100，staging 应用待批）
+- Release gate 全量 17 SQL step（含 V1 业务域 + business RLS matrix），CI 绿
+- 待闭环：失败告警接线（staging 采集启用后）、live 源授权审查（产品）、房源日更/人口月更源、内容发布前检查（转 P2）
 
 ## Recently completed
 
@@ -277,6 +279,16 @@
 - 验证：本地 disposable Supabase PG（supabase/postgres:17.6.1.165@55432）应用全部 21 个 migration（public 41 表）→ 新增文件 psql ON_ERROR_STOP 通过；反向验证（篡改断言条件）EXIT=3 失败，证明断言真实生效；事务回滚后 fixture 残留 0。全套 SQL/security 断言 15/16 绿。
 - 已知（非本单元引入）：`test_m1_reconciliation_contract.sql` FAIL——2026-09-02 M1 快照断言 authenticated public grants=15，V1 批后实际 23，断言过期；CI sql-identity step 尚未纳入本文件（workflow 显式文件列表），两步均留待后续单独处理。
 - 红线：零 migration、零 staging/production DB 写（仅本地 disposable）、未触碰凭据/冻结字段/删除操作。
+
+## P1 收尾批(2026-09-06 白天,Hermes 管家推进)
+
+- CI 红链修复:m1 grant 基线随 V1 更新(authenticated 23 / service_role 283→287 实测自 supabase-reset 环境);release-gate 全量纳入 V1 域 SQL 测试(此前 14 个文件只 gate 8 个),现 17 step 全绿。
+- 29000100 "fresh-install intake-policy 缺陷" 复核**证伪**:canonical migrations 从未给 intake 表建 policy(revoke-all + RLS deny-all 内部设计),fresh-reset 实测 6 表 0 policy 无缺失,24 表 policy 重建正常——不写 migration,评估文档 `docs/architecture/29000100-intake-policy-assessment.md`。
+- 后台最后 synthetic 清零:quality 区 → 采集健康队列(failed/swept + 重投,GET /collection/runs?status=failed);service 区 → C 端任务台账(新 GET /service/tasks 只读);overview KPI 4 演示卡 → live 聚合(新 GET /overview:今日/运行中/质量异常/总数);全后台 8 区真实数据。
+- **来源登记表** collection_sources(migration 20260906000100):source_key/source_type/cadence/rights_confirmed/robots/rate-limit/retention,内部域 service-only;admin GET(只读)+ POST upsert(审计 admin.collection.source_upserted);SQL 测试并入 gate。**staging 应用待批准**。
+- 验证:22 migration 全链 + 16/16 SQL 文件绿(disposable PG);admin 后端 80 passed;Playwright admin spec 8/8;KPI/overview 聚合 SQL 实测。
+- Codex CLI 通道评估:deepseek bridge 对长任务连续失败(3 次,共 ~5.5M tokens 空转/幻觉),短探针正常——决策:分析由 Hermes 完成、喂精确定义;codex 仅承接短机械产出;长任务由 Hermes 直写(已向用户明示,未见反对)。
+- 红线:零 staging/production 写(除已批准项);新增 migration 未应用;数据字段冻结未触碰。
 
 ## Last updated
 

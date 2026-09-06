@@ -24,7 +24,8 @@
     "20260905000400_v1_service_tasks_contacts.sql",
     "20260905000500_v1_finance_admin_audit.sql",
     "20260905000600_member_status.sql",
-    "20260905000601_collection_runs.sql"
+    "20260905000601_collection_runs.sql",
+    "20260906000100_collection_sources.sql"
   ],
   "legacy_sql_files": [
     "backend/sql/001_foundation_data_contract.sql",

@@ -79,11 +79,11 @@
 
       <p class="admin-notice" id="adminNotice" aria-live="polite">当前为只读演示，按钮只更新本地页面状态；真正的权限、审计和发布动作需要后端接入。</p>
 
-      <section class="admin-kpi-grid" aria-label="后台演示概览">
-        <article class="admin-kpi"><span>今日采集任务</span><strong>12</strong><small>8 个已完成 · 演示</small></article>
-        <article class="admin-kpi"><span>待人工审核</span><strong>8</strong><small>需要确认来源与周期</small></article>
-        <article class="admin-kpi admin-kpi-alert"><span>质量阻塞</span><strong>2</strong><small>阻止进入发布队列</small></article>
-        <article class="admin-kpi"><span>待发布版本</span><strong>4</strong><small>等待发布前检查</small></article>
+      <section class="admin-kpi-grid" aria-label="后台采集概览">
+        <article class="admin-kpi"><span>今日采集任务</span><strong id="kpiTodayTotal">—</strong><small id="kpiTodayNote">今日成功 · 失败 · 实时</small></article>
+        <article class="admin-kpi"><span>运行中采集</span><strong id="kpiRunning">—</strong><small>worker 正在执行的采集</small></article>
+        <article class="admin-kpi admin-kpi-alert"><span>质量异常</span><strong id="kpiFailed">—</strong><small>failed 采集记录累计</small></article>
+        <article class="admin-kpi"><span>采集记录总数</span><strong id="kpiTotal">—</strong><small>collection_runs 全量</small></article>
       </section>
 
       <section class="admin-toolbar" aria-label="后台视图筛选">

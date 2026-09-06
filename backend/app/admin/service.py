@@ -677,6 +677,36 @@ class AdminService:
             "items": [_serialize_service_task(row) for row in rows],
         }
 
+    async def overview_stats(self) -> dict[str, Any]:
+        """Aggregate collection-run counters for the admin overview KPI cards.
+
+        Low-sensitivity numbers only (counts by status/time bucket); no row
+        detail leaves this endpoint.  ``current_date`` is the DB server's
+        local date (timestamptz created_at compared in DB timezone).
+        """
+        async with self._acquire().acquire() as conn:
+            row = await conn.fetchrow(
+                "select"
+                "   count(*) as total,"
+                "   count(*) filter (where created_at::date = current_date)"
+                "       as today_total,"
+                "   count(*) filter (where created_at::date = current_date"
+                "       and status = 'succeeded') as today_succeeded,"
+                "   count(*) filter (where created_at::date = current_date"
+                "       and status = 'failed') as today_failed,"
+                "   count(*) filter (where status = 'running') as running,"
+                "   count(*) filter (where status = 'failed') as failed_total"
+                " from public.collection_runs"
+            )
+        return {
+            "collection_total": int(row["total"] or 0),
+            "collection_today_total": int(row["today_total"] or 0),
+            "collection_today_succeeded": int(row["today_succeeded"] or 0),
+            "collection_today_failed": int(row["today_failed"] or 0),
+            "collection_running": int(row["running"] or 0),
+            "collection_failed_total": int(row["failed_total"] or 0),
+        }
+
     async def enqueue_collection_run(
         self,
         *,

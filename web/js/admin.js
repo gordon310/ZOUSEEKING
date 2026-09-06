@@ -94,6 +94,11 @@
   const serviceList = document.querySelector("#serviceList");
   const serviceToolbar = document.querySelector("#serviceToolbar");
   const serviceRefreshBtn = document.querySelector("#serviceRefreshBtn");
+  const kpiTodayTotal = document.querySelector("#kpiTodayTotal");
+  const kpiTodayNote = document.querySelector("#kpiTodayNote");
+  const kpiRunning = document.querySelector("#kpiRunning");
+  const kpiFailed = document.querySelector("#kpiFailed");
+  const kpiTotal = document.querySelector("#kpiTotal");
   const menuToggle = document.querySelector("#adminMenuToggle");
   const menu = document.querySelector("#adminMenu");
   const fixtureTag = document.querySelector("#adminFixtureTag");
@@ -1273,6 +1278,29 @@
     }
   }
 
+  // ---- overview KPI cards (aggregate counters, no fabricated numbers) --------
+  async function loadOverviewKpis() {
+    if (!isLive) return; // demo mode keeps the HTML "—" placeholders
+    try {
+      const me = await api.getMe();
+      const roles = Array.isArray(me?.roles) ? me.roles.map(String) : [];
+      const allowed = roles.some(
+        (r) => r === "member_ops" || r === "data_ops" || r === "super_admin",
+      );
+      if (!allowed) return; // no role: KPI stays "—" (never fabricated)
+      const s = (await api.listOverviewStats()) || {};
+      setText(kpiTodayTotal, String(s.collection_today_total ?? "—"));
+      if (kpiTodayNote) {
+        kpiTodayNote.textContent = `今日成功 ${s.collection_today_succeeded ?? 0} · 失败 ${s.collection_today_failed ?? 0} · 实时`;
+      }
+      setText(kpiRunning, String(s.collection_running ?? "—"));
+      setText(kpiFailed, String(s.collection_failed_total ?? "—"));
+      setText(kpiTotal, String(s.collection_total ?? "—"));
+    } catch (error) {
+      // degrade silently to "—"; never fabricate numbers on API failure
+    }
+  }
+
   function onPagerClick(event) {
     const button = event.target.closest("[data-pager-dir]");
     if (!button || button.disabled) return;
@@ -1560,6 +1588,7 @@
     bootstrapCollectionTab();
     bootstrapQualityTab();
     bootstrapServiceTab();
+    loadOverviewKpis();
   } else {
     renderDemoMembers();
   }

@@ -123,6 +123,10 @@
         params: { status, source_key, page, page_size },
       });
     },
+    // GET /api/admin/overview -> aggregate KPI counters
+    listOverviewStats() {
+      return request("/api/admin/overview");
+    },
     // GET /api/admin/service/tasks?status=&page=&page_size= -> { total, items }
     listServiceTasks({ status = "", page = 1, page_size = 50 } = {}) {
       return request("/api/admin/service/tasks", {

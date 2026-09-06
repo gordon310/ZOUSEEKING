@@ -23,6 +23,8 @@ GET /api/admin/audit            super_admin (full) / member_ops
 GET /api/admin/finance/orders   finance, super_admin
 GET /api/admin/finance/refunds  finance, super_admin
 GET /api/admin/collection/runs  member_ops, data_ops, super_admin
+GET /api/admin/overview         member_ops, data_ops, super_admin
+                                (aggregate KPI counters)
 GET /api/admin/service/tasks  member_ops, super_admin (read-only dispatch
                                 visibility; assignment is P4/B-end)
 POST /api/admin/collection/runs data_ops, super_admin (enqueue + audit)
@@ -293,6 +295,18 @@ async def list_collection_runs(
         page=page,
         page_size=page_size,
     )
+
+
+@router.get("/overview")
+async def get_overview(
+    principal: AdminPrincipal = Depends(require_admin_role(MEMBER_OPS, DATA_OPS, SUPER_ADMIN)),
+    service: AdminService = Depends(get_admin_service),
+) -> dict[str, Any]:
+    """Aggregate collection-run counters for the overview KPI cards.
+
+    Low-sensitivity totals only; roles member_ops/data_ops/super_admin.
+    """
+    return await service.overview_stats()
 
 
 @router.post("/collection/runs", status_code=201)

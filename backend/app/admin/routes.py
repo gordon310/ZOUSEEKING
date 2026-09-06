@@ -23,6 +23,8 @@ GET /api/admin/audit            super_admin (full) / member_ops
 GET /api/admin/finance/orders   finance, super_admin
 GET /api/admin/finance/refunds  finance, super_admin
 GET /api/admin/collection/runs  member_ops, data_ops, super_admin
+GET /api/admin/service/tasks  member_ops, super_admin (read-only dispatch
+                                visibility; assignment is P4/B-end)
 POST /api/admin/collection/runs data_ops, super_admin (enqueue + audit)
 POST /api/admin/members/{user_id}/status
                                 member_ops, super_admin (write + audit)
@@ -312,6 +314,24 @@ async def enqueue_collection_run(
         source_key=source_key,
         source_type=source_type,
         operator_user_id=principal.user.user_id,
+    )
+
+
+@router.get("/service/tasks")
+async def list_service_tasks(
+    status: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
+    principal: AdminPrincipal = Depends(require_admin_role(MEMBER_OPS, SUPER_ADMIN)),
+    service: AdminService = Depends(get_admin_service),
+) -> dict[str, Any]:
+    """C-end service task ledger (read-only): purpose, region, status,
+    application count. member_ops/super_admin only; assignment/matching is a
+    P4 (B-end) surface and is intentionally absent here."""
+    return await service.list_service_tasks(
+        status=status,
+        page=page,
+        page_size=page_size,
     )
 
 

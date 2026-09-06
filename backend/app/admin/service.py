@@ -96,6 +96,18 @@ SOURCE_TYPES = (
     "aggregate_authorized",
 )
 RUN_STATUSES = ("queued", "running", "succeeded", "failed", "cancelled")
+SERVICE_TASK_STATUSES = (
+    "draft",
+    "open",
+    "matched_pending_consent",
+    "in_progress",
+    "completion_pending",
+    "completed",
+    "cancelled",
+    "expired",
+    "closed_unconfirmed",
+    "suspended",
+)
 
 # Subscription statuses that count as an active entitlement; inline constant,
 # never user input, so it is safe inside the SQL text.
@@ -244,6 +256,23 @@ def _serialize_collection_run(row: asyncpg.Record) -> dict[str, Any]:
         "started_at": _iso(row["started_at"]),
         "completed_at": _iso(row["completed_at"]),
         "created_at": _iso(row["created_at"]),
+    }
+
+
+def _serialize_service_task(row: asyncpg.Record) -> dict[str, Any]:
+    """Turn one service_tasks row into the admin API payload."""
+    return {
+        "id": str(row["id"]),
+        "purpose": row["purpose"],
+        "region_pref": row["region_pref"],
+        "asset_type": row["asset_type"],
+        "compensation": row["compensation"],
+        "public_description": row["public_description"],
+        "apply_deadline": _iso(row["apply_deadline"]),
+        "status": row["status"],
+        "applications_count": int(row["applications_count"] or 0),
+        "created_at": _iso(row["created_at"]),
+        "updated_at": _iso(row["updated_at"]),
     }
 
 
@@ -599,6 +628,53 @@ class AdminService:
             "page": page,
             "page_size": page_size,
             "items": [_serialize_collection_run(row) for row in rows],
+        }
+
+    async def list_service_tasks(
+        self,
+        status: Optional[str] = None,
+        page: int = 1,
+        page_size: int = DEFAULT_PAGE_SIZE,
+    ) -> dict[str, Any]:
+        """Paginated C-end service task ledger, newest first (read-only).
+
+        ``status`` must be one of ``SERVICE_TASK_STATUSES`` (422 otherwise).
+        applications_count comes from the task_applications table so an
+        operator sees application volume without listing applicants (P4 will
+        add the B-end matching/assignment surface; this view is dispatch
+        visibility only).
+        """
+        if status is not None and status not in SERVICE_TASK_STATUSES:
+            raise HTTPException(
+                status_code=422,
+                detail=f"unknown service task status: {status}",
+            )
+        where = " where ($1::text is null or st.status = $1)"
+        offset = max(page - 1, 0) * page_size
+        async with self._acquire().acquire() as conn:
+            total = await conn.fetchval(
+                "select count(*) from public.service_tasks st" + where,
+                status,
+            )
+            rows = await conn.fetch(
+                "select st.id, st.purpose, st.region_pref, st.asset_type,"
+                " st.compensation, st.public_description, st.apply_deadline,"
+                " st.status, st.created_at, st.updated_at,"
+                " (select count(*) from public.task_applications ta"
+                "  where ta.task_id = st.id) as applications_count"
+                " from public.service_tasks st"
+                + where
+                + " order by st.created_at desc, st.id desc"
+                + " limit $2 offset $3",
+                status,
+                page_size,
+                offset,
+            )
+        return {
+            "total": int(total or 0),
+            "page": page,
+            "page_size": page_size,
+            "items": [_serialize_service_task(row) for row in rows],
         }
 
     async def enqueue_collection_run(

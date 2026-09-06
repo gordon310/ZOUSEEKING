@@ -240,6 +240,15 @@ test("reads /api/admin/* with a Bearer token when configured; 403 degrades visib
         await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_REFUNDS) });
         return;
       }
+      if (url.pathname === "/api/admin/service/tasks") {
+        // service ledger: member_ops can view; return an empty real ledger.
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ total: 0, page: 1, page_size: 50, items: [] }),
+        });
+        return;
+      }
       if (url.pathname === "/api/admin/internal/me") {
         // collection tab role gate: member_ops may not view, so no runs fetch.
         await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ user_id: MOCK_MEMBER.user_id, roles: ["member_ops"] }) });
@@ -353,6 +362,10 @@ test("reads /api/admin/* with a Bearer token when configured; 403 degrades visib
       }
       if (path === "/api/admin/finance/refunds" && method === "GET") {
         await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ total: 0, page: 1, page_size: 20, items: [] }) });
+        return;
+      }
+      if (path === "/api/admin/service/tasks" && method === "GET") {
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ total: 0, page: 1, page_size: 50, items: [] }) });
         return;
       }
       const statusMatch = path.match(/^\/api\/admin\/members\/([^/]+)\/status$/);
@@ -496,6 +509,10 @@ test("reads /api/admin/* with a Bearer token when configured; 403 degrades visib
       }
       if (path === "/api/admin/internal/me" && method === "GET") {
         await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ user_id: SELF_ID, roles: ["super_admin", "finance"] }) });
+        return;
+      }
+      if (path === "/api/admin/service/tasks" && method === "GET") {
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ total: 0, page: 1, page_size: 50, items: [] }) });
         return;
       }
       if (path === "/api/admin/collection/runs" && method === "GET") {
@@ -797,6 +814,10 @@ test("collection tab as non-data_ops shows the role hint and never fetches runs"
     }
     if (path === "/api/admin/internal/me" && method === "GET") {
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ user_id: SELF_ID, roles: ["member_ops"] }) });
+      return;
+    }
+    if (path === "/api/admin/service/tasks" && method === "GET") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ total: 0, page: 1, page_size: 50, items: [] }) });
       return;
     }
     if (path === "/api/admin/collection/runs") {

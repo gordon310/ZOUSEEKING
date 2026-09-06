@@ -498,6 +498,45 @@
       .join("");
   }
 
+  // ---------- service dispatch: C-end task ledger (read-only) ----------
+  const SERVICE_STATUS_TEXT = {
+    draft: "草稿",
+    open: "招募中",
+    matched_pending_consent: "已匹配待确认",
+    in_progress: "进行中",
+    completion_pending: "待完成确认",
+    completed: "已完成",
+    cancelled: "已取消",
+    expired: "已过期",
+    closed_unconfirmed: "关闭未确认",
+    suspended: "已暂停",
+  };
+
+  const serviceLiveHeaders = `
+    <tr>
+      <th scope="col">任务</th><th scope="col">区域</th><th scope="col">资产</th><th scope="col">报酬</th>
+      <th scope="col">状态</th><th scope="col" class="num">应征</th><th scope="col">截止</th><th scope="col">创建时间</th>
+    </tr>`;
+
+  function serviceTasksHtml(items) {
+    if (!items || !items.length) {
+      return emptyRow(8, t("admin.serviceEmpty", "暂无服务任务。任务由 C 端用户发起，创建后在此可见。"));
+    }
+    return items
+      .map((task) => `
+        <tr data-service-task data-task-id="${escape(task.id)}">
+          <th scope="row">${escape(task.purpose || shortId(task.id))}</th>
+          <td>${escape(task.region_pref || "—")}</td>
+          <td>${escape(task.asset_type || "—")}</td>
+          <td>${escape(task.compensation || "—")}</td>
+          <td>${badge(task.status, statusLabel(task.status, SERVICE_STATUS_TEXT))}</td>
+          <td class="num">${escape(String(task.applications_count ?? 0))}</td>
+          <td>${escape(fmtDateTime(task.apply_deadline))}</td>
+          <td>${escape(fmtDateTime(task.created_at))}</td>
+        </tr>`)
+      .join("");
+  }
+
   // ---------- pager ----------
 
   function totalPages(pageSize, total) {
@@ -537,6 +576,9 @@
     collectionRunsHtml,
     qualityLiveHeaders,
     qualityRunsHtml,
+    serviceLiveHeaders,
+    serviceTasksHtml,
+    SERVICE_STATUS_TEXT,
     pagerHtml,
     totalPages,
     ORDER_STATUS_TEXT,

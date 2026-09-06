@@ -123,6 +123,12 @@
         params: { status, source_key, page, page_size },
       });
     },
+    // GET /api/admin/service/tasks?status=&page=&page_size= -> { total, items }
+    listServiceTasks({ status = "", page = 1, page_size = 50 } = {}) {
+      return request("/api/admin/service/tasks", {
+        params: { status, page, page_size },
+      });
+    },
     // POST /api/admin/collection/runs { source_key, source_type } -> queued run
     enqueueCollectionRun({ source_key, source_type } = {}) {
       return request("/api/admin/collection/runs", {

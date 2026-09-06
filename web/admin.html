@@ -273,12 +273,25 @@
                 <p class="eyebrow">SERVICE DISPATCH</p>
                 <h2>C 端服务派单</h2>
               </div>
-              <span class="admin-panel-count">3 个演示任务</span>
+              <span class="admin-panel-count" id="serviceCount">—</span>
             </div>
-            <div class="admin-service-list">
-              <article class="admin-service-row"><div><strong>陪同看房</strong><span>大阪市北区 · 任务 001 · synthetic_fixture</span></div><span class="admin-table-status status-review">待分配</span><button class="admin-action" type="button" data-admin-action="assign">分配</button></article>
-              <article class="admin-service-row"><div><strong>人工专家分析</strong><span>东京都港区 · 任务 002 · synthetic_fixture</span></div><span class="admin-table-status status-active">进行中</span><button class="admin-action" type="button" data-admin-action="inspect">查看</button></article>
-              <article class="admin-service-row"><div><strong>好房推荐</strong><span>横滨市中区 · 任务 003 · synthetic_fixture</span></div><span class="admin-table-status status-complete">已完成</span><button class="admin-action" type="button" data-admin-action="inspect">查看</button></article>
+            <p class="admin-panel-note" id="servicePanelNote">服务任务由 C 端用户发起（真实后台 /api/admin/service/tasks，只读）：目的、区域、资产、报酬、状态与应征数。派单/匹配属 B 端（P4）流程，本视图为运营可见性。仅 member_ops / super_admin 可见真实记录；本面板不展示演示数据。</p>
+            <p class="admin-live-status" id="serviceStatus" aria-live="polite"></p>
+
+            <div id="serviceLiveWrap" hidden style="display:none">
+              <div class="admin-table-wrap">
+                <table class="admin-table collection-table">
+                  <caption>C 端服务任务台账（只读）</caption>
+                  <thead id="serviceTableHead"></thead>
+                  <tbody id="serviceList">
+                    <tr><td colspan="8"><div class="admin-empty">任务数据仅由真实后台提供；未连接时不虚构任务记录。</div></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="member-toolbar collection-enqueue-toolbar" id="serviceToolbar" hidden style="display:none">
+                <span class="admin-empty">B 端匹配/派单流程在 P4 接入。</span>
+                <button class="admin-action" type="button" id="serviceRefreshBtn">刷新</button>
+              </div>
             </div>
           </section>
 

@@ -86,6 +86,14 @@
   const qualityList = document.querySelector("#qualityList");
   const qualityToolbar = document.querySelector("#qualityToolbar");
   const qualityRefreshBtn = document.querySelector("#qualityRefreshBtn");
+  const serviceCount = document.querySelector("#serviceCount");
+  const servicePanelNote = document.querySelector("#servicePanelNote");
+  const serviceStatus = document.querySelector("#serviceStatus");
+  const serviceLiveWrap = document.querySelector("#serviceLiveWrap");
+  const serviceTableHead = document.querySelector("#serviceTableHead");
+  const serviceList = document.querySelector("#serviceList");
+  const serviceToolbar = document.querySelector("#serviceToolbar");
+  const serviceRefreshBtn = document.querySelector("#serviceRefreshBtn");
   const menuToggle = document.querySelector("#adminMenuToggle");
   const menu = document.querySelector("#adminMenu");
   const fixtureTag = document.querySelector("#adminFixtureTag");
@@ -1133,6 +1141,138 @@
     }
   }
 
+  // ---- service dispatch: C-end task ledger (member_ops/super_admin) ---------
+  const SERVICE_COLSPAN = 8;
+  const serviceState = {
+    booted: false,
+    busy: false,
+    active: false,
+    roles: [],
+  };
+
+  function applyServiceMode(mode) {
+    if (!serviceLiveWrap) return;
+    const liveVisible = mode === "live";
+    serviceLiveWrap.hidden = !liveVisible;
+    serviceLiveWrap.style.display = liveVisible ? "" : "none";
+  }
+
+  function serviceRoleHint() {
+    if (!serviceState.roles.length) {
+      return t(
+        "admin.collectionNoAccess",
+        "当前账号没有任何后台角色，无法查看服务任务。",
+      );
+    }
+    return interp(
+      t(
+        "admin.collectionNoPermissionHint",
+        "服务派单页签需要 member_ops / super_admin 角色；当前账号角色：{roles}。",
+      ),
+      { roles: serviceState.roles.join("、") },
+    );
+  }
+
+  function setServiceToolbarVisible(visible) {
+    if (!serviceToolbar) return;
+    serviceToolbar.hidden = !visible;
+    serviceToolbar.style.display = visible ? "" : "none";
+  }
+
+  async function ensureServiceTabData() {
+    if (!isLive || !serviceList) return;
+    if (serviceState.booted) {
+      if (serviceState.active && !serviceState.busy) loadLiveServiceTasks();
+      return;
+    }
+    serviceState.booted = true;
+    await bootstrapServiceTab();
+  }
+
+  async function bootstrapServiceTab() {
+    if (serviceState.busy) return;
+    serviceState.busy = true;
+    applyServiceMode("live");
+    setStatus(serviceStatus, t("admin.loading", "正在从后台加载……"));
+    if (serviceTableHead) serviceTableHead.innerHTML = views.serviceLiveHeaders;
+    if (serviceList) serviceList.innerHTML = views.loadingRow(SERVICE_COLSPAN);
+    setText(serviceCount, "…");
+    let active = false;
+    try {
+      const me = await api.getMe();
+      const roles = Array.isArray(me?.roles) ? me.roles.map(String) : [];
+      serviceState.roles = roles;
+      active = roles.includes("member_ops") || roles.includes("super_admin");
+      serviceState.active = active;
+      if (servicePanelNote) {
+        servicePanelNote.textContent = active
+          ? t(
+              "admin.serviceLiveNote",
+              "任务台账读取真实后台 /api/admin/service/tasks（只读）：目的、区域、资产、报酬、状态与应征数来自 service_tasks。派单/匹配属 B 端（P4）流程。",
+            )
+          : t(
+              "admin.serviceGateNote",
+              "服务派单页签仅对 member_ops / super_admin 展示真实任务；其他角色不读取该后台数据。",
+            );
+      }
+      if (!active) {
+        setServiceToolbarVisible(false);
+        setText(serviceCount, "—");
+        if (serviceTableHead) serviceTableHead.innerHTML = "";
+        if (serviceList) serviceList.innerHTML = "";
+        applyServiceMode("hidden");
+        setStatus(serviceStatus, serviceRoleHint(), "info");
+        return;
+      }
+      setServiceToolbarVisible(true);
+    } catch (error) {
+      serviceState.active = false;
+      setServiceToolbarVisible(false);
+      if (serviceTableHead) serviceTableHead.innerHTML = "";
+      if (serviceList) serviceList.innerHTML = "";
+      setText(serviceCount, "—");
+      applyServiceMode("hidden");
+      setStatus(
+        serviceStatus,
+        `${apiErrorMessage(error, t("admin.rolesCollection", "需要 member_ops / super_admin 角色。"))}${notRealFallbackNote()}`,
+        "error",
+      );
+      return;
+    } finally {
+      serviceState.busy = false;
+    }
+    if (active) await loadLiveServiceTasks();
+  }
+
+  async function loadLiveServiceTasks() {
+    if (!serviceList || serviceState.busy || !serviceState.active) return;
+    serviceState.busy = true;
+    setStatus(serviceStatus, t("admin.loading", "正在从后台加载……"));
+    serviceList.innerHTML = views.loadingRow(SERVICE_COLSPAN);
+    setText(serviceCount, "…");
+    try {
+      const payload = await api.listServiceTasks({ page: 1, page_size: 50 });
+      const items = payload?.items || [];
+      const total = Number(payload?.total) || items.length;
+      serviceList.innerHTML = views.serviceTasksHtml(items);
+      setText(serviceCount, `${items.length} / ${total} 条`);
+      setStatus(
+        serviceStatus,
+        items.length
+          ? t("admin.liveSource", "数据来源：真实后台")
+          : t("admin.serviceEmpty", "暂无服务任务。任务由 C 端用户发起，创建后在此可见。"),
+        items.length ? "" : "info",
+      );
+    } catch (error) {
+      serviceList.innerHTML = "";
+      setText(serviceCount, "—");
+      const message = `${apiErrorMessage(error, t("admin.rolesCollection", "需要 member_ops / super_admin 角色。"))}${notRealFallbackNote()}`;
+      setStatus(serviceStatus, message, "error");
+    } finally {
+      serviceState.busy = false;
+    }
+  }
+
   function onPagerClick(event) {
     const button = event.target.closest("[data-pager-dir]");
     if (!button || button.disabled) return;
@@ -1199,6 +1339,7 @@
       if (tab.dataset.adminTab === "members") ensureMemberTabData();
       if (tab.dataset.adminTab === "collection") ensureCollectionTabData();
       if (tab.dataset.adminTab === "quality") ensureQualityTabData();
+      if (tab.dataset.adminTab === "service") ensureServiceTabData();
     });
   });
 
@@ -1242,6 +1383,9 @@
   });
   qualityRefreshBtn?.addEventListener("click", () => {
     if (!qualityState.busy) loadLiveQualityRuns();
+  });
+  serviceRefreshBtn?.addEventListener("click", () => {
+    if (!serviceState.busy) loadLiveServiceTasks();
   });
 
   // ---- live member interactions (delegated) -----------------------------------
@@ -1415,6 +1559,7 @@
     loadLiveRefunds(1);
     bootstrapCollectionTab();
     bootstrapQualityTab();
+    bootstrapServiceTab();
   } else {
     renderDemoMembers();
   }

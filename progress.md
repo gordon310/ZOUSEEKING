@@ -269,6 +269,15 @@
 - 验证：`tests/unit/test_collection_sweeper.py` 13 passed（纯单测 + docker PG 集成：恢复/幂等/dry-run/并发不双恢复/哈希 ok·篡改·缺失/rows 漂移/路径防穿越）；采集链+admin 回归 148 passed；`tests/unit` 全量 **304 passed**（DATABASE_URL=supabase_admin@localhost:55432 disposable PG）；`compileall backend scripts src` 通过；CLI 实跑：`--verify-only` 对遗留篡改行报 `file_missing` + exit 1，`--recover-only --dry-run` exit 0。
 - 红线：零 migration、零 DB 写（仅 disposable 测试库）、未触碰 staging/production/凭据/冻结字段、无删除操作。
 
+## P1.2 V1 业务域 RLS 四身份行为矩阵（2026-09-06 晨班）
+
+- 新增 `tests/security/test_rls_v1_business_identity_matrix.sql`：补上 V1 各 `test_v1_*.sql` 头部注明"待 baseline gate 后补"的行为半。gate 已于 09-05 过（V1×5+00600/00601 应用 staging），覆盖 20260905000100–00601 批 18 张业务表的四身份矩阵（匿名 / 无关 authenticated / 属主 / service_role worker）。
+- 结构：单事务 begin…rollback，固定 UUID fixtures（2 auth 用户 + ORG + 个人/机构订阅 + usage + 任务/申请/状态历史/同意 + 有效与未来价格），`set local role` 四身份分别以真实 DML 探测。
+- 断言要点：anon 18 表零权限；无关用户读不到他人 org/成员/订阅/用量/草稿任务、可读 open 任务与 effective 价格、email 列级 revoke 拒读；属主可读 own+org scope、仅能改 `organizations.name` 与本人 profile 偏好列，partner_status/成员状态/订阅状态/用量/内部表全拒；worker 全权写但 usage_events/audit_events append-only trigger 对 worker 同样拒 update/delete；00600 列级 fence 使 status/membership_tier 不可被 authenticated 改（trigger 二线）。
+- 验证：本地 disposable Supabase PG（supabase/postgres:17.6.1.165@55432）应用全部 21 个 migration（public 41 表）→ 新增文件 psql ON_ERROR_STOP 通过；反向验证（篡改断言条件）EXIT=3 失败，证明断言真实生效；事务回滚后 fixture 残留 0。全套 SQL/security 断言 15/16 绿。
+- 已知（非本单元引入）：`test_m1_reconciliation_contract.sql` FAIL——2026-09-02 M1 快照断言 authenticated public grants=15，V1 批后实际 23，断言过期；CI sql-identity step 尚未纳入本文件（workflow 显式文件列表），两步均留待后续单独处理。
+- 红线：零 migration、零 staging/production DB 写（仅本地 disposable）、未触碰凭据/冻结字段/删除操作。
+
 ## Last updated
 
-2026-09-05
+2026-09-06

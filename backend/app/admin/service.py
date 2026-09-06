@@ -96,6 +96,7 @@ SOURCE_TYPES = (
     "aggregate_authorized",
 )
 RUN_STATUSES = ("queued", "running", "succeeded", "failed", "cancelled")
+SOURCE_CADENCES = ("daily", "weekly", "monthly", "event")
 SERVICE_TASK_STATUSES = (
     "draft",
     "open",
@@ -271,6 +272,25 @@ def _serialize_service_task(row: asyncpg.Record) -> dict[str, Any]:
         "apply_deadline": _iso(row["apply_deadline"]),
         "status": row["status"],
         "applications_count": int(row["applications_count"] or 0),
+        "created_at": _iso(row["created_at"]),
+        "updated_at": _iso(row["updated_at"]),
+    }
+
+
+def _serialize_collection_source(row: asyncpg.Record) -> dict[str, Any]:
+    """Turn one collection_sources row into the admin API payload."""
+    return {
+        "source_key": row["source_key"],
+        "source_type": row["source_type"],
+        "display_name": row["display_name"],
+        "source_url": row["source_url"],
+        "cadence": row["cadence"],
+        "rights_confirmed": bool(row["rights_confirmed"]),
+        "robots_policy": row["robots_policy"],
+        "rate_limit_note": row["rate_limit_note"],
+        "retention_policy": row["retention_policy"],
+        "enabled": bool(row["enabled"]),
+        "notes": row["notes"],
         "created_at": _iso(row["created_at"]),
         "updated_at": _iso(row["updated_at"]),
     }
@@ -676,6 +696,129 @@ class AdminService:
             "page_size": page_size,
             "items": [_serialize_service_task(row) for row in rows],
         }
+
+    async def list_collection_sources(
+        self,
+        source_key: str = "",
+        enabled: Optional[bool] = None,
+        page: int = 1,
+        page_size: int = DEFAULT_PAGE_SIZE,
+    ) -> dict[str, Any]:
+        """Paginated authorised-source registry, key order (read-only).
+
+        ``source_key`` is a forgiving substring match; ``enabled`` filters
+        the registry to enabled sources (scheduler enumeration view).
+        """
+        where = (
+            " where ($1::text = '' or source_key ilike '%' || $1 || '%')"
+            "   and ($2::boolean is null or enabled = $2)"
+        )
+        offset = max(page - 1, 0) * page_size
+        async with self._acquire().acquire() as conn:
+            total = await conn.fetchval(
+                "select count(*) from public.collection_sources" + where,
+                source_key,
+                enabled,
+            )
+            rows = await conn.fetch(
+                "select source_key, source_type, display_name, source_url,"
+                " cadence, rights_confirmed, robots_policy, rate_limit_note,"
+                " retention_policy, enabled, notes, created_at, updated_at"
+                " from public.collection_sources"
+                + where
+                + " order by source_key asc"
+                + " limit $3 offset $4",
+                source_key,
+                enabled,
+                page_size,
+                offset,
+            )
+        return {
+            "total": int(total or 0),
+            "page": page,
+            "page_size": page_size,
+            "items": [_serialize_collection_source(row) for row in rows],
+        }
+
+    async def upsert_collection_source(
+        self,
+        *,
+        source_key: str,
+        source_type: str,
+        operator_user_id: UUID,
+        display_name: Optional[str] = None,
+        source_url: Optional[str] = None,
+        cadence: str = "weekly",
+        rights_confirmed: bool = False,
+        robots_policy: Optional[str] = None,
+        rate_limit_note: Optional[str] = None,
+        retention_policy: Optional[str] = None,
+        enabled: bool = True,
+        notes: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """Register or update one authorised source + audit in one tx.
+
+        The route pre-validates source_type/cadence vocabulary and the
+        non-empty source_key shape; DB CHECK constraints are the final
+        authority.  Audit action ``admin.collection.source_upserted`` records
+        the operator and the resulting enabled/rights_confirmed flags.
+        """
+        async with self._acquire().acquire() as conn:
+            async with conn.transaction():
+                row = await conn.fetchrow(
+                    "insert into public.collection_sources"
+                    " (source_key, source_type, display_name, source_url,"
+                    "  cadence, rights_confirmed, robots_policy,"
+                    "  rate_limit_note, retention_policy, enabled, notes)"
+                    " values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
+                    " on conflict (source_key) do update set"
+                    "   source_type = excluded.source_type,"
+                    "   display_name = excluded.display_name,"
+                    "   source_url = excluded.source_url,"
+                    "   cadence = excluded.cadence,"
+                    "   rights_confirmed = excluded.rights_confirmed,"
+                    "   robots_policy = excluded.robots_policy,"
+                    "   rate_limit_note = excluded.rate_limit_note,"
+                    "   retention_policy = excluded.retention_policy,"
+                    "   enabled = excluded.enabled,"
+                    "   notes = excluded.notes,"
+                    "   updated_at = now()"
+                    " returning source_key, source_type, display_name,"
+                    "   source_url, cadence, rights_confirmed, robots_policy,"
+                    "   rate_limit_note, retention_policy, enabled, notes,"
+                    "   created_at, updated_at",
+                    source_key,
+                    source_type,
+                    display_name,
+                    source_url,
+                    cadence,
+                    rights_confirmed,
+                    robots_policy,
+                    rate_limit_note,
+                    retention_policy,
+                    enabled,
+                    notes,
+                )
+                await conn.execute(
+                    "insert into public.audit_events"
+                    " (actor_user_id, action, target_type, target_id, summary)"
+                    " values ($1, 'admin.collection.source_upserted',"
+                    " 'collection_source', $2, $3::jsonb)",
+                    operator_user_id,
+                    source_key,
+                    json.dumps(
+                        {
+                            "source_key": source_key,
+                            "source_type": source_type,
+                            "cadence": cadence,
+                            "enabled": enabled,
+                            "rights_confirmed": rights_confirmed,
+                            "operator": str(operator_user_id),
+                        },
+                        ensure_ascii=False,
+                    ),
+                )
+        return _serialize_collection_source(row)
 
     async def overview_stats(self) -> dict[str, Any]:
         """Aggregate collection-run counters for the admin overview KPI cards.

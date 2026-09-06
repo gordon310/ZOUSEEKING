@@ -93,8 +93,8 @@ begin
   if authenticated_grant_count <> 23 then
     raise exception 'authenticated public grant count %, expected 23', authenticated_grant_count;
   end if;
-  if service_grant_count <> 283 then
-    raise exception 'service_role public grant count %, expected 283', service_grant_count;
+  if service_grant_count <> 287 then
+    raise exception 'service_role public grant count %, expected 287', service_grant_count;
   end if;
 
   if exists (

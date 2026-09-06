@@ -23,6 +23,9 @@ GET /api/admin/audit            super_admin (full) / member_ops
 GET /api/admin/finance/orders   finance, super_admin
 GET /api/admin/finance/refunds  finance, super_admin
 GET /api/admin/collection/runs  member_ops, data_ops, super_admin
+GET /api/admin/collection/sources member_ops, data_ops, super_admin
+POST /api/admin/collection/sources data_ops, super_admin
+                                (registry upsert + audit)
 GET /api/admin/overview         member_ops, data_ops, super_admin
                                 (aggregate KPI counters)
 GET /api/admin/service/tasks  member_ops, super_admin (read-only dispatch
@@ -74,6 +77,7 @@ from .service import (
     MAX_AUDIT_LIMIT,
     MAX_PAGE_SIZE,
     SOURCE_TYPES,
+    SOURCE_CADENCES,
     AdminService,
     EMAIL_VISIBLE_ROLES,
     MEMBER_STATUSES,
@@ -103,6 +107,22 @@ class MemberStatusRequest(BaseModel):
     """POST /api/admin/members/{user_id}/status body."""
 
     status: str
+
+
+class CollectionSourceUpsertRequest(BaseModel):
+    """POST /api/admin/collection/sources body (register or update)."""
+
+    source_key: str
+    source_type: str
+    display_name: Optional[str] = None
+    source_url: Optional[str] = None
+    cadence: str = "weekly"
+    rights_confirmed: bool = False
+    robots_policy: Optional[str] = None
+    rate_limit_note: Optional[str] = None
+    retention_policy: Optional[str] = None
+    enabled: bool = True
+    notes: Optional[str] = None
 
 
 def _role_or_400(role: Optional[str]) -> str:
@@ -169,6 +189,16 @@ def _source_type_or_400(source_type: Optional[str]) -> str:
     value = (source_type or "").strip()
     if value not in SOURCE_TYPES:
         raise HTTPException(status_code=400, detail="无效的 source_type")
+    return value
+
+
+def _cadence_or_400(cadence: Optional[str]) -> str:
+    """Validate against the collection_sources cadence vocabulary."""
+    value = (cadence or "weekly").strip()
+    if value not in SOURCE_CADENCES:
+        raise HTTPException(
+            status_code=400, detail="无效的 cadence（仅 daily / weekly / monthly / event）"
+        )
     return value
 
 
@@ -294,6 +324,56 @@ async def list_collection_runs(
         source_key=(source_key or "").strip(),
         page=page,
         page_size=page_size,
+    )
+
+
+@router.get("/collection/sources")
+async def list_collection_sources(
+    source_key: str = Query("", max_length=200),
+    enabled: Optional[bool] = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
+    principal: AdminPrincipal = Depends(require_admin_role(MEMBER_OPS, DATA_OPS, SUPER_ADMIN)),
+    service: AdminService = Depends(get_admin_service),
+) -> dict[str, Any]:
+    """Authorised-source registry (read-only): rights/robots/rate-limit/
+    retention/cadence per source_key."""
+    return await service.list_collection_sources(
+        source_key=(source_key or "").strip(),
+        enabled=enabled,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.post("/collection/sources", status_code=201)
+async def upsert_collection_source(
+    body: CollectionSourceUpsertRequest,
+    principal: AdminPrincipal = Depends(require_admin_role(DATA_OPS, SUPER_ADMIN)),
+    service: AdminService = Depends(get_admin_service),
+) -> dict[str, Any]:
+    """Register or update one authorised source (upsert by source_key).
+
+    Audits ``admin.collection.source_upserted`` in the same transaction.
+    Registry only - nothing here triggers or authorises live collection
+    (rights_confirmed is a documented flag, reviewed by the operator).
+    """
+    source_key = _source_key_or_400(body.source_key)
+    source_type = _source_type_or_400(body.source_type)
+    cadence = _cadence_or_400(body.cadence)
+    return await service.upsert_collection_source(
+        source_key=source_key,
+        source_type=source_type,
+        operator_user_id=principal.user.user_id,
+        display_name=body.display_name,
+        source_url=body.source_url,
+        cadence=cadence,
+        rights_confirmed=bool(body.rights_confirmed),
+        robots_policy=body.robots_policy,
+        rate_limit_note=body.rate_limit_note,
+        retention_policy=body.retention_policy,
+        enabled=bool(body.enabled),
+        notes=body.notes,
     )
 
 

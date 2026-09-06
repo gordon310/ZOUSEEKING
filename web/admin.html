@@ -207,13 +207,26 @@
                 <p class="eyebrow">QUALITY GATE</p>
                 <h2>质量审核队列</h2>
               </div>
-              <span class="admin-panel-count">2 个阻塞项</span>
+              <span class="admin-panel-count" id="qualityCount">—</span>
             </div>
-            <ul class="admin-issue-list">
-              <li><span class="admin-issue-level issue-blocked">阻塞</span><div><strong>缺少来源时间</strong><p>东京人工确认样本需要补齐 verification_time 和来源期间。</p></div><button class="admin-action" type="button" data-admin-action="inspect">查看</button></li>
-              <li><span class="admin-issue-level issue-review">复核</span><div><strong>月份定义不一致</strong><p>大阪聚合数据和旧报告的月份口径不同，发布前需要确认。</p></div><button class="admin-action" type="button" data-admin-action="inspect">查看</button></li>
-              <li><span class="admin-issue-level issue-info">提示</span><div><strong>建模值需要标注版本</strong><p>横滨租售比应展示模型版本、样本量和限制说明。</p></div><button class="admin-action" type="button" data-admin-action="inspect">查看</button></li>
-            </ul>
+            <p class="admin-panel-note" id="qualityPanelNote">采集运行健康队列：读取真实后台 /api/admin/collection/runs?status=failed，列出失败与被看门狗恢复（swept）的采集任务。仅 data_ops / super_admin 可见真实记录；本面板不展示演示数据。</p>
+            <p class="admin-live-status" id="qualityStatus" aria-live="polite"></p>
+
+            <div id="qualityLiveWrap" hidden style="display:none">
+              <div class="admin-table-wrap">
+                <table class="admin-table collection-table">
+                  <caption>采集健康队列（异常 run：failed / swept）</caption>
+                  <thead id="qualityTableHead"></thead>
+                  <tbody id="qualityList">
+                    <tr><td colspan="7"><div class="admin-empty">队列数据仅由真实后台提供；未连接时不虚构异常记录。</div></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="member-toolbar collection-enqueue-toolbar" id="qualityToolbar" hidden style="display:none">
+                <span class="admin-empty" id="qualityToolbarNote">重投会将同来源重新入队（queued），由 worker 再次执行。</span>
+                <button class="admin-action" type="button" id="qualityRefreshBtn">刷新队列</button>
+              </div>
+            </div>
           </section>
 
           <section class="admin-panel" id="members" data-admin-section="members">

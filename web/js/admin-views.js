@@ -463,6 +463,41 @@
       .join("");
   }
 
+  // ---------- quality gate: failed-run health queue ----------
+  // 7 columns: 来源 / 状态 / 行数 / 错误 / 创建时间 / 完成时间 / 操作(重投)
+
+  const qualityLiveHeaders = `
+    <tr>
+      <th scope="col">来源</th><th scope="col">状态</th><th scope="col" class="num">行数</th>
+      <th scope="col">错误信息</th><th scope="col">创建时间</th><th scope="col">完成时间</th>
+      <th scope="col">操作</th>
+    </tr>`;
+
+  function qualityRunsHtml(items, { canRetry = false } = {}) {
+    if (!items || !items.length) {
+      return emptyRow(7, t("admin.qualityClean", "队列干净：暂无异常采集任务。"));
+    }
+    return items
+      .map((run) => `
+        <tr data-quality-run data-run-id="${escape(run.id)}" data-run-status="${escape(run.status)}">
+          <th scope="row">${escape(run.source_key || shortId(run.id))}<span><code>${escape(run.source_type || "")}</code></span></th>
+          <td>${badge(run.status, statusLabel(run.status, RUN_STATUS_TEXT))}</td>
+          <td class="num">${escape(String(run.rows_collected ?? 0))}</td>
+          <td>${errorCell(run.error_message)}</td>
+          <td>${escape(fmtDateTime(run.created_at))}</td>
+          <td>${escape(fmtDateTime(run.completed_at))}</td>
+          <td>${
+            canRetry
+              ? `<button type="button" class="admin-action" data-quality-retry
+                     data-source-key="${escape(run.source_key)}"
+                     data-source-type="${escape(run.source_type)}"
+                     data-run-id="${escape(run.id)}">重投</button>`
+              : "—"
+          }</td>
+        </tr>`)
+      .join("");
+  }
+
   // ---------- pager ----------
 
   function totalPages(pageSize, total) {
@@ -500,6 +535,8 @@
     refundRowsHtml,
     collectionLiveHeaders,
     collectionRunsHtml,
+    qualityLiveHeaders,
+    qualityRunsHtml,
     pagerHtml,
     totalPages,
     ORDER_STATUS_TEXT,

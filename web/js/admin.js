@@ -78,6 +78,14 @@
   const collectionSourceKey = document.querySelector("#collectionSourceKey");
   const collectionSourceType = document.querySelector("#collectionSourceType");
   const collectionEnqueueBtn = document.querySelector("#collectionEnqueueBtn");
+  const qualityCount = document.querySelector("#qualityCount");
+  const qualityPanelNote = document.querySelector("#qualityPanelNote");
+  const qualityStatus = document.querySelector("#qualityStatus");
+  const qualityLiveWrap = document.querySelector("#qualityLiveWrap");
+  const qualityTableHead = document.querySelector("#qualityTableHead");
+  const qualityList = document.querySelector("#qualityList");
+  const qualityToolbar = document.querySelector("#qualityToolbar");
+  const qualityRefreshBtn = document.querySelector("#qualityRefreshBtn");
   const menuToggle = document.querySelector("#adminMenuToggle");
   const menu = document.querySelector("#adminMenu");
   const fixtureTag = document.querySelector("#adminFixtureTag");
@@ -933,6 +941,198 @@
     }
   }
 
+  // ---- quality gate: failed-run health queue (data_ops/super_admin) ---------
+  const QUALITY_COLSPAN = 7;
+  const qualityState = {
+    booted: false,
+    busy: false,
+    active: false,
+    roles: [],
+  };
+
+  function applyQualityMode(mode) {
+    if (!qualityLiveWrap) return;
+    const liveVisible = mode === "live";
+    qualityLiveWrap.hidden = !liveVisible;
+    qualityLiveWrap.style.display = liveVisible ? "" : "none";
+  }
+
+  function qualityGateText() {
+    return t("admin.rolesCollection", "需要 data_ops / super_admin 角色。");
+  }
+
+  function qualityRoleHint() {
+    if (!qualityState.roles.length) {
+      return t(
+        "admin.collectionNoAccess",
+        "当前账号没有任何后台角色，无法查看质量审核队列。",
+      );
+    }
+    return interp(
+      t(
+        "admin.collectionNoPermissionHint",
+        "质量审核队列需要 data_ops / super_admin 角色；当前账号角色：{roles}。",
+      ),
+      { roles: qualityState.roles.join("、") },
+    );
+  }
+
+  function setQualityToolbarVisible(visible) {
+    if (!qualityToolbar) return;
+    qualityToolbar.hidden = !visible;
+    qualityToolbar.style.display = visible ? "" : "none";
+  }
+
+  function showQualityLoading() {
+    if (qualityTableHead) qualityTableHead.innerHTML = views.qualityLiveHeaders;
+    if (qualityList) qualityList.innerHTML = views.loadingRow(QUALITY_COLSPAN);
+    setText(qualityCount, "…");
+  }
+
+  async function ensureQualityTabData() {
+    if (!isLive || !qualityList) return;
+    if (qualityState.booted) {
+      if (qualityState.active && !qualityState.busy) loadLiveQualityRuns();
+      return;
+    }
+    qualityState.booted = true;
+    await bootstrapQualityTab();
+  }
+
+  async function bootstrapQualityTab() {
+    if (qualityState.busy) return;
+    qualityState.busy = true;
+    applyQualityMode("live");
+    setStatus(qualityStatus, t("admin.loading", "正在从后台加载……"));
+    showQualityLoading();
+    let active = false;
+    try {
+      const me = await api.getMe();
+      const roles = Array.isArray(me?.roles) ? me.roles.map(String) : [];
+      qualityState.roles = roles;
+      active = roles.includes("data_ops") || roles.includes("super_admin");
+      qualityState.active = active;
+      if (qualityPanelNote) {
+        qualityPanelNote.textContent = active
+          ? t(
+              "admin.qualityLiveNote",
+              "健康队列读取 /api/admin/collection/runs?status=failed：失败与被看门狗恢复（swept）的采集任务（错误、时间来自 collection_runs）。重投将同来源重新入队 queued 并写审计（data_ops / super_admin）。",
+            )
+          : t(
+              "admin.qualityGateNote",
+              "质量审核队列仅对 data_ops / super_admin 展示真实异常记录；其他角色不读取该后台数据。",
+            );
+      }
+      if (!active) {
+        setQualityToolbarVisible(false);
+        setText(qualityCount, "—");
+        if (qualityTableHead) qualityTableHead.innerHTML = "";
+        if (qualityList) qualityList.innerHTML = "";
+        applyQualityMode("hidden");
+        setStatus(qualityStatus, qualityRoleHint(), "info");
+        return;
+      }
+      setQualityToolbarVisible(true);
+    } catch (error) {
+      qualityState.active = false;
+      setQualityToolbarVisible(false);
+      if (qualityTableHead) qualityTableHead.innerHTML = "";
+      if (qualityList) qualityList.innerHTML = "";
+      setText(qualityCount, "—");
+      applyQualityMode("hidden");
+      setStatus(
+        qualityStatus,
+        `${apiErrorMessage(error, qualityGateText())}${notRealFallbackNote()}`,
+        "error",
+      );
+      return;
+    } finally {
+      qualityState.busy = false;
+    }
+    if (active) await loadLiveQualityRuns();
+  }
+
+  async function loadLiveQualityRuns() {
+    if (!qualityList || qualityState.busy || !qualityState.active) return;
+    qualityState.busy = true;
+    setStatus(qualityStatus, t("admin.loading", "正在从后台加载……"));
+    qualityList.innerHTML = views.loadingRow(QUALITY_COLSPAN);
+    setText(qualityCount, "…");
+    try {
+      const payload = await api.listCollectionRuns({
+        status: "failed",
+        source_key: "",
+        page: 1,
+        page_size: 100,
+      });
+      const items = payload?.items || [];
+      const total = Number(payload?.total) || items.length;
+      qualityList.innerHTML = views.qualityRunsHtml(items, {
+        canRetry: qualityState.active,
+      });
+      setText(qualityCount, `${items.length} 个异常`);
+      setStatus(
+        qualityStatus,
+        items.length
+          ? t("admin.liveSource", "数据来源：真实后台（最近 100 条失败记录）")
+          : t("admin.qualityClean", "队列干净：暂无异常采集任务。"),
+        items.length ? "" : "info",
+      );
+    } catch (error) {
+      qualityList.innerHTML = "";
+      setText(qualityCount, "—");
+      const message = `${apiErrorMessage(error, qualityGateText())}${notRealFallbackNote()}`;
+      setStatus(qualityStatus, message, "error");
+    } finally {
+      qualityState.busy = false;
+    }
+  }
+
+  function qualityWriteErrorText(error) {
+    const status = Number(error?.status);
+    if (status === 403) {
+      return `${t("admin.error403", "当前账号无权访问该模块（403）。")} ${qualityGateText()}`;
+    }
+    const detail = error?.message || "";
+    return `${t("admin.errorHttp", "后台请求失败")}（HTTP ${status || "?"}）：${detail}`;
+  }
+
+  async function retryQualityRun(button) {
+    if (!qualityState.active || !button || button.disabled) return;
+    const sourceKey = button.dataset.sourceKey || "";
+    const sourceType = button.dataset.sourceType || "";
+    if (!sourceKey || !sourceType) {
+      setStatus(qualityStatus, t("admin.collectionNeedSourceKey", "缺少来源标识，无法重投。"), "error");
+      return;
+    }
+    button.disabled = true;
+    setStatus(
+      qualityStatus,
+      interp(
+        t("admin.qualityRetrying", "正在重投 {source_key}……"),
+        { source_key: sourceKey },
+      ),
+    );
+    try {
+      await api.enqueueCollectionRun({ source_key: sourceKey, source_type: sourceType });
+      setStatus(
+        qualityStatus,
+        interp(
+          t(
+            "admin.collectionQueuedNotice",
+            "已发起采集：{source_key}（{source_type}）已入队（queued），审计已记录。",
+          ),
+          { source_key: sourceKey, source_type: sourceType },
+        ),
+        "info",
+      );
+      await loadLiveQualityRuns();
+    } catch (error) {
+      setStatus(qualityStatus, qualityWriteErrorText(error), "error");
+      button.disabled = false;
+    }
+  }
+
   function onPagerClick(event) {
     const button = event.target.closest("[data-pager-dir]");
     if (!button || button.disabled) return;
@@ -998,6 +1198,7 @@
       if (tab.dataset.adminTab === "roles") ensureRoleTabData();
       if (tab.dataset.adminTab === "members") ensureMemberTabData();
       if (tab.dataset.adminTab === "collection") ensureCollectionTabData();
+      if (tab.dataset.adminTab === "quality") ensureQualityTabData();
     });
   });
 
@@ -1032,6 +1233,15 @@
       }
       setGlobalNotice("已查看本地演示详情；真实数据和敏感字段不会通过前端直接授权。");
     });
+  });
+
+  // ---- quality gate live interactions (delegated) ---------------------------
+  qualityList?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-quality-retry]");
+    if (button) retryQualityRun(button);
+  });
+  qualityRefreshBtn?.addEventListener("click", () => {
+    if (!qualityState.busy) loadLiveQualityRuns();
   });
 
   // ---- live member interactions (delegated) -----------------------------------
@@ -1204,6 +1414,7 @@
     loadLiveOrders(1);
     loadLiveRefunds(1);
     bootstrapCollectionTab();
+    bootstrapQualityTab();
   } else {
     renderDemoMembers();
   }

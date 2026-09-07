@@ -25,6 +25,17 @@ SUUMO 賃貸相場(例 https://suumo.jp/chintai/soba/tokyo/sc_shibuya/?ts=1)—�
   - 租金相场:无同等官方开放源;候选:不动产经济研究所等商业报告(需商务)、或社区自采
     (authorized_csv/user_submitted 类,样本小),或 P2 后联系 Recruit 商务许可(用户动作)。
 
+## 补充:国交省土地総合情報システム(推荐替代试点)——09-07 实测
+
+| 检查项 | 结果 |
+|---|---|
+| terms/再利用 | 政府开放数据框架:国交省站点按政府標準利用規約(CC BY 4.0 兼容),成交信息可加工/再利用,需**出所明記**(数据来源标注) |
+| robots | 未取得(tochi.mlit.go.jp / land.mlit.go.jp **国内直连与 7897 代理均不可达**,解析/连接失败) |
+| 网络现实 | 采集执行节点必须能访问 land.mlit.go.jp → **海外/日本执行**(Render staging 免费层为海外区,可行;国内网络不可) |
+| 采集设计前置 | 低频率(政府站)、stored fixtures 先行、robots/rate-limit 登记(补取后)、出所明記进报告模板 |
+
+**结论**:国交省是 terms 合规的 live 试点对象,但触发条件 = 采集运行环境在海外(部署到 Render worker 时自然满足);国内网络无法预览/开发抓取——开发期用已存 fixtures,不 live 抓。
+
 ## 建议(待用户决策)
 
 1. **live 试点改国交省土地総合情報システム**(成交数据,官方开放,标注出处即可)——审查后可授权,衔接 runner 家族(osaka/yokohama 同构)

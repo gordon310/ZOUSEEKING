@@ -2,12 +2,12 @@
 
 ## Current status
 
-- 当前阶段：P1（数据库定稿 + 后台真实化，出口 09-28）接近闭环
+- 当前阶段：**P1 已于 2026-09-07 工程闭环；P2（小象避坑 C 端上线准备）推进中**——D1-D5/D6a 用户已确认，P2-0 考古 / P2-1 前端单通道 / P2-3b 数值化报告引擎已落 main
 - 采集管道全链已落地：worker 原子认领 → real runners → scheduler 投料 → sweeper 质检（stale 恢复 + 哈希 QA）→ 后台健康队列/重投
 - 后台管理全 8 区接真实数据（member/audit/finance/roles/collection/quality/service/KPI），synthetic_fixture 零残留
-- 来源登记表 collection_sources（P1.3）已入 repo（migration 20260906000100，staging 应用待批）
-- Release gate 全量 17 SQL step（含 V1 业务域 + business RLS matrix），CI 绿
-- 待闭环：失败告警接线（staging 采集启用后）、live 源授权审查（产品）、房源日更/人口月更源、内容发布前检查（转 P2）
+- 来源登记表 collection_sources（migration 20260906000100）已入 repo 且 **staging 已应用**（09-07 用户批准，连同 20260904000100；history 22/22 本地=远端）
+- Release gate 全量 18 SQL step（含 V1 业务域 + business RLS matrix），CI 绿
+- P2 待推进：P2-2 JPPGSKILL 联调、P2-3 深度报告真实链接线（引擎 P2-3b 已就绪）、P2-4 支付接线（Stripe 后端已就绪）、P2-5 合规、P2-6 提审材料；live 采集激活卡海外执行（国交省 land 国内不可达）
 
 ## Recently completed
 
@@ -290,6 +290,14 @@
 - Codex CLI 通道评估:deepseek bridge 对长任务连续失败(3 次,共 ~5.5M tokens 空转/幻觉),短探针正常——决策:分析由 Hermes 完成、喂精确定义;codex 仅承接短机械产出;长任务由 Hermes 直写(已向用户明示,未见反对)。
 - 红线:零 staging/production 写(除已批准项);新增 migration 未应用;数据字段冻结未触碰。
 
+## P1 闭环 → P2 启动(2026-09-07 晚 / 09-08 晨班核查)
+
+- **P1 工程闭环(09-07 用户确认)**:18 SQL/RLS step gate 全绿、后台 8 区真实化、RLS 四身份矩阵齐;staging 应用两 migration(20260906000100 collection_sources + 20260904000100 renovation 观察,均用户批准),history 22/22 本地=远端,生产未动。
+- **P2 决策(用户确认)**:D1 支付=海外 Stripe 直连 + 大陆网页/微信;D2 免费=1 区核心指标+预算提示,深度报告付费;D3 PWA 先行;D4 报告生成=FastAPI durable worker;D5 币种=JPY canonical + CNY/USD,汇率版本化。**D6=D6a**(09-07 定):深度报告只消费国交省 sale 侧(政府开放数据,标注出处),SUUMO rents 待授权不输出。
+- **数据源授权审查结论**:SUUMO ❌(Article 3(7) 商业用途需书面许可——不 live 抓,保留本地快照读入);tochidai.info 民间镜像建议摘除;国交省 land ✅(政府标准利用規約,CC BY 标注)但 CN 网络直连+代理不可达 → live 采集须海外执行(Render worker 部署时自然激活)。
+- **夜间 P2 落地**(已推 main):P2-0 报告链考古落档 → P2-1 前端单通道收敛(删 Edge fallback,76b4ffc,web 42+arch 37 绿)→ **P2-3b market engine**(17ce600:backend/app/intake/market_engine.py 209 行,数值化 sale 侧报告消费 data/collected snapshots,content-library 匹配移出 job path,空态诚实保留;test_market_engine 5 passed)。Edge 函数体保留 break-glass disabled 语义,部署态 disable 待 staging 环境操作。
+- 晨班核查(09-08):fetch 重试后 **main == origin/main == 17ce600**,工作树干净;本班仅文档更新,无代码改动。
+
 ## Last updated
 
-2026-09-06
+2026-09-08

@@ -12,14 +12,13 @@ from fastapi.responses import JSONResponse
 from .db import close, connect, get_pool, init_schema
 from .auth import AuthUser, require_user
 from .intake import storage as intake_storage
+from .intake.market_engine import build_sale_report, load_snapshots, match_snapshot
 from .intake.repository import IntakeRepository
 from .jphouse_service import (
     fallback_sources,
-    match_local_record,
     placeholder_xhs,
     query_key,
     query_title,
-    report_from_local_record,
 )
 from .models import JobResponse, QueryRequest, QueryResponse
 from .routes.health import router as health_router
@@ -173,16 +172,14 @@ async def run_generation_job(job_id: str, query_id: str, owner_user_id: str, req
             job_id,
         )
     try:
-        record = match_local_record(
+        snapshot = match_snapshot(
+            load_snapshots(),
             request.prefecture,
-            request.city,
             request.ward,
             request.asset_type,
-            request.year,
-            request.month,
         )
-        if record:
-            report = report_from_local_record(record)
+        if snapshot:
+            report = build_sale_report(snapshot, request.model_dump())
         else:
             title = query_title(request.prefecture, request.city, request.ward, request.asset_type, request.year, request.month)
             report = {

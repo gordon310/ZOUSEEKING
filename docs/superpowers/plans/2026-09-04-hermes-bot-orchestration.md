@@ -2,6 +2,9 @@
 
 日期：2026-09-04 · 编制：Hermes Agent（规划/总控） · 执行：Codex CLI（各 BOT）
 
+> **P2 决策记录（2026-09-07 用户确认，细节见 `2026-09-06-p2-prep-plan.md`）**：D1 支付=海外 Stripe 直连 + 大陆网页/微信；D2 免费=1 区核心指标+预算提示、深度报告=付费解锁；D3 PWA 先行→商店跟进；D4 报告生成=FastAPI durable worker（ADR-0001 收敛）；D5 显示币种=JPY(canonical)+CNY+USD 三币，汇率版本化。P1 已于 09-07 工程闭环（gate 18 SQL step 绿,后台 8 区全真实化）。
+> **注（2026-09-07 考古）**：roadmap §6.2/P2 引用的 `services/pricing.py` 不存在——实际定价域在 `backend/app/billing/`(catalog 不可变定价 + Stripe checkout/portal/refunds/webhook 全链已就绪);免费预览已存在(intake build_free_preview);深度报告生成链与 Edge(jphouse-run,legacy)收敛为 P2 核心缺口。
+
 > **决策记录（2026-09-04 用户已确认）**：① BOT 方案 = 推荐版（4 开发 BOT + H 管家）；② 仓库策略 = 方案 A（ZOUSEEKING 一库三主线，JPPGSKILL 独立成库 gordon310/JPPGSKILL）；③ Hermes cron 已建：每周一 09:00 里程碑回顾 + P0–P4 出口前 3 天验收提醒，投递渠道 = QQ 机器人（qqbot 已连通，OpenID D6AF3…8383A）；④ P0 首批动作已启动。
 
 > **双线分叉已解决（2026-09-04 晚）**：本地 main（root c848b09）与 origin/main（root 349e310）无共同祖先。仲裁结论与全量清单见 `2026-09-04-divergence-arbitration.md` + `2026-09-04-divergence-file-manifest.txt`。执行：origin/main 为权威基线，5 个重放 commit 并入 main 并已推送远端（`5672877`）。原工作分支与状态存于 `backup/workspace-20260904-{main,intake,originmain}`、`codex/replay-carryover`（含未部署的 renovation migration wip）。

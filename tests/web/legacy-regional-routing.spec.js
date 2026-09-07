@@ -141,3 +141,12 @@ test("development compatibility profile runs a legacy regional job without calli
   await expect.poll(() => runCount).toBe(1);
   expect(edgeCount).toBe(0);
 });
+
+test("Edge Function references fully removed from runtime path", async () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const source = fs.readFileSync(path.resolve(__dirname, "../../web/app.js"), "utf-8");
+  expect(source).not.toContain("jphouse-run");
+  expect(source).not.toContain("supabaseFunctionFetch");
+  expect(source).not.toContain("functions/v1/");
+});

@@ -110,7 +110,7 @@ reset、未经批准的 linked push 或 live SQL；M1 的 staging 授权不能�
 
 以下组件保留给现有 staging 兼容，但冻结，不得承载 V1 新功能：
 
-- `web/app.js:direct_private_supabase_and_edge_fallback`；
+- `web/app.js:direct_private_supabase_reads_legacy_view`(Edge fallback 已移除,P2-1;直读仍在 frozen);
 - `supabase/functions/jphouse-run:regional_report_edge_executor`；
 - `scripts/run_jphouse_worker.py:regional_report_rest_worker`；
 - `backend/app/main.py:in_process_regional_report_executor`。

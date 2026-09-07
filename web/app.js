@@ -678,29 +678,6 @@ async function supabaseUserFetch(path, options = {}) {
   return response.json();
 }
 
-async function supabaseFunctionFetch(name, payload = {}) {
-  if (!state.session?.accessToken) throw new Error("登录状态过期，请重新登录。");
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
-    method: "POST",
-    headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${state.session.accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-  const text = await response.text();
-  let body = null;
-  try {
-    body = text ? JSON.parse(text) : null;
-  } catch {
-    body = text;
-  }
-  if (!response.ok) {
-    throw new Error(body?.error || body?.message || text || `Function ${response.status}`);
-  }
-  return body;
-}
 
 function rowLine(row) {
   const amount = [row.amount_jpy, row.amount_rmb].filter(Boolean).join(" / ");
@@ -1321,52 +1298,35 @@ function renderAnalysis() {
 }
 
 async function runJphouseFromMyPage(queryId) {
-  const useAuthenticatedBackend = canUseAuthenticatedBackend();
+  if (!canUseAuthenticatedBackend()) {
+    setMessage("分析服务尚未配置(JPHOUSE API 未连接)，暂时无法生成新报告。", "error");
+    return;
+  }
   try {
-    renderProgress(
-      "云端 JPHOUSE",
-      20,
-      useAuthenticatedBackend
-        ? ["发送任务到 FastAPI", "后台生成数据报告"]
-        : ["发送任务到 Supabase Edge Function", "云端生成数据报告"],
-    );
-    let result = useAuthenticatedBackend
-      ? await apiFetch(`/api/jobs/${encodeURIComponent(queryId)}/run`, { method: "POST" })
-      : await supabaseFunctionFetch("jphouse-run", { query_id: queryId });
-    if (useAuthenticatedBackend) {
-      for (let i = 0; i < 30 && result?.status !== "completed"; i += 1) {
-        if (result?.status === "failed") throw new Error(result.error_message || "生成失败");
-        await delay(900);
-        result = await apiFetch(`/api/jobs/${encodeURIComponent(queryId)}`);
-        renderProgress("云端 JPHOUSE", result.progress || 20, [result.current_step || "生成中", `任务状态：${result.status}`]);
-      }
-      if (result?.status !== "completed") {
-        if ($("#progressDialog").open) $("#progressDialog").close();
-        setMessage("任务仍在运行，请稍后刷新工作台。", "info");
-        await loadMyPage();
-        render();
-        return;
-      }
+    renderProgress("云端 JPHOUSE", 20, ["发送任务到 FastAPI", "后台生成数据报告"]);
+    let result = await apiFetch(`/api/jobs/${encodeURIComponent(queryId)}/run`, { method: "POST" });
+    for (let i = 0; i < 30 && result?.status !== "completed"; i += 1) {
+      if (result?.status === "failed") throw new Error(result.error_message || "生成失败");
+      await delay(900);
+      result = await apiFetch(`/api/jobs/${encodeURIComponent(queryId)}`);
+      renderProgress("云端 JPHOUSE", result.progress || 20, [result.current_step || "生成中", `任务状态：${result.status}`]);
     }
-    if (result?.report) {
-      const query = state.myTasks.find((item) => item.id === queryId);
-      const record = supabaseReportToRecord(query ? optionsFromQueryRow(query) : {}, result.report);
-      upsertRuntimeRecord(record);
+    if (result?.status !== "completed") {
+      if ($("#progressDialog").open) $("#progressDialog").close();
+      setMessage("任务仍在运行，请稍后刷新工作台。", "info");
+      await loadMyPage();
+      render();
+      return;
     }
-    renderProgress("云端 JPHOUSE", 100, ["任务完成", "报告已写入 Supabase"]);
+    renderProgress("云端 JPHOUSE", 100, ["任务完成", "报告已写入工作台"]);
     await delay(350);
     if ($("#progressDialog").open) $("#progressDialog").close();
     await loadMyPage();
-    setMessage(useAuthenticatedBackend ? "JPHOUSE API 执行完成，可以查看结果。" : "JPHOUSE 云端执行完成，可以查看结果。", "success");
+    setMessage("JPHOUSE API 执行完成，可以查看结果。", "success");
     render();
   } catch (error) {
     if ($("#progressDialog").open) $("#progressDialog").close();
-    setMessage(
-      useAuthenticatedBackend
-        ? `JPHOUSE API 执行失败：${error.message}`
-        : `云端执行失败：${error.message}。如果函数还没部署，先部署 jphouse-run。`,
-      "error",
-    );
+    setMessage(`JPHOUSE API 执行失败：${error.message}`, "error");
     await loadMyPage();
     render();
   }

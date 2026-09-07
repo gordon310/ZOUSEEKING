@@ -63,7 +63,7 @@ def test_manifest_selects_one_authoritative_path() -> None:
             "rest/v1/query_field_options:select",
         ],
         "frozen_legacy_components": [
-            "web/app.js:direct_private_supabase_and_edge_fallback",
+            "web/app.js:direct_private_supabase_reads_legacy_view",
             "supabase/functions/jphouse-run:regional_report_edge_executor",
             "scripts/run_jphouse_worker.py:regional_report_rest_worker",
             "backend/app/main.py:in_process_regional_report_executor",

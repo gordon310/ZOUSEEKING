@@ -27,6 +27,10 @@
 
 本轮不改代码;契约分歧已记录,待 09-15 主工期前拍板。
 
+## D9 决策(2026-09-09 用户确认:**C' 缩小联调**)
+
+P2-2 范围 = 仅接 JPPGSKILL **property-identification**(房产识别→listing 匹配)给 B1;装修估算两侧各自闭环(backend 规则引擎 / JPPGSKILL LLM 引擎互不打通),A'/D' 架构决策延后。后续 P2-2 实施按 C':跨仓 = JPPGSKILL git 化 + property-identification 联调端点;六类照片装修估算后端维持现状(自家 vision 服务配置待定)。
+
 ## 跨仓前置(需用户决策,涉及另一仓库)
 
 1. **JPPGSKILL git 化**(roadmap B4 一直挂起:当前非 git 仓库)→ `git init` + 首提交 + gordon310/JPPGSKILL 远端?(版本 v0.1.1 已有 release tar)

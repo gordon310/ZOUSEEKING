@@ -547,16 +547,36 @@ function renderPreview(preview) {
 
   const costs = createElement("section", undefined, "preview-section");
   costs.append(createElement("h3", "购入费用项目"));
-  costs.append(
-    createElement(
-      "p",
-      "本阶段只列出待核对项目，不计算税费金额；规则版本尚未加载。",
-      "preview-note",
-    ),
-  );
+  const costData = preview.acquisition_costs || {};
+  const costNote =
+    costData.status === "insufficient_input"
+      ? "缺少挂牌价/成交价，金额项暂无法估算；补充后可给出法定上限估算。"
+      : costData.estimated_total_jpy
+        ? "以下为按法定上限/官定表的确定性估算；标注待补充的项需要评估额、贷款或物件信息。"
+        : "本阶段只列出待核对项目，不计算税费金额。";
+  costs.append(createElement("p", costNote, "preview-note"));
   const costList = createElement("ul", undefined, "plain-list");
-  (preview.acquisition_costs?.items || []).forEach((item) => costList.append(createElement("li", item)));
+  (costData.items || []).forEach((item) => {
+    if (typeof item === "string") {
+      costList.append(createElement("li", item));
+      return;
+    }
+    const amount = item.estimated_jpy
+      ? `约 ${Math.round(item.estimated_jpy / 10000)}万日元`
+      : "待补充输入";
+    const statusText = item.status === "estimated" ? "" : item.status === "needs_input" ? "（需补充）" : "";
+    costList.append(createElement("li", `${item.item || ""}：${amount}${statusText}`));
+  });
   costs.append(costList);
+  if (costData.estimated_total_jpy) {
+    costs.append(
+      createElement(
+        "p",
+        `已估项合计：约 ${Math.round(costData.estimated_total_jpy / 10000)}万日元（不含待补充项；参考估价非报价）`,
+        "preview-total",
+      ),
+    );
+  }
 
   const risks = createElement("section", undefined, "preview-section");
   risks.append(createElement("h3", "当前资料提醒"));
@@ -574,10 +594,20 @@ function renderPreview(preview) {
   });
 
   const comparison = createElement("section", undefined, "preview-section preview-limitations");
-  comparison.append(
-    createElement("h3", "市场可比与下一步"),
-    createElement("p", "市场可比数据：尚未检查。完整报告、税费金额、自动提取和法律判断将在后续阶段提供。"),
-  );
+  comparison.append(createElement("h3", "市场可比与下一步"));
+  const comparable = preview.comparable || {};
+  if (preview.comparable_status === "available" && Array.isArray(comparable.reference) && comparable.reference.length) {
+    const refList = createElement("ul", undefined, "plain-list");
+    comparable.reference.forEach((row) => {
+      const yen = row.amount_yen ? `约 ${Math.round(row.amount_yen / 10000)}万日元` : row.amount_jpy || "";
+      refList.append(createElement("li", `${row.layout || ""}：${yen}（${row.period || "期间未标注"}）`));
+    });
+    comparison.append(createElement("p", "同区中古マンション成交参考（国交省取引数据，出所明記）。", "preview-note"), refList);
+  } else if (preview.comparable_status === "not_available") {
+    comparison.append(createElement("p", comparable.note || "该地址所在区暂无市场相场覆盖。", "preview-note"));
+  } else {
+    comparison.append(createElement("p", "市场可比数据：尚未检查。完整报告、税费金额、自动提取和法律判断将在后续阶段提供。"));
+  }
 
   elements.previewContent.append(completeness, costs, risks, comparison);
 }

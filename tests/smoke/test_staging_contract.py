@@ -11,11 +11,15 @@ def test_render_staging_does_not_provision_a_second_database():
     assert "zouseeking-web-staging" in render_config
 
 
-def test_render_staging_declares_consumer_intake_preview_release_phase():
+def test_render_staging_declares_active_release_phase_for_acceptance():
     render_config = (ROOT / "render.yaml").read_text(encoding="utf-8")
 
     assert "RELEASE_PHASE" in render_config
-    assert "consumer_intake_preview" in render_config
+    # Staging was moved from the phase-one demo shell to consumer_active for
+    # real acceptance runs (09-08, P2-6 readiness). Never production.
+    assert "consumer_active" in render_config
+    assert "ENVIRONMENT" in render_config
+    assert "staging" in render_config
 
 
 def test_frontend_does_not_contain_service_role_key():

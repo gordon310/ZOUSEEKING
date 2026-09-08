@@ -13,7 +13,7 @@ services:
       - key: ENVIRONMENT
         value: staging
       - key: RELEASE_PHASE
-        value: consumer_intake_preview
+        value: consumer_active
       - key: INIT_SCHEMA
         value: "false"
       - key: APP_VERSION

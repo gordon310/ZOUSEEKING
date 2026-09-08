@@ -202,6 +202,14 @@ def build_sale_report(snapshot: WardSnapshot, query: Mapping[str, Any]) -> dict[
         markdown_lines.append(
             f"| {row['layout']} | {row['area']} | {row['amount_jpy']} | {row['unit_jpy']} |"
         )
+    fx = fx_provenance()
+    if fx and fx.get("as_of"):
+        markdown_lines.extend(
+            [
+                "",
+                f"汇率参考({fx.get('as_of')},来源:{fx.get('source')}):人民币/美元换算仅作显示参考。",
+            ]
+        )
     return {
         "slug": f"jphouse_{snapshot.family}_{snapshot.ward}_{query.get('asset_type') or 'tower'}",
         "title": title,

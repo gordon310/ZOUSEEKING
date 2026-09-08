@@ -76,3 +76,11 @@ def test_report_is_sale_only_and_numeric(snapshots):
 
 def test_out_of_coverage_report_is_none(snapshots):
     assert match_snapshot(snapshots, "东京都", "三鹰市", "塔楼") is None
+
+
+def test_markdown_carries_fx_provenance_note(snapshots):
+    row = match_snapshot(snapshots, "东京都", "渋谷区", "塔楼")
+    assert row is not None
+    report = build_sale_report(row, {"prefecture": "东京都", "ward": "渋谷区", "asset_type": "塔楼"})
+    assert "汇率参考(" in report["markdown"]
+    assert "人民币/美元换算仅作显示参考" in report["markdown"]

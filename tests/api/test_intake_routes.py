@@ -157,7 +157,7 @@ def test_preview_has_no_fabricated_tax_amount(client, session):
     assert response.status_code == 200
     body = response.json()
     assert body["acquisition_costs"]["estimated_total_jpy"] is None
-    assert body["comparable_status"] == "not_checked"
+    assert body["comparable_status"] == "not_available"
 
 
 def test_phase_one_allows_preview_but_blocks_project_conversion(

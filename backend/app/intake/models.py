@@ -216,4 +216,5 @@ class FreePreviewResponse(IntakeModel):
     acquisition_costs: dict[str, Any]
     risk_summary: dict[str, Any]
     comparable_status: str
+    comparable: dict[str, Any]
     calculation_version: str

@@ -32,7 +32,28 @@ def test_preview_lists_cost_items_without_inventing_tax_amounts():
     assert items["不动产取得税"]["estimated_jpy"] is None
     # estimated lines carry a basis (sourced, not magic)
     assert "宅建业法" in items["中介手续费"]["basis"]
-    assert preview["comparable_status"] == "not_checked"
+    # no address in fields -> comparable honestly not available (not "not_checked")
+    assert preview["comparable_status"] == "not_available"
+    assert preview["comparable"]["reference"] == []  # type: ignore[index]
+
+
+def test_preview_comparable_available_for_covered_ward_address():
+    from typing import Any, cast
+
+    preview = cast(
+        dict[str, Any],
+        build_free_preview({
+            "asking_price_jpy": FieldValue(50000000, "confirmed", "high", True),
+            "address": FieldValue("东京都渋谷区神南1-1", "confirmed", "high", True),
+        }),
+    )
+    assert preview["comparable_status"] == "available"
+    reference = cast(list[Any], preview["comparable"]["reference"])
+    assert reference, "covered ward must return numeric reference rows"
+    assert reference[0]["amount_yen"] > 0
+    assert reference[0]["data_class"] == "scraped_aggregate"
+    # never fabricated: rows come from the collected snapshot with a period
+    assert reference[0]["period"]
 
 
 def test_source_trust_counts_only_evidence_with_reviewable_confidence():

@@ -121,6 +121,24 @@ def match_snapshot(
     return None
 
 
+def match_snapshot_from_address(address: str, snapshots: list[WardSnapshot]) -> WardSnapshot | None:
+    """Best-effort ward match from a free-form JP address (for comparable checks).
+
+    Works by prefecture prefix + known ward names from the covered snapshots.
+    Unrecognized addresses return None (honest: no coverage claim is made).
+    """
+    if not address:
+        return None
+    for row in snapshots:
+        # address must contain the prefecture (prefix-ish) and the ward name
+        if row.prefecture not in address:
+            continue
+        if row.ward not in address:
+            continue
+        return row
+    return None
+
+
 def _area_hint(layout: str) -> str:
     # Approx area bands used only as display context; not a numeric source.
     return {"1LDK": "约39–45㎡", "2LDK": "约59–65㎡", "3LDK": "约79–85㎡"}.get(layout, "")

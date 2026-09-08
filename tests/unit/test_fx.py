@@ -42,7 +42,7 @@ def test_convert_missing_or_unknown_returns_none():
 
 
 def test_report_rows_carry_cny_usd_and_fx_provenance():
-    snapshots = load_snapshots(REPO / "data" / "collected")
+    snapshots = load_snapshots(REPO / "tests" / "fixtures" / "market_snapshots")
     row = match_snapshot(snapshots, "东京都", "渋谷区", "塔楼")
     assert row is not None
     report = build_sale_report(row, {"prefecture": "东京都", "ward": "渋谷区", "asset_type": "塔楼"})

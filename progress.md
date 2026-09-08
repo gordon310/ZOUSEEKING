@@ -304,6 +304,13 @@
 - **修复**:三个 ward 快照(23ku/Osaka/Yokohama,共 ~37KB,与 data/collected 原件 SHA-256 一致)落为确定性 fixture `tests/fixtures/market_snapshots/`;测试改读 fixture 目录(引擎运行路径 data/collected 不变)。依据 AGENTS.md analytics 测试须 deterministic fixtures。
 - **验证**:`test_market_engine.py` 5 passed;全量 `pytest -q` **359 passed, 83 skipped**(= CI 失败前 355 passed + 4 failed 全归位),compileall 未涉源码。commit+push 后 Release Gate 复核绿。
 
+## CI 红修复 #2:preview/fx 单测 fixtures 落地(2026-09-09 晨班)
+
+- **发现**:Release Gate 在 599b148(main HEAD,09-09 00:22)红,且 d7bf35a/bad7c87 连续 3 推未绿——`test_completeness.py::test_preview_comparable_available_for_covered_ward_address` 与 `test_fx.py::test_report_rows_carry_cny_usd_and_fx_provenance` 2 failed(374 passed)。与 09-08 晚班 1c3165d 同款缺口:两测试直接读 `data/collected`(gitignore 运行时数据,CI checkout 无)→ 可比价/报告行解析为空 → not_available / row None。
+- **修复**(最小注入,生产路径零行为变化):`build_free_preview(fields, *, snapshots_dir=None)` / `_comparable_check(fields, snapshots_dir)` 透传可选快照目录(默认仍 COLLECTED_DIR 运行时路径);`test_completeness.py` 覆盖区测试、`test_fx.py` 报告集成测试改读已提交 fixture `tests/fixtures/market_snapshots/`(与 data/collected SHA-256 一致)。
+- **验证**:模拟 CI(mv data/collected 后)三个相关测试文件 **16 passed**;恢复运行时数据 SHA 一致;全量 `pytest tests/unit tests/api` **280 passed, 83 skipped**,compileall 干净。CI Python checks 应转绿(等 Release Gate 复核)。
+- **遗留(不属本单元,需夜间班/管家接)**:Playwright evidence 上传失败为 bad7c87/599b148 新引入(d7bf35a 时 Playwright 12min 全绿 → 现 1m6s + 空 evidence 目录),疑与 staging `consumer_active` phase-switch 的 acceptance 配置交互,属夜间班热改区,晨班未盲修。
+
 ## Last updated
 
-2026-09-08
+2026-09-09

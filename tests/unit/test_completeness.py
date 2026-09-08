@@ -1,4 +1,11 @@
+from pathlib import Path
+
 from backend.app.intake.completeness import FieldValue, build_free_preview, calculate_completeness
+
+REPO = Path(__file__).resolve().parents[2]
+# data/collected is gitignored runtime data (absent in CI); the ward snapshots
+# pinned in tests/fixtures/market_snapshots/ are SHA-identical committed copies.
+SNAPSHOT_FIXTURES = REPO / "tests" / "fixtures" / "market_snapshots"
 
 
 def test_missing_critical_rights_field_cannot_be_hidden_by_other_fields():
@@ -42,10 +49,13 @@ def test_preview_comparable_available_for_covered_ward_address():
 
     preview = cast(
         dict[str, Any],
-        build_free_preview({
-            "asking_price_jpy": FieldValue(50000000, "confirmed", "high", True),
-            "address": FieldValue("东京都渋谷区神南1-1", "confirmed", "high", True),
-        }),
+        build_free_preview(
+            {
+                "asking_price_jpy": FieldValue(50000000, "confirmed", "high", True),
+                "address": FieldValue("东京都渋谷区神南1-1", "confirmed", "high", True),
+            },
+            snapshots_dir=SNAPSHOT_FIXTURES,
+        ),
     )
     assert preview["comparable_status"] == "available"
     reference = cast(list[Any], preview["comparable"]["reference"])

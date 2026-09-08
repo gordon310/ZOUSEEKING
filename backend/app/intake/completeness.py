@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, Mapping, Tuple
 
 
@@ -154,20 +155,32 @@ def _risk_summary(dimensions: Mapping[str, Mapping[str, object]]) -> Dict[str, o
     }
 
 
-def _comparable_check(fields: Mapping[str, FieldValue]) -> Dict[str, object]:
+def _comparable_check(
+    fields: Mapping[str, FieldValue], snapshots_dir: Path | None = None
+) -> Dict[str, object]:
     """Comparable market check against the collected numeric snapshots.
 
     Uses the confirmed address (prefecture + ward) when present. Returns an
     honest status: available (with numeric reference rows), not_available
     (out of coverage / address not resolved). Never approximates across wards.
+    snapshots_dir is injectable so tests run against committed fixtures
+    (data/collected is gitignored runtime data, absent in CI); production
+    callers omit it and read the runtime collected directory.
     """
     address_field = fields.get("address")
     address = str(address_field.value).strip() if address_field and address_field.value else ""
     if not address:
         return {"status": "not_available", "note": "缺少地址,无法检查可比市场。", "reference": []}
-    from .market_engine import build_sale_report, load_snapshots, match_snapshot_from_address
+    from .market_engine import (
+        COLLECTED_DIR,
+        build_sale_report,
+        load_snapshots,
+        match_snapshot_from_address,
+    )
 
-    snapshot = match_snapshot_from_address(address, load_snapshots())
+    snapshot = match_snapshot_from_address(
+        address, load_snapshots(COLLECTED_DIR if snapshots_dir is None else snapshots_dir)
+    )
     if snapshot is None:
         return {"status": "not_available", "note": "该地址所在区暂无覆盖(覆盖:东京23区/大阪市23区/横滨市18区)。", "reference": []}
     report = build_sale_report(snapshot, {"prefecture": snapshot.prefecture, "ward": snapshot.ward, "asset_type": "中古マンション"})
@@ -178,12 +191,14 @@ def _comparable_check(fields: Mapping[str, FieldValue]) -> Dict[str, object]:
     }
 
 
-def build_free_preview(fields: Mapping[str, FieldValue]) -> Dict[str, object]:
+def build_free_preview(
+    fields: Mapping[str, FieldValue], *, snapshots_dir: Path | None = None
+) -> Dict[str, object]:
     completeness = calculate_completeness(fields)
     from .cost_estimator import estimate_acquisition_costs
 
     acquisition_costs = estimate_acquisition_costs(fields)
-    comparable = _comparable_check(fields)
+    comparable = _comparable_check(fields, snapshots_dir)
     return {
         "completeness": completeness,
         "acquisition_costs": acquisition_costs,

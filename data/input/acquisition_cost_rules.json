@@ -1,0 +1,56 @@
+{
+  "version": "2026-09-08-r1",
+  "effective_from": "2026-09-08",
+  "currency": "JPY",
+  "scope_note": "购房取得费用估算规则。基于申报成交价/挂牌价(asking_price)可算项精确估算;依赖固定资产评估额/贷款额/物件细节的项标 needs_input,不做模型外推。估算供预算参考,实际税费以主管机关核定与专业意见为准。",
+  "sources": [
+    {
+      "name": "宅地建物取引業法 第46条・国土交通大臣告示(媒介報酬上限)",
+      "url": "https://www.mlit.go.jp/",
+      "note": "阶梯上限:200万以下5%;200万超400万以下4%+2万;400万超3%+6万(速算)。另加消费税。800万以下低额物件特例(2024-07-01施行,上限30万+税)需个别适用。"
+    },
+    {
+      "name": "国税庁 No.7140 印紙税額一覧(第1号文書:不動産売買契約書)",
+      "url": "https://www.nta.go.jp/taxes/shiraberu/taxanswer/inshi/7140.htm",
+      "note": "本则税额阶梯;住宅取得等軽減措置适用时约半额(期限以国税庁最新发布为准),估算取本则并标注轻减可能。"
+    }
+  ],
+  "broker_fee_upper_limit_yen": {
+    "method": "tiered_upper_limit",
+    "tiers": [
+      { "up_to_yen": 2000000, "rate": 0.05, "base_yen": 0 },
+      { "up_to_yen": 4000000, "rate": 0.04, "base_yen": 20000 },
+      { "unbounded": true, "rate": 0.03, "base_yen": 60000 }
+    ],
+    "consumption_tax_note": "报酬额另加消费税率(现行10%)",
+    "low_price_special_note": "成交价800万以下:2024-07-01起特例上限30万+税(需媒介契约合意),未在估算中自动适用"
+  },
+  "stamp_duty_yen_principal": {
+    "method": "band_table_principal",
+    "bands": [
+      { "above_yen": 0, "up_to_yen": 10000, "tax_yen": 0, "note": "1万未満非課税" },
+      { "above_yen": 10000, "up_to_yen": 100000, "tax_yen": 200 },
+      { "above_yen": 100000, "up_to_yen": 500000, "tax_yen": 400 },
+      { "above_yen": 500000, "up_to_yen": 1000000, "tax_yen": 1000 },
+      { "above_yen": 1000000, "up_to_yen": 5000000, "tax_yen": 2000 },
+      { "above_yen": 5000000, "up_to_yen": 10000000, "tax_yen": 10000 },
+      { "above_yen": 10000000, "up_to_yen": 50000000, "tax_yen": 20000 },
+      { "above_yen": 50000000, "up_to_yen": 100000000, "tax_yen": 60000 },
+      { "above_yen": 100000000, "up_to_yen": 500000000, "tax_yen": 100000 },
+      { "above_yen": 500000000, "up_to_yen": 1000000000, "tax_yen": 200000 },
+      { "above_yen": 1000000000, "up_to_yen": 5000000000, "tax_yen": 400000 },
+      { "above_yen": 5000000000, "tax_yen": 600000 }
+    ],
+    "relief_note": "令和8年度税制改正后住宅/不动产取得軽減措置适用时约半额(如1亿超5亿:本则10万→軽減6万),期限与条件以国税庁最新为准"
+  },
+  "notary_fee_industry_range_yen": { "min": 50000, "max": 150000, "note": "司法书士报酬行业惯例区间(登记代理等),非官方固定费率" },
+  "items_needing_input": {
+    "registration_tax_and_notary": "登记免许税(所有权移转登记)基于固定资产评估额×税率(标准2%;土地买卖/住宅特例有轻减),需评估额与用途信息;司法书士费见惯例区间。",
+    "property_acquisition_tax": "不动产取得税基于固定资产评估额(标准4%,住宅等特例3%),需评估额与申告信息。",
+    "fixed_asset_city_planning_settlement": "固定资产税/都市计划税精算按取得日与年度税额,需卖方/年度信息。",
+    "loan_related": "贷款手续费/保证费/利息需贷款额与银行方案。",
+    "insurance": "火灾/地震保险需物件细节与保险公司报价。",
+    "remittance_forex": "汇款/换汇/银行费用需资金路径与汇率。",
+    "other_evidenced": "其他有证据费用按实际。"
+  }
+}

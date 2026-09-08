@@ -156,13 +156,12 @@ def _risk_summary(dimensions: Mapping[str, Mapping[str, object]]) -> Dict[str, o
 
 def build_free_preview(fields: Mapping[str, FieldValue]) -> Dict[str, object]:
     completeness = calculate_completeness(fields)
+    from .cost_estimator import estimate_acquisition_costs
+
+    acquisition_costs = estimate_acquisition_costs(fields)
     return {
         "completeness": completeness,
-        "acquisition_costs": {
-            "status": "rules_not_loaded",
-            "estimated_total_jpy": None,
-            "items": list(ACQUISITION_COST_ITEMS),
-        },
+        "acquisition_costs": acquisition_costs,
         "risk_summary": _risk_summary(completeness),
         "comparable_status": "not_checked",
         "calculation_version": "free-preview-v1",

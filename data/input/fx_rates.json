@@ -1,0 +1,15 @@
+{
+  "version": "2026-09-08-cfets-saf",
+  "as_of": "2026-09-08",
+  "base": "JPY",
+  "source": "国家外汇管理局人民币汇率中间价(100JPY=4.3098CNY;100USD=677.95CNY 交叉换算)",
+  "source_urls": [
+    "http://m.safe.gov.cn/safe/rmbhlzjj/index.html",
+    "https://www.chinamoney.com.cn/chinese/bkccpr/"
+  ],
+  "update_note": "每日约 09:15 由国家外汇管理局发布;本文件为快照,更新走数据文件替换(勿在代码硬编码)。",
+  "rates": {
+    "CNY": 0.043098,
+    "USD": 0.006357
+  }
+}

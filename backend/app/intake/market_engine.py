@@ -22,6 +22,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
+from .fx import convert_jpy, fx_provenance
+
 ROOT = Path(__file__).resolve().parents[3]
 COLLECTED_DIR = ROOT / "data" / "collected"
 
@@ -167,20 +169,25 @@ def build_sale_report(snapshot: WardSnapshot, query: Mapping[str, Any]) -> dict[
         if amount_yen is None:
             continue
         unit = snapshot.unit_yen_per_sqm
-        sale_rows.append(
-            {
-                "layout": layout,
-                "area": _area_hint(layout),
-                # numeric fields (authoritative for any calculation)
-                "amount_yen": amount_yen,
-                "unit_yen_per_sqm": unit,
-                # display strings (compat with existing frontend rendering)
-                "amount_jpy": _fmt_yen(amount_yen),
-                "unit_jpy": _fmt_unit(unit) if unit else "",
-                "period": snapshot.sale_period,
-                "data_class": "scraped_aggregate",
-            }
-        )
+        row: dict[str, Any] = {
+            "layout": layout,
+            "area": _area_hint(layout),
+            # numeric fields (authoritative for any calculation)
+            "amount_yen": amount_yen,
+            "unit_yen_per_sqm": unit,
+            # display strings (compat with existing frontend rendering)
+            "amount_jpy": _fmt_yen(amount_yen),
+            "unit_jpy": _fmt_unit(unit) if unit else "",
+            "period": snapshot.sale_period,
+            "data_class": "scraped_aggregate",
+        }
+        cny = convert_jpy(amount_yen, "CNY")
+        usd = convert_jpy(amount_yen, "USD")
+        if cny:
+            row["amount_cny"] = cny["amount"]
+        if usd:
+            row["amount_usd"] = usd["amount"]
+        sale_rows.append(row)
     title = f"{area_title}{asset_label}成交参考"
     markdown_lines = [
         f"# {title}",
@@ -223,5 +230,6 @@ def build_sale_report(snapshot: WardSnapshot, query: Mapping[str, Any]) -> dict[
             "source_file": snapshot.source_file,
             "ward": snapshot.ward,
             "query": {k: query.get(k) for k in ("prefecture", "city", "ward", "asset_type", "year", "month")},
+            "fx": fx_provenance(),
         },
     }

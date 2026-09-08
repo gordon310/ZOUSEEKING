@@ -103,6 +103,22 @@ async def provenance_diagnostics(x_internal_diagnostics_token: Optional[str] = H
     }
 
 
+async def _has_report_unlock(conn: Any, user_id: Any) -> bool:
+    """D8b account-level unlock: any paid risk_report_single order unlocks all
+    deep reports for the account. Server-side gate - never client-controlled."""
+    row = await conn.fetchrow(
+        """
+        select 1 from public.payment_orders
+        where owner_user_id=$1
+          and product_code='risk_report_single'
+          and status='paid'
+        limit 1
+        """,
+        user_id,
+    )
+    return row is not None
+
+
 def row_to_report(row: Any) -> dict[str, Any]:
     def json_value(name: str, fallback: Any) -> Any:
         value = row[name]
@@ -444,6 +460,19 @@ async def get_my_report(query_key: str, user: AuthUser = Depends(require_user)) 
             query_key,
             user.user_id,
         )
-    if not row:
-        raise HTTPException(status_code=404, detail="report not found")
+        if not row:
+            raise HTTPException(status_code=404, detail="report not found")
+        unlocked = await _has_report_unlock(conn, user.user_id)
+    if not unlocked:
+        # D7/D8b: full report content is a paid deliverable (risk_report_single,
+        # account-level unlock). A locked response carries metadata only - the
+        # content fields (markdown/rental/sale/summary/...) are never sent.
+        return {
+            "locked": True,
+            "query_key": query_key,
+            "slug": row["slug"],
+            "title": row["title"],
+            "publish_month": row["publish_month"],
+            "unlock_hint": "完整深度报告与导出为付费权益(risk_report_single)。购买一次解锁本账号全部报告。",
+        }
     return row_to_report(row)

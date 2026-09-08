@@ -48,11 +48,30 @@ def test_match_shibuya_sale_numerics(snapshots):
 
 
 def test_match_gates_asset_and_coverage(snapshots):
-    assert match_snapshot(snapshots, "东京都", "渋谷区", "一户建") is None
-    assert match_snapshot(snapshots, "东京都", "渋谷区", None) is not None
+    assert match_snapshot(snapshots, "东京都", "涩谷区", "一户建") is None
+    assert match_snapshot(snapshots, "东京都", "涩谷区", None) is not None
     # ward outside the three covered families
     assert match_snapshot(snapshots, "东京都", "三鹰市", "塔楼") is None
     assert match_snapshot(snapshots, "冲绳县", "那霸市", "塔楼") is None
+
+
+def test_match_normalizes_simplified_ward_names(snapshots):
+    # Front-end options carry simplified-Chinese ward names for some wards
+    # (涩谷区 etc.) while snapshots use Japanese names (渋谷区).
+    row = match_snapshot(snapshots, "东京都", "涩谷区", "塔楼")
+    assert row is not None and row.ward == "渋谷区"
+    row2 = match_snapshot(snapshots, "大阪府", "北区", "塔楼")
+    assert row2 is not None
+    row3 = match_snapshot(snapshots, "神奈川县", "金泽区", "塔楼", city="横滨市")
+    assert row3 is not None and row3.ward == "金沢区"
+
+
+def test_match_tokyo_23ku_via_city_layer(snapshots):
+    # Tokyo 23-ku are city-level in the front-end options (ward = 全部区).
+    row = match_snapshot(snapshots, "东京都", "全部区", "塔楼", city="涩谷区")
+    assert row is not None and row.ward == "渋谷区"
+    row2 = match_snapshot(snapshots, "东京都", None, "塔楼", city="中央区")
+    assert row2 is not None and row2.ward == "中央区"
 
 
 def test_report_is_sale_only_and_numeric(snapshots):

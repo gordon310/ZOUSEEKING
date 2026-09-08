@@ -193,6 +193,7 @@ async def run_generation_job(job_id: str, query_id: str, owner_user_id: str, req
             request.prefecture,
             request.ward,
             request.asset_type,
+            request.city,
         )
         if snapshot:
             report = build_sale_report(snapshot, request.model_dump())

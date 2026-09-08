@@ -38,9 +38,41 @@ FAMILY_SOURCES = {
 SUPPORTED_ASSET_TYPES = frozenset({"塔楼", "公寓", "中古マンション", "マンション"})
 # 一户建 (detached) etc. intentionally unsupported until a numeric source exists.
 
+# Simplified-Chinese ward names used by the front-end options vs the Japanese
+# ward names carried by the collected snapshots. Mapping is explicit per ward
+# (full-name, limited set) - never a blanket character conversion.
+WARD_ALIASES = {
+    "台东区": "台東区",
+    "江东区": "江東区",
+    "涩谷区": "渋谷区",
+    "丰岛区": "豊島区",
+    "江户川区": "江戸川区",
+    "都岛区": "都島区",
+    "福岛区": "福島区",
+    "东淀川区": "東淀川区",
+    "东成区": "東成区",
+    "城东区": "城東区",
+    "东住吉区": "東住吉区",
+    "金泽区": "金沢区",
+    "户塚区": "戸塚区",
+    "濑谷区": "瀬谷区",
+    "荣区": "栄区",
+    "鹤见区": "鶴見区",
+    "横滨市": "横浜市",
+}
+
 LAYOUTS = ("1LDK", "2LDK", "3LDK")
 
 MAN_YEN_TO_YEN = 10_000
+
+
+def _normalize_ward(name: str | None) -> str | None:
+    if not name:
+        return name
+    name = name.strip()
+    if name == "全部区":
+        return None
+    return WARD_ALIASES.get(name, name)
 
 
 @dataclass(frozen=True)
@@ -106,19 +138,30 @@ def match_snapshot(
     prefecture: str,
     ward: str | None,
     asset_type: str | None,
+    city: str | None = None,
 ) -> WardSnapshot | None:
     """Match a query to a ward snapshot. Asset type gates which families are usable.
 
     Detached-house and out-of-coverage queries return None (caller keeps honest
-    empty-state). The ward is the finest granularity the numeric sources carry.
+    empty-state). Ward name is normalized (front-end simplified Chinese -> the
+    Japanese names used by the snapshots; "全部区" -> None). For queries whose
+    ward is empty/"全部区" the city layer is tried (Tokyo 23-ku are city-level
+    in the front-end options).
     """
-    if not ward or asset_type in ("一户建", "一戸建て"):
+    if asset_type in ("一户建", "一戸建て"):
         return None
     asset_type = asset_type or ""
     if asset_type and not any(t in asset_type for t in ("塔楼", "公寓", "マンション", "中古")):
         return None
+    ward_key = _normalize_ward(ward)
+    city_key = _normalize_ward(city) if city else None
     for row in snapshots:
-        if row.prefecture == prefecture and row.ward == ward:
+        if row.prefecture != prefecture:
+            continue
+        if ward_key:
+            if row.ward == ward_key:
+                return row
+        elif city_key and row.ward == city_key:
             return row
     return None
 

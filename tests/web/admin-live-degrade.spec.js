@@ -140,6 +140,15 @@ function collectErrors(page, { ignoreNetworkStatus = false } = {}) {
 }
 
 test("default (unconfigured) admin page keeps working local demo with no API calls", async ({ page }) => {
+  // Explicit admin-demo surface (phase-one preview + admin disabled). Independent
+  // of config.js which now ships consumer_active for the staging site.
+  await page.addInitScript(() => {
+    window.ZOUSEEKING_RELEASE_SCOPE = Object.freeze({
+      phase: "consumer_intake_preview",
+      businessOperations: true,
+      adminOperations: false,
+    });
+  });
   const errors = collectErrors(page);
   let apiCalls = 0;
   await page.route("https://zouseeking-api-staging.onrender.com/**", () => {

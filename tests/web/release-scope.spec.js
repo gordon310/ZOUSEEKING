@@ -2,6 +2,15 @@ const { test, expect } = require("@playwright/test");
 
 for (const path of ["/index.html", "/admin.html"]) {
   test(`${path} blocks real network writes in the phase-one release`, async ({ page }) => {
+    // Explicit demo surface: phase-one preview scope with operations disabled.
+    // (Independent of config.js so the config can move to an active phase.)
+    await page.addInitScript(() => {
+      window.ZOUSEEKING_RELEASE_SCOPE = Object.freeze({
+        phase: "consumer_intake_preview",
+        businessOperations: false,
+        adminOperations: false,
+      });
+    });
     let externalWrites = 0;
     let sameOriginPrivateReads = 0;
     await page.route("https://operations.test/**", async (route) => {

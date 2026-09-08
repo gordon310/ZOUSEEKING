@@ -1341,6 +1341,23 @@ async function viewReportByQueryKey(key) {
       setMessage("这条还没有生成结果，先点手动执行 JPHOUSE。", "error");
       return;
     }
+    if (report.locked) {
+      // D7 paywall: locked metadata response -> show the unlock card (no content).
+      state.records = state.records.filter((item) => item.id !== `locked::${key}`);
+      state.records.push({
+        id: `locked::${key}`,
+        locked: true,
+        query_key: key,
+        title: report.title || "深度报告",
+        publish_month: report.publish_month || "",
+        unlock_hint: report.unlock_hint || "",
+        regions: [],
+        layouts: [],
+      });
+      state.selectedId = `locked::${key}`;
+      renderView();
+      return;
+    }
     const query = state.myTasks.find((item) => item.query_key === key);
     const record = supabaseReportToRecord(query ? optionsFromQueryRow(query) : {}, report);
     upsertRuntimeRecord(record);
@@ -1349,6 +1366,32 @@ async function viewReportByQueryKey(key) {
   } catch (error) {
     setMessage(`查看结果失败：${error.message}`, "error");
   }
+}
+
+async function startReportUnlock(queryKey) {
+  if (!canUseAuthenticatedBackend()) {
+    setMessage("支付服务未连接，暂时无法购买。", "error");
+    return;
+  }
+  const button = document.querySelector("[data-unlock-report]");
+  if (button) button.disabled = true;
+  try {
+    const checkout = await apiFetch("/api/billing/checkout", {
+      method: "POST",
+      body: JSON.stringify({
+        product_code: "risk_report_single",
+        billing_region: "CN", // V1: mainland-China local price; region picker follows
+      }),
+    });
+    if (checkout?.url) {
+      window.location.assign(checkout.url);
+      return;
+    }
+    setMessage("创建支付会话失败，请稍后重试。", "error");
+  } catch (error) {
+    setMessage(`支付发起失败：${error.message}`, "error");
+  }
+  if (button) button.disabled = false;
 }
 
 function renderAccount() {
@@ -1920,6 +1963,22 @@ function renderDetail() {
   if (!record) {
     state.selectedId = "";
     render();
+    return;
+  }
+  if (record.locked) {
+    $("#detailContent").innerHTML = `
+      <article class="detail-card">
+        <h2>${escapeHtml(displayPropertyText(record.title))}</h2>
+        <p class="meta"><span class="pill">${escapeHtml(record.publish_month || "")}</span></p>
+        <div class="locked-report" role="status">
+          <p>🔒 ${escapeHtml(record.unlock_hint || "完整深度报告为付费权益。")}</p>
+          <p class="locked-note">免费预览已含关键指标;购买后本账号全部深度报告与导出解锁。</p>
+          <button class="primary" type="button" data-unlock-report>解锁深度报告</button>
+        </div>
+      </article>`;
+    document.querySelectorAll("[data-unlock-report]").forEach((button) => {
+      button.addEventListener("click", () => startReportUnlock(record.query_key));
+    });
     return;
   }
   const rental = record.rental || [];

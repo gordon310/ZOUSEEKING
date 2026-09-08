@@ -1520,3 +1520,20 @@ input:disabled {
   .analysis-form button,
   .primary-product-link { min-height: 48px; }
 }
+
+.locked-report {
+  margin-top: 14px;
+  padding: 18px;
+  border: 2px dashed var(--ink);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--paper) 82%, transparent);
+}
+
+.locked-report p { margin: 0 0 10px; }
+
+.locked-report .locked-note {
+  font-size: 13px;
+  opacity: 0.72;
+}
+
+.locked-report button { margin-top: 4px; }

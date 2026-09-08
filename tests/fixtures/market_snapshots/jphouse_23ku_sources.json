@@ -1,0 +1,439 @@
+[
+  {
+    "ward": "千代田区",
+    "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_23ku/chiyoda.json",
+    "rents": {
+      "1LDK": 22.3,
+      "2LDK": 33.2,
+      "3LDK": 77.6
+    },
+    "suumo_updated": "2026年7月10日更新",
+    "sale": {
+      "layout_price_man_yen": {
+        "1LDK": 8941,
+        "2LDK": 23208,
+        "3LDK": 41500
+      },
+      "unit_man_yen_per_sqm": 234.6199,
+      "updated": "2026年［令和8年］1～3月"
+    }
+  },
+  {
+    "ward": "中央区",
+    "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_23ku/chuo.json",
+    "rents": {
+      "1LDK": 20.5,
+      "2LDK": 29.0,
+      "3LDK": 38.1
+    },
+    "suumo_updated": "2026年7月10日更新",
+    "sale": {
+      "layout_price_man_yen": {
+        "1LDK": 8086,
+        "2LDK": 13324,
+        "3LDK": 18039
+      },
+      "unit_man_yen_per_sqm": 186.7899,
+      "updated": "2026年［令和8年］1～3月"
+    }
+  },
+  {
+    "ward": "港区",
+    "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_23ku/minato.json",
+    "rents": {
+      "1LDK": 27.9,
+      "2LDK": 47.2,
+      "3LDK": 90.6
+    },
+    "suumo_updated": "2026年7月10日更新",
+    "sale": {
+      "layout_price_man_yen": {
+        "1LDK": 9969,
+        "2LDK": 21594,
+        "3LDK": 33342
+      },
+      "unit_man_yen_per_sqm": 237.7027,
+      "updated": "2026年［令和8年］1～3月"
+    }
+  },
+  {
+    "ward": "新宿区",
+    "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_23ku/shinjuku.json",
+    "rents": {
+      "1LDK": 19.0,
+      "2LDK": 27.3,
+      "3LDK": 48.1
+    },
+    "suumo_updated": "2026年7月10日更新",
+    "sale": {
+      "layout_price_man_yen": {
+        "1LDK": 6662,
+        "2LDK": 11523,
+        "3LDK": 13667
+      },
+      "unit_man_yen_per_sqm": 145.9368,
+      "updated": "2026年［令和8年］1～3月"
+    }
+  },
+  {
+    "ward": "文京区",
+    "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_23ku/bunkyo.json",
+    "rents": {
+      "1LDK": 18.7,
+      "2LDK": 25.7,
+      "3LDK": 40.8
+    },
+    "suumo_updated": "2026年7月10日更新",
+    "sale": {
+      "layout_price_man_yen": {
+        "1LDK": 6117,
+        "2LDK": 11912,
+        "3LDK": 17139
+      },
+      "unit_man_yen_per_sqm": 153.1148,
+      "updated": "2026年［令和8年］1～3月"
+    }
+  },
+  {
+    "ward": "台東区",
+    "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_23ku/taito.json",
+    "rents": {
+      "1LDK": 17.2,
+      "2LDK": 22.8,
+      "3LDK": 33.7
+    },
+    "suumo_updated": "2026年7月10日更新",
+    "sale": {
+      "layout_price_man_yen": {
+        "1LDK": 5214,
+        "2LDK": 8560,
+        "3LDK": 11182
+      },
+      "unit_man_yen_per_sqm": 123.5432,
+      "updated": "2026年［令和8年］1～3月"
+    }
+  },
+  {
+    "ward": "墨田区",
+    "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_23ku/sumida.json",
+    "rents": {
+      "1LDK": 16.3,
+      "2LDK": 19.4,
+      "3LDK": 27.3
+    },
+    "suumo_updated": "2026年7月10日更新",
+    "sale": {
+      "layout_price_man_yen": {
+        "1LDK": 4876,
+        "2LDK": 7068,
+        "3LDK": 8041
+      },
+      "unit_man_yen_per_sqm": 108.5596,
+      "updated": "2026年［令和8年］1～3月"
+    }
+  },
+  {
+    "ward": "江東区",
+    "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_23ku/koto.json",
+    "rents": {
+      "1LDK": 15.8,
+      "2LDK": 23.6,
+      "3LDK": null
+    },
+    "suumo_updated": "2026年7月10日更新",
+    "sale": {
+      "layout_price_man_yen": {
+        "1LDK": 6697,
+        "2LDK": 9700,
+        "3LDK": 9331
+      },
+      "unit_man_yen_per_sqm": 122.9732,
+      "updated": "2026年［令和8年］1～3月"
+    }
+  },
+  {
+    "ward": "品川区",
+    "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_23ku/shinagawa.json",
+    "rents": {
+      "1LDK": 18.0,
+      "2LDK": 28.4,
+      "3LDK": 41.7
+    },
+    "suumo_updated": "2026年7月10日更新",
+    "sale": {
+      "layout_price_man_yen": {
+        "1LDK": 7397,
+        "2LDK": 11354,
+        "3LDK": 12202
+      },
+      "unit_man_yen_per_sqm": 147.3341,
+      "updated": "2026年［令和8年］1～3月"
+    }
+  },
+  {
+    "ward": "目黒区",
+    "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_23ku/meguro.json",
+    "rents": {
+      "1LDK": 20.0,
+      "2LDK": 27.4,
+      "3LDK": 48.9
+    },
+    "suumo_updated": "2026年7月10日更新",
+    "sale": {
+      "layout_price_man_yen": {
+        "1LDK": 7014,
+        "2LDK": 11495,
+        "3LDK": 12784
+      },
+      "unit_man_yen_per_sqm": 146.2245,
+      "updated": "2026年［令和8年］1～3月"
+    }
+  },
+  {
+    "ward": "大田区",
+    "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_23ku/ota.json",
+    "rents": {
+      "1LDK": 15.3,
+      "2LDK": 19.7,
+      "3LDK": 27.4
+    },
+    "suumo_updated": "2026年7月10日更新",
+    "sale": {
+      "layout_price_man_yen": {
+        "1LDK": 3713,
+        "2LDK": 5598,
+        "3LDK": 7341
+      },
+      "unit_man_yen_per_sqm": 90.102,
+      "updated": "2026年［令和8年］1～3月"
+    }
+  },
+  {
+    "ward": "世田谷区",
+    "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_23ku/setagaya.json",
+    "rents": {
+      "1LDK": 17.2,
+      "2LDK": 23.8,
+      "3LDK": 32.0
+    },
+    "suumo_updated": "2026年7月10日更新",
+    "sale": {
+      "layout_price_man_yen": {
+        "1LDK": 4717,
+        "2LDK": 8627,
+        "3LDK": 10710
+      },
+      "unit_man_yen_per_sqm": 116.524,
+      "updated": "2026年［令和8年］1～3月"
+    }
+  },
+  {
+    "ward": "渋谷区",
+    "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_23ku/shibuya.json",
+    "rents": {
+      "1LDK": 21.6,
+      "2LDK": 37.9,
+      "3LDK": 77.5
+    },
+    "suumo_updated": "2026年7月10日更新",
+    "sale": {
+      "layout_price_man_yen": {
+        "1LDK": 10257,
+        "2LDK": 18705,
+        "3LDK": 26716
+      },
+      "unit_man_yen_per_sqm": 198.6079,
+      "updated": "2026年［令和8年］1～3月"
+    }
+  },
+  {
+    "ward": "中野区",
+    "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_23ku/nakano.json",
+    "rents": {
+      "1LDK": 16.8,
+      "2LDK": 23.4,
+      "3LDK": 34.9
+    },
+    "suumo_updated": "2026年7月10日更新",
+    "sale": {
+      "layout_price_man_yen": {
+        "1LDK": 4302,
+        "2LDK": 8669,
+        "3LDK": 8789
+      },
+      "unit_man_yen_per_sqm": 113.6371,
+      "updated": "2026年［令和8年］1～3月"
+    }
+  },
+  {
+    "ward": "杉並区",
+    "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_23ku/suginami.json",
+    "rents": {
+      "1LDK": 16.3,
+      "2LDK": 21.0,
+      "3LDK": 28.4
+    },
+    "suumo_updated": "2026年7月10日更新",
+    "sale": {
+      "layout_price_man_yen": {
+        "1LDK": 4772,
+        "2LDK": 6800,
+        "3LDK": 8969
+      },
+      "unit_man_yen_per_sqm": 104.8152,
+      "updated": "2026年［令和8年］1～3月"
+    }
+  },
+  {
+    "ward": "豊島区",
+    "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_23ku/toshima.json",
+    "rents": {
+      "1LDK": 16.1,
+      "2LDK": 22.5,
+      "3LDK": 32.5
+    },
+    "suumo_updated": "2026年7月10日更新",
+    "sale": {
+      "layout_price_man_yen": {
+        "1LDK": 6117,
+        "2LDK": 9922,
+        "3LDK": 12114
+      },
+      "unit_man_yen_per_sqm": 130.6821,
+      "updated": "2026年［令和8年］1～3月"
+    }
+  },
+  {
+    "ward": "北区",
+    "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_23ku/kita.json",
+    "rents": {
+      "1LDK": 14.9,
+      "2LDK": 21.2,
+      "3LDK": 29.6
+    },
+    "suumo_updated": "2026年7月10日更新",
+    "sale": {
+      "layout_price_man_yen": {
+        "1LDK": 4913,
+        "2LDK": 6645,
+        "3LDK": 8460
+      },
+      "unit_man_yen_per_sqm": 104.2038,
+      "updated": "2026年［令和8年］1～3月"
+    }
+  },
+  {
+    "ward": "荒川区",
+    "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_23ku/arakawa.json",
+    "rents": {
+      "1LDK": 14.4,
+      "2LDK": 21.4,
+      "3LDK": 24.5
+    },
+    "suumo_updated": "2026年7月10日更新",
+    "sale": {
+      "layout_price_man_yen": {
+        "1LDK": 3657,
+        "2LDK": 7152,
+        "3LDK": 7039
+      },
+      "unit_man_yen_per_sqm": 96.8246,
+      "updated": "2026年［令和8年］1～3月"
+    }
+  },
+  {
+    "ward": "板橋区",
+    "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_23ku/itabashi.json",
+    "rents": {
+      "1LDK": 13.7,
+      "2LDK": 17.7,
+      "3LDK": null
+    },
+    "suumo_updated": "2026年7月10日更新",
+    "sale": {
+      "layout_price_man_yen": {
+        "1LDK": 3729,
+        "2LDK": 4561,
+        "3LDK": 6160
+      },
+      "unit_man_yen_per_sqm": 81.8624,
+      "updated": "2026年［令和8年］1～3月"
+    }
+  },
+  {
+    "ward": "練馬区",
+    "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_23ku/nerima.json",
+    "rents": {
+      "1LDK": 13.6,
+      "2LDK": 17.7,
+      "3LDK": 24.1
+    },
+    "suumo_updated": "2026年7月10日更新",
+    "sale": {
+      "layout_price_man_yen": {
+        "1LDK": 3870,
+        "2LDK": 4789,
+        "3LDK": 5921
+      },
+      "unit_man_yen_per_sqm": 79.1569,
+      "updated": "2026年［令和8年］1～3月"
+    }
+  },
+  {
+    "ward": "足立区",
+    "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_23ku/adachi.json",
+    "rents": {
+      "1LDK": 12.9,
+      "2LDK": 15.9,
+      "3LDK": 19.9
+    },
+    "suumo_updated": "2026年7月10日更新",
+    "sale": {
+      "layout_price_man_yen": {
+        "1LDK": 3433,
+        "2LDK": 3855,
+        "3LDK": 4529
+      },
+      "unit_man_yen_per_sqm": 63.9208,
+      "updated": "2026年［令和8年］1～3月"
+    }
+  },
+  {
+    "ward": "葛飾区",
+    "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_23ku/katsushika.json",
+    "rents": {
+      "1LDK": 12.4,
+      "2LDK": 15.3,
+      "3LDK": 21.0
+    },
+    "suumo_updated": "2026年7月10日更新",
+    "sale": {
+      "layout_price_man_yen": {
+        "1LDK": 4220,
+        "2LDK": 4248,
+        "3LDK": 4924
+      },
+      "unit_man_yen_per_sqm": 71.9031,
+      "updated": "2026年［令和8年］1～3月"
+    }
+  },
+  {
+    "ward": "江戸川区",
+    "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_23ku/edogawa.json",
+    "rents": {
+      "1LDK": 13.6,
+      "2LDK": 17.2,
+      "3LDK": 24.6
+    },
+    "suumo_updated": "2026年7月10日更新",
+    "sale": {
+      "layout_price_man_yen": {
+        "1LDK": 2325,
+        "2LDK": 5194,
+        "3LDK": 5554
+      },
+      "unit_man_yen_per_sqm": 74.5036,
+      "updated": "2026年［令和8年］1～3月"
+    }
+  }
+]

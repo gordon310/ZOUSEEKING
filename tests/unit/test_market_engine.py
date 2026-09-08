@@ -16,10 +16,15 @@ from backend.app.intake.market_engine import (
 
 REPO = Path(__file__).resolve().parents[2]
 
+# Pinned copies of the collected ward snapshots (data/collected/*_sources.json is
+# gitignored runtime data and does not exist in CI; tests must run on committed
+# deterministic fixtures, per AGENTS.md analytics-fixture rule).
+FIXTURE_DIR = REPO / "tests" / "fixtures" / "market_snapshots"
+
 
 @pytest.fixture(scope="module")
 def snapshots():
-    return load_snapshots(REPO / "data" / "collected")
+    return load_snapshots(FIXTURE_DIR)
 
 
 def test_loads_all_family_snapshots(snapshots):

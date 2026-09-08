@@ -1,0 +1,367 @@
+{
+  "count": 18,
+  "failed_count": 0,
+  "collected": [
+    {
+      "ward": "鶴見区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_yokohama_wards/tsurumi.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_yokohama_wards/jphouse_yokohama_tsurumi_tower_2026_08",
+      "rents": {
+        "1LDK": 12.9,
+        "2LDK": 17.2,
+        "3LDK": null
+      },
+      "suumo_updated": "2026年7月10日更新",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 3342,
+          "2LDK": 3592,
+          "3LDK": 4264
+        },
+        "unit_man_yen_per_sqm": 57.1463,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "神奈川区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_yokohama_wards/kanagawa.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_yokohama_wards/jphouse_yokohama_kanagawa_tower_2026_08",
+      "rents": {
+        "1LDK": 14.3,
+        "2LDK": 20.0,
+        "3LDK": 27.9
+      },
+      "suumo_updated": "2026年7月10日更新",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 5323,
+          "2LDK": 6752,
+          "3LDK": 5925
+        },
+        "unit_man_yen_per_sqm": 90.1128,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "西区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_yokohama_wards/nishi.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_yokohama_wards/jphouse_yokohama_nishi_tower_2026_08",
+      "rents": {
+        "1LDK": 15.3,
+        "2LDK": null,
+        "3LDK": 26.8
+      },
+      "suumo_updated": "2026年7月10日更新",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 6542,
+          "2LDK": 8015,
+          "3LDK": 10648
+        },
+        "unit_man_yen_per_sqm": 106.3942,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "中区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_yokohama_wards/naka.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_yokohama_wards/jphouse_yokohama_naka_tower_2026_08",
+      "rents": {
+        "1LDK": 13.9,
+        "2LDK": 19.2,
+        "3LDK": 38.5
+      },
+      "suumo_updated": "2026年7月10日更新",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 5102,
+          "2LDK": 8437,
+          "3LDK": 6440
+        },
+        "unit_man_yen_per_sqm": 95.8905,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "南区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_yokohama_wards/minami.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_yokohama_wards/jphouse_yokohama_minami_tower_2026_08",
+      "rents": {
+        "1LDK": 12.4,
+        "2LDK": 17.3,
+        "3LDK": 22.4
+      },
+      "suumo_updated": "2026年7月10日更新",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 3150,
+          "2LDK": 3003,
+          "3LDK": 3711
+        },
+        "unit_man_yen_per_sqm": 60.5844,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "港南区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_yokohama_wards/konan.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_yokohama_wards/jphouse_yokohama_konan_tower_2026_08",
+      "rents": {
+        "1LDK": 12.4,
+        "2LDK": 16.2,
+        "3LDK": 22.7
+      },
+      "suumo_updated": "2026年7月10日更新",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 3066,
+          "2LDK": 2485,
+          "3LDK": 3244
+        },
+        "unit_man_yen_per_sqm": 40.4465,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "保土ケ谷区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_yokohama_wards/hodogaya.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_yokohama_wards/jphouse_yokohama_hodogaya_tower_2026_08",
+      "rents": {
+        "1LDK": 13.0,
+        "2LDK": 16.0,
+        "3LDK": 18.5
+      },
+      "suumo_updated": "2026年7月10日更新",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 1800,
+          "2LDK": 2158,
+          "3LDK": 3149
+        },
+        "unit_man_yen_per_sqm": 40.0427,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "旭区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_yokohama_wards/asahi.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_yokohama_wards/jphouse_yokohama_asahi_tower_2026_08",
+      "rents": {
+        "1LDK": 12.9,
+        "2LDK": 14.8,
+        "3LDK": 18.7
+      },
+      "suumo_updated": "2026年7月10日更新",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 1855,
+          "2LDK": 2040,
+          "3LDK": 2948
+        },
+        "unit_man_yen_per_sqm": 34.1243,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "磯子区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_yokohama_wards/isogo.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_yokohama_wards/jphouse_yokohama_isogo_tower_2026_08",
+      "rents": {
+        "1LDK": 11.5,
+        "2LDK": 17.1,
+        "3LDK": 28.8
+      },
+      "suumo_updated": "2026年7月10日更新",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 1587,
+          "2LDK": 1587,
+          "3LDK": 3473
+        },
+        "unit_man_yen_per_sqm": 38.9454,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "金沢区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_yokohama_wards/kanazawa.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_yokohama_wards/jphouse_yokohama_kanazawa_tower_2026_08",
+      "rents": {
+        "1LDK": 11.4,
+        "2LDK": 14.7,
+        "3LDK": 22.4
+      },
+      "suumo_updated": "2026年7月10日更新",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 2340,
+          "2LDK": 2340,
+          "3LDK": 2816
+        },
+        "unit_man_yen_per_sqm": 33.9815,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "港北区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_yokohama_wards/kohoku.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_yokohama_wards/jphouse_yokohama_kohoku_tower_2026_08",
+      "rents": {
+        "1LDK": 13.8,
+        "2LDK": 17.3,
+        "3LDK": 28.4
+      },
+      "suumo_updated": "2026年7月10日更新",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 3585,
+          "2LDK": 4072,
+          "3LDK": 5974
+        },
+        "unit_man_yen_per_sqm": 73.4087,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "緑区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_yokohama_wards/midori.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_yokohama_wards/jphouse_yokohama_midori_tower_2026_08",
+      "rents": {
+        "1LDK": null,
+        "2LDK": 15.1,
+        "3LDK": 20.8
+      },
+      "suumo_updated": "2026年7月10日更新",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 3200,
+          "2LDK": 1267,
+          "3LDK": 3956
+        },
+        "unit_man_yen_per_sqm": 45.1054,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "青葉区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_yokohama_wards/aoba.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_yokohama_wards/jphouse_yokohama_aoba_tower_2026_08",
+      "rents": {
+        "1LDK": 14.7,
+        "2LDK": 20.2,
+        "3LDK": 27.4
+      },
+      "suumo_updated": "2026年7月10日更新",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 2950,
+          "2LDK": 4285,
+          "3LDK": 5644
+        },
+        "unit_man_yen_per_sqm": 64.1356,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "戸塚区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_yokohama_wards/totsuka.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_yokohama_wards/jphouse_yokohama_totsuka_tower_2026_08",
+      "rents": {
+        "1LDK": 13.6,
+        "2LDK": 14.0,
+        "3LDK": 23.0
+      },
+      "suumo_updated": "2026年7月10日更新",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 650,
+          "2LDK": 2448,
+          "3LDK": 3695
+        },
+        "unit_man_yen_per_sqm": 43.8574,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "栄区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_yokohama_wards/sakae.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_yokohama_wards/jphouse_yokohama_sakae_tower_2026_08",
+      "rents": {
+        "1LDK": 11.2,
+        "2LDK": 13.9,
+        "3LDK": 21.9
+      },
+      "suumo_updated": "2026年7月10日更新",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 2100,
+          "2LDK": 2850,
+          "3LDK": 3625
+        },
+        "unit_man_yen_per_sqm": 49.0469,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "泉区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_yokohama_wards/izumi.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_yokohama_wards/jphouse_yokohama_izumi_tower_2026_08",
+      "rents": {
+        "1LDK": 10.6,
+        "2LDK": 12.8,
+        "3LDK": null
+      },
+      "suumo_updated": "2026年7月10日更新",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 930,
+          "2LDK": 2566,
+          "3LDK": 3164
+        },
+        "unit_man_yen_per_sqm": 42.2071,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "瀬谷区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_yokohama_wards/seya.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_yokohama_wards/jphouse_yokohama_seya_tower_2026_08",
+      "rents": {
+        "1LDK": 11.4,
+        "2LDK": 13.2,
+        "3LDK": null
+      },
+      "suumo_updated": "2026年7月10日更新",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 3433,
+          "2LDK": 3433,
+          "3LDK": 3071
+        },
+        "unit_man_yen_per_sqm": 44.4784,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "都筑区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_yokohama_wards/tsuzuki.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_yokohama_wards/jphouse_yokohama_tsuzuki_tower_2026_08",
+      "rents": {
+        "1LDK": 12.1,
+        "2LDK": null,
+        "3LDK": 20.1
+      },
+      "suumo_updated": "2026年7月10日更新",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 3450,
+          "2LDK": 5300,
+          "3LDK": 5401
+        },
+        "unit_man_yen_per_sqm": 65.4389,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    }
+  ],
+  "failed": []
+}

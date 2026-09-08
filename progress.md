@@ -298,6 +298,12 @@
 - **夜间 P2 落地**(已推 main):P2-0 报告链考古落档 → P2-1 前端单通道收敛(删 Edge fallback,76b4ffc,web 42+arch 37 绿)→ **P2-3b market engine**(17ce600:backend/app/intake/market_engine.py 209 行,数值化 sale 侧报告消费 data/collected snapshots,content-library 匹配移出 job path,空态诚实保留;test_market_engine 5 passed)。Edge 函数体保留 break-glass disabled 语义,部署态 disable 待 staging 环境操作。
 - 晨班核查(09-08):fetch 重试后 **main == origin/main == 17ce600**,工作树干净;本班仅文档更新,无代码改动。
 
+## CI 红修复:market-engine 单测 fixtures 落地(2026-09-08 晚班)
+
+- **发现**:Release Gate 在 ca3fab3(09-08 晨推)红——`tests/unit/test_market_engine.py` 4 failed(4 failed, 355 passed, 83 skipped)。根因:测试直接读 `data/collected/*_sources.json`(gitignore 运行时数据,CI checkout 无此目录)→ `load_snapshots` 返回 0 行 → `assert 0 >= 64` / match None。本地绿(有数据)、CI 红的经典缺口。
+- **修复**:三个 ward 快照(23ku/Osaka/Yokohama,共 ~37KB,与 data/collected 原件 SHA-256 一致)落为确定性 fixture `tests/fixtures/market_snapshots/`;测试改读 fixture 目录(引擎运行路径 data/collected 不变)。依据 AGENTS.md analytics 测试须 deterministic fixtures。
+- **验证**:`test_market_engine.py` 5 passed;全量 `pytest -q` **359 passed, 83 skipped**(= CI 失败前 355 passed + 4 failed 全归位),compileall 未涉源码。commit+push 后 Release Gate 复核绿。
+
 ## Last updated
 
 2026-09-08

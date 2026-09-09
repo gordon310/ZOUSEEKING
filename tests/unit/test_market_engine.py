@@ -12,6 +12,7 @@ from backend.app.intake.market_engine import (
     build_sale_report,
     load_snapshots,
     match_snapshot,
+    match_snapshot_from_address,
 )
 
 REPO = Path(__file__).resolve().parents[2]
@@ -64,6 +65,16 @@ def test_match_normalizes_simplified_ward_names(snapshots):
     assert row2 is not None
     row3 = match_snapshot(snapshots, "神奈川县", "金泽区", "塔楼", city="横滨市")
     assert row3 is not None and row3.ward == "金沢区"
+
+
+@pytest.mark.parametrize(
+    "address",
+    ["东京都涩谷区", "東京都渋谷区", "东京都渋谷区", "東京都涩谷区"],
+)
+def test_match_snapshot_from_address_accepts_simplified_and_japanese_variants(snapshots, address):
+    matched = match_snapshot_from_address(address, snapshots)
+    assert matched is not None
+    assert matched.ward in ("渋谷区",)
 
 
 def test_match_tokyo_23ku_via_city_layer(snapshots):

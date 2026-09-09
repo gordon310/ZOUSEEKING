@@ -63,6 +63,15 @@ WARD_ALIASES = {
     "横滨市": "横浜市",
 }
 
+# Prefecture name variants commonly typed by users (simplified Chinese UI,
+# Japanese full-width, with/without 都/府/県 suffix). First entry is the
+# canonical snapshot name.
+PREFECTURE_ALIASES = {
+    "东京都": ("东京都", "東京都", "东京", "東京"),
+    "大阪府": ("大阪府", "大阪"),
+    "神奈川县": ("神奈川县", "神奈川県", "神奈川"),
+}
+
 LAYOUTS = ("1LDK", "2LDK", "3LDK")
 
 MAN_YEN_TO_YEN = 10_000
@@ -173,17 +182,21 @@ def match_snapshot_from_address(address: str, snapshots: list[WardSnapshot]) -> 
     """Best-effort ward match from a free-form JP address (for comparable checks).
 
     Works by prefecture prefix + known ward names from the covered snapshots.
+    Supports simplified-Chinese and Japanese prefecture/ward name variants.
     Unrecognized addresses return None (honest: no coverage claim is made).
     """
     if not address:
         return None
     for row in snapshots:
-        # address must contain the prefecture (prefix-ish) and the ward name
-        if row.prefecture not in address:
+        prefecture_aliases = PREFECTURE_ALIASES.get(row.prefecture, (row.prefecture,))
+        if not any(alias in address for alias in prefecture_aliases):
             continue
-        if row.ward not in address:
-            continue
-        return row
+        if row.ward in address:
+            return row
+        # ward typed in simplified Chinese (e.g. 涩谷区) -> reverse lookup
+        for simplified, japanese in WARD_ALIASES.items():
+            if japanese == row.ward and simplified in address:
+                return row
     return None
 
 

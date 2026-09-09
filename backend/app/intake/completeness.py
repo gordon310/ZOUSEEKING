@@ -173,14 +173,13 @@ def _comparable_check(
     if not address:
         return {"status": "not_checked", "note": "缺少地址,无法检查可比市场。", "reference": []}
     from .market_engine import (
-        COLLECTED_DIR,
         build_sale_report,
         load_snapshots,
         match_snapshot_from_address,
     )
 
     snapshot = match_snapshot_from_address(
-        address, load_snapshots(COLLECTED_DIR if snapshots_dir is None else snapshots_dir)
+        address, load_snapshots(snapshots_dir)
     )
     if snapshot is None:
         return {"status": "insufficient", "note": "该地址所在区暂无覆盖(覆盖:东京23区/大阪市23区/横滨市18区)。", "reference": []}

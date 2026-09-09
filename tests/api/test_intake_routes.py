@@ -291,3 +291,9 @@ def test_converted_session_cannot_be_modified_with_anonymous_token(client, sessi
     )
 
     assert response.status_code == 404
+
+
+def test_consumer_active_phase_allows_business_routes(client, monkeypatch):
+    monkeypatch.setenv("RELEASE_PHASE", "consumer_active")
+    response = client.post("/api/intake/sessions", json={})
+    assert response.status_code != 404

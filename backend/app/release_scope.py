@@ -5,6 +5,9 @@ import re
 
 
 PHASE_ONE = "consumer_intake_preview"
+# Staging acceptance phase: business APIs are fully reachable; service-layer
+# auth, ADMIN_ENABLED, and RLS remain responsible for security. Never use in production.
+CONSUMER_ACTIVE = "consumer_active"
 MANAGED_ENVIRONMENTS = {"staging", "production"}
 
 PHASE_ONE_API_CONTRACT = (
@@ -77,7 +80,7 @@ def request_allowed(method: str, path: str) -> bool:
         for allowed_method, pattern in _ALWAYS_ALLOWED_RULES
     ):
         return True
-    if phase == "development":
+    if phase in ("development", CONSUMER_ACTIVE):
         return True
     if phase != PHASE_ONE:
         return False

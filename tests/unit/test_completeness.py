@@ -39,8 +39,8 @@ def test_preview_lists_cost_items_without_inventing_tax_amounts():
     assert items["不动产取得税"]["estimated_jpy"] is None
     # estimated lines carry a basis (sourced, not magic)
     assert "宅建业法" in items["中介手续费"]["basis"]
-    # no address in fields -> comparable honestly not available (not "not_checked")
-    assert preview["comparable_status"] == "not_available"
+    # no address in fields -> comparable was not checked
+    assert preview["comparable_status"] == "not_checked"
     assert preview["comparable"]["reference"] == []  # type: ignore[index]
 
 
@@ -57,7 +57,7 @@ def test_preview_comparable_available_for_covered_ward_address():
             snapshots_dir=SNAPSHOT_FIXTURES,
         ),
     )
-    assert preview["comparable_status"] == "available"
+    assert preview["comparable_status"] == "sufficient"
     reference = cast(list[Any], preview["comparable"]["reference"])
     assert reference, "covered ward must return numeric reference rows"
     assert reference[0]["amount_yen"] > 0

@@ -596,14 +596,14 @@ function renderPreview(preview) {
   const comparison = createElement("section", undefined, "preview-section preview-limitations");
   comparison.append(createElement("h3", "市场可比与下一步"));
   const comparable = preview.comparable || {};
-  if (preview.comparable_status === "available" && Array.isArray(comparable.reference) && comparable.reference.length) {
+  if (preview.comparable_status === "sufficient" && Array.isArray(comparable.reference) && comparable.reference.length) {
     const refList = createElement("ul", undefined, "plain-list");
     comparable.reference.forEach((row) => {
       const yen = row.amount_yen ? `约 ${Math.round(row.amount_yen / 10000)}万日元` : row.amount_jpy || "";
       refList.append(createElement("li", `${row.layout || ""}：${yen}（${row.period || "期间未标注"}）`));
     });
     comparison.append(createElement("p", "同区中古マンション成交参考（国交省取引数据，出所明記）。", "preview-note"), refList);
-  } else if (preview.comparable_status === "not_available") {
+  } else if (preview.comparable_status === "insufficient") {
     comparison.append(createElement("p", comparable.note || "该地址所在区暂无市场相场覆盖。", "preview-note"));
   } else {
     comparison.append(createElement("p", "市场可比数据：尚未检查。完整报告、税费金额、自动提取和法律判断将在后续阶段提供。"));

@@ -161,8 +161,9 @@ def _comparable_check(
     """Comparable market check against the collected numeric snapshots.
 
     Uses the confirmed address (prefecture + ward) when present. Returns an
-    honest status: available (with numeric reference rows), not_available
-    (out of coverage / address not resolved). Never approximates across wards.
+    honest status: sufficient (with numeric reference rows), insufficient
+    (out of coverage / address not resolved), not_checked (no address to check).
+    Never approximates across wards.
     snapshots_dir is injectable so tests run against committed fixtures
     (data/collected is gitignored runtime data, absent in CI); production
     callers omit it and read the runtime collected directory.
@@ -170,7 +171,7 @@ def _comparable_check(
     address_field = fields.get("address")
     address = str(address_field.value).strip() if address_field and address_field.value else ""
     if not address:
-        return {"status": "not_available", "note": "缺少地址,无法检查可比市场。", "reference": []}
+        return {"status": "not_checked", "note": "缺少地址,无法检查可比市场。", "reference": []}
     from .market_engine import (
         COLLECTED_DIR,
         build_sale_report,
@@ -182,10 +183,10 @@ def _comparable_check(
         address, load_snapshots(COLLECTED_DIR if snapshots_dir is None else snapshots_dir)
     )
     if snapshot is None:
-        return {"status": "not_available", "note": "该地址所在区暂无覆盖(覆盖:东京23区/大阪市23区/横滨市18区)。", "reference": []}
+        return {"status": "insufficient", "note": "该地址所在区暂无覆盖(覆盖:东京23区/大阪市23区/横滨市18区)。", "reference": []}
     report = build_sale_report(snapshot, {"prefecture": snapshot.prefecture, "ward": snapshot.ward, "asset_type": "中古マンション"})
     return {
-        "status": "available",
+        "status": "sufficient",
         "note": "同区中古マンション成交参考(国交省取引数据,出所明記)。",
         "reference": report["sale"],
     }

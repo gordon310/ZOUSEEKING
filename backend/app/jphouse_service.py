@@ -87,15 +87,10 @@ def placeholder_xhs(prefecture: str, city: str, ward: str | None, asset_type: st
     return (
         f"# {title}\n\n"
         f"{title}，租还是买？\n\n"
-        "这条查询已经进入 JPHOUSE 生成队列。后端会优先调取历史记录；没有命中时，按主数据源和备用数据源采集。"
+        "这条查询已记录。报告只使用已获授权的公开数据(成交参考以国土交通省取引価格情報为准)；未授权数据源不采集、不输出。"
     )
 
 
+# Placeholder (no-snapshot) reports carry NO data_sources: nothing was collected/derived yet, and listing unlicensed feeds (SUUMO/Tochidai/etc.) would misrepresent them as authorized sources (D6a / 2026-09-07 source matrix).
 def fallback_sources(prefecture: str, city: str, ward: str | None) -> list[dict[str, str]]:
-    area = "".join([prefecture, city, ward or ""])
-    return [
-        {"name": "SUUMO", "role": "租赁相场", "url": "https://suumo.jp/chintai/soba/"},
-        {"name": "Tochidai", "role": "中古マンション成交相场", "url": "https://tochidai.info/mansion/"},
-        {"name": "LIFULL HOME'S", "role": "备用租赁/出售相场", "url": "https://www.homes.co.jp/"},
-        {"name": "At Home", "role": f"备用房源检索：{area}", "url": "https://www.athome.co.jp/"},
-    ]
+    return []

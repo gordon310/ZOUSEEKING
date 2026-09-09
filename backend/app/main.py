@@ -148,10 +148,11 @@ async def save_report(query_id: str, owner_user_id: str, report: dict[str, Any])
         await conn.execute(
             """
             insert into property_reports
-              (query_id, owner_user_id, slug, title, publish_month, markdown, xhs_content, rental, sale, summary, images, data_sources, raw_record)
+              (query_id, owner_user_id, query_key, slug, title, publish_month, markdown, xhs_content, rental, sale, summary, images, data_sources, raw_record)
             values
-              ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10::jsonb, $11::jsonb, $12::jsonb, $13::jsonb)
+              ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11::jsonb, $12::jsonb, $13::jsonb, $14::jsonb)
             on conflict (query_id) do update set
+              query_key = excluded.query_key,
               slug = excluded.slug,
               title = excluded.title,
               publish_month = excluded.publish_month,
@@ -167,6 +168,7 @@ async def save_report(query_id: str, owner_user_id: str, report: dict[str, Any])
             """,
             query_id,
             owner_user_id,
+            report["query_key"],
             report["slug"],
             report["title"],
             report["publish_month"],
@@ -219,6 +221,10 @@ async def run_generation_job(job_id: str, query_id: str, owner_user_id: str, req
                 "data_sources": fallback_sources(request.prefecture, request.city, request.ward),
                 "raw_record": {"status": "queued"},
             }
+        report.setdefault(
+            "query_key",
+            query_key(request.prefecture, request.city, request.ward, request.asset_type, request.year, request.month),
+        )
         async with get_pool().acquire() as conn:
             await conn.execute(
                 "update generation_jobs set progress=75, current_step='保存数据和索引', updated_at=now() where id=$1",

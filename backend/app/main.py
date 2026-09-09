@@ -305,35 +305,56 @@ async def query_report(
     return QueryResponse(query_key=key, status="pending", cached=False, title=title, job_id=str(job_id), message="已创建生成任务")
 
 
-@app.post("/api/jobs/{job_id}/run", response_model=JobResponse, status_code=202)
+@app.post("/api/jobs/{query_id}/run", response_model=JobResponse, status_code=202)
 async def run_legacy_job(
-    job_id: str,
+    query_id: str,
     background_tasks: BackgroundTasks,
     user: AuthUser = Depends(require_user),
 ) -> JobResponse:
-    """Start an existing regional-report job through the authenticated API boundary."""
+    """Start/restart the report job of a query (by query_id) through the authenticated API boundary."""
 
     async with get_pool().acquire() as conn:
         row = await conn.fetchrow(
             """
-            select gj.id, gj.query_id, gj.status, gj.progress, gj.current_step, gj.error_message,
-                   q.owner_user_id, q.prefecture, q.city, q.ward, q.asset_type, q.year, q.month
-            from generation_jobs gj
-            join queries q on q.id = gj.query_id
-            where gj.id=$1 and q.owner_user_id=$2
+            select q.id as query_id, q.prefecture, q.city, q.ward, q.asset_type, q.year, q.month,
+                   gj.id as job_id, gj.status, gj.progress, gj.current_step, gj.error_message
+            from queries q
+            left join generation_jobs gj on gj.query_id = q.id
+            where q.id = $1 and q.owner_user_id = $2
+            order by gj.created_at desc
+            limit 1
             """,
-            job_id,
+            query_id,
             user.user_id,
         )
         if not row:
-            raise HTTPException(status_code=404, detail="job not found")
+            raise HTTPException(status_code=404, detail="query not found")
+
+        job_id = row["job_id"]
+        status = row["status"]
+        progress = row["progress"]
+        current_step = row["current_step"]
+        error_message = row["error_message"]
+        if job_id is None:
+            job_id = await conn.fetchval(
+                """
+                insert into generation_jobs (query_id, status, progress, current_step)
+                values ($1, 'pending', 5, '任务已创建')
+                returning id
+                """,
+                row["query_id"],
+            )
+            status = "pending"
+            progress = 5
+            current_step = "任务已创建"
+            error_message = None
         if row["status"] in {"completed", "running"}:
             return JobResponse(
-                job_id=str(row["id"]),
-                status=row["status"],
-                progress=row["progress"],
-                current_step=row["current_step"],
-                error_message=row["error_message"],
+                job_id=str(job_id),
+                status=status,
+                progress=progress,
+                current_step=current_step,
+                error_message=error_message,
             )
 
         claimed = await conn.fetchrow(
@@ -355,32 +376,32 @@ async def run_legacy_job(
             raise HTTPException(status_code=409, detail="job is already being handled")
         await conn.execute(
             "update queries set status='running', updated_at=now() where id=$1 and owner_user_id=$2",
-            claimed["query_id"],
+            row["query_id"],
             user.user_id,
         )
 
     request = QueryRequest(
-        prefecture=claimed["prefecture"],
-        city=claimed["city"],
-        ward=claimed["ward"] or "",
-        asset_type=claimed["asset_type"],
-        year=claimed["year"],
-        month=claimed["month"],
+        prefecture=row["prefecture"],
+        city=row["city"],
+        ward=row["ward"] or "",
+        asset_type=row["asset_type"],
+        year=row["year"],
+        month=row["month"],
         username=user.username,
     )
     background_tasks.add_task(
         run_generation_job,
-        str(claimed["id"]),
-        str(claimed["query_id"]),
+        str(job_id),
+        str(row["query_id"]),
         str(user.user_id),
         request,
     )
     return JobResponse(
-        job_id=str(claimed["id"]),
+        job_id=str(job_id),
         status="running",
-        progress=claimed["progress"],
-        current_step=claimed["current_step"],
-        error_message=claimed["error_message"],
+        progress=20,
+        current_step="检查本地历史数据",
+        error_message=None,
     )
 
 

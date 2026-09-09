@@ -15,10 +15,10 @@ JOB_ID = UUID("00000000-0000-0000-0000-000000000050")
 QUERY_ID = UUID("00000000-0000-0000-0000-000000000051")
 
 
-def job_row(owner_user_id: UUID = OWNER_ID, status: str = "pending") -> dict:
+def query_row(owner_user_id: UUID = OWNER_ID, status: str = "pending") -> dict:
     return {
-        "id": JOB_ID,
         "query_id": QUERY_ID,
+        "job_id": JOB_ID,
         "owner_user_id": owner_user_id,
         "status": status,
         "progress": 5,
@@ -42,14 +42,19 @@ class FakeConnection:
         if "update generation_jobs" in query.lower():
             job_id, owner_user_id = args
             if (
-                str(self.row["id"]) == str(job_id)
+                str(self.row["job_id"]) == str(job_id)
                 and self.row["owner_user_id"] == owner_user_id
                 and self.row["status"] in {"pending", "failed"}
             ):
                 self.row.update(status="running", progress=20, current_step="检查本地历史数据")
                 return dict(self.row)
             return None
-        if len(args) >= 2 and str(self.row["id"]) == str(args[0]) and self.row["owner_user_id"] != args[1]:
+        if "from queries q" in query.lower():
+            query_id, owner_user_id = args
+            if str(self.row["query_id"]) != str(query_id) or self.row["owner_user_id"] != owner_user_id:
+                return None
+            return dict(self.row)
+        if len(args) >= 2 and str(self.row["query_id"]) == str(args[0]) and self.row["owner_user_id"] != args[1]:
             return None
         return dict(self.row)
 
@@ -77,7 +82,7 @@ class FakePool:
 
 
 def test_owner_can_start_pending_legacy_job_through_fastapi(monkeypatch):
-    pool = FakePool(job_row())
+    pool = FakePool(query_row())
     scheduled: list[tuple] = []
 
     async def fake_run_generation_job(*args):
@@ -87,7 +92,7 @@ def test_owner_can_start_pending_legacy_job_through_fastapi(monkeypatch):
     monkeypatch.setattr(main, "run_generation_job", fake_run_generation_job)
     app.dependency_overrides[require_user] = lambda: AuthUser(OWNER_ID, "owner@example.com", "用户 A")
     try:
-        response = TestClient(app).post(f"/api/jobs/{JOB_ID}/run")
+        response = TestClient(app).post(f"/api/jobs/{QUERY_ID}/run")
     finally:
         app.dependency_overrides.clear()
 
@@ -107,7 +112,7 @@ def test_owner_can_start_pending_legacy_job_through_fastapi(monkeypatch):
 
 
 def test_other_user_cannot_start_legacy_job(monkeypatch):
-    pool = FakePool(job_row())
+    pool = FakePool(query_row())
     scheduled: list[tuple] = []
 
     async def fake_run_generation_job(*args):
@@ -117,7 +122,7 @@ def test_other_user_cannot_start_legacy_job(monkeypatch):
     monkeypatch.setattr(main, "run_generation_job", fake_run_generation_job)
     app.dependency_overrides[require_user] = lambda: AuthUser(OTHER_ID, "other@example.com", "用户 B")
     try:
-        response = TestClient(app).post(f"/api/jobs/{JOB_ID}/run")
+        response = TestClient(app).post(f"/api/jobs/{QUERY_ID}/run")
     finally:
         app.dependency_overrides.clear()
 

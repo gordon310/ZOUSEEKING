@@ -221,10 +221,18 @@ async def run_generation_job(job_id: str, query_id: str, owner_user_id: str, req
                 "data_sources": fallback_sources(request.prefecture, request.city, request.ward),
                 "raw_record": {"status": "queued"},
             }
-        report.setdefault(
-            "query_key",
-            query_key(request.prefecture, request.city, request.ward, request.asset_type, request.year, request.month),
-        )
+        async with get_pool().acquire() as conn:
+            query_key_value = await conn.fetchval(
+                "select query_key from queries where id=$1",
+                query_id,
+            )
+        if query_key_value:
+            report["query_key"] = query_key_value
+        else:
+            report.setdefault(
+                "query_key",
+                query_key(request.prefecture, request.city, request.ward, request.asset_type, request.year, request.month),
+            )
         async with get_pool().acquire() as conn:
             await conn.execute(
                 "update generation_jobs set progress=75, current_step='保存数据和索引', updated_at=now() where id=$1",

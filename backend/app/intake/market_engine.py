@@ -4,6 +4,7 @@ Reads the collected numeric snapshots (data/collected/*_sources.json, produced b
 P1 collection pipeline) and builds property reports with numeric fields plus
 provenance metadata. Data classes follow AGENTS.md: these rows are scraped_aggregate
 snapshots with explicit period/source notes; nothing here is modeled or synthetic.
+On deployed services without repo data/collected, falls back to backend/data/market_snapshots (embedded copy, same content).
 
 D6a (2026-09-07): paid/deep reports consume the sale (closed-transaction) side only.
 The rents side is SUUMO-sourced and not authorized for commercial display, so it is
@@ -26,6 +27,7 @@ from .fx import convert_jpy, fx_provenance
 
 ROOT = Path(__file__).resolve().parents[3]
 COLLECTED_DIR = ROOT / "data" / "collected"
+EMBEDDED_SNAPSHOT_DIR = Path(__file__).resolve().parents[2] / "data" / "market_snapshots"
 
 FAMILY_SOURCES = {
     "jphouse_23ku": ("东京都", "jphouse_23ku_sources.json"),
@@ -109,10 +111,11 @@ def _load_file(path: Path) -> list[dict[str, Any]]:
     return data.get("collected", []) if isinstance(data, dict) else []
 
 
-def load_snapshots(collected_dir: Path = COLLECTED_DIR) -> list[WardSnapshot]:
+def load_snapshots(collected_dir: Path | None = None) -> list[WardSnapshot]:
+    resolved_dir = collected_dir or (COLLECTED_DIR if COLLECTED_DIR.exists() else EMBEDDED_SNAPSHOT_DIR)
     rows: list[WardSnapshot] = []
     for family, (prefecture, filename) in FAMILY_SOURCES.items():
-        for item in _load_file(collected_dir / filename):
+        for item in _load_file(resolved_dir / filename):
             ward = str(item.get("ward", "")).strip()
             if not ward:
                 continue

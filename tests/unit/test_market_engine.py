@@ -103,3 +103,9 @@ def test_markdown_carries_fx_provenance_note(snapshots):
     report = build_sale_report(row, {"prefecture": "东京都", "ward": "渋谷区", "asset_type": "塔楼"})
     assert "汇率参考(" in report["markdown"]
     assert "人民币/美元换算仅作显示参考" in report["markdown"]
+
+
+def test_load_snapshots_missing_dir_returns_empty():
+    from backend.app.intake.market_engine import load_snapshots
+    from pathlib import Path
+    assert load_snapshots(Path("/nonexistent/market_snapshots")) == []

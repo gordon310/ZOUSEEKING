@@ -3,6 +3,11 @@ const path = require("node:path");
 
 const demoSession = { username: "Demo User", email: "demo@example.com", provider: "demo" };
 
+// 匿名/免费首页的"最近更新"面板按授权内容库渲染,上限为匿名 pageSize(5)。
+// 未授权条目下架后(D6a)面板会按剩余授权条数缩短,因此期望值必须由库本身推导,不能写死 5。
+const library = require("../../data/content_library.json");
+const latestCardCount = Math.min(5, library.length);
+
 test.beforeEach(async ({ page }) => {
   await page.route("**/content-library.json", async (route) => {
     await route.fulfill({
@@ -20,6 +25,7 @@ async function seedSession(page, locale = "zh-CN") {
 }
 
 test("B 端主页保持精简并展示无图片的日元最近更新", async ({ page }) => {
+  expect(latestCardCount).toBeGreaterThan(0);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/index.html");
   await expect(page.locator("body.auth-ready")).toBeVisible();
@@ -27,14 +33,31 @@ test("B 端主页保持精简并展示无图片的日元最近更新", async ({ 
   await expect(page.locator("#queryPanel")).toHaveCount(0);
   await expect(page.locator(".business-overview")).toHaveCount(0);
   await expect(page.locator(".service-task-panel")).toHaveCount(0);
-  await expect(page.locator(".business-latest-panel .latest-card")).toHaveCount(5);
+  await expect(page.locator(".business-latest-panel .latest-card")).toHaveCount(latestCardCount);
   await expect(page.locator(".business-latest-panel .latest-card img")).toHaveCount(0);
-  await expect(page.locator(".business-latest-panel .latest-currency")).toHaveText(["¥", "¥", "¥", "¥", "¥"]);
+  await expect(page.locator(".business-latest-panel .latest-currency")).toHaveText(Array(latestCardCount).fill("¥"));
   await expect(page.getByRole("link", { name: "数据查询" }).first()).toHaveAttribute("href", "data-query.html");
 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+});
+
+test("B 端最近更新面板对匿名访问最多显示 5 条", async ({ page }) => {
+  // 合成 fixture(非市场数据):库扩容/新增授权条目后,匿名首页仍必须被 pageSize 截断到 5。
+  const expanded = Array.from({ length: 7 }, (_, index) => ({
+    ...library[index % library.length],
+    id: `synthetic_fixture_${index}`,
+    title: `合成条目 ${index}`,
+  }));
+  await page.route("**/content-library.json", (route) =>
+    route.fulfill({ body: JSON.stringify(expanded), contentType: "application/json" }),
+  );
+
+  await page.goto("/index.html");
+  await expect(page.locator("body.auth-ready")).toBeVisible();
+  await expect(page.locator(".business-latest-panel .latest-card")).toHaveCount(5);
+  await expect(page.locator(".business-latest-panel .latest-card h3").first()).toHaveText("合成条目 0");
 });
 
 test("B 端查询页承接查询入口并支持记录详情返回", async ({ page }) => {

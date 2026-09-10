@@ -7,6 +7,7 @@
 - 后台管理全 8 区接真实数据（member/audit/finance/roles/collection/quality/service/KPI），synthetic_fixture 零残留
 - 来源登记表 collection_sources（migration 20260906000100）已入 repo 且 **staging 已应用**（09-07 用户批准，连同 20260904000100；history 22/22 本地=远端）
 - Release gate 全量 18 SQL step（含 V1 业务域 + business RLS matrix），CI 绿
+- 2026-09-11 修复发布门禁回归：`fb36907` 下架未授权条目后内容库仅剩 3 条，B 端首页 Playwright 断言仍写死 5 条卡片 → 断言改为由 `data/content_library.json` 推导（`min(5, len)`）并补匿名上限 5 条用例；顺带入库 Codex 支付接线批次 A 证据报告（`docs/superpowers/reports/`）并清理其尾随空白。commit `3b4eeb2` / `8eb9b03` / `1af1329`
 - P2 待推进：P2-2 JPPGSKILL 联调、P2-3 深度报告真实链接线（引擎 P2-3b 已就绪）、P2-4 支付接线（Stripe 后端已就绪）、P2-5 合规、P2-6 提审材料；live 采集激活卡海外执行（国交省 land 国内不可达）
 
 ## Recently completed

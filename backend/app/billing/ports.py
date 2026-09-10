@@ -116,32 +116,32 @@ class InternalActor:
 
 
 class StripeGateway(Protocol):
-    def create_checkout_session(self, params: Mapping[str, Any]) -> CheckoutSessionResult:
+    async def create_checkout_session(self, params: Mapping[str, Any]) -> CheckoutSessionResult:
         ...
 
-    def create_portal_session(self, customer_id: str, return_url: str) -> PortalSessionResult:
+    async def create_portal_session(self, customer_id: str, return_url: str) -> PortalSessionResult:
         ...
 
-    def cancel_subscription(self, subscription_id: str, *, at_period_end: bool) -> None:
+    async def cancel_subscription(self, subscription_id: str, *, at_period_end: bool) -> None:
         ...
 
-    def create_refund(self, payment_intent_id: str, *, reason: str) -> RefundResult:
+    async def create_refund(self, payment_intent_id: str, *, reason: str) -> RefundResult:
         ...
 
 
 class BillingStore(Protocol):
     """Persistence boundary; production implementations must use one DB transaction."""
 
-    def get_subject(self, user_id: UUID, product_code: str) -> BillingSubject:
+    async def get_subject(self, user_id: UUID, product_code: str) -> BillingSubject:
         ...
 
-    def get_portal_subject(self, user_id: UUID) -> BillingSubject:
+    async def get_portal_subject(self, user_id: UUID) -> BillingSubject:
         ...
 
-    def claim_provider_event(self, event: ProviderEvent) -> EventClaim:
+    async def claim_provider_event(self, event: ProviderEvent) -> EventClaim:
         ...
 
-    def process_provider_event(
+    async def process_provider_event(
         self,
         event: ProviderEvent,
         audit: AuditRecord,
@@ -149,7 +149,7 @@ class BillingStore(Protocol):
     ) -> None:
         ...
 
-    def mark_provider_event_failed(
+    async def mark_provider_event_failed(
         self,
         event_id: str,
         *,
@@ -159,37 +159,37 @@ class BillingStore(Protocol):
     ) -> None:
         ...
 
-    def get_status(self, user_id: UUID) -> BillingStatus:
+    async def get_status(self, user_id: UUID) -> BillingStatus:
         ...
 
-    def get_subscription(self, user_id: UUID) -> Optional[SubscriptionSnapshot]:
+    async def get_subscription(self, user_id: UUID) -> Optional[SubscriptionSnapshot]:
         ...
 
-    def record_cancel(self, user_id: UUID, *, at_period_end: bool) -> None:
+    async def record_cancel(self, user_id: UUID, *, at_period_end: bool) -> None:
         ...
 
-    def get_refund_candidate(
+    async def get_refund_candidate(
         self, user_id: UUID, payment_intent_id: str
     ) -> Optional[RefundCandidate]:
         ...
 
-    def create_refund_request(
+    async def create_refund_request(
         self, user_id: UUID, candidate: RefundCandidate, requested_at: datetime
     ) -> RefundRequest:
         ...
 
-    def get_refund_request(self, request_id: str) -> RefundRequest:
+    async def get_refund_request(self, request_id: str) -> RefundRequest:
         ...
 
-    def mark_refund_succeeded(
+    async def mark_refund_succeeded(
         self, request_id: str, refund_id: str, completed_at: datetime
     ) -> None:
         ...
 
-    def mark_refund_retry(
+    async def mark_refund_retry(
         self, request_id: str, *, error_code: str, next_attempt_at: datetime
     ) -> None:
         ...
 
-    def append_audit(self, record: AuditRecord) -> None:
+    async def append_audit(self, record: AuditRecord) -> None:
         ...

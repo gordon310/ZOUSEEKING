@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import asyncio
 from datetime import timedelta
 
 import pytest
@@ -66,13 +67,13 @@ def billing_service(fake_gateway, fake_store) -> BillingService:
 def test_checkout_reuses_existing_customer_and_server_owned_subscription_metadata(
     billing_service, fake_gateway
 ) -> None:
-    result = billing_service.create_checkout(
+    result = asyncio.run(billing_service.create_checkout(
         TEST_USER_ID,
         "ignored@example.com",
         "c_plus_monthly",
         "JP",
         now=FIXED_NOW,
-    )
+    ))
 
     params = fake_gateway.checkout_calls[0]
     assert result.mode == "subscription"
@@ -92,13 +93,13 @@ def test_checkout_reuses_existing_customer_and_server_owned_subscription_metadat
 def test_checkout_uses_authenticated_email_only_when_customer_does_not_exist(
     billing_service, fake_gateway
 ) -> None:
-    result = billing_service.create_checkout(
+    result = asyncio.run(billing_service.create_checkout(
         TEST_USER_ID,
         "member@example.com",
         "risk_report_single",
         "CN",
         now=FIXED_NOW,
-    )
+    ))
 
     params = fake_gateway.checkout_calls[0]
     assert result.mode == "payment"
@@ -111,13 +112,13 @@ def test_checkout_cannot_select_an_unapproved_price_or_currency(
     billing_service,
 ) -> None:
     with pytest.raises(PriceUnavailable):
-        billing_service.create_checkout(TEST_USER_ID, "member@example.com", "unknown", "CN", now=FIXED_NOW)
+        asyncio.run(billing_service.create_checkout(TEST_USER_ID, "member@example.com", "unknown", "CN", now=FIXED_NOW))
     with pytest.raises(PriceUnavailable):
-        billing_service.create_checkout(TEST_USER_ID, "member@example.com", "c_plus_monthly", "HK", now=FIXED_NOW)
+        asyncio.run(billing_service.create_checkout(TEST_USER_ID, "member@example.com", "c_plus_monthly", "HK", now=FIXED_NOW))
 
 
 def test_portal_uses_store_owned_customer_and_return_url(billing_service, fake_gateway) -> None:
-    result = billing_service.create_portal(TEST_USER_ID)
+    result = asyncio.run(billing_service.create_portal(TEST_USER_ID))
 
     assert result.url.endswith("bps_test_123")
     assert fake_gateway.portal_calls == [("cus_existing", "https://app.test/billing")]
@@ -126,8 +127,8 @@ def test_portal_uses_store_owned_customer_and_return_url(billing_service, fake_g
 def test_webhook_duplicate_event_is_processed_once(billing_service, fake_store) -> None:
     body, header = signed_event("evt_duplicate", "invoice.paid", {"id": "in_123", "customer": "cus_existing"})
 
-    first = billing_service.handle_webhook(body, header, now=FIXED_NOW)
-    second = billing_service.handle_webhook(body, header, now=FIXED_NOW)
+    first = asyncio.run(billing_service.handle_webhook(body, header, now=FIXED_NOW))
+    second = asyncio.run(billing_service.handle_webhook(body, header, now=FIXED_NOW))
 
     assert (first.status, first.duplicate) == ("processed", False)
     assert (second.status, second.duplicate) == ("duplicate", True)
@@ -141,7 +142,7 @@ def test_webhook_in_progress_event_is_retryable_not_acknowledged(
     fake_store.events["evt_in_progress"] = {"state": "in_progress", "attempt_count": 1}
 
     with pytest.raises(TransientBillingError):
-        billing_service.handle_webhook(body, header, now=FIXED_NOW)
+        asyncio.run(billing_service.handle_webhook(body, header, now=FIXED_NOW))
 
     assert fake_store.processed_events == []
     assert fake_store.failed_events == []
@@ -153,7 +154,7 @@ def test_webhook_rejects_a_non_mapping_event_object_as_permanent(
     body, header = signed_event("evt_malformed_object", "invoice.paid", "not-an-object")
 
     with pytest.raises(PermanentBillingError):
-        billing_service.handle_webhook(body, header, now=FIXED_NOW)
+        asyncio.run(billing_service.handle_webhook(body, header, now=FIXED_NOW))
 
     assert fake_store.failed_events[0]["failure_class"] == "permanent"
     assert fake_store.processed_events == []
@@ -166,10 +167,10 @@ def test_webhook_transient_failure_is_recorded_and_replay_succeeds(
     body, header = signed_event("evt_retry", "invoice.paid", {"id": "in_retry", "customer": "cus_existing"})
 
     with pytest.raises(TransientBillingError):
-        billing_service.handle_webhook(body, header, now=FIXED_NOW)
+        asyncio.run(billing_service.handle_webhook(body, header, now=FIXED_NOW))
 
     assert fake_store.failed_events[0]["failure_class"] == "transient"
-    result = billing_service.handle_webhook(body, header, now=FIXED_NOW + timedelta(seconds=6))
+    result = asyncio.run(billing_service.handle_webhook(body, header, now=FIXED_NOW + timedelta(seconds=6)))
 
     assert result.status == "processed"
     assert fake_store.processed_events == ["evt_retry"]
@@ -184,7 +185,7 @@ def test_failed_invoice_updates_status_and_enqueues_one_dunning_action(
         {"id": "in_failed", "customer": "cus_existing", "subscription": "sub_test_123"},
     )
 
-    billing_service.handle_webhook(body, header, now=FIXED_NOW)
+    asyncio.run(billing_service.handle_webhook(body, header, now=FIXED_NOW))
 
     assert fake_store.status.subscription_status == "past_due"
     assert fake_store.status.entitlement_active is False
@@ -198,7 +199,7 @@ def test_unknown_webhook_is_acknowledged_without_provider_side_effects(
 ) -> None:
     body, header = signed_event("evt_unknown", "product.created", {"id": "prod_123"})
 
-    result = billing_service.handle_webhook(body, header, now=FIXED_NOW)
+    result = asyncio.run(billing_service.handle_webhook(body, header, now=FIXED_NOW))
 
     assert (result.status, result.ignored) == ("ignored", True)
     assert fake_store.processed_events == ["evt_unknown"]
@@ -208,8 +209,8 @@ def test_unknown_webhook_is_acknowledged_without_provider_side_effects(
 def test_cancel_is_at_period_end_and_repeated_request_is_idempotent(
     billing_service, fake_gateway, fake_store
 ) -> None:
-    first = billing_service.request_cancel(TEST_USER_ID)
-    second = billing_service.request_cancel(TEST_USER_ID)
+    first = asyncio.run(billing_service.request_cancel(TEST_USER_ID))
+    second = asyncio.run(billing_service.request_cancel(TEST_USER_ID))
 
     assert first.at_period_end is True
     assert second.at_period_end is True
@@ -230,8 +231,8 @@ def test_refund_request_requires_unused_payment_within_48_hours(
         amount_minor=990,
     )
 
-    request = billing_service.request_refund(TEST_USER_ID, payment_id, now=FIXED_NOW)
-    duplicate = billing_service.request_refund(TEST_USER_ID, payment_id, now=FIXED_NOW)
+    request = asyncio.run(billing_service.request_refund(TEST_USER_ID, payment_id, now=FIXED_NOW))
+    duplicate = asyncio.run(billing_service.request_refund(TEST_USER_ID, payment_id, now=FIXED_NOW))
 
     assert request.status == "requested"
     assert duplicate.request_id == request.request_id
@@ -258,7 +259,7 @@ def test_refund_request_rejects_expired_or_used_payment(
     )
 
     with pytest.raises(RefundNotEligible):
-        billing_service.request_refund(TEST_USER_ID, payment_id, now=FIXED_NOW)
+        asyncio.run(billing_service.request_refund(TEST_USER_ID, payment_id, now=FIXED_NOW))
 
 
 def test_refund_request_rejects_a_payment_that_is_not_still_eligible(
@@ -276,7 +277,7 @@ def test_refund_request_rejects_a_payment_that_is_not_still_eligible(
     )
 
     with pytest.raises(RefundNotEligible):
-        billing_service.request_refund(TEST_USER_ID, payment_id, now=FIXED_NOW)
+        asyncio.run(billing_service.request_refund(TEST_USER_ID, payment_id, now=FIXED_NOW))
 
 
 def test_refund_request_cannot_cross_user_ownership_boundary(billing_service, fake_store) -> None:
@@ -291,7 +292,7 @@ def test_refund_request_cannot_cross_user_ownership_boundary(billing_service, fa
     )
 
     with pytest.raises(RefundNotEligible):
-        billing_service.request_refund(OTHER_USER_ID, payment_id, now=FIXED_NOW)
+        asyncio.run(billing_service.request_refund(OTHER_USER_ID, payment_id, now=FIXED_NOW))
 
 
 def test_refund_approval_requires_finance_and_redacts_audit(
@@ -306,16 +307,16 @@ def test_refund_approval_requires_finance_and_redacts_audit(
         currency="JPY",
         amount_minor=990,
     )
-    request = billing_service.request_refund(TEST_USER_ID, payment_id, now=FIXED_NOW)
+    request = asyncio.run(billing_service.request_refund(TEST_USER_ID, payment_id, now=FIXED_NOW))
 
     with pytest.raises(ForbiddenBillingOperation):
-        billing_service.approve_refund(
+        asyncio.run(billing_service.approve_refund(
             InternalActor(TEST_USER_ID, ("member",)), request.request_id, "member@example.com duplicate", now=FIXED_NOW
-        )
+        ))
 
-    approved = billing_service.approve_refund(
+    approved = asyncio.run(billing_service.approve_refund(
         InternalActor(TEST_USER_ID, ("finance",)), request.request_id, "member@example.com duplicate", now=FIXED_NOW
-    )
+    ))
 
     assert approved.status == "succeeded"
     assert fake_gateway.refund_calls == [(payment_id, "[redacted-email] duplicate")]
@@ -334,13 +335,13 @@ def test_refund_provider_timeout_is_retryable_without_premature_success(
         currency="JPY",
         amount_minor=990,
     )
-    request = billing_service.request_refund(TEST_USER_ID, payment_id, now=FIXED_NOW)
+    request = asyncio.run(billing_service.request_refund(TEST_USER_ID, payment_id, now=FIXED_NOW))
     fake_gateway.fail_refund_once = True
 
     with pytest.raises(TransientBillingError):
-        billing_service.approve_refund(
+        asyncio.run(billing_service.approve_refund(
             InternalActor(TEST_USER_ID, ("finance",)), request.request_id, "duplicate", now=FIXED_NOW
-        )
+        ))
 
     assert fake_store.refund_requests[request.request_id].status == "requested"
     assert len(fake_store.refund_retries) == 1

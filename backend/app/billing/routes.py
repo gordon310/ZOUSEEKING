@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import json
+import os
 from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
@@ -10,12 +12,14 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ..auth import AuthUser, require_user
 from .catalog import PriceCatalog, PriceUnavailable
+from .gateway import StripeHttpGateway
 from .service import (
     BillingError,
     BillingNotConfigured,
     BillingService,
 )
 from .signatures import SignatureVerificationError
+from .store import PostgresBillingStore
 
 
 router = APIRouter(prefix="/api/billing", tags=["billing"])
@@ -36,9 +40,25 @@ class RefundRequestBody(BaseModel):
 
 
 def get_billing_service() -> BillingService:
-    """Provider/store wiring is intentionally absent until an approved rollout."""
-
-    raise HTTPException(status_code=503, detail=BillingNotConfigured.public_message)
+    secret_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
+    webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET", "").strip()
+    if not secret_key or not webhook_secret:
+        raise HTTPException(status_code=503, detail=BillingNotConfigured.public_message)
+    try:
+        raw_prices = os.getenv("STRIPE_PRICE_IDS", "{}")
+        price_ids = json.loads(raw_prices) if raw_prices.strip() else {}
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=503, detail="billing price configuration invalid") from exc
+    price_ids = {str(k): str(v) for k, v in price_ids.items()}
+    return BillingService(
+        catalog=PriceCatalog(price_ids),
+        gateway=StripeHttpGateway(secret_key),
+        store=PostgresBillingStore(),
+        webhook_secret=webhook_secret,
+        success_url=os.getenv("BILLING_SUCCESS_URL", "https://zouseeking-web-staging.onrender.com/mypage.html"),
+        cancel_url=os.getenv("BILLING_CANCEL_URL", "https://zouseeking-web-staging.onrender.com/mypage.html"),
+        portal_return_url=os.getenv("BILLING_PORTAL_RETURN_URL", "https://zouseeking-web-staging.onrender.com/mypage.html"),
+    )
 
 
 def _http_error(error: Exception) -> HTTPException:
@@ -79,7 +99,7 @@ async def create_checkout(
     service: BillingService = Depends(get_billing_service),
 ) -> dict[str, Any]:
     try:
-        outcome = service.create_checkout(
+        outcome = await service.create_checkout(
             user.user_id,
             user.email,
             request.product_code,
@@ -105,7 +125,7 @@ async def create_portal(
     service: BillingService = Depends(get_billing_service),
 ) -> dict[str, str]:
     try:
-        outcome = service.create_portal(user.user_id)
+        outcome = await service.create_portal(user.user_id)
     except BillingError as error:
         raise _http_error(error) from error
     return {"url": outcome.url}
@@ -117,7 +137,7 @@ async def get_status(
     service: BillingService = Depends(get_billing_service),
 ) -> dict[str, Any]:
     try:
-        return _status_payload(service.get_status(user.user_id))
+        return _status_payload(await service.get_status(user.user_id))
     except BillingError as error:
         raise _http_error(error) from error
 
@@ -128,7 +148,7 @@ async def cancel_subscription(
     service: BillingService = Depends(get_billing_service),
 ) -> dict[str, Any]:
     try:
-        outcome = service.request_cancel(user.user_id)
+        outcome = await service.request_cancel(user.user_id)
     except BillingError as error:
         raise _http_error(error) from error
     return {
@@ -145,7 +165,7 @@ async def request_refund(
     service: BillingService = Depends(get_billing_service),
 ) -> dict[str, Any]:
     try:
-        result = service.request_refund(
+        result = await service.request_refund(
             user.user_id,
             request.payment_intent_id,
             now=datetime.now(timezone.utc),
@@ -167,7 +187,7 @@ async def receive_webhook(
 ) -> dict[str, Any]:
     raw_body = await request.body()
     try:
-        result = service.handle_webhook(
+        result = await service.handle_webhook(
             raw_body,
             stripe_signature or "",
             now=datetime.now(timezone.utc),

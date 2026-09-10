@@ -181,7 +181,7 @@ class BillingService:
         self.portal_return_url = portal_return_url
         self.retry_policy = retry_policy or RetryPolicy()
 
-    def create_checkout(
+    async def create_checkout(
         self,
         user_id: UUID,
         email: str,
@@ -192,7 +192,7 @@ class BillingService:
     ) -> CheckoutOutcome:
         price = self.catalog.resolve(product_code, billing_region)
         try:
-            subject = self.store.get_subject(user_id, product_code)
+            subject = await self.store.get_subject(user_id, product_code)
         except (KeyError, LookupError) as exc:
             raise BillingNotFound() from exc
 
@@ -223,12 +223,12 @@ class BillingService:
             params["customer_email"] = customer_email
 
         try:
-            result = self.gateway.create_checkout_session(params)
+            result = await self.gateway.create_checkout_session(params)
         except TransientBillingError:
             raise
         except Exception as exc:
             raise TransientBillingError() from exc
-        self.store.append_audit(
+        await self.store.append_audit(
             AuditRecord(
                 actor_id=str(user_id),
                 subject_id=str(subject.subject_id),
@@ -256,20 +256,20 @@ class BillingService:
             mode=price.mode,
         )
 
-    def create_portal(self, user_id: UUID) -> PortalOutcome:
+    async def create_portal(self, user_id: UUID) -> PortalOutcome:
         try:
-            subject = self.store.get_portal_subject(user_id)
+            subject = await self.store.get_portal_subject(user_id)
         except (AttributeError, KeyError, LookupError) as exc:
             raise BillingNotFound() from exc
         if not subject.stripe_customer_id:
             raise BillingConflict()
         try:
-            result = self.gateway.create_portal_session(subject.stripe_customer_id, self.portal_return_url)
+            result = await self.gateway.create_portal_session(subject.stripe_customer_id, self.portal_return_url)
         except TransientBillingError:
             raise
         except Exception as exc:
             raise TransientBillingError() from exc
-        self.store.append_audit(
+        await self.store.append_audit(
             AuditRecord(
                 actor_id=str(user_id),
                 subject_id=str(subject.subject_id),
@@ -283,15 +283,15 @@ class BillingService:
         )
         return PortalOutcome(result.url)
 
-    def get_status(self, user_id: UUID) -> BillingStatus:
+    async def get_status(self, user_id: UUID) -> BillingStatus:
         try:
-            return self.store.get_status(user_id)
+            return await self.store.get_status(user_id)
         except (KeyError, LookupError) as exc:
             raise BillingNotFound() from exc
 
-    def request_cancel(self, user_id: UUID) -> CancelOutcome:
+    async def request_cancel(self, user_id: UUID) -> CancelOutcome:
         try:
-            subscription = self.store.get_subscription(user_id)
+            subscription = await self.store.get_subscription(user_id)
         except (KeyError, LookupError) as exc:
             raise BillingNotFound() from exc
         if not subscription:
@@ -299,13 +299,13 @@ class BillingService:
         if subscription.cancel_at_period_end:
             return CancelOutcome(subscription.subscription_id, True, True)
         try:
-            self.gateway.cancel_subscription(subscription.subscription_id, at_period_end=True)
+            await self.gateway.cancel_subscription(subscription.subscription_id, at_period_end=True)
         except TransientBillingError:
             raise
         except Exception as exc:
             raise TransientBillingError() from exc
-        self.store.record_cancel(user_id, at_period_end=True)
-        self.store.append_audit(
+        await self.store.record_cancel(user_id, at_period_end=True)
+        await self.store.append_audit(
             AuditRecord(
                 actor_id=str(user_id),
                 subject_id=str(user_id),
@@ -319,9 +319,9 @@ class BillingService:
         )
         return CancelOutcome(subscription.subscription_id, True, False)
 
-    def request_refund(self, user_id: UUID, payment_intent_id: str, *, now: datetime) -> RefundRequest:
+    async def request_refund(self, user_id: UUID, payment_intent_id: str, *, now: datetime) -> RefundRequest:
         try:
-            candidate = self.store.get_refund_candidate(user_id, payment_intent_id)
+            candidate = await self.store.get_refund_candidate(user_id, payment_intent_id)
         except (KeyError, LookupError) as exc:
             raise RefundNotEligible() from exc
         if not candidate:
@@ -334,8 +334,8 @@ class BillingService:
             or candidate.used_entitlement
         ):
             raise RefundNotEligible()
-        request = self.store.create_refund_request(user_id, candidate, _as_utc(now))
-        self.store.append_audit(
+        request = await self.store.create_refund_request(user_id, candidate, _as_utc(now))
+        await self.store.append_audit(
             AuditRecord(
                 actor_id=str(user_id),
                 subject_id=str(user_id),
@@ -349,7 +349,7 @@ class BillingService:
         )
         return request
 
-    def approve_refund(
+    async def approve_refund(
         self,
         actor: InternalActor,
         request_id: str,
@@ -360,22 +360,22 @@ class BillingService:
         if "finance" not in set(actor.roles):
             raise ForbiddenBillingOperation()
         try:
-            request = self.store.get_refund_request(request_id)
+            request = await self.store.get_refund_request(request_id)
         except (KeyError, LookupError) as exc:
             raise BillingNotFound() from exc
         if request.status == "succeeded":
             return request
         try:
-            result = self.gateway.create_refund(request.payment_intent_id, reason=sanitize_reason(reason) or "approved")
+            result = await self.gateway.create_refund(request.payment_intent_id, reason=sanitize_reason(reason) or "approved")
         except TransientBillingError:
             retry_at = self.retry_policy.next_retry_at(1, now)
             if retry_at is not None:
-                self.store.mark_refund_retry(request_id, error_code="provider_transient", next_attempt_at=retry_at)
+                await self.store.mark_refund_retry(request_id, error_code="provider_transient", next_attempt_at=retry_at)
             raise
         except Exception as exc:
             raise TransientBillingError() from exc
-        self.store.mark_refund_succeeded(request_id, result.refund_id, _as_utc(now))
-        self.store.append_audit(
+        await self.store.mark_refund_succeeded(request_id, result.refund_id, _as_utc(now))
+        await self.store.append_audit(
             AuditRecord(
                 actor_id=str(actor.actor_id),
                 subject_id=None,
@@ -396,7 +396,7 @@ class BillingService:
             provider_refund_id=result.refund_id,
         )
 
-    def handle_webhook(
+    async def handle_webhook(
         self,
         raw_body: bytes,
         signature_header: str,
@@ -405,7 +405,7 @@ class BillingService:
     ) -> WebhookResult:
         event = construct_event(raw_body, signature_header, self.webhook_secret, now=_as_utc(now))
         try:
-            claim = self.store.claim_provider_event(event)
+            claim = await self.store.claim_provider_event(event)
         except TransientBillingError:
             raise
         except Exception as exc:
@@ -421,9 +421,9 @@ class BillingService:
 
         try:
             audit, outbox, ignored = self._event_side_effects(event)
-            self.store.process_provider_event(event, audit, outbox)
+            await self.store.process_provider_event(event, audit, outbox)
         except PermanentBillingError:
-            self.store.mark_provider_event_failed(
+            await self.store.mark_provider_event_failed(
                 event.event_id,
                 failure_class="permanent",
                 error_code="invalid_event",
@@ -432,7 +432,7 @@ class BillingService:
             raise
         except TransientBillingError:
             retry_at = self.retry_policy.next_retry_at(claim.attempt_count, _as_utc(now))
-            self.store.mark_provider_event_failed(
+            await self.store.mark_provider_event_failed(
                 event.event_id,
                 failure_class="transient" if retry_at is not None else "permanent",
                 error_code="event_processing_failed",
@@ -441,7 +441,7 @@ class BillingService:
             raise
         except Exception as exc:
             retry_at = self.retry_policy.next_retry_at(claim.attempt_count, _as_utc(now))
-            self.store.mark_provider_event_failed(
+            await self.store.mark_provider_event_failed(
                 event.event_id,
                 failure_class="transient" if retry_at is not None else "permanent",
                 error_code="event_processing_failed",

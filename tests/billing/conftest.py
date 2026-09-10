@@ -38,18 +38,18 @@ class FakeGateway:
         self.refund_calls: List[tuple[str, str]] = []
         self.fail_refund_once = False
 
-    def create_checkout_session(self, params: Mapping[str, Any]) -> CheckoutSessionResult:
+    async def create_checkout_session(self, params: Mapping[str, Any]) -> CheckoutSessionResult:
         self.checkout_calls.append(dict(params))
         return CheckoutSessionResult("cs_test_123", "https://checkout.test/session/cs_test_123")
 
-    def create_portal_session(self, customer_id: str, return_url: str) -> PortalSessionResult:
+    async def create_portal_session(self, customer_id: str, return_url: str) -> PortalSessionResult:
         self.portal_calls.append((customer_id, return_url))
         return PortalSessionResult("https://billing.test/session/bps_test_123")
 
-    def cancel_subscription(self, subscription_id: str, *, at_period_end: bool) -> None:
+    async def cancel_subscription(self, subscription_id: str, *, at_period_end: bool) -> None:
         self.cancel_calls.append((subscription_id, at_period_end))
 
-    def create_refund(self, payment_intent_id: str, *, reason: str) -> RefundResult:
+    async def create_refund(self, payment_intent_id: str, *, reason: str) -> RefundResult:
         self.refund_calls.append((payment_intent_id, reason))
         if self.fail_refund_once:
             self.fail_refund_once = False
@@ -88,18 +88,18 @@ class FakeStore:
         self.refund_requests: Dict[str, RefundRequest] = {}
         self.refund_retries: List[Dict[str, Any]] = []
 
-    def get_subject(self, user_id: UUID, product_code: str) -> BillingSubject:
+    async def get_subject(self, user_id: UUID, product_code: str) -> BillingSubject:
         subject = self.subjects[product_code]
         if subject.subject_type == "user" and subject.subject_id != user_id:
             raise LookupError("subject not found")
         return subject
 
-    def get_portal_subject(self, user_id: UUID) -> BillingSubject:
+    async def get_portal_subject(self, user_id: UUID) -> BillingSubject:
         if self.portal_subject.subject_type == "user" and self.portal_subject.subject_id != user_id:
             raise LookupError("subject not found")
         return self.portal_subject
 
-    def claim_provider_event(self, event: ProviderEvent) -> EventClaim:
+    async def claim_provider_event(self, event: ProviderEvent) -> EventClaim:
         if self.fail_claim_once:
             self.fail_claim_once = False
             raise RuntimeError("database claim unavailable")
@@ -117,7 +117,7 @@ class FakeStore:
         self.events[event.event_id] = {"state": "in_progress", "attempt_count": 1}
         return EventClaim("new", 1)
 
-    def process_provider_event(
+    async def process_provider_event(
         self,
         event: ProviderEvent,
         audit: AuditRecord,
@@ -147,7 +147,7 @@ class FakeStore:
                 entitlement_active=str(event_object.get("status") or "") in {"active", "trialing"},
             )
 
-    def mark_provider_event_failed(
+    async def mark_provider_event_failed(
         self,
         event_id: str,
         *,
@@ -165,27 +165,27 @@ class FakeStore:
         )
         self.events[event_id]["state"] = "dead_letter" if failure_class == "permanent" else "failed"
 
-    def get_status(self, user_id: UUID) -> BillingStatus:
+    async def get_status(self, user_id: UUID) -> BillingStatus:
         if self.status.subject_id != user_id:
             raise LookupError("status not found")
         return self.status
 
-    def get_subscription(self, user_id: UUID) -> Optional[SubscriptionSnapshot]:
+    async def get_subscription(self, user_id: UUID) -> Optional[SubscriptionSnapshot]:
         if user_id != TEST_USER_ID:
             return None
         return self.subscription
 
-    def record_cancel(self, user_id: UUID, *, at_period_end: bool) -> None:
+    async def record_cancel(self, user_id: UUID, *, at_period_end: bool) -> None:
         self.subscription = replace(self.subscription, cancel_at_period_end=at_period_end)
         self.status = replace(self.status, cancel_at_period_end=at_period_end)
 
-    def get_refund_candidate(self, user_id: UUID, payment_intent_id: str) -> Optional[RefundCandidate]:
+    async def get_refund_candidate(self, user_id: UUID, payment_intent_id: str) -> Optional[RefundCandidate]:
         candidate = self.refund_candidates.get(payment_intent_id)
         if candidate and candidate.request_id.startswith(str(user_id)):
             return candidate
         return None
 
-    def create_refund_request(
+    async def create_refund_request(
         self, user_id: UUID, candidate: RefundCandidate, requested_at: datetime
     ) -> RefundRequest:
         existing = self.refund_requests.get(candidate.request_id)
@@ -195,19 +195,19 @@ class FakeStore:
         self.refund_requests[candidate.request_id] = request
         return request
 
-    def get_refund_request(self, request_id: str) -> RefundRequest:
+    async def get_refund_request(self, request_id: str) -> RefundRequest:
         return self.refund_requests[request_id]
 
-    def mark_refund_succeeded(self, request_id: str, refund_id: str, completed_at: datetime) -> None:
+    async def mark_refund_succeeded(self, request_id: str, refund_id: str, completed_at: datetime) -> None:
         current = self.refund_requests[request_id]
         self.refund_requests[request_id] = replace(current, status="succeeded", provider_refund_id=refund_id)
 
-    def mark_refund_retry(self, request_id: str, *, error_code: str, next_attempt_at: datetime) -> None:
+    async def mark_refund_retry(self, request_id: str, *, error_code: str, next_attempt_at: datetime) -> None:
         self.refund_retries.append(
             {"request_id": request_id, "error_code": error_code, "next_attempt_at": next_attempt_at}
         )
 
-    def append_audit(self, record: AuditRecord) -> None:
+    async def append_audit(self, record: AuditRecord) -> None:
         self.audits.append(record)
 
 

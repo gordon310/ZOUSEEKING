@@ -1262,6 +1262,27 @@ class PostgresBillingStore:
             product_code=_row_value(row, "product_code"),
             status=_row_value(row, "status"),
             cancel_at_period_end=bool(_row_value(row, "cancel_at_period_end", False)),
+            current_period_end=_as_utc(_row_value(row, "current_period_end")),
+        )
+
+    async def get_subscription_for_read(self, user_id: UUID) -> Optional[SubscriptionSnapshot]:
+        """Return the newest personal subscription, including a canceled record."""
+        pool = self._acquire()
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "select * from public.subscriptions where user_id=$1 "
+                "and status in ('trialing','active','past_due','canceled','unpaid','incomplete') "
+                "order by created_at desc, id desc limit 1",
+                user_id,
+            )
+        if row is None:
+            return None
+        return SubscriptionSnapshot(
+            subscription_id=str(_row_value(row, "stripe_subscription_id") or _row_value(row, "id")),
+            product_code=_row_value(row, "product_code"),
+            status=_row_value(row, "status"),
+            cancel_at_period_end=bool(_row_value(row, "cancel_at_period_end", False)),
+            current_period_end=_as_utc(_row_value(row, "current_period_end")),
         )
 
     async def record_cancel(self, user_id: UUID, *, at_period_end: bool) -> None:

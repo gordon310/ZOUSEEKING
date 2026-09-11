@@ -72,12 +72,12 @@
             <p class="eyebrow">PLANS &amp; BILLING</p>
             <h2 id="billingHeading" data-i18n="business.billingSection">套餐与账单</h2>
           </div>
-          <span class="business-fixture-note" data-i18n="common.fixture">界面演示 · synthetic_fixture</span>
+          <span class="business-fixture-note" data-i18n="business.liveDataOnly">仅显示真实数据</span>
         </div>
-        <p class="business-panel-copy" data-i18n="business.billingCopy">展示 B Free 与 B Data Pro 的权益和预置价格，不会打开支付或保存付款方式。</p>
+        <p class="business-panel-copy" data-i18n="business.billingCopy">价格来自服务端目录；订阅和升级状态来自当前登录用户。</p>
         <div class="business-toolbar">
           <label for="billingCurrency"><span data-i18n="business.currency">显示币种</span><select id="billingCurrency"><option value="CNY">CNY</option><option value="JPY">JPY</option><option value="USD">USD</option></select></label>
-          <div><span class="business-list-header" data-i18n="business.currentPlan">当前套餐</span><strong id="billingCurrentPlan">B Data Pro</strong><span id="billingPrice">CNY 199/月</span></div>
+          <div><span class="business-list-header" data-i18n="business.currentPlan">当前套餐</span><strong id="billingCurrentPlan">暂无真实数据</strong><span id="billingPrice"></span></div>
           <button class="business-button secondary" id="autoRenewButton" type="button" aria-pressed="false" data-i18n="business.autoRenewOff">开启自动续费（演示）</button>
         </div>
         <p class="business-notice" id="billingNotice" aria-live="polite"></p>
@@ -90,16 +90,13 @@
             <p class="eyebrow">INVOICE HISTORY</p>
             <h2 id="billingHistoryHeading" data-i18n="business.billingHistory">账单记录</h2>
           </div>
-          <span class="business-fixture-note" data-i18n="business.nextRenewal">2026-09-01</span>
+          <span class="business-fixture-note" data-i18n="business.noInvoiceData">暂无账单记录</span>
         </div>
         <div class="business-table-wrap">
           <table class="business-table">
             <caption data-i18n="business.billingHistory">账单记录</caption>
             <thead><tr><th scope="col" data-i18n="business.invoiceDate">日期</th><th scope="col" data-i18n="business.invoiceAmount">金额</th><th scope="col" data-i18n="business.invoiceStatus">状态</th></tr></thead>
-            <tbody>
-              <tr><th scope="row">2026-08-01</th><td id="invoiceAmountOne">CNY 199</td><td><span class="business-status" data-i18n="business.paid">已支付</span></td></tr>
-              <tr><th scope="row">2026-07-01</th><td>CNY 199</td><td><span class="business-status" data-i18n="business.paid">已支付</span></td></tr>
-            </tbody>
+            <tbody><tr><td colspan="3" data-i18n="business.noInvoiceData">暂无账单记录</td></tr></tbody>
           </table>
         </div>
       </section>

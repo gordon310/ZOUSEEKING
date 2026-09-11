@@ -1,0 +1,2 @@
+"""Authenticated member read models."""
+

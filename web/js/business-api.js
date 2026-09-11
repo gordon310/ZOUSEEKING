@@ -31,6 +31,14 @@
     hasToken: () => Boolean(accessToken()),
     getBillingPrices: () => request("/api/billing/prices"),
     getBillingStatus: () => request("/api/billing/status"),
+    getSubscription: () => request("/api/billing/subscription"),
+    getMe: () => request("/api/me"),
+    getUsageSummary: () => request("/api/usage/summary"),
+    createBillingCheckout: (productCode, billingRegion = "CN") => request("/api/billing/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ product_code: productCode, billing_region: billingRegion }),
+    }),
     createBillingPortal: () => request("/api/billing/portal", { method: "POST" }),
   };
 })();

@@ -72,13 +72,12 @@
             <p class="eyebrow">USAGE &amp; QUOTAS</p>
             <h2 id="usageHeading" data-i18n="business.usageSection">用量与额度</h2>
           </div>
-          <span class="business-fixture-note" data-i18n="business.usageSource">本地演示计量 · synthetic_fixture</span>
+          <span class="business-fixture-note" data-i18n="business.liveDataOnly">仅显示真实数据</span>
         </div>
-        <p class="business-panel-copy" data-i18n="business.usageCopy">用量按机构共享空间展示；额度和计量必须由服务端正式执行。</p>
+        <p class="business-panel-copy" data-i18n="business.usageCopy">用量来自当前登录用户的服务端账本，周期按 UTC+8 自然月。</p>
         <div class="business-quota-grid" id="usageCards"></div>
         <div class="business-toolbar">
-          <label for="usageFilter"><span data-i18n="business.usageFilter">用量分类</span><select id="usageFilter"><option value="all" data-i18n="business.usageAll">全部用量</option><option value="query" data-i18n="business.usageQuery">数据查询</option><option value="analysis" data-i18n="business.usageAnalysis">统计分析</option><option value="subscription" data-i18n="business.usageSubscription">统计订阅</option><option value="export" data-i18n="business.usageExport">数据导出</option></select></label>
-          <span class="business-fixture-note" data-i18n="business.resetDate">本周期重置：2026-09-01</span>
+          <span class="business-fixture-note" id="usagePeriod" data-i18n="business.periodUnavailable">周期读取中</span>
         </div>
         <p class="business-notice" id="usageNotice" aria-live="polite"></p>
         <h3 class="business-subheading" data-i18n="business.usageEvents">最近计量事件</h3>

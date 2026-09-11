@@ -81,7 +81,7 @@ class FakeStore:
             cancel_at_period_end=False,
             entitlement_active=True,
         )
-        self.subscription = SubscriptionSnapshot("sub_test_123", "c_plus_monthly", "active", False)
+        self.subscription = SubscriptionSnapshot("sub_test_123", "c_plus_monthly", "active", False, FIXED_NOW + timedelta(days=20))
         self.audits: List[AuditRecord] = []
         self.outbox: List[OutboxAction] = []
         self.refund_candidates: Dict[str, RefundCandidate] = {}

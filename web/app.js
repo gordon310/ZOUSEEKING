@@ -817,7 +817,7 @@ function renderProfile() {
   $("#profileSummary").innerHTML = `
     <div class="profile-line"><span>昵称</span><strong>${escapeHtml(displayName)}</strong></div>
     <div class="profile-line"><span>邮箱</span><strong>${escapeHtml(profile.email || state.session.email)}</strong></div>
-    <div class="profile-line"><span>会员</span><strong>${escapeHtml(tier)}｜每日 ${escapeHtml(profile.daily_query_limit == null ? "额度未返回" : profile.daily_query_limit)} 次</strong></div>
+    <div class="profile-line"><span>会员</span><strong>实时会员信息读取中</strong></div>
     <div class="profile-line"><span>关注</span><strong>${escapeHtml(displayPropertyText([profile.favorite_area, profile.favorite_asset_type].filter(Boolean).join(" / ") || "还没填"))}</strong></div>
   `;
 
@@ -830,6 +830,28 @@ function renderProfile() {
     $("#profileFavoriteArea").value = profile.favorite_area || "";
     $("#profileFavoriteAssetType").value = profile.favorite_asset_type || "";
     $("#profileBio").value = profile.bio || "";
+  }
+  renderMemberEntitlements();
+}
+
+async function renderMemberEntitlements() {
+  const target = $("#memberEntitlementSummary");
+  if (!target) return;
+  if (!window.ZouBusinessApi?.hasToken()) {
+    target.textContent = uiText("account.memberSnapshotUnavailable", "登录后读取真实会员权益与用量。");
+    return;
+  }
+  target.textContent = uiText("account.memberSnapshotLoading", "正在读取真实会员权益与用量……");
+  try {
+    const snapshot = await window.ZouBusinessApi.getMe();
+    const entitlements = snapshot?.entitlements || {};
+    const item = (key) => {
+      const value = entitlements[key] || {};
+      return `${value.used ?? 0}/${value.limit == null ? "—" : value.limit}`;
+    };
+    target.textContent = `${uiText("account.memberTier", "会员等级")}: ${snapshot?.membership_tier || "—"} · ${uiText("account.memberQuota", "本周期额度")}: ${item("queries")} / ${item("reports")} / ${item("exports_rows")}`;
+  } catch {
+    target.textContent = uiText("account.memberSnapshotUnavailable", "真实会员权益与用量暂时不可用。");
   }
 }
 

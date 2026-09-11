@@ -144,6 +144,27 @@ async def get_status(
         raise _http_error(error) from error
 
 
+@router.get("/subscription")
+async def get_subscription(
+    user: AuthUser = Depends(require_user),
+    service: BillingService = Depends(get_billing_service),
+) -> Optional[dict[str, Any]]:
+    try:
+        subscription = await service.get_subscription_for_read(user.user_id)
+    except BillingError as error:
+        raise _http_error(error) from error
+    if subscription is None:
+        return None
+    return {
+        "plan": subscription.product_code,
+        "status": "active" if subscription.status == "trialing" else "past_due" if subscription.status == "unpaid" else subscription.status,
+        "current_period_end": subscription.current_period_end.isoformat()
+        if subscription.current_period_end
+        else None,
+        "cancel_at_period_end": subscription.cancel_at_period_end,
+    }
+
+
 @router.post("/cancel")
 async def cancel_subscription(
     user: AuthUser = Depends(require_user),

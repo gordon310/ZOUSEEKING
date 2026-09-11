@@ -133,6 +133,30 @@ def test_authenticated_routes_return_server_owned_checkout_portal_status_and_can
     assert store.subscription.cancel_at_period_end is True
 
 
+def test_subscription_read_returns_current_user_subscription_and_no_subscription_is_null(route_context) -> None:
+    client, _service, _gateway, store = route_context
+
+    response = client.get("/api/billing/subscription")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "plan": "c_plus_monthly",
+        "status": "active",
+        "current_period_end": "2026-09-20T12:00:00+00:00",
+        "cancel_at_period_end": False,
+    }
+
+    store.subscription = None
+    empty = client.get("/api/billing/subscription")
+    assert empty.status_code == 200
+    assert empty.json() is None
+
+
+def test_subscription_read_requires_authentication() -> None:
+    response = TestClient(app).get("/api/billing/subscription")
+    assert response.status_code == 401
+
+
 def test_webhook_reads_raw_body_invalid_signature_is_400_and_valid_duplicate_is_200(route_context) -> None:
     client, _service, _gateway, store = route_context
     body, header = signed_event("evt_route", "invoice.paid", {"id": "in_route", "customer": "cus_existing"})

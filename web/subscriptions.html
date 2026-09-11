@@ -72,15 +72,10 @@
             <p class="eyebrow">ANALYTICS SUBSCRIPTIONS</p>
             <h2 id="subscriptionsHeading" data-i18n="business.subscriptionsSection">统计订阅</h2>
           </div>
-          <span class="business-fixture-note" data-i18n="common.fixture">界面演示 · synthetic_fixture</span>
+          <span class="business-fixture-note" data-i18n="business.liveDataOnly">仅显示真实数据</span>
         </div>
-        <p class="business-panel-copy" data-i18n="business.subscriptionsCopy">按地区、物件类型和更新频率保存统计订阅，当前只展示本地演示状态。</p>
-        <form class="business-form" id="subscriptionForm">
-          <label for="subscriptionPrefecture"><span data-i18n="business.prefecture">都道府县</span><select id="subscriptionPrefecture" name="prefecture"><option value="region.tokyo" data-i18n="region.tokyo">东京</option><option value="region.osaka" data-i18n="region.osaka">大阪</option><option value="region.yokohama" data-i18n="region.yokohama">横滨</option></select></label>
-          <label for="subscriptionAsset"><span data-i18n="business.assetType">物件类型</span><select id="subscriptionAsset" name="assetType"><option value="asset.tower" data-i18n="asset.tower">塔楼</option><option value="asset.apartment" data-i18n="asset.apartment">公寓</option><option value="asset.detached" data-i18n="asset.detached">一户建</option></select></label>
-          <label for="subscriptionFrequency"><span data-i18n="business.frequency">更新频率</span><select id="subscriptionFrequency" name="frequency"><option value="business.everyWeek" data-i18n="business.everyWeek">每周</option><option value="business.everyMonth" data-i18n="business.everyMonth">每月</option></select></label>
-          <button class="business-button" type="submit" data-i18n="business.createSubscription">添加订阅（演示）</button>
-        </form>
+        <p class="business-panel-copy" data-i18n="business.subscriptionsCopy">这里显示当前登录用户的真实账单订阅状态；统计条件订阅尚未接通。</p>
+        <a class="business-button secondary" href="billing.html" data-i18n="business.upgrade">查看套餐与升级</a>
         <p class="business-notice" id="subscriptionNotice" aria-live="polite"></p>
         <div class="business-list" id="subscriptionList"></div>
       </section>

@@ -31,7 +31,7 @@
   }
 
   function renderSideSummary() {
-    const text = format("business.seatSummary", { used: 4, total: 5 });
+    const text = t("business.liveDataOnly");
     ["businessSeatSummary", "organizationSeatSummary"].forEach((id) => {
       const element = byId(id);
       if (element) element.textContent = text;
@@ -92,12 +92,13 @@
     portal.disabled = true;
     setNotice("billingNotice", t("business.billingUnavailable"));
     if (!window.ZouBusinessApi) return;
-    Promise.allSettled([window.ZouBusinessApi.getBillingPrices(), window.ZouBusinessApi.getBillingStatus()]).then(([pricesResult, statusResult]) => {
-      if (statusResult.status === "fulfilled") {
-        const value = statusResult.value || {};
-        status.textContent = value.product_code || t("business.notAvailable");
-        price.textContent = value.subscription_status || "";
-        portal.disabled = !value.subscription_id;
+    Promise.allSettled([window.ZouBusinessApi.getBillingPrices(), window.ZouBusinessApi.getMe(), window.ZouBusinessApi.getSubscription()]).then(([pricesResult, meResult, subscriptionResult]) => {
+      const me = meResult.status === "fulfilled" ? meResult.value : null;
+      const subscription = subscriptionResult.status === "fulfilled" ? subscriptionResult.value : null;
+      if (me) status.textContent = me.membership_tier || t("business.notAvailable");
+      if (subscription) {
+        price.textContent = `${escapeHtml(t(`business.subscriptionStatus.${subscription.status}`, subscription.status))}${subscription.current_period_end ? ` · ${escapeHtml(subscription.current_period_end)}` : ""}`;
+        portal.disabled = false;
         portal.onclick = async () => {
           try {
             const result = await window.ZouBusinessApi.createBillingPortal();
@@ -106,7 +107,13 @@
         };
       }
       if (pricesResult.status === "fulfilled" && Array.isArray(pricesResult.value) && pricesResult.value.length) {
-        plans.innerHTML = pricesResult.value.map((item) => `<article class="business-card"><h3>${escapeHtml(item.product_code || "")}</h3><p>${escapeHtml(item.currency || "")} ${escapeHtml(item.amount_minor == null ? "" : String(item.amount_minor))}</p></article>`).join("");
+        plans.innerHTML = pricesResult.value.map((item) => `<article class="business-card"><h3>${escapeHtml(item.product_code || "")}</h3><p>${escapeHtml(item.currency || "")} ${escapeHtml(item.amount_minor == null ? "" : String(item.amount_minor))}</p>${item.mode === "subscription" && !subscription ? `<button class="business-button" type="button" data-checkout-product="${escapeHtml(item.product_code)}">${escapeHtml(t("business.upgrade"))}</button>` : ""}</article>`).join("");
+        plans.querySelectorAll("[data-checkout-product]").forEach((button) => button.addEventListener("click", async () => {
+          try {
+            const result = await window.ZouBusinessApi.createBillingCheckout(button.dataset.checkoutProduct);
+            if (result?.url) window.location.assign(result.url);
+          } catch { setNotice("billingNotice", t("business.billingUnavailable")); }
+        }));
         setNotice("billingNotice", t("business.billingLive"));
       }
     });
@@ -116,18 +123,44 @@
     const cards = byId("usageCards");
     const list = byId("usageList");
     if (!cards || !list) return;
-    cards.textContent = t("business.usageCopy");
-    list.textContent = t("business.usageUnavailable");
+    cards.textContent = t("business.loading");
+    list.textContent = t("business.usageEventsUnavailable");
     setNotice("usageNotice", t("business.usageUnavailable"));
+    if (!window.ZouBusinessApi) return;
+    window.ZouBusinessApi.getUsageSummary().then((value) => {
+      const labels = { queries: "business.usageQuery", reports: "business.usageReports", exports_rows: "business.usageExport" };
+      cards.innerHTML = Object.entries(value?.entitlements || {}).map(([key, item]) => {
+        const limit = item.limit == null ? t("business.unknownLimit") : String(item.limit);
+        return `<article class="business-card"><h3>${escapeHtml(t(labels[key] || key))}</h3><p>${escapeHtml(String(item.used ?? 0))} / ${escapeHtml(limit)}</p></article>`;
+      }).join("") || `<p>${escapeHtml(t("business.usageUnavailable"))}</p>`;
+      const period = value?.period;
+      const periodElement = byId("usagePeriod");
+      if (periodElement) periodElement.textContent = period ? `${t("business.period")}: ${period.start} → ${period.end}` : t("business.periodUnavailable");
+      setNotice("usageNotice", value?.available === false ? t("business.sourceUnavailable") : t("business.usageLive"));
+    }).catch(() => {
+      cards.textContent = t("business.usageUnavailable");
+      setNotice("usageNotice", t("business.usageUnavailable"));
+    });
   }
 
   function renderSubscriptions() {
     const list = byId("subscriptionList");
-    const form = byId("subscriptionForm");
-    if (!list || !form) return;
-    list.textContent = t("business.subscriptionsUnavailable");
-    form.querySelectorAll("button, select").forEach((element) => { element.disabled = true; });
+    if (!list) return;
+    list.textContent = t("business.loading");
     setNotice("subscriptionNotice", t("business.subscriptionsUnavailable"));
+    if (!window.ZouBusinessApi) return;
+    window.ZouBusinessApi.getSubscription().then((subscription) => {
+      if (!subscription) {
+        list.innerHTML = `<p>${escapeHtml(t("business.notSubscribed"))} · <a href="billing.html">${escapeHtml(t("business.upgrade"))}</a></p>`;
+        setNotice("subscriptionNotice", t("business.subscriptionEmpty"));
+        return;
+      }
+      list.innerHTML = `<div class="business-list-row"><strong>${escapeHtml(subscription.plan || t("business.notAvailable"))}</strong><span>${escapeHtml(t(`business.subscriptionStatus.${subscription.status}`, subscription.status))}</span><span>${escapeHtml(subscription.current_period_end || t("business.dateUnavailable"))}</span><span>${subscription.cancel_at_period_end ? escapeHtml(t("business.cancelAtPeriodEnd")) : escapeHtml(t("business.autoRenewActive"))}</span></div>`;
+      setNotice("subscriptionNotice", t("business.subscriptionLive"));
+    }).catch(() => {
+      list.textContent = t("business.subscriptionsUnavailable");
+      setNotice("subscriptionNotice", t("business.subscriptionsUnavailable"));
+    });
   }
 
   function renderExports() {

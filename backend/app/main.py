@@ -31,6 +31,7 @@ from .release_scope import request_allowed
 from .admin.routes import router as admin_router
 from .billing.routes import router as billing_router
 from .usage.routes import router as usage_router
+from .member.routes import router as member_router
 
 
 ALLOWED_ORIGINS = [
@@ -85,6 +86,7 @@ app.include_router(intake_router)
 app.include_router(renovation_router)
 app.include_router(billing_router)
 app.include_router(usage_router)
+app.include_router(member_router)
 app.include_router(admin_router)
 app.include_router(privacy_router)
 app.include_router(recognition_router)

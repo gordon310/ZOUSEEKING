@@ -18,6 +18,7 @@ from .ports import (
     ProviderEvent,
     RefundRequest,
     StripeGateway,
+    SubscriptionSnapshot,
 )
 from .signatures import construct_event
 
@@ -291,6 +292,19 @@ class BillingService:
     async def get_status(self, user_id: UUID) -> BillingStatus:
         try:
             return await self.store.get_status(user_id)
+        except (KeyError, LookupError) as exc:
+            raise BillingNotFound() from exc
+
+    async def get_subscription(self, user_id: UUID) -> Optional[SubscriptionSnapshot]:
+        try:
+            return await self.store.get_subscription(user_id)
+        except (KeyError, LookupError) as exc:
+            raise BillingNotFound() from exc
+
+    async def get_subscription_for_read(self, user_id: UUID) -> Optional[SubscriptionSnapshot]:
+        reader = getattr(self.store, "get_subscription_for_read", self.store.get_subscription)
+        try:
+            return await reader(user_id)
         except (KeyError, LookupError) as exc:
             raise BillingNotFound() from exc
 

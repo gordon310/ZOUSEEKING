@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..auth import AuthUser, require_user
+from ..member.routes import MemberReadStore, get_member_read_store, utcnow
 from .ledger import (
     IdempotencyConflict,
     LedgerResult,
@@ -114,3 +115,11 @@ async def apply_usage(
     except Exception:
         return _error(503, "usage_unavailable", "usage service unavailable")
     return _to_response(result)
+
+
+@router.get("/summary")
+async def usage_summary(
+    user: AuthUser = Depends(require_user),
+    store: MemberReadStore = Depends(get_member_read_store),
+) -> dict[str, Any]:
+    return await store.get_usage_summary(user, now=utcnow())

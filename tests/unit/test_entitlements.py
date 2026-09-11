@@ -5,6 +5,7 @@ import pytest
 from backend.app.billing.entitlements import (
     DEFAULT_ENTITLEMENTS,
     entitlement_limit,
+    normalize_entitlements,
     period_key,
 )
 
@@ -27,6 +28,55 @@ def test_period_key_uses_utc_plus_8_day_and_month_boundaries() -> None:
 def test_db_entitlements_take_priority_over_legacy_and_defaults() -> None:
     rows = [{"metric": "query", "period": "month", "limit_units": 77, "active": True}]
     assert entitlement_limit("c_plus", "query", "month", rows=rows, legacy_limit=100) == 77
+
+
+def test_day_row_is_not_overridden_by_month_legacy_or_default() -> None:
+    rows = [{"metric": "query", "period": "day", "limit_units": 5, "active": True}]
+
+    resolved = normalize_entitlements(
+        "free_c", rows=rows, legacy={"monthly_query_limit": 99}
+    )
+
+    assert resolved == {("query", "day"): 5}
+
+
+def test_month_row_is_returned_when_day_row_is_absent() -> None:
+    rows = [{"metric": "query", "period": "month", "limit_units": 7, "active": True}]
+
+    resolved = normalize_entitlements("free_c", rows=rows, legacy={"monthly_query_limit": 99})
+
+    assert resolved == {("query", "month"): 7}
+
+
+def test_day_and_month_rows_are_both_preserved_for_normalization() -> None:
+    rows = [
+        {"metric": "query", "period": "day", "limit_units": 3, "active": True},
+        {"metric": "query", "period": "month", "limit_units": 20, "active": True},
+    ]
+
+    resolved = normalize_entitlements("free_c", rows=rows)
+
+    assert resolved == {("query", "day"): 3, ("query", "month"): 20}
+
+
+def test_legacy_is_used_only_when_metric_has_no_db_rows() -> None:
+    resolved = normalize_entitlements(
+        "free_c", rows=[], legacy={"monthly_query_limit": 99}
+    )
+
+    assert resolved[("query", "month")] == 99
+    assert resolved[("query", "day")] == 3
+
+
+def test_zero_legacy_is_unconfigured_and_code_default_is_used() -> None:
+    resolved = normalize_entitlements(
+        "c_plus",
+        rows=[],
+        legacy={"monthly_query_limit": 0, "monthly_report_quota": None},
+    )
+
+    assert resolved[("query", "month")] == 100
+    assert resolved[("report", "month")] == 12
 
 
 def test_invalid_period_is_rejected() -> None:

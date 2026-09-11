@@ -36,7 +36,7 @@ def _iso(value: Optional[datetime]) -> Optional[str]:
     return value.astimezone(timezone.utc).isoformat()
 
 
-def _empty_entitlements() -> Dict[str, Dict[str, Optional[int]]]:
+def _empty_entitlements() -> Dict[str, Dict[str, Any]]:
     return {
         "queries": {"used": 0, "limit": None},
         "reports": {"used": 0, "limit": None},
@@ -105,14 +105,19 @@ class MemberReadStore:
             # monthly_* legacy columns (DB) > code defaults.
             limits = normalize_entitlements(code, rows=entitlement_rows, legacy=legacy)
             names = {"query": "queries", "report": "reports", "stats_query": "stats_queries", "export_row": "exports_rows", "subscription_slot": "subscription_slots"}
+            by_metric: Dict[str, Dict[str, int]] = {}
             for (kind, period), limit in limits.items():
+                by_metric.setdefault(kind, {})[period] = int(limit)
+            for kind, periods in by_metric.items():
                 name = names[kind]
-                period_value = day_key if period == "day" else month_key
+                primary_period = "day" if "day" in periods else "month"
+                period_value = day_key if primary_period == "day" else month_key
                 matching_row = usage.get((kind, period_value))
                 entitlements[name] = {
                     "used": int(matching_row["consumed_units"]) if matching_row else 0,
-                    "limit": int(limit),
-                    "period": period,
+                    "limit": periods[primary_period],
+                    "period": primary_period,
+                    "periods": periods,
                 }
 
             try:

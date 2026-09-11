@@ -57,10 +57,10 @@ class PriceDefinition:
 class PlanDefinition:
     plan_code: str
     name: str
-    monthly_query_limit: int
-    monthly_report_quota: int
-    subscription_slots: int
-    export_rows_monthly: int
+    monthly_query_limit: Optional[int]
+    monthly_report_quota: Optional[int]
+    subscription_slots: Optional[int]
+    export_rows_monthly: Optional[int]
     audience: str = "c"
     entitlements: Mapping[Tuple[str, str], int] = None
 
@@ -68,6 +68,10 @@ class PlanDefinition:
         if self.entitlements and (metric, period) in self.entitlements:
             return self.entitlements[(metric, period)]
         return None
+
+
+def _optional_int(value: Any) -> Optional[int]:
+    return None if value is None else int(value)
 
 
 _PRICE_SPECS: Tuple[Tuple[str, CheckoutMode, str, int], ...] = (
@@ -173,8 +177,8 @@ class PriceCatalog:
                     "prices": {(str(row["product_code"]), str(row["currency"])): dict(row) for row in prices},
                         "plans": {
                             str(row["plan_code"]): PlanDefinition(
-                                str(row["plan_code"]), str(row["name"]), int(row["monthly_query_limit"]),
-                                int(row["monthly_report_quota"]), int(row["subscription_slots"]), int(row["export_rows_monthly"]),
+                                str(row["plan_code"]), str(row["name"]), _optional_int(row["monthly_query_limit"]),
+                                _optional_int(row["monthly_report_quota"]), _optional_int(row["subscription_slots"]), _optional_int(row["export_rows_monthly"]),
                                 str(dict(row).get("audience") or PLAN_AUDIENCE.get(str(row["plan_code"]), "c")),
                                 normalize_entitlements(str(row["plan_code"]), rows=[e for e in entitlements if str(e["plan_code"]) == str(row["plan_code"])], legacy=dict(row)),
                             ) for row in plans

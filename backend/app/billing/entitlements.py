@@ -66,15 +66,22 @@ def entitlement_limit(
     rows: Optional[Iterable[Mapping[str, Any]]] = None,
     legacy_limit: Optional[int] = None,
 ) -> Optional[int]:
-    """Resolve DB key/value rows > legacy plan column > code default."""
+    """Resolve an entitlement with metric-level DB precedence."""
     if metric not in METRICS or period not in PERIODS:
         raise ValueError("unsupported metric or period")
     if rows is not None:
-        value = _row_value(rows, metric, period)
+        materialized = list(rows)
+        metric_rows = [
+            row for row in materialized
+            if row.get("metric") == metric and row.get("active", True)
+        ]
+        value = _row_value(metric_rows, metric, period)
         if value is not None:
             return value
-    if legacy_limit is not None and period == "month":
-        return max(0, int(legacy_limit))
+        if metric_rows:
+            return None
+    if legacy_limit is not None and period == "month" and int(legacy_limit) > 0:
+        return int(legacy_limit)
     return DEFAULT_ENTITLEMENTS.get(plan_code, {}).get((metric, period))
 
 
@@ -85,6 +92,7 @@ def normalize_entitlements(
     legacy: Optional[Mapping[str, Optional[int]]] = None,
 ) -> dict[tuple[str, str], int]:
     legacy = legacy or {}
+    rows = list(rows) if rows is not None else None
     result: dict[tuple[str, str], int] = {}
     for metric in METRICS:
         for period in PERIODS:

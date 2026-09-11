@@ -103,6 +103,25 @@ async def test_plan_entitlements_override_legacy_pricing_columns(monkeypatch):
     assert snapshot["entitlements"]["queries"]["limit"] == 7
 
 
+@pytest.mark.asyncio
+async def test_day_entitlement_is_primary_when_day_and_month_are_configured(monkeypatch):
+    connection = _FakeConnection(
+        profile={"membership_tier": "free"},
+        plan={"plan_code": "free_c", "monthly_query_limit": 99, "monthly_report_quota": None, "subscription_slots": None, "export_rows_monthly": None},
+        entitlements=[
+            {"metric": "query", "period": "day", "limit_units": 3, "active": True},
+            {"metric": "query", "period": "month", "limit_units": 20, "active": True},
+        ],
+    )
+    monkeypatch.setattr("backend.app.member.routes.get_pool", lambda: _FakePool(connection))
+
+    snapshot = await MemberReadStore().get_usage_summary(TEST_USER, now=FIXED_NOW)
+
+    assert snapshot["entitlements"]["queries"]["limit"] == 3
+    assert snapshot["entitlements"]["queries"]["period"] == "day"
+    assert snapshot["entitlements"]["queries"]["periods"] == {"day": 3, "month": 20}
+
+
 def test_member_read_period_switches_at_utc_plus_8_midnight() -> None:
     before = _period(datetime(2026, 8, 31, 15, 59, 59, tzinfo=timezone.utc))
     after = _period(datetime(2026, 8, 31, 16, 0, 0, tzinfo=timezone.utc))

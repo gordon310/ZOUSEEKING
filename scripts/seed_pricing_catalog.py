@@ -33,6 +33,16 @@ PLANS = {
 }
 
 
+def legacy_values(spec: dict) -> tuple[int | None, int | None, int | None, int | None]:
+    entitlements = spec["entitlements"]
+    return (
+        entitlements.get(("query", "month")),
+        entitlements.get(("report", "month")),
+        entitlements.get(("subscription_slot", "month")),
+        entitlements.get(("export_row", "month")),
+    )
+
+
 async def seed() -> dict[str, int]:
     raw_ids = os.getenv("STRIPE_PRICE_IDS", "{}")
     price_ids = json.loads(raw_ids) if raw_ids.strip() else {}
@@ -47,9 +57,9 @@ async def seed() -> dict[str, int]:
             await conn.execute("update public.pricing_plans set active=false, note='migrated to free_c/free_b; retained for compatibility' where plan_code='free'")
             for code, spec in PLANS.items():
                 entitlements = spec["entitlements"]
-                legacy = (entitlements.get(("query", "month"), 0), entitlements.get(("report", "month"), 0), entitlements.get(("subscription_slot", "month"), 0), entitlements.get(("export_row", "month"), 0))
+                legacy = legacy_values(spec)
                 counts["plans"] += int(bool(await conn.fetchval(
-                    "insert into public.pricing_plans (plan_code,name,audience,monthly_query_limit,monthly_report_quota,subscription_slots,export_rows_monthly) values ($1,$2,$3,$4,$5,$6,$7) on conflict (plan_code) do update set name=excluded.name, audience=excluded.audience, active=true returning plan_code",
+                    "insert into public.pricing_plans (plan_code,name,audience,monthly_query_limit,monthly_report_quota,subscription_slots,export_rows_monthly) values ($1,$2,$3,$4,$5,$6,$7) on conflict (plan_code) do update set name=excluded.name, audience=excluded.audience, monthly_query_limit=excluded.monthly_query_limit, monthly_report_quota=excluded.monthly_report_quota, subscription_slots=excluded.subscription_slots, export_rows_monthly=excluded.export_rows_monthly, active=true returning plan_code",
                     code, spec["name"], spec["audience"], *legacy,
                 )))
                 for (metric, period), limit_units in entitlements.items():

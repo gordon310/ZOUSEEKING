@@ -61,30 +61,32 @@ class MemberReadStore:
                     "select membership_tier from public.user_profiles where user_id=$1",
                     user.user_id,
                 )
-                tier = profile["membership_tier"] if profile else None
+                # A missing/blank profile is the free tier.  This must still
+                # resolve and read free_c from the database; it must not skip
+                # the entitlement lookup and silently use code defaults.
+                tier = (profile["membership_tier"] if profile else None) or "free"
             except asyncpg.UndefinedTableError:
                 available = False
 
             plan = None
             entitlement_rows = []
-            if tier:
-                try:
-                    plan = await conn.fetchrow(
-                        "select plan_code, audience, monthly_query_limit, monthly_report_quota, subscription_slots, export_rows_monthly "
-                        "from public.pricing_plans where plan_code=$1 and active=true",
-                        plan_for_tier(tier),
-                    )
-                    if plan:
-                        try:
-                            entitlement_rows = await conn.fetch(
-                                "select metric, period, limit_units, active from public.plan_entitlements where plan_code=$1",
-                                plan["plan_code"],
-                            )
-                        except Exception as exc:
-                            logger.warning("member entitlement DB read unavailable; using fallback: %s", type(exc).__name__)
-                except Exception as exc:
-                    logger.warning("member plan DB read unavailable; using fallback: %s", type(exc).__name__)
-                    available = False
+            try:
+                plan = await conn.fetchrow(
+                    "select plan_code, audience, monthly_query_limit, monthly_report_quota, subscription_slots, export_rows_monthly "
+                    "from public.pricing_plans where plan_code=$1 and active=true",
+                    plan_for_tier(tier),
+                )
+                if plan:
+                    try:
+                        entitlement_rows = await conn.fetch(
+                            "select metric, period, limit_units, active from public.plan_entitlements where plan_code=$1",
+                            plan["plan_code"],
+                        )
+                    except Exception as exc:
+                        logger.warning("member entitlement DB read unavailable; using fallback: %s", type(exc).__name__)
+            except Exception as exc:
+                logger.warning("member plan DB read unavailable; using fallback: %s", type(exc).__name__)
+                available = False
 
             try:
                 rows = await conn.fetch(
@@ -99,6 +101,8 @@ class MemberReadStore:
 
             code = str(plan["plan_code"]) if plan else plan_for_tier(tier)
             legacy = dict(plan) if plan else {}
+            # Resolution order is plan_entitlements (DB) > pricing_plans
+            # monthly_* legacy columns (DB) > code defaults.
             limits = normalize_entitlements(code, rows=entitlement_rows, legacy=legacy)
             names = {"query": "queries", "report": "reports", "stats_query": "stats_queries", "export_row": "exports_rows", "subscription_slot": "subscription_slots"}
             for (kind, period), limit in limits.items():

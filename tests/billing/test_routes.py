@@ -103,11 +103,51 @@ def test_checkout_rejects_client_owned_price_amount_currency_and_redirect_fields
             "amount_minor": 1,
             "currency": "USD",
             "success_url": "https://attacker.test",
+            "return_url": "https://attacker.test/steal",
         },
     )
 
     assert response.status_code == 422
     assert gateway.checkout_calls == []
+
+
+def test_single_report_checkout_uses_c_report_return_urls(route_context) -> None:
+    client, _service, gateway, _store = route_context
+
+    response = client.post(
+        "/api/billing/checkout",
+        json={
+            "product_code": "risk_report_single",
+            "billing_region": "CN",
+            "subject_id": "tokyo::2026-08",
+        },
+    )
+
+    assert response.status_code == 200
+    assert gateway.checkout_calls[-1]["success_url"] == (
+        "https://zoubeacon.app/report.html?key=tokyo%3A%3A2026-08&payment=success"
+    )
+    assert gateway.checkout_calls[-1]["cancel_url"] == (
+        "https://zoubeacon.app/report.html?key=tokyo%3A%3A2026-08&payment=cancel"
+    )
+
+
+@pytest.mark.parametrize("product_code", ["c_plus_monthly", "b_data_pro_monthly"])
+def test_subscription_checkout_uses_b_subscription_return_urls(route_context, product_code) -> None:
+    client, _service, gateway, _store = route_context
+
+    response = client.post(
+        "/api/billing/checkout",
+        json={"product_code": product_code, "billing_region": "JP"},
+    )
+
+    assert response.status_code == 200
+    assert gateway.checkout_calls[-1]["success_url"] == (
+        "https://platform.zoubeacon.com/subscriptions.html?payment=success"
+    )
+    assert gateway.checkout_calls[-1]["cancel_url"] == (
+        "https://platform.zoubeacon.com/subscriptions.html?payment=cancel"
+    )
 
 
 def test_authenticated_routes_return_server_owned_checkout_portal_status_and_cancel(route_context) -> None:

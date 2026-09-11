@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 import json
 import os
 from typing import Any, List, Optional
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
@@ -25,6 +25,10 @@ from .store import PostgresBillingStore
 
 router = APIRouter(prefix="/api/billing", tags=["billing"])
 _PUBLIC_CATALOG = PriceCatalog({})
+_REPORT_PRODUCT = "risk_report_single"
+_SUBSCRIPTION_PRODUCTS = {"c_plus_monthly", "b_data_pro_monthly"}
+_C_REPORT_URL = "https://zoubeacon.app/report.html"
+_B_SUBSCRIPTIONS_URL = "https://platform.zoubeacon.com/subscriptions.html"
 
 
 class CheckoutRequest(BaseModel):
@@ -76,13 +80,18 @@ def _http_error(error: Exception) -> HTTPException:
     return HTTPException(status_code=500, detail="billing operation failed")
 
 
-def _report_return_url(base: str, *, status: str, query_key: Optional[str]) -> str:
-    if not query_key:
-        return base
-    parts = urlsplit(base)
-    query = dict(parse_qsl(parts.query, keep_blank_values=True))
-    query.update({"payment": status, "key": query_key})
-    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
+def _checkout_return_url(product_code: str, *, status: str, report_key: Optional[str]) -> str:
+    """Build a provider return URL from the server-owned checkout scenario."""
+
+    if product_code == _REPORT_PRODUCT:
+        query = {}
+        if report_key:
+            query["key"] = report_key
+        query["payment"] = status
+        return f"{_C_REPORT_URL}?{urlencode(query)}"
+    if product_code in _SUBSCRIPTION_PRODUCTS:
+        return f"{_B_SUBSCRIPTIONS_URL}?{urlencode({'payment': status})}"
+    raise PriceUnavailable("requested product has no approved return URL")
 
 
 def _status_payload(status: Any) -> dict[str, Any]:
@@ -119,8 +128,16 @@ async def create_checkout(
             request.product_code,
             request.region or request.billing_region,
             report_key=request.subject_id or request.query_key,
-            success_url=_report_return_url(service.success_url, status="success", query_key=request.subject_id or request.query_key),
-            cancel_url=_report_return_url(service.cancel_url, status="cancel", query_key=request.subject_id or request.query_key),
+            success_url=_checkout_return_url(
+                request.product_code,
+                status="success",
+                report_key=request.subject_id or request.query_key,
+            ),
+            cancel_url=_checkout_return_url(
+                request.product_code,
+                status="cancel",
+                report_key=request.subject_id or request.query_key,
+            ),
             now=datetime.now(timezone.utc),
         )
     except (PriceUnavailable, BillingError) as error:

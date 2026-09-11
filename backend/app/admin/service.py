@@ -1087,6 +1087,72 @@ class AdminService:
             "changed": True,
         }
 
+    # -- pricing catalog writes ---------------------------------------------
+
+    async def get_pricing(self) -> dict[str, Any]:
+        async with self._acquire().acquire() as conn:
+            products = await conn.fetch("select product_code, name, checkout_mode, active, created_at from public.pricing_products order by product_code")
+            prices = await conn.fetch(
+                "select id, product_code, currency, amount_minor, stripe_price_id, price_version, active, effective_from, created_by, created_at, note "
+                "from public.pricing_prices order by product_code, currency, price_version desc, created_at desc"
+            )
+            regions = await conn.fetch("select region_code, currency, active, created_by, created_at from public.pricing_regions order by region_code")
+            plans = await conn.fetch("select plan_code, name, monthly_query_limit, monthly_report_quota, subscription_slots, export_rows_monthly, plan_version, active, created_by, created_at from public.pricing_plans order by plan_code")
+        return {
+            "products": [self._pricing_row(row) for row in products],
+            "prices": [self._pricing_row(row) for row in prices],
+            "regions": [self._pricing_row(row) for row in regions],
+            "plans": [self._pricing_row(row) for row in plans],
+        }
+
+    @staticmethod
+    def _pricing_row(row: Any) -> dict[str, Any]:
+        result = dict(row)
+        for key, value in list(result.items()):
+            if isinstance(value, UUID):
+                result[key] = str(value)
+            elif isinstance(value, datetime):
+                result[key] = value.isoformat()
+        return result
+
+    async def add_pricing_price(self, *, product_code: str, currency: str, amount_minor: int, stripe_price_id: str, note: Optional[str], actor: UUID) -> dict[str, Any]:
+        async with self._acquire().acquire() as conn:
+            async with conn.transaction():
+                await conn.fetchrow("select product_code from public.pricing_products where product_code=$1 for update", product_code)
+                version = int(await conn.fetchval("select coalesce(max(price_version), 0) + 1 from public.pricing_prices where product_code=$1 and currency=$2", product_code, currency))
+                row = await conn.fetchrow(
+                    "insert into public.pricing_prices (product_code, currency, amount_minor, stripe_price_id, price_version, created_by, note) values ($1,$2,$3,$4,$5,$6,$7) returning id, product_code, currency, amount_minor, stripe_price_id, price_version, active, effective_from, created_by, created_at, note",
+                    product_code, currency, amount_minor, stripe_price_id, version, actor, note,
+                )
+                await conn.execute("insert into public.audit_events (actor_user_id, action, target_type, target_id, summary) values ($1,'admin.pricing.price_created','pricing_price',$2,$3::jsonb)", actor, str(row["id"]), json.dumps({"product_code": product_code, "currency": currency, "price_version": version}, ensure_ascii=False))
+        return self._pricing_row(row)
+
+    async def set_pricing_price_active(self, *, price_id: UUID, active: bool, actor: UUID) -> Optional[dict[str, Any]]:
+        async with self._acquire().acquire() as conn:
+            async with conn.transaction():
+                row = await conn.fetchrow("update public.pricing_prices set active=$2 where id=$1 returning id,product_code,currency,amount_minor,stripe_price_id,price_version,active,effective_from,created_by,created_at,note", price_id, active)
+                if row is None:
+                    return None
+                await conn.execute("insert into public.audit_events (actor_user_id, action, target_type, target_id, summary) values ($1,'admin.pricing.price_status_changed','pricing_price',$2,$3::jsonb)", actor, str(price_id), json.dumps({"active": active, "product_code": row["product_code"], "price_version": row["price_version"]}, ensure_ascii=False))
+        return self._pricing_row(row)
+
+    async def upsert_pricing_region(self, *, region_code: str, currency: str, active: bool, actor: UUID) -> dict[str, Any]:
+        async with self._acquire().acquire() as conn:
+            async with conn.transaction():
+                row = await conn.fetchrow("insert into public.pricing_regions (region_code,currency,active,created_by) values ($1,$2,$3,$4) on conflict (region_code) do update set currency=excluded.currency, active=excluded.active returning region_code,currency,active,created_by,created_at", region_code, currency, active, actor)
+                await conn.execute("insert into public.audit_events (actor_user_id, action, target_type, target_id, summary) values ($1,'admin.pricing.region_upserted','pricing_region',$2,$3::jsonb)", actor, region_code, json.dumps({"currency": currency, "active": active}, ensure_ascii=False))
+        return self._pricing_row(row)
+
+    async def upsert_pricing_plan(self, *, plan_code: str, name: str, monthly_query_limit: int, monthly_report_quota: int, subscription_slots: int, export_rows_monthly: int, active: bool, actor: UUID) -> dict[str, Any]:
+        async with self._acquire().acquire() as conn:
+            async with conn.transaction():
+                row = await conn.fetchrow(
+                    "insert into public.pricing_plans (plan_code,name,monthly_query_limit,monthly_report_quota,subscription_slots,export_rows_monthly,active,created_by) values ($1,$2,$3,$4,$5,$6,$7,$8) on conflict (plan_code) do update set name=excluded.name, monthly_query_limit=excluded.monthly_query_limit, monthly_report_quota=excluded.monthly_report_quota, subscription_slots=excluded.subscription_slots, export_rows_monthly=excluded.export_rows_monthly, active=excluded.active, created_by=excluded.created_by, plan_version=public.pricing_plans.plan_version+1 returning plan_code,name,monthly_query_limit,monthly_report_quota,subscription_slots,export_rows_monthly,plan_version,active,created_by,created_at",
+                    plan_code, name, monthly_query_limit, monthly_report_quota, subscription_slots, export_rows_monthly, active, actor,
+                )
+                await conn.execute("insert into public.audit_events (actor_user_id, action, target_type, target_id, summary) values ($1,'admin.pricing.plan_upserted','pricing_plan',$2,$3::jsonb)", actor, plan_code, json.dumps({"plan_version": row["plan_version"], "monthly_query_limit": monthly_query_limit, "monthly_report_quota": monthly_report_quota, "subscription_slots": subscription_slots, "export_rows_monthly": export_rows_monthly}, ensure_ascii=False))
+        return self._pricing_row(row)
+
 
 def get_admin_service() -> AdminService:
     """Billing-style dependency: 503 until the admin surface is enabled.

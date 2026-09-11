@@ -31,6 +31,7 @@ class CheckoutRequest(BaseModel):
 
     product_code: str = Field(..., min_length=1)
     billing_region: str = Field(..., min_length=2, max_length=2, pattern=r"^[A-Za-z]{2}$")
+    query_key: Optional[str] = Field(default=None, min_length=1, max_length=500)
 
 
 class RefundRequestBody(BaseModel):
@@ -89,7 +90,7 @@ def _status_payload(status: Any) -> dict[str, Any]:
 async def list_prices() -> List[dict[str, Any]]:
     """Expose amounts and availability, never provider price identifiers."""
 
-    return _PUBLIC_CATALOG.list_public()
+    return await _PUBLIC_CATALOG.list_public_async()
 
 
 @router.post("/checkout")
@@ -104,6 +105,7 @@ async def create_checkout(
             user.email,
             request.product_code,
             request.billing_region,
+            report_key=request.query_key,
             now=datetime.now(timezone.utc),
         )
     except (PriceUnavailable, BillingError) as error:

@@ -98,12 +98,14 @@ def test_checkout_uses_authenticated_email_only_when_customer_does_not_exist(
         "member@example.com",
         "risk_report_single",
         "CN",
+        report_key="00000000-0000-0000-0000-000000000030::tokyo::2026::8",
         now=FIXED_NOW,
     ))
 
     params = fake_gateway.checkout_calls[0]
     assert result.mode == "payment"
     assert params["customer_email"] == "member@example.com"
+    assert params["metadata"]["subject_id"] == "00000000-0000-0000-0000-000000000030::tokyo::2026::8"
     assert params["mode"] == "payment"
     assert params["allow_promotion_codes"] is True
 

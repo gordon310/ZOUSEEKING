@@ -83,3 +83,19 @@ canonical history 与 staging 的 later-ID reconciliation、provenance constrain
 字段仍不是新的 schema 来源。
 
 完整文件级盘点见 [`docs/architecture/schema-ownership-audit.md`](architecture/schema-ownership-audit.md)。金额、面积和位置继续以带单位/币种的数值列保存，展示文本不得反向作为分析输入。
+
+## 报告购买与会员额度
+
+| 字段/计量 | 示例 | 说明 |
+| --- | --- | --- |
+| `payment_orders.subject_id` | `用户UUID::地区::物件类型::2026::8` | 单份风险报告的报告标识；旧订单为空或仍为用户语义时不匹配任何新报告。 |
+| `usage_quotas.usage_kind=report` | `limit_units=12` | C Plus 的 UTC+8 自然月报告额度；不结转，消费事实写入 `usage_events`。 |
+| `user_profiles.membership_tier` | `c_plus` / `b_data_pro` | 由受信任计费 webhook 更新，客户端不可写。 |
+# 定价与套餐目录（pricing_admin migration）
+
+| 表 | 字段 | 含义与约束 |
+| --- | --- | --- |
+| `pricing_products` | `product_code`, `name`, `checkout_mode`, `active` | 后台可启停的收费商品；结账模式为 `payment` 或 `subscription`。 |
+| `pricing_prices` | `product_code`, `currency`, `amount_minor`, `stripe_price_id`, `price_version`, `effective_from`, `created_by`, `created_at` | 本地价格的不可变版本记录；金额为币种最小单位，订单应保存选中的版本。 |
+| `pricing_regions` | `region_code`, `currency`, `active` | 账单地区到批准币种的服务端映射；不做客户端汇率换算。 |
+| `pricing_plans` | `plan_code`, `name`, `monthly_query_limit`, `monthly_report_quota`, `subscription_slots`, `export_rows_monthly`, `plan_version` | 服务端额度配置；每次后台调整递增 `plan_version` 并写入审计。 |

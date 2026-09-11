@@ -89,7 +89,7 @@ test("locked report shows unlock card and never renders content", async ({ page 
 
   // Locked card: title + unlock button, no report content
   await expect(page.getByText("解锁深度报告")).toBeVisible();
-  await expect(page.getByText(/付费权益/)).toBeVisible();
+  await expect(page.getByText(/本份深度报告/)).toBeVisible();
   // deep-report content strings must not appear anywhere
   const body = await page.evaluate(() => document.body.innerText);
   expect(body).not.toContain("成交均价");
@@ -98,6 +98,7 @@ test("locked report shows unlock card and never renders content", async ({ page 
   // Unlock click posts checkout and redirects to the Stripe session
   await page.getByRole("button", { name: "解锁深度报告" }).click();
   await expect.poll(() => checkoutCalls).toBe(1);
+  expect(unlockRequestedKey).toBe(QUERY_KEY);
   await page.waitForURL(/checkout\.stripe\.test/);
 });
 

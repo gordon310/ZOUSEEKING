@@ -59,6 +59,10 @@ MIGRATIONS = [
     / "supabase"
     / "migrations"
     / "20260905000500_v1_finance_admin_audit.sql",
+    REPO_ROOT
+    / "supabase"
+    / "migrations"
+    / "20260911000100_report_purchase_subject.sql",
 ]
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()

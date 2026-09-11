@@ -186,6 +186,19 @@
                       <span>请先填写物件信息并上传资料</span>
                     </p>
                   </form>
+
+                  <section class="recognition-card" aria-labelledby="recognitionHeading">
+                    <div>
+                      <p class="section-number">EXIF</p>
+                      <h3 id="recognitionHeading" data-i18n="recognition.title">从照片读取位置</h3>
+                      <p data-i18n="recognition.copy">上传物件照片，读取其中的 EXIF 位置信息并预填查询条件。</p>
+                    </div>
+                    <label class="field-label" for="recognitionImage" data-i18n="recognition.imageLabel">物件照片</label>
+                    <input id="recognitionImage" class="file-input" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" aria-describedby="recognitionLocationNotice" />
+                    <p id="recognitionLocationStatus" class="recognition-status" role="status" aria-live="polite"></p>
+                    <button id="recognitionLocationButton" class="secondary-button" type="button" data-i18n="recognition.locationButton">读取照片位置</button>
+                    <p id="recognitionLocationNotice" class="field-help" data-i18n="recognition.locationNotice">照片中的位置信息(EXIF)仅在本服务内解析,用于预填查询条件。</p>
+                  </section>
                 </section>
 
                 <section id="confirmStep" class="intake-section" aria-labelledby="confirmHeading" hidden>
@@ -329,6 +342,8 @@
     </main>
 
     <script src="config.js"></script>
+    <script src="js/i18n.js"></script>
     <script type="module" src="js/property-intake.js"></script>
+    <script type="module" src="js/recognition.js"></script>
   </body>
 </html>

@@ -95,6 +95,7 @@
           <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="members" data-i18n="admin.members">会员管理</button>
           <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="audit" data-i18n="admin.tabAudit">审计记录</button>
           <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="finance" data-i18n="admin.tabFinance">财务管理</button>
+          <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="pricing" data-i18n="admin.tabPricing">定价与套餐</button>
           <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="roles" data-i18n="admin.tabRoles">内部角色</button>
         </div>
         <label class="admin-status-filter">
@@ -402,6 +403,40 @@
               </div>
               <div class="admin-pager" id="refundPager"></div>
             </div>
+          </section>
+
+          <section class="admin-panel" id="pricing" data-admin-section="pricing">
+            <div class="admin-panel-heading">
+              <div><p class="eyebrow">PRICING CATALOG</p><h2 data-i18n="admin.tabPricing">定价与套餐</h2></div>
+              <span class="admin-panel-count" id="pricingCount">—</span>
+            </div>
+            <p class="admin-panel-note" data-i18n="admin.pricingNote">价格、区域和额度来自数据库；改价只新增版本并记录审计。</p>
+            <p class="admin-live-status" id="pricingStatus" aria-live="polite"></p>
+            <div class="member-toolbar">
+              <label><span data-i18n="admin.pricingProduct">商品</span><select id="pricingProduct"></select></label>
+              <label><span data-i18n="admin.pricingCurrency">币种</span><input id="pricingCurrency" maxlength="3" placeholder="CNY" /></label>
+              <label><span data-i18n="admin.pricingAmount">金额（最小单位）</span><input id="pricingAmount" type="number" min="1" /></label>
+              <label><span>Stripe price id</span><input id="pricingStripeId" maxlength="255" /></label>
+              <button class="admin-action" type="button" id="pricingPriceBtn" data-i18n="admin.pricingCreatePrice">新增价格版本</button>
+            </div>
+            <div class="member-toolbar">
+              <label><span>Region</span><input id="pricingRegionCode" maxlength="8" placeholder="CN" /></label>
+              <label><span>Currency</span><input id="pricingRegionCurrency" maxlength="3" placeholder="CNY" /></label>
+              <label><span>Active</span><input id="pricingRegionActive" type="checkbox" checked /></label>
+              <button class="admin-action" type="button" id="pricingRegionBtn">保存区域映射</button>
+            </div>
+            <div class="member-toolbar">
+              <label><span>Plan code</span><input id="pricingPlanCode" maxlength="64" placeholder="c_plus" /></label>
+              <label><span>名称</span><input id="pricingPlanName" maxlength="120" /></label>
+              <label><span>查询</span><input id="pricingPlanQueries" type="number" min="0" /></label>
+              <label><span>报告/分析</span><input id="pricingPlanReports" type="number" min="0" /></label>
+              <label><span>槽位</span><input id="pricingPlanSlots" type="number" min="0" /></label>
+              <label><span>导出行</span><input id="pricingPlanExports" type="number" min="0" /></label>
+              <button class="admin-action" type="button" id="pricingPlanBtn">保存套餐额度</button>
+            </div>
+            <div class="admin-table-wrap"><table class="admin-table"><caption data-i18n="admin.pricingPrices">价格版本（含历史）</caption><thead><tr><th>商品</th><th>币种</th><th>金额</th><th>Stripe price id</th><th>版本</th><th>状态</th><th>创建时间</th></tr></thead><tbody id="pricingPriceList"><tr><td colspan="7"><div class="admin-empty">—</div></td></tr></tbody></table></div>
+            <div class="admin-table-wrap"><table class="admin-table"><caption data-i18n="admin.pricingRegions">区域映射</caption><thead><tr><th>Region</th><th>Currency</th><th>Active</th></tr></thead><tbody id="pricingRegionList"></tbody></table></div>
+            <div class="admin-table-wrap"><table class="admin-table"><caption data-i18n="admin.pricingPlans">套餐额度</caption><thead><tr><th>Plan</th><th>查询</th><th>报告/分析</th><th>订阅槽位</th><th>导出行</th><th>版本</th></tr></thead><tbody id="pricingPlanList"></tbody></table></div>
           </section>
 
           <section class="admin-panel" id="roles" data-admin-section="roles">

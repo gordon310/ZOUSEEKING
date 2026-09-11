@@ -38,13 +38,19 @@ def _report_row(owner_user_id=OWNER_ID):
 
 
 class FakeConnection:
-    def __init__(self, report_row: dict | None, paid: bool):
+    def __init__(self, report_row: dict | None, paid: bool, paid_key: str | None = None, subscription_quota: bool = False):
         self.report_row = report_row
         self.paid = paid
+        self.paid_key = paid_key
+        self.subscription_quota = subscription_quota
 
     async def fetchrow(self, query: str, *args):
         if "payment_orders" in query:
-            return {"unlocked": 1} if self.paid else None
+            if self.paid and (self.paid_key is None or args[1] == self.paid_key):
+                return {"unlocked": 1}
+            if self.subscription_quota:
+                return {"unlocked": 1}
+            return None
         return dict(self.report_row) if self.report_row is not None else None
 
 
@@ -99,7 +105,7 @@ def test_report_locked_without_paid_order():
 
 
 def test_report_unlocked_with_paid_risk_report_single():
-    client = _client(FakePool(FakeConnection(_report_row(), paid=True)), AuthUser(OWNER_ID, "owner@example.com", "用户 A"))
+    client = _client(FakePool(FakeConnection(_report_row(), paid=True, paid_key=QUERY_KEY)), AuthUser(OWNER_ID, "owner@example.com", "用户 A"))
     try:
         response = client.get(f"/api/reports/{QUERY_KEY}")
     finally:
@@ -109,6 +115,36 @@ def test_report_unlocked_with_paid_risk_report_single():
     assert body.get("locked") is None
     assert body["markdown"] == "# 深度报告全文"
     assert body["sale"][0]["amount_yen"] == 102570000
+
+
+def test_report_purchase_only_unlocks_the_matching_report():
+    client = _client(FakePool(FakeConnection(_report_row(), paid=True, paid_key="other-report")), AuthUser(OWNER_ID, "owner@example.com", "用户 A"))
+    try:
+        response = client.get(f"/api/reports/{QUERY_KEY}")
+    finally:
+        _cleanup()
+    assert response.status_code == 200
+    assert response.json()["locked"] is True
+
+
+def test_active_c_plus_quota_unlocks_report_without_single_purchase():
+    client = _client(FakePool(FakeConnection(_report_row(), paid=False, subscription_quota=True)), AuthUser(OWNER_ID, "owner@example.com", "用户 A"))
+    try:
+        response = client.get(f"/api/reports/{QUERY_KEY}")
+    finally:
+        _cleanup()
+    assert response.status_code == 200
+    assert response.json()["markdown"] == "# 深度报告全文"
+
+
+def test_exhausted_c_plus_quota_falls_back_to_single_purchase():
+    client = _client(FakePool(FakeConnection(_report_row(), paid=False, subscription_quota=False)), AuthUser(OWNER_ID, "owner@example.com", "用户 A"))
+    try:
+        response = client.get(f"/api/reports/{QUERY_KEY}")
+    finally:
+        _cleanup()
+    assert response.status_code == 200
+    assert response.json()["locked"] is True
 
 
 def test_report_404_for_non_owner():

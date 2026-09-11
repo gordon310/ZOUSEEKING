@@ -125,6 +125,34 @@ class CollectionSourceUpsertRequest(BaseModel):
     notes: Optional[str] = None
 
 
+class PricingPriceRequest(BaseModel):
+    product_code: str
+    currency: str
+    amount_minor: int
+    stripe_price_id: str = ""
+    note: Optional[str] = None
+
+
+class PricingRegionRequest(BaseModel):
+    region_code: str
+    currency: str
+    active: bool = True
+
+
+class PricingPlanRequest(BaseModel):
+    plan_code: str
+    name: str
+    monthly_query_limit: int
+    monthly_report_quota: int
+    subscription_slots: int
+    export_rows_monthly: int
+    active: bool = True
+
+
+class PricingPriceStatusRequest(BaseModel):
+    active: bool
+
+
 def _role_or_400(role: Optional[str]) -> str:
     """Validate against the DB CHECK vocabulary (six values)."""
     value = (role or "").strip()
@@ -227,6 +255,19 @@ def _parse_since(since: Optional[str]) -> Optional[datetime]:
         raise HTTPException(status_code=422, detail="invalid since timestamp") from exc
 
 
+def _pricing_code(value: str, *, upper: bool = False) -> str:
+    text = str(value or "").strip()
+    if not text or len(text) > 64 or any(char not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-" for char in text):
+        raise HTTPException(status_code=400, detail="定价字段格式无效")
+    return text.upper() if upper else text
+
+
+def _pricing_nonnegative(value: int) -> int:
+    if value < 0:
+        raise HTTPException(status_code=400, detail="额度不能为负数")
+    return value
+
+
 @router.get("/members")
 async def list_members(
     q: str = Query("", max_length=120),
@@ -239,6 +280,74 @@ async def list_members(
     email_visible = bool(principal.role_set & EMAIL_VISIBLE_ROLES)
     return await service.list_members(
         q=q, page=page, page_size=page_size, email_visible=email_visible
+    )
+
+
+@router.get("/pricing")
+async def get_pricing(
+    principal: AdminPrincipal = Depends(require_admin_role(FINANCE, SUPER_ADMIN)),
+    service: AdminService = Depends(get_admin_service),
+) -> dict[str, Any]:
+    return await service.get_pricing()
+
+
+@router.post("/pricing/prices", status_code=201)
+async def create_pricing_price(
+    body: PricingPriceRequest,
+    principal: AdminPrincipal = Depends(require_admin_role(FINANCE, SUPER_ADMIN)),
+    service: AdminService = Depends(get_admin_service),
+) -> dict[str, Any]:
+    if body.amount_minor <= 0:
+        raise HTTPException(status_code=400, detail="金额必须大于 0")
+    return await service.add_pricing_price(
+        product_code=_pricing_code(body.product_code), currency=_pricing_code(body.currency, upper=True),
+        amount_minor=body.amount_minor, stripe_price_id=body.stripe_price_id.strip(), note=body.note,
+        actor=principal.user.user_id,
+    )
+
+
+@router.post("/pricing/regions", status_code=201)
+async def upsert_pricing_region(
+    body: PricingRegionRequest,
+    principal: AdminPrincipal = Depends(require_admin_role(FINANCE, SUPER_ADMIN)),
+    service: AdminService = Depends(get_admin_service),
+) -> dict[str, Any]:
+    return await service.upsert_pricing_region(
+        region_code=_pricing_code(body.region_code, upper=True), currency=_pricing_code(body.currency, upper=True),
+        active=body.active, actor=principal.user.user_id,
+    )
+
+
+@router.post("/pricing/prices/{price_id}/status")
+async def set_pricing_price_status(
+    price_id: str,
+    body: PricingPriceStatusRequest,
+    principal: AdminPrincipal = Depends(require_admin_role(FINANCE, SUPER_ADMIN)),
+    service: AdminService = Depends(get_admin_service),
+) -> dict[str, Any]:
+    try:
+        parsed = UUID(price_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="无效的价格 id") from exc
+    result = await service.set_pricing_price_active(price_id=parsed, active=body.active, actor=principal.user.user_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="价格版本不存在")
+    return result
+
+
+@router.post("/pricing/plans", status_code=201)
+async def upsert_pricing_plan(
+    body: PricingPlanRequest,
+    principal: AdminPrincipal = Depends(require_admin_role(FINANCE, SUPER_ADMIN)),
+    service: AdminService = Depends(get_admin_service),
+) -> dict[str, Any]:
+    return await service.upsert_pricing_plan(
+        plan_code=_pricing_code(body.plan_code), name=body.name.strip(),
+        monthly_query_limit=_pricing_nonnegative(body.monthly_query_limit),
+        monthly_report_quota=_pricing_nonnegative(body.monthly_report_quota),
+        subscription_slots=_pricing_nonnegative(body.subscription_slots),
+        export_rows_monthly=_pricing_nonnegative(body.export_rows_monthly), active=body.active,
+        actor=principal.user.user_id,
     )
 
 

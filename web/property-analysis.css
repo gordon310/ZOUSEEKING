@@ -361,6 +361,31 @@ button:disabled {
   color: var(--danger);
 }
 
+.recognition-card {
+  display: grid;
+  gap: 10px;
+  margin-top: 24px;
+  padding: 18px;
+  border: 1px solid #f0c4ae;
+  border-radius: var(--radius-md);
+  background: var(--surface-warm);
+}
+
+.recognition-card h3,
+.recognition-card p { margin: 0; }
+
+.recognition-card h3 { font-size: 20px; }
+.recognition-card > div > p:last-child { color: var(--navy-soft); font-size: 14px; }
+.recognition-card .file-input { position: static; width: auto; height: auto; overflow: visible; clip: auto; }
+.recognition-status[data-tone="error"] { color: var(--danger); }
+.recognition-status[data-tone="warning"] { color: #9a6500; }
+.recognition-results { display: grid; gap: 10px; }
+.recognition-disclaimer { color: var(--orange-dark); font-weight: 800; }
+.recognition-candidate { display: grid; gap: 5px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--white); }
+.recognition-candidate h4,
+.recognition-candidate p { margin: 0; }
+.recognition-candidate a { color: var(--navy); font-size: 14px; font-weight: 700; }
+
 .intake-section {
   min-width: 0;
 }

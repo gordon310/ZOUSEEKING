@@ -88,6 +88,21 @@
   }
 
   window.ZouAdminApi = Object.freeze({
+    getPricing() {
+      return request("/api/admin/pricing");
+    },
+    createPricingPrice(body) {
+      return request("/api/admin/pricing/prices", { method: "POST", body });
+    },
+    setPricingPriceStatus(priceId, active) {
+      return request(`/api/admin/pricing/prices/${encodeURIComponent(priceId)}/status`, { method: "POST", body: { active } });
+    },
+    upsertPricingRegion(body) {
+      return request("/api/admin/pricing/regions", { method: "POST", body });
+    },
+    upsertPricingPlan(body) {
+      return request("/api/admin/pricing/plans", { method: "POST", body });
+    },
     // GET /api/admin/members?q=&page=&page_size=
     listMembers({ q = "", page = 1, page_size = 20 } = {}) {
       return request("/api/admin/members", { params: { q, page, page_size } });

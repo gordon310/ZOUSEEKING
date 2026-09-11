@@ -69,7 +69,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping, Optional, Union
 from uuid import UUID
 
@@ -93,6 +93,61 @@ from .ports import (
 _USER_SCOPE_PRODUCTS = frozenset({"risk_report_single", "c_plus_monthly"})
 _ORG_SCOPE_PRODUCTS = frozenset({"b_data_pro_monthly"})
 _SUBSCRIPTION_PRODUCTS = frozenset({"c_plus_monthly", "b_data_pro_monthly"})
+_UTC_PLUS_8 = timezone(timedelta(hours=8), name="UTC+08:00")
+
+
+async def _sync_membership_entitlement(
+    conn: asyncpg.Connection,
+    *,
+    user_id: Optional[UUID],
+    organization_id: Optional[UUID],
+    product_code: Optional[str],
+    status: str,
+    period_end: Optional[datetime],
+) -> None:
+    """Mirror webhook-owned tier and provision the current UTC+8 quota."""
+    if product_code not in _SUBSCRIPTION_PRODUCTS:
+        return
+    active = status in {"active", "trialing"} and (
+        period_end is None or period_end > datetime.now(timezone.utc)
+    )
+    tier = product_code.removesuffix("_monthly") if active else "free"
+    daily_limit = {"c_plus": 100, "b_data_pro": 500}.get(tier, 3)
+    has_profiles = await conn.fetchval("select to_regclass('public.user_profiles')")
+    if has_profiles:
+        if user_id is not None:
+            await conn.execute(
+                "update public.user_profiles set membership_tier=$2, daily_query_limit=$3"
+                " where user_id=$1",
+                user_id, tier, daily_limit,
+            )
+        elif organization_id is not None:
+            await conn.execute(
+                "update public.user_profiles up set membership_tier=$2, daily_query_limit=$3"
+                " where exists (select 1 from public.organization_members om"
+                "               where om.user_id=up.user_id and om.organization_id=$1"
+                "                 and om.status='active')",
+                organization_id, tier, daily_limit,
+            )
+    if not await conn.fetchval("select to_regclass('public.usage_quotas')"):
+        return
+    period_key = datetime.now(timezone.utc).astimezone(_UTC_PLUS_8).strftime("%Y-%m")
+    scope_key = f"user:{user_id}" if user_id is not None else f"org:{organization_id}"
+    limits = (
+        [("report", 12)] if product_code == "c_plus_monthly" else
+        [("query", 500), ("stats_query", 100), ("export_row", 10000), ("subscription_slot", 10)]
+    )
+    for usage_kind, limit in limits:
+        await conn.execute(
+            "insert into public.usage_quotas"
+            " (scope_key, usage_kind, period_key, limit_units, reset_at)"
+            " values ($1, $2, $3, $4, date_trunc('month', now() at time zone 'UTC+8')"
+            "                    + interval '1 month')"
+            " on conflict (scope_key, usage_kind, period_key) do update"
+            " set limit_units = case when $5 then excluded.limit_units"
+            "                       else usage_quotas.consumed_units + usage_quotas.reserved_units end",
+            scope_key, usage_kind, period_key, limit, active,
+        )
 
 # Stripe statuses that V1's subscriptions_status_allowed check can store.
 _ALLOWED_SUBSCRIPTION_STATUSES = frozenset(
@@ -783,6 +838,10 @@ class PostgresBillingStore:
                     cancel_at_period_end=False,
                 )
             )
+            await _sync_membership_entitlement(
+                conn, user_id=user_id, organization_id=organization_id,
+                product_code=product_code, status=status, period_end=None,
+            )
         elif mode == "payment":
             order_no = f"ord_{session_id}"
             if not currency or not isinstance(amount_minor, int) or amount_minor <= 0:
@@ -793,9 +852,9 @@ class PostgresBillingStore:
             await conn.execute(
                 "insert into public.payment_orders"
                 " (order_no, owner_user_id, organization_id, product_code, price_version,"
-                "  currency, amount_minor, status, provider, provider_session_id,"
+                "  currency, amount_minor, status, provider, provider_session_id, subject_id,"
                 "  provider_payment_intent_id, paid_at)"
-                " values ($1, $2, $3, $4, $5, $6, $7, $8, 'stripe', $9, $10, $11)"
+                " values ($1, $2, $3, $4, $5, $6, $7, $8, 'stripe', $9, $10, $11, $12)"
                 " on conflict (order_no) do update set"
                 "  provider_session_id = coalesce(excluded.provider_session_id,"
                 "                                 payment_orders.provider_session_id),"
@@ -814,6 +873,7 @@ class PostgresBillingStore:
                 amount_minor,
                 "paid" if is_paid else "pending",
                 session_id,
+                str(metadata.get("subject_id") or "") or None,
                 str(obj.get("payment_intent") or "") or None,
                 datetime.now(timezone.utc) if is_paid else None,
             )
@@ -861,6 +921,11 @@ class PostgresBillingStore:
                 cancel_at_period_end=bool(obj.get("cancel_at_period_end", False)),
             )
         )
+        await _sync_membership_entitlement(
+            conn, user_id=user_id, organization_id=organization_id,
+            product_code=product_code, status=status,
+            period_end=_stripe_datetime(obj.get("current_period_end")),
+        )
         return note
 
     async def _on_invoice_paid(
@@ -897,6 +962,14 @@ class PostgresBillingStore:
             "update public.subscriptions set status = 'active'"
             " where stripe_subscription_id = $1 and status <> 'canceled'",
             stripe_subscription_id,
+        )
+        await _sync_membership_entitlement(
+            conn,
+            user_id=_row_value(sub, "user_id"),
+            organization_id=_row_value(sub, "organization_id"),
+            product_code=_row_value(sub, "product_code"),
+            status="active",
+            period_end=_row_value(sub, "current_period_end"),
         )
         note["subscription_reactivated"] = stripe_subscription_id
 
@@ -950,6 +1023,16 @@ class PostgresBillingStore:
             stripe_subscription_id,
         )
         count = int(updated.split()[-1]) if updated else 0
+        sub = await self._existing_subscription(conn, stripe_subscription_id)
+        if sub is not None:
+            await _sync_membership_entitlement(
+                conn,
+                user_id=_row_value(sub, "user_id"),
+                organization_id=_row_value(sub, "organization_id"),
+                product_code=_row_value(sub, "product_code"),
+                status="past_due",
+                period_end=_row_value(sub, "current_period_end"),
+            )
         note["subscriptions_past_due"] = count
         if count == 0:
             note["orphan"] = f"unknown subscription {stripe_subscription_id}"
@@ -1012,6 +1095,31 @@ class PostgresBillingStore:
         if status == "succeeded":
             await self._recompute_order_refund_status(conn, order_id)
             note["order_refund_state_recomputed"] = True
+            refunded_order = await conn.fetchrow(
+                "select product_code, owner_user_id, organization_id, status"
+                " from public.payment_orders where id=$1",
+                order_id,
+            )
+            if refunded_order is not None and _row_value(refunded_order, "status") == "refunded":
+                product_code = _row_value(refunded_order, "product_code")
+                if product_code in _SUBSCRIPTION_PRODUCTS:
+                    await conn.execute(
+                        "update public.subscriptions set status='canceled'"
+                        " where product_code=$1 and status in ('trialing','active','past_due','unpaid')"
+                        " and ((user_id=$2 and $2 is not null) or (organization_id=$3 and $3 is not null))",
+                        product_code,
+                        _row_value(refunded_order, "owner_user_id"),
+                        _row_value(refunded_order, "organization_id"),
+                    )
+                    await _sync_membership_entitlement(
+                        conn,
+                        user_id=_row_value(refunded_order, "owner_user_id"),
+                        organization_id=_row_value(refunded_order, "organization_id"),
+                        product_code=product_code,
+                        status="canceled",
+                        period_end=None,
+                    )
+                    note["subscription_entitlement_revoked"] = True
         return note
 
     async def _recompute_order_refund_status(

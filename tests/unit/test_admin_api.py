@@ -230,6 +230,18 @@ class FakeAdminService:
             "changed": True,
         }
 
+    async def get_pricing(self):
+        return {"products": [], "prices": [], "regions": [], "plans": []}
+
+    async def add_pricing_price(self, **kwargs):
+        return {"product_code": kwargs["product_code"], "currency": kwargs["currency"], "price_version": 2, "created_by": str(kwargs["actor"])}
+
+    async def upsert_pricing_region(self, **kwargs):
+        return {"region_code": kwargs["region_code"], "currency": kwargs["currency"], "active": kwargs["active"]}
+
+    async def upsert_pricing_plan(self, **kwargs):
+        return {"plan_code": kwargs["plan_code"], "plan_version": 2, "created_by": str(kwargs["actor"])}
+
 
 def _build_app(fake_service: FakeAdminService) -> FastAPI:
     app = FastAPI()
@@ -309,6 +321,9 @@ def test_admin_principal_role_set_and_has_role() -> None:
         ("/api/admin/finance/orders", "get", ["member_ops"], 403),
         ("/api/admin/finance/refunds", "get", ["finance"], 200),
         ("/api/admin/finance/refunds", "get", ["member_ops"], 403),
+        # pricing: finance or super_admin
+        ("/api/admin/pricing", "get", ["finance"], 200),
+        ("/api/admin/pricing", "get", ["member_ops"], 403),
         # audit: super_admin full, member_ops member scope
         ("/api/admin/audit", "get", ["super_admin"], 200),
         ("/api/admin/audit", "get", ["member_ops"], 200),
@@ -340,6 +355,17 @@ def test_audit_member_ops_requests_scoped_log_super_admin_full() -> None:
     full = FakeAdminService(roles=["super_admin"])
     assert _call(_build_app(full), "get", "/api/admin/audit").status_code == 200
     assert full.audit_scopes == [False]
+
+
+def test_pricing_write_requires_finance_and_passes_actor_to_service() -> None:
+    body = {"product_code": "c_plus_monthly", "currency": "CNY", "amount_minor": 5000, "stripe_price_id": "price_new"}
+    allowed = _build_app(FakeAdminService(roles=["finance"]))
+    response = _call(allowed, "post", "/api/admin/pricing/prices", json=body)
+    assert response.status_code == 201
+    assert response.json()["price_version"] == 2
+
+    denied = _build_app(FakeAdminService(roles=["member_ops"]))
+    assert _call(denied, "post", "/api/admin/pricing/prices", json=body).status_code == 403
 
 
 def test_members_response_masks_email_only_outside_gate() -> None:
@@ -1676,4 +1702,3 @@ async def test_http_member_status_role_gate_and_validation_real(
     rows = await _member_status_rows(seeded_pool)
     assert len(rows) == 1  # only the member_ops suspension above
     assert rows[0]["actor_user_id"] == MEMBER
-

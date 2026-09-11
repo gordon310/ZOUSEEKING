@@ -1,0 +1,6990 @@
+{
+  "01100": {
+    "prefecture": "北海道",
+    "city": "札幌市"
+  },
+  "01202": {
+    "prefecture": "北海道",
+    "city": "函館市"
+  },
+  "01203": {
+    "prefecture": "北海道",
+    "city": "小樽市"
+  },
+  "01204": {
+    "prefecture": "北海道",
+    "city": "旭川市"
+  },
+  "01205": {
+    "prefecture": "北海道",
+    "city": "室蘭市"
+  },
+  "01206": {
+    "prefecture": "北海道",
+    "city": "釧路市"
+  },
+  "01207": {
+    "prefecture": "北海道",
+    "city": "帯広市"
+  },
+  "01208": {
+    "prefecture": "北海道",
+    "city": "北見市"
+  },
+  "01209": {
+    "prefecture": "北海道",
+    "city": "夕張市"
+  },
+  "01210": {
+    "prefecture": "北海道",
+    "city": "岩見沢市"
+  },
+  "01211": {
+    "prefecture": "北海道",
+    "city": "網走市"
+  },
+  "01212": {
+    "prefecture": "北海道",
+    "city": "留萌市"
+  },
+  "01213": {
+    "prefecture": "北海道",
+    "city": "苫小牧市"
+  },
+  "01214": {
+    "prefecture": "北海道",
+    "city": "稚内市"
+  },
+  "01215": {
+    "prefecture": "北海道",
+    "city": "美唄市"
+  },
+  "01216": {
+    "prefecture": "北海道",
+    "city": "芦別市"
+  },
+  "01217": {
+    "prefecture": "北海道",
+    "city": "江別市"
+  },
+  "01218": {
+    "prefecture": "北海道",
+    "city": "赤平市"
+  },
+  "01219": {
+    "prefecture": "北海道",
+    "city": "紋別市"
+  },
+  "01220": {
+    "prefecture": "北海道",
+    "city": "士別市"
+  },
+  "01221": {
+    "prefecture": "北海道",
+    "city": "名寄市"
+  },
+  "01222": {
+    "prefecture": "北海道",
+    "city": "三笠市"
+  },
+  "01223": {
+    "prefecture": "北海道",
+    "city": "根室市"
+  },
+  "01224": {
+    "prefecture": "北海道",
+    "city": "千歳市"
+  },
+  "01225": {
+    "prefecture": "北海道",
+    "city": "滝川市"
+  },
+  "01226": {
+    "prefecture": "北海道",
+    "city": "砂川市"
+  },
+  "01227": {
+    "prefecture": "北海道",
+    "city": "歌志内市"
+  },
+  "01228": {
+    "prefecture": "北海道",
+    "city": "深川市"
+  },
+  "01229": {
+    "prefecture": "北海道",
+    "city": "富良野市"
+  },
+  "01230": {
+    "prefecture": "北海道",
+    "city": "登別市"
+  },
+  "01231": {
+    "prefecture": "北海道",
+    "city": "恵庭市"
+  },
+  "01233": {
+    "prefecture": "北海道",
+    "city": "伊達市"
+  },
+  "01234": {
+    "prefecture": "北海道",
+    "city": "北広島市"
+  },
+  "01235": {
+    "prefecture": "北海道",
+    "city": "石狩市"
+  },
+  "01236": {
+    "prefecture": "北海道",
+    "city": "北斗市"
+  },
+  "01303": {
+    "prefecture": "北海道",
+    "city": "当別町"
+  },
+  "01304": {
+    "prefecture": "北海道",
+    "city": "新篠津村"
+  },
+  "01331": {
+    "prefecture": "北海道",
+    "city": "松前町"
+  },
+  "01332": {
+    "prefecture": "北海道",
+    "city": "福島町"
+  },
+  "01333": {
+    "prefecture": "北海道",
+    "city": "知内町"
+  },
+  "01334": {
+    "prefecture": "北海道",
+    "city": "木古内町"
+  },
+  "01337": {
+    "prefecture": "北海道",
+    "city": "七飯町"
+  },
+  "01343": {
+    "prefecture": "北海道",
+    "city": "鹿部町"
+  },
+  "01345": {
+    "prefecture": "北海道",
+    "city": "森町"
+  },
+  "01346": {
+    "prefecture": "北海道",
+    "city": "八雲町"
+  },
+  "01347": {
+    "prefecture": "北海道",
+    "city": "長万部町"
+  },
+  "01361": {
+    "prefecture": "北海道",
+    "city": "江差町"
+  },
+  "01362": {
+    "prefecture": "北海道",
+    "city": "上ノ国町"
+  },
+  "01363": {
+    "prefecture": "北海道",
+    "city": "厚沢部町"
+  },
+  "01364": {
+    "prefecture": "北海道",
+    "city": "乙部町"
+  },
+  "01367": {
+    "prefecture": "北海道",
+    "city": "奥尻町"
+  },
+  "01370": {
+    "prefecture": "北海道",
+    "city": "今金町"
+  },
+  "01371": {
+    "prefecture": "北海道",
+    "city": "せたな町"
+  },
+  "01391": {
+    "prefecture": "北海道",
+    "city": "島牧村"
+  },
+  "01392": {
+    "prefecture": "北海道",
+    "city": "寿都町"
+  },
+  "01393": {
+    "prefecture": "北海道",
+    "city": "黒松内町"
+  },
+  "01394": {
+    "prefecture": "北海道",
+    "city": "蘭越町"
+  },
+  "01395": {
+    "prefecture": "北海道",
+    "city": "ニセコ町"
+  },
+  "01396": {
+    "prefecture": "北海道",
+    "city": "真狩村"
+  },
+  "01397": {
+    "prefecture": "北海道",
+    "city": "留寿都村"
+  },
+  "01398": {
+    "prefecture": "北海道",
+    "city": "喜茂別町"
+  },
+  "01399": {
+    "prefecture": "北海道",
+    "city": "京極町"
+  },
+  "01400": {
+    "prefecture": "北海道",
+    "city": "倶知安町"
+  },
+  "01401": {
+    "prefecture": "北海道",
+    "city": "共和町"
+  },
+  "01402": {
+    "prefecture": "北海道",
+    "city": "岩内町"
+  },
+  "01403": {
+    "prefecture": "北海道",
+    "city": "泊村"
+  },
+  "01404": {
+    "prefecture": "北海道",
+    "city": "神恵内村"
+  },
+  "01405": {
+    "prefecture": "北海道",
+    "city": "積丹町"
+  },
+  "01406": {
+    "prefecture": "北海道",
+    "city": "古平町"
+  },
+  "01407": {
+    "prefecture": "北海道",
+    "city": "仁木町"
+  },
+  "01408": {
+    "prefecture": "北海道",
+    "city": "余市町"
+  },
+  "01409": {
+    "prefecture": "北海道",
+    "city": "赤井川村"
+  },
+  "01423": {
+    "prefecture": "北海道",
+    "city": "南幌町"
+  },
+  "01424": {
+    "prefecture": "北海道",
+    "city": "奈井江町"
+  },
+  "01425": {
+    "prefecture": "北海道",
+    "city": "上砂川町"
+  },
+  "01427": {
+    "prefecture": "北海道",
+    "city": "由仁町"
+  },
+  "01428": {
+    "prefecture": "北海道",
+    "city": "長沼町"
+  },
+  "01429": {
+    "prefecture": "北海道",
+    "city": "栗山町"
+  },
+  "01430": {
+    "prefecture": "北海道",
+    "city": "月形町"
+  },
+  "01431": {
+    "prefecture": "北海道",
+    "city": "浦臼町"
+  },
+  "01432": {
+    "prefecture": "北海道",
+    "city": "新十津川町"
+  },
+  "01433": {
+    "prefecture": "北海道",
+    "city": "妹背牛町"
+  },
+  "01434": {
+    "prefecture": "北海道",
+    "city": "秩父別町"
+  },
+  "01436": {
+    "prefecture": "北海道",
+    "city": "雨竜町"
+  },
+  "01437": {
+    "prefecture": "北海道",
+    "city": "北竜町"
+  },
+  "01438": {
+    "prefecture": "北海道",
+    "city": "沼田町"
+  },
+  "01452": {
+    "prefecture": "北海道",
+    "city": "鷹栖町"
+  },
+  "01453": {
+    "prefecture": "北海道",
+    "city": "東神楽町"
+  },
+  "01454": {
+    "prefecture": "北海道",
+    "city": "当麻町"
+  },
+  "01455": {
+    "prefecture": "北海道",
+    "city": "比布町"
+  },
+  "01456": {
+    "prefecture": "北海道",
+    "city": "愛別町"
+  },
+  "01457": {
+    "prefecture": "北海道",
+    "city": "上川町"
+  },
+  "01458": {
+    "prefecture": "北海道",
+    "city": "東川町"
+  },
+  "01459": {
+    "prefecture": "北海道",
+    "city": "美瑛町"
+  },
+  "01460": {
+    "prefecture": "北海道",
+    "city": "上富良野町"
+  },
+  "01461": {
+    "prefecture": "北海道",
+    "city": "中富良野町"
+  },
+  "01462": {
+    "prefecture": "北海道",
+    "city": "南富良野町"
+  },
+  "01463": {
+    "prefecture": "北海道",
+    "city": "占冠村"
+  },
+  "01464": {
+    "prefecture": "北海道",
+    "city": "和寒町"
+  },
+  "01465": {
+    "prefecture": "北海道",
+    "city": "剣淵町"
+  },
+  "01468": {
+    "prefecture": "北海道",
+    "city": "下川町"
+  },
+  "01469": {
+    "prefecture": "北海道",
+    "city": "美深町"
+  },
+  "01470": {
+    "prefecture": "北海道",
+    "city": "音威子府村"
+  },
+  "01471": {
+    "prefecture": "北海道",
+    "city": "中川町"
+  },
+  "01472": {
+    "prefecture": "北海道",
+    "city": "幌加内町"
+  },
+  "01481": {
+    "prefecture": "北海道",
+    "city": "増毛町"
+  },
+  "01482": {
+    "prefecture": "北海道",
+    "city": "小平町"
+  },
+  "01483": {
+    "prefecture": "北海道",
+    "city": "苫前町"
+  },
+  "01484": {
+    "prefecture": "北海道",
+    "city": "羽幌町"
+  },
+  "01485": {
+    "prefecture": "北海道",
+    "city": "初山別村"
+  },
+  "01486": {
+    "prefecture": "北海道",
+    "city": "遠別町"
+  },
+  "01487": {
+    "prefecture": "北海道",
+    "city": "天塩町"
+  },
+  "01511": {
+    "prefecture": "北海道",
+    "city": "猿払村"
+  },
+  "01512": {
+    "prefecture": "北海道",
+    "city": "浜頓別町"
+  },
+  "01513": {
+    "prefecture": "北海道",
+    "city": "中頓別町"
+  },
+  "01514": {
+    "prefecture": "北海道",
+    "city": "枝幸町"
+  },
+  "01516": {
+    "prefecture": "北海道",
+    "city": "豊富町"
+  },
+  "01517": {
+    "prefecture": "北海道",
+    "city": "礼文町"
+  },
+  "01518": {
+    "prefecture": "北海道",
+    "city": "利尻町"
+  },
+  "01519": {
+    "prefecture": "北海道",
+    "city": "利尻富士町"
+  },
+  "01520": {
+    "prefecture": "北海道",
+    "city": "幌延町"
+  },
+  "01543": {
+    "prefecture": "北海道",
+    "city": "美幌町"
+  },
+  "01544": {
+    "prefecture": "北海道",
+    "city": "津別町"
+  },
+  "01545": {
+    "prefecture": "北海道",
+    "city": "斜里町"
+  },
+  "01546": {
+    "prefecture": "北海道",
+    "city": "清里町"
+  },
+  "01547": {
+    "prefecture": "北海道",
+    "city": "小清水町"
+  },
+  "01549": {
+    "prefecture": "北海道",
+    "city": "訓子府町"
+  },
+  "01550": {
+    "prefecture": "北海道",
+    "city": "置戸町"
+  },
+  "01552": {
+    "prefecture": "北海道",
+    "city": "佐呂間町"
+  },
+  "01555": {
+    "prefecture": "北海道",
+    "city": "遠軽町"
+  },
+  "01559": {
+    "prefecture": "北海道",
+    "city": "湧別町"
+  },
+  "01560": {
+    "prefecture": "北海道",
+    "city": "滝上町"
+  },
+  "01561": {
+    "prefecture": "北海道",
+    "city": "興部町"
+  },
+  "01562": {
+    "prefecture": "北海道",
+    "city": "西興部村"
+  },
+  "01563": {
+    "prefecture": "北海道",
+    "city": "雄武町"
+  },
+  "01564": {
+    "prefecture": "北海道",
+    "city": "大空町"
+  },
+  "01571": {
+    "prefecture": "北海道",
+    "city": "豊浦町"
+  },
+  "01575": {
+    "prefecture": "北海道",
+    "city": "壮瞥町"
+  },
+  "01578": {
+    "prefecture": "北海道",
+    "city": "白老町"
+  },
+  "01581": {
+    "prefecture": "北海道",
+    "city": "厚真町"
+  },
+  "01584": {
+    "prefecture": "北海道",
+    "city": "洞爺湖町"
+  },
+  "01585": {
+    "prefecture": "北海道",
+    "city": "安平町"
+  },
+  "01586": {
+    "prefecture": "北海道",
+    "city": "むかわ町"
+  },
+  "01601": {
+    "prefecture": "北海道",
+    "city": "日高町"
+  },
+  "01602": {
+    "prefecture": "北海道",
+    "city": "平取町"
+  },
+  "01604": {
+    "prefecture": "北海道",
+    "city": "新冠町"
+  },
+  "01607": {
+    "prefecture": "北海道",
+    "city": "浦河町"
+  },
+  "01608": {
+    "prefecture": "北海道",
+    "city": "様似町"
+  },
+  "01609": {
+    "prefecture": "北海道",
+    "city": "えりも町"
+  },
+  "01610": {
+    "prefecture": "北海道",
+    "city": "新ひだか町"
+  },
+  "01631": {
+    "prefecture": "北海道",
+    "city": "音更町"
+  },
+  "01632": {
+    "prefecture": "北海道",
+    "city": "士幌町"
+  },
+  "01633": {
+    "prefecture": "北海道",
+    "city": "上士幌町"
+  },
+  "01634": {
+    "prefecture": "北海道",
+    "city": "鹿追町"
+  },
+  "01635": {
+    "prefecture": "北海道",
+    "city": "新得町"
+  },
+  "01636": {
+    "prefecture": "北海道",
+    "city": "清水町"
+  },
+  "01637": {
+    "prefecture": "北海道",
+    "city": "芽室町"
+  },
+  "01638": {
+    "prefecture": "北海道",
+    "city": "中札内村"
+  },
+  "01639": {
+    "prefecture": "北海道",
+    "city": "更別村"
+  },
+  "01641": {
+    "prefecture": "北海道",
+    "city": "大樹町"
+  },
+  "01642": {
+    "prefecture": "北海道",
+    "city": "広尾町"
+  },
+  "01643": {
+    "prefecture": "北海道",
+    "city": "幕別町"
+  },
+  "01644": {
+    "prefecture": "北海道",
+    "city": "池田町"
+  },
+  "01645": {
+    "prefecture": "北海道",
+    "city": "豊頃町"
+  },
+  "01646": {
+    "prefecture": "北海道",
+    "city": "本別町"
+  },
+  "01647": {
+    "prefecture": "北海道",
+    "city": "足寄町"
+  },
+  "01648": {
+    "prefecture": "北海道",
+    "city": "陸別町"
+  },
+  "01649": {
+    "prefecture": "北海道",
+    "city": "浦幌町"
+  },
+  "01661": {
+    "prefecture": "北海道",
+    "city": "釧路町"
+  },
+  "01662": {
+    "prefecture": "北海道",
+    "city": "厚岸町"
+  },
+  "01663": {
+    "prefecture": "北海道",
+    "city": "浜中町"
+  },
+  "01664": {
+    "prefecture": "北海道",
+    "city": "標茶町"
+  },
+  "01665": {
+    "prefecture": "北海道",
+    "city": "弟子屈町"
+  },
+  "01667": {
+    "prefecture": "北海道",
+    "city": "鶴居村"
+  },
+  "01668": {
+    "prefecture": "北海道",
+    "city": "白糠町"
+  },
+  "01691": {
+    "prefecture": "北海道",
+    "city": "別海町"
+  },
+  "01692": {
+    "prefecture": "北海道",
+    "city": "中標津町"
+  },
+  "01693": {
+    "prefecture": "北海道",
+    "city": "標津町"
+  },
+  "01694": {
+    "prefecture": "北海道",
+    "city": "羅臼町"
+  },
+  "01695": {
+    "prefecture": "北海道",
+    "city": "色丹村シコタンムラ"
+  },
+  "01696": {
+    "prefecture": "北海道",
+    "city": "泊村トマリムラ"
+  },
+  "01697": {
+    "prefecture": "北海道",
+    "city": "留夜別村"
+  },
+  "01698": {
+    "prefecture": "北海道",
+    "city": "留別村"
+  },
+  "01699": {
+    "prefecture": "北海道",
+    "city": "紗那村"
+  },
+  "01700": {
+    "prefecture": "北海道",
+    "city": "蘂取村"
+  },
+  "02201": {
+    "prefecture": "青森県",
+    "city": "青森市"
+  },
+  "02202": {
+    "prefecture": "青森県",
+    "city": "弘前市"
+  },
+  "02203": {
+    "prefecture": "青森県",
+    "city": "八戸市"
+  },
+  "02204": {
+    "prefecture": "青森県",
+    "city": "黒石市"
+  },
+  "02205": {
+    "prefecture": "青森県",
+    "city": "五所川原市"
+  },
+  "02206": {
+    "prefecture": "青森県",
+    "city": "十和田市"
+  },
+  "02207": {
+    "prefecture": "青森県",
+    "city": "三沢市"
+  },
+  "02208": {
+    "prefecture": "青森県",
+    "city": "むつ市"
+  },
+  "02209": {
+    "prefecture": "青森県",
+    "city": "つがる市"
+  },
+  "02210": {
+    "prefecture": "青森県",
+    "city": "平川市"
+  },
+  "02301": {
+    "prefecture": "青森県",
+    "city": "平内町"
+  },
+  "02303": {
+    "prefecture": "青森県",
+    "city": "今別町"
+  },
+  "02304": {
+    "prefecture": "青森県",
+    "city": "蓬田村"
+  },
+  "02307": {
+    "prefecture": "青森県",
+    "city": "外ヶ浜町"
+  },
+  "02321": {
+    "prefecture": "青森県",
+    "city": "鰺ヶ沢町"
+  },
+  "02323": {
+    "prefecture": "青森県",
+    "city": "深浦町"
+  },
+  "02343": {
+    "prefecture": "青森県",
+    "city": "西目屋村"
+  },
+  "02361": {
+    "prefecture": "青森県",
+    "city": "藤崎町"
+  },
+  "02362": {
+    "prefecture": "青森県",
+    "city": "大鰐町"
+  },
+  "02367": {
+    "prefecture": "青森県",
+    "city": "田舎館村"
+  },
+  "02381": {
+    "prefecture": "青森県",
+    "city": "板柳町"
+  },
+  "02384": {
+    "prefecture": "青森県",
+    "city": "鶴田町"
+  },
+  "02387": {
+    "prefecture": "青森県",
+    "city": "中泊町"
+  },
+  "02401": {
+    "prefecture": "青森県",
+    "city": "野辺地町"
+  },
+  "02402": {
+    "prefecture": "青森県",
+    "city": "七戸町"
+  },
+  "02405": {
+    "prefecture": "青森県",
+    "city": "六戸町"
+  },
+  "02406": {
+    "prefecture": "青森県",
+    "city": "横浜町"
+  },
+  "02408": {
+    "prefecture": "青森県",
+    "city": "東北町"
+  },
+  "02411": {
+    "prefecture": "青森県",
+    "city": "六ヶ所村"
+  },
+  "02412": {
+    "prefecture": "青森県",
+    "city": "おいらせ町"
+  },
+  "02423": {
+    "prefecture": "青森県",
+    "city": "大間町"
+  },
+  "02424": {
+    "prefecture": "青森県",
+    "city": "東通村"
+  },
+  "02425": {
+    "prefecture": "青森県",
+    "city": "風間浦村"
+  },
+  "02426": {
+    "prefecture": "青森県",
+    "city": "佐井村"
+  },
+  "02441": {
+    "prefecture": "青森県",
+    "city": "三戸町"
+  },
+  "02442": {
+    "prefecture": "青森県",
+    "city": "五戸町"
+  },
+  "02443": {
+    "prefecture": "青森県",
+    "city": "田子町"
+  },
+  "02445": {
+    "prefecture": "青森県",
+    "city": "南部町"
+  },
+  "02446": {
+    "prefecture": "青森県",
+    "city": "階上町"
+  },
+  "02450": {
+    "prefecture": "青森県",
+    "city": "新郷村"
+  },
+  "03201": {
+    "prefecture": "岩手県",
+    "city": "盛岡市"
+  },
+  "03202": {
+    "prefecture": "岩手県",
+    "city": "宮古市"
+  },
+  "03203": {
+    "prefecture": "岩手県",
+    "city": "大船渡市"
+  },
+  "03205": {
+    "prefecture": "岩手県",
+    "city": "花巻市"
+  },
+  "03206": {
+    "prefecture": "岩手県",
+    "city": "北上市"
+  },
+  "03207": {
+    "prefecture": "岩手県",
+    "city": "久慈市"
+  },
+  "03208": {
+    "prefecture": "岩手県",
+    "city": "遠野市"
+  },
+  "03209": {
+    "prefecture": "岩手県",
+    "city": "一関市"
+  },
+  "03210": {
+    "prefecture": "岩手県",
+    "city": "陸前高田市"
+  },
+  "03211": {
+    "prefecture": "岩手県",
+    "city": "釜石市"
+  },
+  "03213": {
+    "prefecture": "岩手県",
+    "city": "二戸市"
+  },
+  "03214": {
+    "prefecture": "岩手県",
+    "city": "八幡平市"
+  },
+  "03215": {
+    "prefecture": "岩手県",
+    "city": "奥州市"
+  },
+  "03216": {
+    "prefecture": "岩手県",
+    "city": "滝沢市シ"
+  },
+  "03301": {
+    "prefecture": "岩手県",
+    "city": "雫石町"
+  },
+  "03302": {
+    "prefecture": "岩手県",
+    "city": "葛巻町"
+  },
+  "03303": {
+    "prefecture": "岩手県",
+    "city": "岩手町"
+  },
+  "03321": {
+    "prefecture": "岩手県",
+    "city": "紫波町"
+  },
+  "03322": {
+    "prefecture": "岩手県",
+    "city": "矢巾町"
+  },
+  "03366": {
+    "prefecture": "岩手県",
+    "city": "西和賀町"
+  },
+  "03381": {
+    "prefecture": "岩手県",
+    "city": "金ケ崎町"
+  },
+  "03402": {
+    "prefecture": "岩手県",
+    "city": "平泉町"
+  },
+  "03441": {
+    "prefecture": "岩手県",
+    "city": "住田町"
+  },
+  "03461": {
+    "prefecture": "岩手県",
+    "city": "大槌町"
+  },
+  "03482": {
+    "prefecture": "岩手県",
+    "city": "山田町"
+  },
+  "03483": {
+    "prefecture": "岩手県",
+    "city": "岩泉町"
+  },
+  "03484": {
+    "prefecture": "岩手県",
+    "city": "田野畑村"
+  },
+  "03485": {
+    "prefecture": "岩手県",
+    "city": "普代村"
+  },
+  "03501": {
+    "prefecture": "岩手県",
+    "city": "軽米町"
+  },
+  "03503": {
+    "prefecture": "岩手県",
+    "city": "野田村"
+  },
+  "03506": {
+    "prefecture": "岩手県",
+    "city": "九戸村"
+  },
+  "03507": {
+    "prefecture": "岩手県",
+    "city": "洋野町"
+  },
+  "03524": {
+    "prefecture": "岩手県",
+    "city": "一戸町"
+  },
+  "04100": {
+    "prefecture": "宮城県",
+    "city": "仙台市"
+  },
+  "04202": {
+    "prefecture": "宮城県",
+    "city": "石巻市"
+  },
+  "04203": {
+    "prefecture": "宮城県",
+    "city": "塩竈市"
+  },
+  "04205": {
+    "prefecture": "宮城県",
+    "city": "気仙沼市"
+  },
+  "04206": {
+    "prefecture": "宮城県",
+    "city": "白石市"
+  },
+  "04207": {
+    "prefecture": "宮城県",
+    "city": "名取市"
+  },
+  "04208": {
+    "prefecture": "宮城県",
+    "city": "角田市"
+  },
+  "04209": {
+    "prefecture": "宮城県",
+    "city": "多賀城市"
+  },
+  "04211": {
+    "prefecture": "宮城県",
+    "city": "岩沼市"
+  },
+  "04212": {
+    "prefecture": "宮城県",
+    "city": "登米市"
+  },
+  "04213": {
+    "prefecture": "宮城県",
+    "city": "栗原市"
+  },
+  "04214": {
+    "prefecture": "宮城県",
+    "city": "東松島市"
+  },
+  "04215": {
+    "prefecture": "宮城県",
+    "city": "大崎市"
+  },
+  "04216": {
+    "prefecture": "宮城県",
+    "city": "富谷市シ"
+  },
+  "04301": {
+    "prefecture": "宮城県",
+    "city": "蔵王町"
+  },
+  "04302": {
+    "prefecture": "宮城県",
+    "city": "七ヶ宿町"
+  },
+  "04321": {
+    "prefecture": "宮城県",
+    "city": "大河原町"
+  },
+  "04322": {
+    "prefecture": "宮城県",
+    "city": "村田町"
+  },
+  "04323": {
+    "prefecture": "宮城県",
+    "city": "柴田町"
+  },
+  "04324": {
+    "prefecture": "宮城県",
+    "city": "川崎町"
+  },
+  "04341": {
+    "prefecture": "宮城県",
+    "city": "丸森町"
+  },
+  "04361": {
+    "prefecture": "宮城県",
+    "city": "亘理町"
+  },
+  "04362": {
+    "prefecture": "宮城県",
+    "city": "山元町"
+  },
+  "04401": {
+    "prefecture": "宮城県",
+    "city": "松島町"
+  },
+  "04404": {
+    "prefecture": "宮城県",
+    "city": "七ヶ浜町"
+  },
+  "04406": {
+    "prefecture": "宮城県",
+    "city": "利府町"
+  },
+  "04421": {
+    "prefecture": "宮城県",
+    "city": "大和町"
+  },
+  "04422": {
+    "prefecture": "宮城県",
+    "city": "大郷町"
+  },
+  "04424": {
+    "prefecture": "宮城県",
+    "city": "大衡村"
+  },
+  "04444": {
+    "prefecture": "宮城県",
+    "city": "色麻町"
+  },
+  "04445": {
+    "prefecture": "宮城県",
+    "city": "加美町"
+  },
+  "04501": {
+    "prefecture": "宮城県",
+    "city": "涌谷町"
+  },
+  "04505": {
+    "prefecture": "宮城県",
+    "city": "美里町"
+  },
+  "04581": {
+    "prefecture": "宮城県",
+    "city": "女川町"
+  },
+  "04606": {
+    "prefecture": "宮城県",
+    "city": "南三陸町"
+  },
+  "05201": {
+    "prefecture": "秋田県",
+    "city": "秋田市"
+  },
+  "05202": {
+    "prefecture": "秋田県",
+    "city": "能代市"
+  },
+  "05203": {
+    "prefecture": "秋田県",
+    "city": "横手市"
+  },
+  "05204": {
+    "prefecture": "秋田県",
+    "city": "大館市"
+  },
+  "05206": {
+    "prefecture": "秋田県",
+    "city": "男鹿市"
+  },
+  "05207": {
+    "prefecture": "秋田県",
+    "city": "湯沢市"
+  },
+  "05209": {
+    "prefecture": "秋田県",
+    "city": "鹿角市"
+  },
+  "05210": {
+    "prefecture": "秋田県",
+    "city": "由利本荘市"
+  },
+  "05211": {
+    "prefecture": "秋田県",
+    "city": "潟上市"
+  },
+  "05212": {
+    "prefecture": "秋田県",
+    "city": "大仙市"
+  },
+  "05213": {
+    "prefecture": "秋田県",
+    "city": "北秋田市"
+  },
+  "05214": {
+    "prefecture": "秋田県",
+    "city": "にかほ市"
+  },
+  "05215": {
+    "prefecture": "秋田県",
+    "city": "仙北市"
+  },
+  "05303": {
+    "prefecture": "秋田県",
+    "city": "小坂町"
+  },
+  "05327": {
+    "prefecture": "秋田県",
+    "city": "上小阿仁村"
+  },
+  "05346": {
+    "prefecture": "秋田県",
+    "city": "藤里町"
+  },
+  "05348": {
+    "prefecture": "秋田県",
+    "city": "三種町"
+  },
+  "05349": {
+    "prefecture": "秋田県",
+    "city": "八峰町"
+  },
+  "05361": {
+    "prefecture": "秋田県",
+    "city": "五城目町"
+  },
+  "05363": {
+    "prefecture": "秋田県",
+    "city": "八郎潟町"
+  },
+  "05366": {
+    "prefecture": "秋田県",
+    "city": "井川町"
+  },
+  "05368": {
+    "prefecture": "秋田県",
+    "city": "大潟村"
+  },
+  "05434": {
+    "prefecture": "秋田県",
+    "city": "美郷町"
+  },
+  "05463": {
+    "prefecture": "秋田県",
+    "city": "羽後町"
+  },
+  "05464": {
+    "prefecture": "秋田県",
+    "city": "東成瀬村"
+  },
+  "06201": {
+    "prefecture": "山形県",
+    "city": "山形市"
+  },
+  "06202": {
+    "prefecture": "山形県",
+    "city": "米沢市"
+  },
+  "06203": {
+    "prefecture": "山形県",
+    "city": "鶴岡市"
+  },
+  "06204": {
+    "prefecture": "山形県",
+    "city": "酒田市"
+  },
+  "06205": {
+    "prefecture": "山形県",
+    "city": "新庄市"
+  },
+  "06206": {
+    "prefecture": "山形県",
+    "city": "寒河江市"
+  },
+  "06207": {
+    "prefecture": "山形県",
+    "city": "上山市"
+  },
+  "06208": {
+    "prefecture": "山形県",
+    "city": "村山市"
+  },
+  "06209": {
+    "prefecture": "山形県",
+    "city": "長井市"
+  },
+  "06210": {
+    "prefecture": "山形県",
+    "city": "天童市"
+  },
+  "06211": {
+    "prefecture": "山形県",
+    "city": "東根市"
+  },
+  "06212": {
+    "prefecture": "山形県",
+    "city": "尾花沢市"
+  },
+  "06213": {
+    "prefecture": "山形県",
+    "city": "南陽市"
+  },
+  "06301": {
+    "prefecture": "山形県",
+    "city": "山辺町"
+  },
+  "06302": {
+    "prefecture": "山形県",
+    "city": "中山町"
+  },
+  "06321": {
+    "prefecture": "山形県",
+    "city": "河北町"
+  },
+  "06322": {
+    "prefecture": "山形県",
+    "city": "西川町"
+  },
+  "06323": {
+    "prefecture": "山形県",
+    "city": "朝日町"
+  },
+  "06324": {
+    "prefecture": "山形県",
+    "city": "大江町"
+  },
+  "06341": {
+    "prefecture": "山形県",
+    "city": "大石田町"
+  },
+  "06361": {
+    "prefecture": "山形県",
+    "city": "金山町"
+  },
+  "06362": {
+    "prefecture": "山形県",
+    "city": "最上町"
+  },
+  "06363": {
+    "prefecture": "山形県",
+    "city": "舟形町"
+  },
+  "06364": {
+    "prefecture": "山形県",
+    "city": "真室川町"
+  },
+  "06365": {
+    "prefecture": "山形県",
+    "city": "大蔵村"
+  },
+  "06366": {
+    "prefecture": "山形県",
+    "city": "鮭川村"
+  },
+  "06367": {
+    "prefecture": "山形県",
+    "city": "戸沢村"
+  },
+  "06381": {
+    "prefecture": "山形県",
+    "city": "高畠町"
+  },
+  "06382": {
+    "prefecture": "山形県",
+    "city": "川西町"
+  },
+  "06401": {
+    "prefecture": "山形県",
+    "city": "小国町"
+  },
+  "06402": {
+    "prefecture": "山形県",
+    "city": "白鷹町"
+  },
+  "06403": {
+    "prefecture": "山形県",
+    "city": "飯豊町"
+  },
+  "06426": {
+    "prefecture": "山形県",
+    "city": "三川町"
+  },
+  "06428": {
+    "prefecture": "山形県",
+    "city": "庄内町"
+  },
+  "06461": {
+    "prefecture": "山形県",
+    "city": "遊佐町"
+  },
+  "07201": {
+    "prefecture": "福島県",
+    "city": "福島市"
+  },
+  "07202": {
+    "prefecture": "福島県",
+    "city": "会津若松市"
+  },
+  "07203": {
+    "prefecture": "福島県",
+    "city": "郡山市"
+  },
+  "07204": {
+    "prefecture": "福島県",
+    "city": "いわき市"
+  },
+  "07205": {
+    "prefecture": "福島県",
+    "city": "白河市"
+  },
+  "07207": {
+    "prefecture": "福島県",
+    "city": "須賀川市"
+  },
+  "07208": {
+    "prefecture": "福島県",
+    "city": "喜多方市"
+  },
+  "07209": {
+    "prefecture": "福島県",
+    "city": "相馬市"
+  },
+  "07210": {
+    "prefecture": "福島県",
+    "city": "二本松市"
+  },
+  "07211": {
+    "prefecture": "福島県",
+    "city": "田村市"
+  },
+  "07212": {
+    "prefecture": "福島県",
+    "city": "南相馬市"
+  },
+  "07213": {
+    "prefecture": "福島県",
+    "city": "伊達市"
+  },
+  "07214": {
+    "prefecture": "福島県",
+    "city": "本宮市"
+  },
+  "07301": {
+    "prefecture": "福島県",
+    "city": "桑折町"
+  },
+  "07303": {
+    "prefecture": "福島県",
+    "city": "国見町"
+  },
+  "07308": {
+    "prefecture": "福島県",
+    "city": "川俣町"
+  },
+  "07322": {
+    "prefecture": "福島県",
+    "city": "大玉村"
+  },
+  "07342": {
+    "prefecture": "福島県",
+    "city": "鏡石町"
+  },
+  "07344": {
+    "prefecture": "福島県",
+    "city": "天栄村"
+  },
+  "07362": {
+    "prefecture": "福島県",
+    "city": "下郷町"
+  },
+  "07364": {
+    "prefecture": "福島県",
+    "city": "檜枝岐村"
+  },
+  "07367": {
+    "prefecture": "福島県",
+    "city": "只見町"
+  },
+  "07368": {
+    "prefecture": "福島県",
+    "city": "南会津町"
+  },
+  "07402": {
+    "prefecture": "福島県",
+    "city": "北塩原村"
+  },
+  "07405": {
+    "prefecture": "福島県",
+    "city": "西会津町"
+  },
+  "07407": {
+    "prefecture": "福島県",
+    "city": "磐梯町"
+  },
+  "07408": {
+    "prefecture": "福島県",
+    "city": "猪苗代町"
+  },
+  "07421": {
+    "prefecture": "福島県",
+    "city": "会津坂下町"
+  },
+  "07422": {
+    "prefecture": "福島県",
+    "city": "湯川村"
+  },
+  "07423": {
+    "prefecture": "福島県",
+    "city": "柳津町"
+  },
+  "07444": {
+    "prefecture": "福島県",
+    "city": "三島町"
+  },
+  "07445": {
+    "prefecture": "福島県",
+    "city": "金山町"
+  },
+  "07446": {
+    "prefecture": "福島県",
+    "city": "昭和村"
+  },
+  "07447": {
+    "prefecture": "福島県",
+    "city": "会津美里町"
+  },
+  "07461": {
+    "prefecture": "福島県",
+    "city": "西郷村"
+  },
+  "07464": {
+    "prefecture": "福島県",
+    "city": "泉崎村"
+  },
+  "07465": {
+    "prefecture": "福島県",
+    "city": "中島村"
+  },
+  "07466": {
+    "prefecture": "福島県",
+    "city": "矢吹町"
+  },
+  "07481": {
+    "prefecture": "福島県",
+    "city": "棚倉町"
+  },
+  "07482": {
+    "prefecture": "福島県",
+    "city": "矢祭町"
+  },
+  "07483": {
+    "prefecture": "福島県",
+    "city": "塙町"
+  },
+  "07484": {
+    "prefecture": "福島県",
+    "city": "鮫川村"
+  },
+  "07501": {
+    "prefecture": "福島県",
+    "city": "石川町"
+  },
+  "07502": {
+    "prefecture": "福島県",
+    "city": "玉川村"
+  },
+  "07503": {
+    "prefecture": "福島県",
+    "city": "平田村"
+  },
+  "07504": {
+    "prefecture": "福島県",
+    "city": "浅川町"
+  },
+  "07505": {
+    "prefecture": "福島県",
+    "city": "古殿町"
+  },
+  "07521": {
+    "prefecture": "福島県",
+    "city": "三春町"
+  },
+  "07522": {
+    "prefecture": "福島県",
+    "city": "小野町"
+  },
+  "07541": {
+    "prefecture": "福島県",
+    "city": "広野町"
+  },
+  "07542": {
+    "prefecture": "福島県",
+    "city": "楢葉町"
+  },
+  "07543": {
+    "prefecture": "福島県",
+    "city": "富岡町"
+  },
+  "07544": {
+    "prefecture": "福島県",
+    "city": "川内村"
+  },
+  "07545": {
+    "prefecture": "福島県",
+    "city": "大熊町"
+  },
+  "07546": {
+    "prefecture": "福島県",
+    "city": "双葉町"
+  },
+  "07547": {
+    "prefecture": "福島県",
+    "city": "浪江町"
+  },
+  "07548": {
+    "prefecture": "福島県",
+    "city": "葛尾村"
+  },
+  "07561": {
+    "prefecture": "福島県",
+    "city": "新地町"
+  },
+  "07564": {
+    "prefecture": "福島県",
+    "city": "飯舘村"
+  },
+  "08201": {
+    "prefecture": "茨城県",
+    "city": "水戸市"
+  },
+  "08202": {
+    "prefecture": "茨城県",
+    "city": "日立市"
+  },
+  "08203": {
+    "prefecture": "茨城県",
+    "city": "土浦市"
+  },
+  "08204": {
+    "prefecture": "茨城県",
+    "city": "古河市"
+  },
+  "08205": {
+    "prefecture": "茨城県",
+    "city": "石岡市"
+  },
+  "08207": {
+    "prefecture": "茨城県",
+    "city": "結城市"
+  },
+  "08208": {
+    "prefecture": "茨城県",
+    "city": "龍ケ崎市"
+  },
+  "08210": {
+    "prefecture": "茨城県",
+    "city": "下妻市"
+  },
+  "08211": {
+    "prefecture": "茨城県",
+    "city": "常総市"
+  },
+  "08212": {
+    "prefecture": "茨城県",
+    "city": "常陸太田市"
+  },
+  "08214": {
+    "prefecture": "茨城県",
+    "city": "高萩市"
+  },
+  "08215": {
+    "prefecture": "茨城県",
+    "city": "北茨城市"
+  },
+  "08216": {
+    "prefecture": "茨城県",
+    "city": "笠間市"
+  },
+  "08217": {
+    "prefecture": "茨城県",
+    "city": "取手市"
+  },
+  "08219": {
+    "prefecture": "茨城県",
+    "city": "牛久市"
+  },
+  "08220": {
+    "prefecture": "茨城県",
+    "city": "つくば市"
+  },
+  "08221": {
+    "prefecture": "茨城県",
+    "city": "ひたちなか市"
+  },
+  "08222": {
+    "prefecture": "茨城県",
+    "city": "鹿嶋市"
+  },
+  "08223": {
+    "prefecture": "茨城県",
+    "city": "潮来市"
+  },
+  "08224": {
+    "prefecture": "茨城県",
+    "city": "守谷市"
+  },
+  "08225": {
+    "prefecture": "茨城県",
+    "city": "常陸大宮市"
+  },
+  "08226": {
+    "prefecture": "茨城県",
+    "city": "那珂市"
+  },
+  "08227": {
+    "prefecture": "茨城県",
+    "city": "筑西市"
+  },
+  "08228": {
+    "prefecture": "茨城県",
+    "city": "坂東市"
+  },
+  "08229": {
+    "prefecture": "茨城県",
+    "city": "稲敷市"
+  },
+  "08230": {
+    "prefecture": "茨城県",
+    "city": "かすみがうら市"
+  },
+  "08231": {
+    "prefecture": "茨城県",
+    "city": "桜川市"
+  },
+  "08232": {
+    "prefecture": "茨城県",
+    "city": "神栖市"
+  },
+  "08233": {
+    "prefecture": "茨城県",
+    "city": "行方市"
+  },
+  "08234": {
+    "prefecture": "茨城県",
+    "city": "鉾田市"
+  },
+  "08235": {
+    "prefecture": "茨城県",
+    "city": "つくばみらい市"
+  },
+  "08236": {
+    "prefecture": "茨城県",
+    "city": "小美玉市"
+  },
+  "08302": {
+    "prefecture": "茨城県",
+    "city": "茨城町"
+  },
+  "08309": {
+    "prefecture": "茨城県",
+    "city": "大洗町"
+  },
+  "08310": {
+    "prefecture": "茨城県",
+    "city": "城里町"
+  },
+  "08341": {
+    "prefecture": "茨城県",
+    "city": "東海村"
+  },
+  "08364": {
+    "prefecture": "茨城県",
+    "city": "大子町"
+  },
+  "08442": {
+    "prefecture": "茨城県",
+    "city": "美浦村"
+  },
+  "08443": {
+    "prefecture": "茨城県",
+    "city": "阿見町"
+  },
+  "08447": {
+    "prefecture": "茨城県",
+    "city": "河内町"
+  },
+  "08521": {
+    "prefecture": "茨城県",
+    "city": "八千代町"
+  },
+  "08542": {
+    "prefecture": "茨城県",
+    "city": "五霞町"
+  },
+  "08546": {
+    "prefecture": "茨城県",
+    "city": "境町"
+  },
+  "08564": {
+    "prefecture": "茨城県",
+    "city": "利根町"
+  },
+  "09201": {
+    "prefecture": "栃木県",
+    "city": "宇都宮市"
+  },
+  "09202": {
+    "prefecture": "栃木県",
+    "city": "足利市"
+  },
+  "09203": {
+    "prefecture": "栃木県",
+    "city": "栃木市"
+  },
+  "09204": {
+    "prefecture": "栃木県",
+    "city": "佐野市"
+  },
+  "09205": {
+    "prefecture": "栃木県",
+    "city": "鹿沼市"
+  },
+  "09206": {
+    "prefecture": "栃木県",
+    "city": "日光市"
+  },
+  "09208": {
+    "prefecture": "栃木県",
+    "city": "小山市"
+  },
+  "09209": {
+    "prefecture": "栃木県",
+    "city": "真岡市"
+  },
+  "09210": {
+    "prefecture": "栃木県",
+    "city": "大田原市"
+  },
+  "09211": {
+    "prefecture": "栃木県",
+    "city": "矢板市"
+  },
+  "09213": {
+    "prefecture": "栃木県",
+    "city": "那須塩原市"
+  },
+  "09214": {
+    "prefecture": "栃木県",
+    "city": "さくら市"
+  },
+  "09215": {
+    "prefecture": "栃木県",
+    "city": "那須烏山市"
+  },
+  "09216": {
+    "prefecture": "栃木県",
+    "city": "下野市"
+  },
+  "09301": {
+    "prefecture": "栃木県",
+    "city": "上三川町"
+  },
+  "09342": {
+    "prefecture": "栃木県",
+    "city": "益子町"
+  },
+  "09343": {
+    "prefecture": "栃木県",
+    "city": "茂木町"
+  },
+  "09344": {
+    "prefecture": "栃木県",
+    "city": "市貝町"
+  },
+  "09345": {
+    "prefecture": "栃木県",
+    "city": "芳賀町"
+  },
+  "09361": {
+    "prefecture": "栃木県",
+    "city": "壬生町"
+  },
+  "09364": {
+    "prefecture": "栃木県",
+    "city": "野木町"
+  },
+  "09384": {
+    "prefecture": "栃木県",
+    "city": "塩谷町"
+  },
+  "09386": {
+    "prefecture": "栃木県",
+    "city": "高根沢町"
+  },
+  "09407": {
+    "prefecture": "栃木県",
+    "city": "那須町"
+  },
+  "09411": {
+    "prefecture": "栃木県",
+    "city": "那珂川町"
+  },
+  "10201": {
+    "prefecture": "群馬県",
+    "city": "前橋市"
+  },
+  "10202": {
+    "prefecture": "群馬県",
+    "city": "高崎市"
+  },
+  "10203": {
+    "prefecture": "群馬県",
+    "city": "桐生市"
+  },
+  "10204": {
+    "prefecture": "群馬県",
+    "city": "伊勢崎市"
+  },
+  "10205": {
+    "prefecture": "群馬県",
+    "city": "太田市"
+  },
+  "10206": {
+    "prefecture": "群馬県",
+    "city": "沼田市"
+  },
+  "10207": {
+    "prefecture": "群馬県",
+    "city": "館林市"
+  },
+  "10208": {
+    "prefecture": "群馬県",
+    "city": "渋川市"
+  },
+  "10209": {
+    "prefecture": "群馬県",
+    "city": "藤岡市"
+  },
+  "10210": {
+    "prefecture": "群馬県",
+    "city": "富岡市"
+  },
+  "10211": {
+    "prefecture": "群馬県",
+    "city": "安中市"
+  },
+  "10212": {
+    "prefecture": "群馬県",
+    "city": "みどり市"
+  },
+  "10344": {
+    "prefecture": "群馬県",
+    "city": "榛東村"
+  },
+  "10345": {
+    "prefecture": "群馬県",
+    "city": "吉岡町"
+  },
+  "10366": {
+    "prefecture": "群馬県",
+    "city": "上野村"
+  },
+  "10367": {
+    "prefecture": "群馬県",
+    "city": "神流町"
+  },
+  "10382": {
+    "prefecture": "群馬県",
+    "city": "下仁田町"
+  },
+  "10383": {
+    "prefecture": "群馬県",
+    "city": "南牧村"
+  },
+  "10384": {
+    "prefecture": "群馬県",
+    "city": "甘楽町"
+  },
+  "10421": {
+    "prefecture": "群馬県",
+    "city": "中之条町"
+  },
+  "10424": {
+    "prefecture": "群馬県",
+    "city": "長野原町"
+  },
+  "10425": {
+    "prefecture": "群馬県",
+    "city": "嬬恋村"
+  },
+  "10426": {
+    "prefecture": "群馬県",
+    "city": "草津町"
+  },
+  "10428": {
+    "prefecture": "群馬県",
+    "city": "高山村"
+  },
+  "10429": {
+    "prefecture": "群馬県",
+    "city": "東吾妻町"
+  },
+  "10443": {
+    "prefecture": "群馬県",
+    "city": "片品村"
+  },
+  "10444": {
+    "prefecture": "群馬県",
+    "city": "川場村"
+  },
+  "10448": {
+    "prefecture": "群馬県",
+    "city": "昭和村"
+  },
+  "10449": {
+    "prefecture": "群馬県",
+    "city": "みなかみ町"
+  },
+  "10464": {
+    "prefecture": "群馬県",
+    "city": "玉村町"
+  },
+  "10521": {
+    "prefecture": "群馬県",
+    "city": "板倉町"
+  },
+  "10522": {
+    "prefecture": "群馬県",
+    "city": "明和町"
+  },
+  "10523": {
+    "prefecture": "群馬県",
+    "city": "千代田町"
+  },
+  "10524": {
+    "prefecture": "群馬県",
+    "city": "大泉町"
+  },
+  "10525": {
+    "prefecture": "群馬県",
+    "city": "邑楽町"
+  },
+  "11100": {
+    "prefecture": "埼玉県",
+    "city": "さいたま市"
+  },
+  "11201": {
+    "prefecture": "埼玉県",
+    "city": "川越市"
+  },
+  "11202": {
+    "prefecture": "埼玉県",
+    "city": "熊谷市"
+  },
+  "11203": {
+    "prefecture": "埼玉県",
+    "city": "川口市"
+  },
+  "11206": {
+    "prefecture": "埼玉県",
+    "city": "行田市"
+  },
+  "11207": {
+    "prefecture": "埼玉県",
+    "city": "秩父市"
+  },
+  "11208": {
+    "prefecture": "埼玉県",
+    "city": "所沢市"
+  },
+  "11209": {
+    "prefecture": "埼玉県",
+    "city": "飯能市"
+  },
+  "11210": {
+    "prefecture": "埼玉県",
+    "city": "加須市"
+  },
+  "11211": {
+    "prefecture": "埼玉県",
+    "city": "本庄市"
+  },
+  "11212": {
+    "prefecture": "埼玉県",
+    "city": "東松山市"
+  },
+  "11214": {
+    "prefecture": "埼玉県",
+    "city": "春日部市"
+  },
+  "11215": {
+    "prefecture": "埼玉県",
+    "city": "狭山市"
+  },
+  "11216": {
+    "prefecture": "埼玉県",
+    "city": "羽生市"
+  },
+  "11217": {
+    "prefecture": "埼玉県",
+    "city": "鴻巣市"
+  },
+  "11218": {
+    "prefecture": "埼玉県",
+    "city": "深谷市"
+  },
+  "11219": {
+    "prefecture": "埼玉県",
+    "city": "上尾市"
+  },
+  "11221": {
+    "prefecture": "埼玉県",
+    "city": "草加市"
+  },
+  "11222": {
+    "prefecture": "埼玉県",
+    "city": "越谷市"
+  },
+  "11223": {
+    "prefecture": "埼玉県",
+    "city": "蕨市"
+  },
+  "11224": {
+    "prefecture": "埼玉県",
+    "city": "戸田市"
+  },
+  "11225": {
+    "prefecture": "埼玉県",
+    "city": "入間市"
+  },
+  "11227": {
+    "prefecture": "埼玉県",
+    "city": "朝霞市"
+  },
+  "11228": {
+    "prefecture": "埼玉県",
+    "city": "志木市"
+  },
+  "11229": {
+    "prefecture": "埼玉県",
+    "city": "和光市"
+  },
+  "11230": {
+    "prefecture": "埼玉県",
+    "city": "新座市"
+  },
+  "11231": {
+    "prefecture": "埼玉県",
+    "city": "桶川市"
+  },
+  "11232": {
+    "prefecture": "埼玉県",
+    "city": "久喜市"
+  },
+  "11233": {
+    "prefecture": "埼玉県",
+    "city": "北本市"
+  },
+  "11234": {
+    "prefecture": "埼玉県",
+    "city": "八潮市"
+  },
+  "11235": {
+    "prefecture": "埼玉県",
+    "city": "富士見市"
+  },
+  "11237": {
+    "prefecture": "埼玉県",
+    "city": "三郷市"
+  },
+  "11238": {
+    "prefecture": "埼玉県",
+    "city": "蓮田市"
+  },
+  "11239": {
+    "prefecture": "埼玉県",
+    "city": "坂戸市"
+  },
+  "11240": {
+    "prefecture": "埼玉県",
+    "city": "幸手市"
+  },
+  "11241": {
+    "prefecture": "埼玉県",
+    "city": "鶴ヶ島市"
+  },
+  "11242": {
+    "prefecture": "埼玉県",
+    "city": "日高市"
+  },
+  "11243": {
+    "prefecture": "埼玉県",
+    "city": "吉川市"
+  },
+  "11245": {
+    "prefecture": "埼玉県",
+    "city": "ふじみ野市"
+  },
+  "11246": {
+    "prefecture": "埼玉県",
+    "city": "白岡市シラオカシ"
+  },
+  "11301": {
+    "prefecture": "埼玉県",
+    "city": "伊奈町"
+  },
+  "11324": {
+    "prefecture": "埼玉県",
+    "city": "三芳町"
+  },
+  "11326": {
+    "prefecture": "埼玉県",
+    "city": "毛呂山町"
+  },
+  "11327": {
+    "prefecture": "埼玉県",
+    "city": "越生町"
+  },
+  "11341": {
+    "prefecture": "埼玉県",
+    "city": "滑川町"
+  },
+  "11342": {
+    "prefecture": "埼玉県",
+    "city": "嵐山町"
+  },
+  "11343": {
+    "prefecture": "埼玉県",
+    "city": "小川町"
+  },
+  "11346": {
+    "prefecture": "埼玉県",
+    "city": "川島町"
+  },
+  "11347": {
+    "prefecture": "埼玉県",
+    "city": "吉見町"
+  },
+  "11348": {
+    "prefecture": "埼玉県",
+    "city": "鳩山町"
+  },
+  "11349": {
+    "prefecture": "埼玉県",
+    "city": "ときがわ町"
+  },
+  "11361": {
+    "prefecture": "埼玉県",
+    "city": "横瀬町"
+  },
+  "11362": {
+    "prefecture": "埼玉県",
+    "city": "皆野町"
+  },
+  "11363": {
+    "prefecture": "埼玉県",
+    "city": "長瀞町"
+  },
+  "11365": {
+    "prefecture": "埼玉県",
+    "city": "小鹿野町"
+  },
+  "11369": {
+    "prefecture": "埼玉県",
+    "city": "東秩父村"
+  },
+  "11381": {
+    "prefecture": "埼玉県",
+    "city": "美里町"
+  },
+  "11383": {
+    "prefecture": "埼玉県",
+    "city": "神川町"
+  },
+  "11385": {
+    "prefecture": "埼玉県",
+    "city": "上里町"
+  },
+  "11408": {
+    "prefecture": "埼玉県",
+    "city": "寄居町"
+  },
+  "11442": {
+    "prefecture": "埼玉県",
+    "city": "宮代町"
+  },
+  "11464": {
+    "prefecture": "埼玉県",
+    "city": "杉戸町"
+  },
+  "11465": {
+    "prefecture": "埼玉県",
+    "city": "松伏町"
+  },
+  "12100": {
+    "prefecture": "千葉県",
+    "city": "千葉市"
+  },
+  "12202": {
+    "prefecture": "千葉県",
+    "city": "銚子市"
+  },
+  "12203": {
+    "prefecture": "千葉県",
+    "city": "市川市"
+  },
+  "12204": {
+    "prefecture": "千葉県",
+    "city": "船橋市"
+  },
+  "12205": {
+    "prefecture": "千葉県",
+    "city": "館山市"
+  },
+  "12206": {
+    "prefecture": "千葉県",
+    "city": "木更津市"
+  },
+  "12207": {
+    "prefecture": "千葉県",
+    "city": "松戸市"
+  },
+  "12208": {
+    "prefecture": "千葉県",
+    "city": "野田市"
+  },
+  "12210": {
+    "prefecture": "千葉県",
+    "city": "茂原市"
+  },
+  "12211": {
+    "prefecture": "千葉県",
+    "city": "成田市"
+  },
+  "12212": {
+    "prefecture": "千葉県",
+    "city": "佐倉市"
+  },
+  "12213": {
+    "prefecture": "千葉県",
+    "city": "東金市"
+  },
+  "12215": {
+    "prefecture": "千葉県",
+    "city": "旭市"
+  },
+  "12216": {
+    "prefecture": "千葉県",
+    "city": "習志野市"
+  },
+  "12217": {
+    "prefecture": "千葉県",
+    "city": "柏市"
+  },
+  "12218": {
+    "prefecture": "千葉県",
+    "city": "勝浦市"
+  },
+  "12219": {
+    "prefecture": "千葉県",
+    "city": "市原市"
+  },
+  "12220": {
+    "prefecture": "千葉県",
+    "city": "流山市"
+  },
+  "12221": {
+    "prefecture": "千葉県",
+    "city": "八千代市"
+  },
+  "12222": {
+    "prefecture": "千葉県",
+    "city": "我孫子市"
+  },
+  "12223": {
+    "prefecture": "千葉県",
+    "city": "鴨川市"
+  },
+  "12224": {
+    "prefecture": "千葉県",
+    "city": "鎌ケ谷市"
+  },
+  "12225": {
+    "prefecture": "千葉県",
+    "city": "君津市"
+  },
+  "12226": {
+    "prefecture": "千葉県",
+    "city": "富津市"
+  },
+  "12227": {
+    "prefecture": "千葉県",
+    "city": "浦安市"
+  },
+  "12228": {
+    "prefecture": "千葉県",
+    "city": "四街道市"
+  },
+  "12229": {
+    "prefecture": "千葉県",
+    "city": "袖ケ浦市"
+  },
+  "12230": {
+    "prefecture": "千葉県",
+    "city": "八街市"
+  },
+  "12231": {
+    "prefecture": "千葉県",
+    "city": "印西市"
+  },
+  "12232": {
+    "prefecture": "千葉県",
+    "city": "白井市"
+  },
+  "12233": {
+    "prefecture": "千葉県",
+    "city": "富里市"
+  },
+  "12234": {
+    "prefecture": "千葉県",
+    "city": "南房総市"
+  },
+  "12235": {
+    "prefecture": "千葉県",
+    "city": "匝瑳市"
+  },
+  "12236": {
+    "prefecture": "千葉県",
+    "city": "香取市"
+  },
+  "12237": {
+    "prefecture": "千葉県",
+    "city": "山武市"
+  },
+  "12238": {
+    "prefecture": "千葉県",
+    "city": "いすみ市"
+  },
+  "12239": {
+    "prefecture": "千葉県",
+    "city": "大網白里市シ"
+  },
+  "12322": {
+    "prefecture": "千葉県",
+    "city": "酒々井町"
+  },
+  "12329": {
+    "prefecture": "千葉県",
+    "city": "栄町"
+  },
+  "12342": {
+    "prefecture": "千葉県",
+    "city": "神崎町"
+  },
+  "12347": {
+    "prefecture": "千葉県",
+    "city": "多古町"
+  },
+  "12349": {
+    "prefecture": "千葉県",
+    "city": "東庄町"
+  },
+  "12403": {
+    "prefecture": "千葉県",
+    "city": "九十九里町"
+  },
+  "12409": {
+    "prefecture": "千葉県",
+    "city": "芝山町"
+  },
+  "12410": {
+    "prefecture": "千葉県",
+    "city": "横芝光町"
+  },
+  "12421": {
+    "prefecture": "千葉県",
+    "city": "一宮町"
+  },
+  "12422": {
+    "prefecture": "千葉県",
+    "city": "睦沢町"
+  },
+  "12423": {
+    "prefecture": "千葉県",
+    "city": "長生村"
+  },
+  "12424": {
+    "prefecture": "千葉県",
+    "city": "白子町"
+  },
+  "12426": {
+    "prefecture": "千葉県",
+    "city": "長柄町"
+  },
+  "12427": {
+    "prefecture": "千葉県",
+    "city": "長南町"
+  },
+  "12441": {
+    "prefecture": "千葉県",
+    "city": "大多喜町"
+  },
+  "12443": {
+    "prefecture": "千葉県",
+    "city": "御宿町"
+  },
+  "12463": {
+    "prefecture": "千葉県",
+    "city": "鋸南町"
+  },
+  "13101": {
+    "prefecture": "東京都",
+    "city": "千代田区"
+  },
+  "13102": {
+    "prefecture": "東京都",
+    "city": "中央区"
+  },
+  "13103": {
+    "prefecture": "東京都",
+    "city": "港区"
+  },
+  "13104": {
+    "prefecture": "東京都",
+    "city": "新宿区"
+  },
+  "13105": {
+    "prefecture": "東京都",
+    "city": "文京区"
+  },
+  "13106": {
+    "prefecture": "東京都",
+    "city": "台東区"
+  },
+  "13107": {
+    "prefecture": "東京都",
+    "city": "墨田区"
+  },
+  "13108": {
+    "prefecture": "東京都",
+    "city": "江東区"
+  },
+  "13109": {
+    "prefecture": "東京都",
+    "city": "品川区"
+  },
+  "13110": {
+    "prefecture": "東京都",
+    "city": "目黒区"
+  },
+  "13111": {
+    "prefecture": "東京都",
+    "city": "大田区"
+  },
+  "13112": {
+    "prefecture": "東京都",
+    "city": "世田谷区"
+  },
+  "13113": {
+    "prefecture": "東京都",
+    "city": "渋谷区"
+  },
+  "13114": {
+    "prefecture": "東京都",
+    "city": "中野区"
+  },
+  "13115": {
+    "prefecture": "東京都",
+    "city": "杉並区"
+  },
+  "13116": {
+    "prefecture": "東京都",
+    "city": "豊島区"
+  },
+  "13117": {
+    "prefecture": "東京都",
+    "city": "北区"
+  },
+  "13118": {
+    "prefecture": "東京都",
+    "city": "荒川区"
+  },
+  "13119": {
+    "prefecture": "東京都",
+    "city": "板橋区"
+  },
+  "13120": {
+    "prefecture": "東京都",
+    "city": "練馬区"
+  },
+  "13121": {
+    "prefecture": "東京都",
+    "city": "足立区"
+  },
+  "13122": {
+    "prefecture": "東京都",
+    "city": "葛飾区"
+  },
+  "13123": {
+    "prefecture": "東京都",
+    "city": "江戸川区"
+  },
+  "13201": {
+    "prefecture": "東京都",
+    "city": "八王子市"
+  },
+  "13202": {
+    "prefecture": "東京都",
+    "city": "立川市"
+  },
+  "13203": {
+    "prefecture": "東京都",
+    "city": "武蔵野市"
+  },
+  "13204": {
+    "prefecture": "東京都",
+    "city": "三鷹市"
+  },
+  "13205": {
+    "prefecture": "東京都",
+    "city": "青梅市"
+  },
+  "13206": {
+    "prefecture": "東京都",
+    "city": "府中市"
+  },
+  "13207": {
+    "prefecture": "東京都",
+    "city": "昭島市"
+  },
+  "13208": {
+    "prefecture": "東京都",
+    "city": "調布市"
+  },
+  "13209": {
+    "prefecture": "東京都",
+    "city": "町田市"
+  },
+  "13210": {
+    "prefecture": "東京都",
+    "city": "小金井市"
+  },
+  "13211": {
+    "prefecture": "東京都",
+    "city": "小平市"
+  },
+  "13212": {
+    "prefecture": "東京都",
+    "city": "日野市"
+  },
+  "13213": {
+    "prefecture": "東京都",
+    "city": "東村山市"
+  },
+  "13214": {
+    "prefecture": "東京都",
+    "city": "国分寺市"
+  },
+  "13215": {
+    "prefecture": "東京都",
+    "city": "国立市"
+  },
+  "13218": {
+    "prefecture": "東京都",
+    "city": "福生市"
+  },
+  "13219": {
+    "prefecture": "東京都",
+    "city": "狛江市"
+  },
+  "13220": {
+    "prefecture": "東京都",
+    "city": "東大和市"
+  },
+  "13221": {
+    "prefecture": "東京都",
+    "city": "清瀬市"
+  },
+  "13222": {
+    "prefecture": "東京都",
+    "city": "東久留米市"
+  },
+  "13223": {
+    "prefecture": "東京都",
+    "city": "武蔵村山市"
+  },
+  "13224": {
+    "prefecture": "東京都",
+    "city": "多摩市"
+  },
+  "13225": {
+    "prefecture": "東京都",
+    "city": "稲城市"
+  },
+  "13227": {
+    "prefecture": "東京都",
+    "city": "羽村市"
+  },
+  "13228": {
+    "prefecture": "東京都",
+    "city": "あきる野市"
+  },
+  "13229": {
+    "prefecture": "東京都",
+    "city": "西東京市"
+  },
+  "13303": {
+    "prefecture": "東京都",
+    "city": "瑞穂町"
+  },
+  "13305": {
+    "prefecture": "東京都",
+    "city": "日の出町"
+  },
+  "13307": {
+    "prefecture": "東京都",
+    "city": "檜原村"
+  },
+  "13308": {
+    "prefecture": "東京都",
+    "city": "奥多摩町"
+  },
+  "13361": {
+    "prefecture": "東京都",
+    "city": "大島町"
+  },
+  "13362": {
+    "prefecture": "東京都",
+    "city": "利島村"
+  },
+  "13363": {
+    "prefecture": "東京都",
+    "city": "新島村"
+  },
+  "13364": {
+    "prefecture": "東京都",
+    "city": "神津島村"
+  },
+  "13381": {
+    "prefecture": "東京都",
+    "city": "三宅村"
+  },
+  "13382": {
+    "prefecture": "東京都",
+    "city": "御蔵島村"
+  },
+  "13401": {
+    "prefecture": "東京都",
+    "city": "八丈町"
+  },
+  "13402": {
+    "prefecture": "東京都",
+    "city": "青ヶ島村"
+  },
+  "13421": {
+    "prefecture": "東京都",
+    "city": "小笠原村"
+  },
+  "14100": {
+    "prefecture": "神奈川県",
+    "city": "横浜市"
+  },
+  "14130": {
+    "prefecture": "神奈川県",
+    "city": "川崎市"
+  },
+  "14150": {
+    "prefecture": "神奈川県",
+    "city": "相模原市"
+  },
+  "14201": {
+    "prefecture": "神奈川県",
+    "city": "横須賀市"
+  },
+  "14203": {
+    "prefecture": "神奈川県",
+    "city": "平塚市"
+  },
+  "14204": {
+    "prefecture": "神奈川県",
+    "city": "鎌倉市"
+  },
+  "14205": {
+    "prefecture": "神奈川県",
+    "city": "藤沢市"
+  },
+  "14206": {
+    "prefecture": "神奈川県",
+    "city": "小田原市"
+  },
+  "14207": {
+    "prefecture": "神奈川県",
+    "city": "茅ヶ崎市"
+  },
+  "14208": {
+    "prefecture": "神奈川県",
+    "city": "逗子市"
+  },
+  "14210": {
+    "prefecture": "神奈川県",
+    "city": "三浦市"
+  },
+  "14211": {
+    "prefecture": "神奈川県",
+    "city": "秦野市"
+  },
+  "14212": {
+    "prefecture": "神奈川県",
+    "city": "厚木市"
+  },
+  "14213": {
+    "prefecture": "神奈川県",
+    "city": "大和市"
+  },
+  "14214": {
+    "prefecture": "神奈川県",
+    "city": "伊勢原市"
+  },
+  "14215": {
+    "prefecture": "神奈川県",
+    "city": "海老名市"
+  },
+  "14216": {
+    "prefecture": "神奈川県",
+    "city": "座間市"
+  },
+  "14217": {
+    "prefecture": "神奈川県",
+    "city": "南足柄市"
+  },
+  "14218": {
+    "prefecture": "神奈川県",
+    "city": "綾瀬市"
+  },
+  "14301": {
+    "prefecture": "神奈川県",
+    "city": "葉山町"
+  },
+  "14321": {
+    "prefecture": "神奈川県",
+    "city": "寒川町"
+  },
+  "14341": {
+    "prefecture": "神奈川県",
+    "city": "大磯町"
+  },
+  "14342": {
+    "prefecture": "神奈川県",
+    "city": "二宮町"
+  },
+  "14361": {
+    "prefecture": "神奈川県",
+    "city": "中井町"
+  },
+  "14362": {
+    "prefecture": "神奈川県",
+    "city": "大井町"
+  },
+  "14363": {
+    "prefecture": "神奈川県",
+    "city": "松田町"
+  },
+  "14364": {
+    "prefecture": "神奈川県",
+    "city": "山北町"
+  },
+  "14366": {
+    "prefecture": "神奈川県",
+    "city": "開成町"
+  },
+  "14382": {
+    "prefecture": "神奈川県",
+    "city": "箱根町"
+  },
+  "14383": {
+    "prefecture": "神奈川県",
+    "city": "真鶴町"
+  },
+  "14384": {
+    "prefecture": "神奈川県",
+    "city": "湯河原町"
+  },
+  "14401": {
+    "prefecture": "神奈川県",
+    "city": "愛川町"
+  },
+  "14402": {
+    "prefecture": "神奈川県",
+    "city": "清川村"
+  },
+  "15100": {
+    "prefecture": "新潟県",
+    "city": "新潟市"
+  },
+  "15202": {
+    "prefecture": "新潟県",
+    "city": "長岡市"
+  },
+  "15204": {
+    "prefecture": "新潟県",
+    "city": "三条市"
+  },
+  "15205": {
+    "prefecture": "新潟県",
+    "city": "柏崎市"
+  },
+  "15206": {
+    "prefecture": "新潟県",
+    "city": "新発田市"
+  },
+  "15208": {
+    "prefecture": "新潟県",
+    "city": "小千谷市"
+  },
+  "15209": {
+    "prefecture": "新潟県",
+    "city": "加茂市"
+  },
+  "15210": {
+    "prefecture": "新潟県",
+    "city": "十日町市"
+  },
+  "15211": {
+    "prefecture": "新潟県",
+    "city": "見附市"
+  },
+  "15212": {
+    "prefecture": "新潟県",
+    "city": "村上市"
+  },
+  "15213": {
+    "prefecture": "新潟県",
+    "city": "燕市"
+  },
+  "15216": {
+    "prefecture": "新潟県",
+    "city": "糸魚川市"
+  },
+  "15217": {
+    "prefecture": "新潟県",
+    "city": "妙高市"
+  },
+  "15218": {
+    "prefecture": "新潟県",
+    "city": "五泉市"
+  },
+  "15222": {
+    "prefecture": "新潟県",
+    "city": "上越市"
+  },
+  "15223": {
+    "prefecture": "新潟県",
+    "city": "阿賀野市"
+  },
+  "15224": {
+    "prefecture": "新潟県",
+    "city": "佐渡市"
+  },
+  "15225": {
+    "prefecture": "新潟県",
+    "city": "魚沼市"
+  },
+  "15226": {
+    "prefecture": "新潟県",
+    "city": "南魚沼市"
+  },
+  "15227": {
+    "prefecture": "新潟県",
+    "city": "胎内市"
+  },
+  "15307": {
+    "prefecture": "新潟県",
+    "city": "聖籠町"
+  },
+  "15342": {
+    "prefecture": "新潟県",
+    "city": "弥彦村"
+  },
+  "15361": {
+    "prefecture": "新潟県",
+    "city": "田上町"
+  },
+  "15385": {
+    "prefecture": "新潟県",
+    "city": "阿賀町"
+  },
+  "15405": {
+    "prefecture": "新潟県",
+    "city": "出雲崎町"
+  },
+  "15461": {
+    "prefecture": "新潟県",
+    "city": "湯沢町"
+  },
+  "15482": {
+    "prefecture": "新潟県",
+    "city": "津南町"
+  },
+  "15504": {
+    "prefecture": "新潟県",
+    "city": "刈羽村"
+  },
+  "15581": {
+    "prefecture": "新潟県",
+    "city": "関川村"
+  },
+  "15586": {
+    "prefecture": "新潟県",
+    "city": "粟島浦村"
+  },
+  "16201": {
+    "prefecture": "富山県",
+    "city": "富山市"
+  },
+  "16202": {
+    "prefecture": "富山県",
+    "city": "高岡市"
+  },
+  "16204": {
+    "prefecture": "富山県",
+    "city": "魚津市"
+  },
+  "16205": {
+    "prefecture": "富山県",
+    "city": "氷見市"
+  },
+  "16206": {
+    "prefecture": "富山県",
+    "city": "滑川市"
+  },
+  "16207": {
+    "prefecture": "富山県",
+    "city": "黒部市"
+  },
+  "16208": {
+    "prefecture": "富山県",
+    "city": "砺波市"
+  },
+  "16209": {
+    "prefecture": "富山県",
+    "city": "小矢部市"
+  },
+  "16210": {
+    "prefecture": "富山県",
+    "city": "南砺市"
+  },
+  "16211": {
+    "prefecture": "富山県",
+    "city": "射水市"
+  },
+  "16321": {
+    "prefecture": "富山県",
+    "city": "舟橋村"
+  },
+  "16322": {
+    "prefecture": "富山県",
+    "city": "上市町"
+  },
+  "16323": {
+    "prefecture": "富山県",
+    "city": "立山町"
+  },
+  "16342": {
+    "prefecture": "富山県",
+    "city": "入善町"
+  },
+  "16343": {
+    "prefecture": "富山県",
+    "city": "朝日町"
+  },
+  "17201": {
+    "prefecture": "石川県",
+    "city": "金沢市"
+  },
+  "17202": {
+    "prefecture": "石川県",
+    "city": "七尾市"
+  },
+  "17203": {
+    "prefecture": "石川県",
+    "city": "小松市"
+  },
+  "17204": {
+    "prefecture": "石川県",
+    "city": "輪島市"
+  },
+  "17205": {
+    "prefecture": "石川県",
+    "city": "珠洲市"
+  },
+  "17206": {
+    "prefecture": "石川県",
+    "city": "加賀市"
+  },
+  "17207": {
+    "prefecture": "石川県",
+    "city": "羽咋市"
+  },
+  "17209": {
+    "prefecture": "石川県",
+    "city": "かほく市"
+  },
+  "17210": {
+    "prefecture": "石川県",
+    "city": "白山市"
+  },
+  "17211": {
+    "prefecture": "石川県",
+    "city": "能美市"
+  },
+  "17212": {
+    "prefecture": "石川県",
+    "city": "野々市市"
+  },
+  "17324": {
+    "prefecture": "石川県",
+    "city": "川北町"
+  },
+  "17361": {
+    "prefecture": "石川県",
+    "city": "津幡町"
+  },
+  "17365": {
+    "prefecture": "石川県",
+    "city": "内灘町"
+  },
+  "17384": {
+    "prefecture": "石川県",
+    "city": "志賀町"
+  },
+  "17386": {
+    "prefecture": "石川県",
+    "city": "宝達志水町"
+  },
+  "17407": {
+    "prefecture": "石川県",
+    "city": "中能登町"
+  },
+  "17461": {
+    "prefecture": "石川県",
+    "city": "穴水町"
+  },
+  "17463": {
+    "prefecture": "石川県",
+    "city": "能登町"
+  },
+  "18201": {
+    "prefecture": "福井県",
+    "city": "福井市"
+  },
+  "18202": {
+    "prefecture": "福井県",
+    "city": "敦賀市"
+  },
+  "18204": {
+    "prefecture": "福井県",
+    "city": "小浜市"
+  },
+  "18205": {
+    "prefecture": "福井県",
+    "city": "大野市"
+  },
+  "18206": {
+    "prefecture": "福井県",
+    "city": "勝山市"
+  },
+  "18207": {
+    "prefecture": "福井県",
+    "city": "鯖江市"
+  },
+  "18208": {
+    "prefecture": "福井県",
+    "city": "あわら市"
+  },
+  "18209": {
+    "prefecture": "福井県",
+    "city": "越前市"
+  },
+  "18210": {
+    "prefecture": "福井県",
+    "city": "坂井市"
+  },
+  "18322": {
+    "prefecture": "福井県",
+    "city": "永平寺町"
+  },
+  "18382": {
+    "prefecture": "福井県",
+    "city": "池田町"
+  },
+  "18404": {
+    "prefecture": "福井県",
+    "city": "南越前町"
+  },
+  "18423": {
+    "prefecture": "福井県",
+    "city": "越前町"
+  },
+  "18442": {
+    "prefecture": "福井県",
+    "city": "美浜町"
+  },
+  "18481": {
+    "prefecture": "福井県",
+    "city": "高浜町"
+  },
+  "18483": {
+    "prefecture": "福井県",
+    "city": "おおい町"
+  },
+  "18501": {
+    "prefecture": "福井県",
+    "city": "若狭町"
+  },
+  "19201": {
+    "prefecture": "山梨県",
+    "city": "甲府市"
+  },
+  "19202": {
+    "prefecture": "山梨県",
+    "city": "富士吉田市"
+  },
+  "19204": {
+    "prefecture": "山梨県",
+    "city": "都留市"
+  },
+  "19205": {
+    "prefecture": "山梨県",
+    "city": "山梨市"
+  },
+  "19206": {
+    "prefecture": "山梨県",
+    "city": "大月市"
+  },
+  "19207": {
+    "prefecture": "山梨県",
+    "city": "韮崎市"
+  },
+  "19208": {
+    "prefecture": "山梨県",
+    "city": "南アルプス市"
+  },
+  "19209": {
+    "prefecture": "山梨県",
+    "city": "北杜市"
+  },
+  "19210": {
+    "prefecture": "山梨県",
+    "city": "甲斐市"
+  },
+  "19211": {
+    "prefecture": "山梨県",
+    "city": "笛吹市"
+  },
+  "19212": {
+    "prefecture": "山梨県",
+    "city": "上野原市"
+  },
+  "19213": {
+    "prefecture": "山梨県",
+    "city": "甲州市"
+  },
+  "19214": {
+    "prefecture": "山梨県",
+    "city": "中央市"
+  },
+  "19346": {
+    "prefecture": "山梨県",
+    "city": "市川三郷町"
+  },
+  "19364": {
+    "prefecture": "山梨県",
+    "city": "早川町"
+  },
+  "19365": {
+    "prefecture": "山梨県",
+    "city": "身延町"
+  },
+  "19366": {
+    "prefecture": "山梨県",
+    "city": "南部町"
+  },
+  "19368": {
+    "prefecture": "山梨県",
+    "city": "富士川町"
+  },
+  "19384": {
+    "prefecture": "山梨県",
+    "city": "昭和町"
+  },
+  "19422": {
+    "prefecture": "山梨県",
+    "city": "道志村"
+  },
+  "19423": {
+    "prefecture": "山梨県",
+    "city": "西桂町"
+  },
+  "19424": {
+    "prefecture": "山梨県",
+    "city": "忍野村"
+  },
+  "19425": {
+    "prefecture": "山梨県",
+    "city": "山中湖村"
+  },
+  "19429": {
+    "prefecture": "山梨県",
+    "city": "鳴沢村"
+  },
+  "19430": {
+    "prefecture": "山梨県",
+    "city": "富士河口湖町"
+  },
+  "19442": {
+    "prefecture": "山梨県",
+    "city": "小菅村"
+  },
+  "19443": {
+    "prefecture": "山梨県",
+    "city": "丹波山村"
+  },
+  "20201": {
+    "prefecture": "長野県",
+    "city": "長野市"
+  },
+  "20202": {
+    "prefecture": "長野県",
+    "city": "松本市"
+  },
+  "20203": {
+    "prefecture": "長野県",
+    "city": "上田市"
+  },
+  "20204": {
+    "prefecture": "長野県",
+    "city": "岡谷市"
+  },
+  "20205": {
+    "prefecture": "長野県",
+    "city": "飯田市"
+  },
+  "20206": {
+    "prefecture": "長野県",
+    "city": "諏訪市"
+  },
+  "20207": {
+    "prefecture": "長野県",
+    "city": "須坂市"
+  },
+  "20208": {
+    "prefecture": "長野県",
+    "city": "小諸市"
+  },
+  "20209": {
+    "prefecture": "長野県",
+    "city": "伊那市"
+  },
+  "20210": {
+    "prefecture": "長野県",
+    "city": "駒ヶ根市"
+  },
+  "20211": {
+    "prefecture": "長野県",
+    "city": "中野市"
+  },
+  "20212": {
+    "prefecture": "長野県",
+    "city": "大町市"
+  },
+  "20213": {
+    "prefecture": "長野県",
+    "city": "飯山市"
+  },
+  "20214": {
+    "prefecture": "長野県",
+    "city": "茅野市"
+  },
+  "20215": {
+    "prefecture": "長野県",
+    "city": "塩尻市"
+  },
+  "20217": {
+    "prefecture": "長野県",
+    "city": "佐久市"
+  },
+  "20218": {
+    "prefecture": "長野県",
+    "city": "千曲市"
+  },
+  "20219": {
+    "prefecture": "長野県",
+    "city": "東御市"
+  },
+  "20220": {
+    "prefecture": "長野県",
+    "city": "安曇野市"
+  },
+  "20303": {
+    "prefecture": "長野県",
+    "city": "小海町"
+  },
+  "20304": {
+    "prefecture": "長野県",
+    "city": "川上村"
+  },
+  "20305": {
+    "prefecture": "長野県",
+    "city": "南牧村"
+  },
+  "20306": {
+    "prefecture": "長野県",
+    "city": "南相木村"
+  },
+  "20307": {
+    "prefecture": "長野県",
+    "city": "北相木村"
+  },
+  "20309": {
+    "prefecture": "長野県",
+    "city": "佐久穂町"
+  },
+  "20321": {
+    "prefecture": "長野県",
+    "city": "軽井沢町"
+  },
+  "20323": {
+    "prefecture": "長野県",
+    "city": "御代田町"
+  },
+  "20324": {
+    "prefecture": "長野県",
+    "city": "立科町"
+  },
+  "20349": {
+    "prefecture": "長野県",
+    "city": "青木村"
+  },
+  "20350": {
+    "prefecture": "長野県",
+    "city": "長和町"
+  },
+  "20361": {
+    "prefecture": "長野県",
+    "city": "下諏訪町"
+  },
+  "20362": {
+    "prefecture": "長野県",
+    "city": "富士見町"
+  },
+  "20363": {
+    "prefecture": "長野県",
+    "city": "原村"
+  },
+  "20382": {
+    "prefecture": "長野県",
+    "city": "辰野町"
+  },
+  "20383": {
+    "prefecture": "長野県",
+    "city": "箕輪町"
+  },
+  "20384": {
+    "prefecture": "長野県",
+    "city": "飯島町"
+  },
+  "20385": {
+    "prefecture": "長野県",
+    "city": "南箕輪村"
+  },
+  "20386": {
+    "prefecture": "長野県",
+    "city": "中川村"
+  },
+  "20388": {
+    "prefecture": "長野県",
+    "city": "宮田村"
+  },
+  "20402": {
+    "prefecture": "長野県",
+    "city": "松川町"
+  },
+  "20403": {
+    "prefecture": "長野県",
+    "city": "高森町"
+  },
+  "20404": {
+    "prefecture": "長野県",
+    "city": "阿南町"
+  },
+  "20407": {
+    "prefecture": "長野県",
+    "city": "阿智村"
+  },
+  "20409": {
+    "prefecture": "長野県",
+    "city": "平谷村"
+  },
+  "20410": {
+    "prefecture": "長野県",
+    "city": "根羽村"
+  },
+  "20411": {
+    "prefecture": "長野県",
+    "city": "下條村"
+  },
+  "20412": {
+    "prefecture": "長野県",
+    "city": "売木村"
+  },
+  "20413": {
+    "prefecture": "長野県",
+    "city": "天龍村"
+  },
+  "20414": {
+    "prefecture": "長野県",
+    "city": "泰阜村"
+  },
+  "20415": {
+    "prefecture": "長野県",
+    "city": "喬木村"
+  },
+  "20416": {
+    "prefecture": "長野県",
+    "city": "豊丘村"
+  },
+  "20417": {
+    "prefecture": "長野県",
+    "city": "大鹿村"
+  },
+  "20422": {
+    "prefecture": "長野県",
+    "city": "上松町"
+  },
+  "20423": {
+    "prefecture": "長野県",
+    "city": "南木曽町"
+  },
+  "20425": {
+    "prefecture": "長野県",
+    "city": "木祖村"
+  },
+  "20429": {
+    "prefecture": "長野県",
+    "city": "王滝村"
+  },
+  "20430": {
+    "prefecture": "長野県",
+    "city": "大桑村"
+  },
+  "20432": {
+    "prefecture": "長野県",
+    "city": "木曽町"
+  },
+  "20446": {
+    "prefecture": "長野県",
+    "city": "麻績村"
+  },
+  "20448": {
+    "prefecture": "長野県",
+    "city": "生坂村"
+  },
+  "20450": {
+    "prefecture": "長野県",
+    "city": "山形村"
+  },
+  "20451": {
+    "prefecture": "長野県",
+    "city": "朝日村"
+  },
+  "20452": {
+    "prefecture": "長野県",
+    "city": "筑北村"
+  },
+  "20481": {
+    "prefecture": "長野県",
+    "city": "池田町"
+  },
+  "20482": {
+    "prefecture": "長野県",
+    "city": "松川村"
+  },
+  "20485": {
+    "prefecture": "長野県",
+    "city": "白馬村"
+  },
+  "20486": {
+    "prefecture": "長野県",
+    "city": "小谷村"
+  },
+  "20521": {
+    "prefecture": "長野県",
+    "city": "坂城町"
+  },
+  "20541": {
+    "prefecture": "長野県",
+    "city": "小布施町"
+  },
+  "20543": {
+    "prefecture": "長野県",
+    "city": "高山村"
+  },
+  "20561": {
+    "prefecture": "長野県",
+    "city": "山ノ内町"
+  },
+  "20562": {
+    "prefecture": "長野県",
+    "city": "木島平村"
+  },
+  "20563": {
+    "prefecture": "長野県",
+    "city": "野沢温泉村"
+  },
+  "20583": {
+    "prefecture": "長野県",
+    "city": "信濃町"
+  },
+  "20588": {
+    "prefecture": "長野県",
+    "city": "小川村"
+  },
+  "20590": {
+    "prefecture": "長野県",
+    "city": "飯綱町"
+  },
+  "20602": {
+    "prefecture": "長野県",
+    "city": "栄村"
+  },
+  "21201": {
+    "prefecture": "岐阜県",
+    "city": "岐阜市"
+  },
+  "21202": {
+    "prefecture": "岐阜県",
+    "city": "大垣市"
+  },
+  "21203": {
+    "prefecture": "岐阜県",
+    "city": "高山市"
+  },
+  "21204": {
+    "prefecture": "岐阜県",
+    "city": "多治見市"
+  },
+  "21205": {
+    "prefecture": "岐阜県",
+    "city": "関市"
+  },
+  "21206": {
+    "prefecture": "岐阜県",
+    "city": "中津川市"
+  },
+  "21207": {
+    "prefecture": "岐阜県",
+    "city": "美濃市"
+  },
+  "21208": {
+    "prefecture": "岐阜県",
+    "city": "瑞浪市"
+  },
+  "21209": {
+    "prefecture": "岐阜県",
+    "city": "羽島市"
+  },
+  "21210": {
+    "prefecture": "岐阜県",
+    "city": "恵那市"
+  },
+  "21211": {
+    "prefecture": "岐阜県",
+    "city": "美濃加茂市"
+  },
+  "21212": {
+    "prefecture": "岐阜県",
+    "city": "土岐市"
+  },
+  "21213": {
+    "prefecture": "岐阜県",
+    "city": "各務原市"
+  },
+  "21214": {
+    "prefecture": "岐阜県",
+    "city": "可児市"
+  },
+  "21215": {
+    "prefecture": "岐阜県",
+    "city": "山県市"
+  },
+  "21216": {
+    "prefecture": "岐阜県",
+    "city": "瑞穂市"
+  },
+  "21217": {
+    "prefecture": "岐阜県",
+    "city": "飛騨市"
+  },
+  "21218": {
+    "prefecture": "岐阜県",
+    "city": "本巣市"
+  },
+  "21219": {
+    "prefecture": "岐阜県",
+    "city": "郡上市"
+  },
+  "21220": {
+    "prefecture": "岐阜県",
+    "city": "下呂市"
+  },
+  "21221": {
+    "prefecture": "岐阜県",
+    "city": "海津市"
+  },
+  "21302": {
+    "prefecture": "岐阜県",
+    "city": "岐南町"
+  },
+  "21303": {
+    "prefecture": "岐阜県",
+    "city": "笠松町"
+  },
+  "21341": {
+    "prefecture": "岐阜県",
+    "city": "養老町"
+  },
+  "21361": {
+    "prefecture": "岐阜県",
+    "city": "垂井町"
+  },
+  "21362": {
+    "prefecture": "岐阜県",
+    "city": "関ケ原町"
+  },
+  "21381": {
+    "prefecture": "岐阜県",
+    "city": "神戸町"
+  },
+  "21382": {
+    "prefecture": "岐阜県",
+    "city": "輪之内町"
+  },
+  "21383": {
+    "prefecture": "岐阜県",
+    "city": "安八町"
+  },
+  "21401": {
+    "prefecture": "岐阜県",
+    "city": "揖斐川町"
+  },
+  "21403": {
+    "prefecture": "岐阜県",
+    "city": "大野町"
+  },
+  "21404": {
+    "prefecture": "岐阜県",
+    "city": "池田町"
+  },
+  "21421": {
+    "prefecture": "岐阜県",
+    "city": "北方町"
+  },
+  "21501": {
+    "prefecture": "岐阜県",
+    "city": "坂祝町"
+  },
+  "21502": {
+    "prefecture": "岐阜県",
+    "city": "富加町"
+  },
+  "21503": {
+    "prefecture": "岐阜県",
+    "city": "川辺町"
+  },
+  "21504": {
+    "prefecture": "岐阜県",
+    "city": "七宗町"
+  },
+  "21505": {
+    "prefecture": "岐阜県",
+    "city": "八百津町"
+  },
+  "21506": {
+    "prefecture": "岐阜県",
+    "city": "白川町"
+  },
+  "21507": {
+    "prefecture": "岐阜県",
+    "city": "東白川村"
+  },
+  "21521": {
+    "prefecture": "岐阜県",
+    "city": "御嵩町"
+  },
+  "21604": {
+    "prefecture": "岐阜県",
+    "city": "白川村"
+  },
+  "22100": {
+    "prefecture": "静岡県",
+    "city": "静岡市"
+  },
+  "22130": {
+    "prefecture": "静岡県",
+    "city": "浜松市"
+  },
+  "22203": {
+    "prefecture": "静岡県",
+    "city": "沼津市"
+  },
+  "22205": {
+    "prefecture": "静岡県",
+    "city": "熱海市"
+  },
+  "22206": {
+    "prefecture": "静岡県",
+    "city": "三島市"
+  },
+  "22207": {
+    "prefecture": "静岡県",
+    "city": "富士宮市"
+  },
+  "22208": {
+    "prefecture": "静岡県",
+    "city": "伊東市"
+  },
+  "22209": {
+    "prefecture": "静岡県",
+    "city": "島田市"
+  },
+  "22210": {
+    "prefecture": "静岡県",
+    "city": "富士市"
+  },
+  "22211": {
+    "prefecture": "静岡県",
+    "city": "磐田市"
+  },
+  "22212": {
+    "prefecture": "静岡県",
+    "city": "焼津市"
+  },
+  "22213": {
+    "prefecture": "静岡県",
+    "city": "掛川市"
+  },
+  "22214": {
+    "prefecture": "静岡県",
+    "city": "藤枝市"
+  },
+  "22215": {
+    "prefecture": "静岡県",
+    "city": "御殿場市"
+  },
+  "22216": {
+    "prefecture": "静岡県",
+    "city": "袋井市"
+  },
+  "22219": {
+    "prefecture": "静岡県",
+    "city": "下田市"
+  },
+  "22220": {
+    "prefecture": "静岡県",
+    "city": "裾野市"
+  },
+  "22221": {
+    "prefecture": "静岡県",
+    "city": "湖西市"
+  },
+  "22222": {
+    "prefecture": "静岡県",
+    "city": "伊豆市"
+  },
+  "22223": {
+    "prefecture": "静岡県",
+    "city": "御前崎市"
+  },
+  "22224": {
+    "prefecture": "静岡県",
+    "city": "菊川市"
+  },
+  "22225": {
+    "prefecture": "静岡県",
+    "city": "伊豆の国市"
+  },
+  "22226": {
+    "prefecture": "静岡県",
+    "city": "牧之原市"
+  },
+  "22301": {
+    "prefecture": "静岡県",
+    "city": "東伊豆町"
+  },
+  "22302": {
+    "prefecture": "静岡県",
+    "city": "河津町"
+  },
+  "22304": {
+    "prefecture": "静岡県",
+    "city": "南伊豆町"
+  },
+  "22305": {
+    "prefecture": "静岡県",
+    "city": "松崎町"
+  },
+  "22306": {
+    "prefecture": "静岡県",
+    "city": "西伊豆町"
+  },
+  "22325": {
+    "prefecture": "静岡県",
+    "city": "函南町"
+  },
+  "22341": {
+    "prefecture": "静岡県",
+    "city": "清水町"
+  },
+  "22342": {
+    "prefecture": "静岡県",
+    "city": "長泉町"
+  },
+  "22344": {
+    "prefecture": "静岡県",
+    "city": "小山町"
+  },
+  "22424": {
+    "prefecture": "静岡県",
+    "city": "吉田町"
+  },
+  "22429": {
+    "prefecture": "静岡県",
+    "city": "川根本町"
+  },
+  "22461": {
+    "prefecture": "静岡県",
+    "city": "森町"
+  },
+  "23100": {
+    "prefecture": "愛知県",
+    "city": "名古屋市"
+  },
+  "23201": {
+    "prefecture": "愛知県",
+    "city": "豊橋市"
+  },
+  "23202": {
+    "prefecture": "愛知県",
+    "city": "岡崎市"
+  },
+  "23203": {
+    "prefecture": "愛知県",
+    "city": "一宮市"
+  },
+  "23204": {
+    "prefecture": "愛知県",
+    "city": "瀬戸市"
+  },
+  "23205": {
+    "prefecture": "愛知県",
+    "city": "半田市"
+  },
+  "23206": {
+    "prefecture": "愛知県",
+    "city": "春日井市"
+  },
+  "23207": {
+    "prefecture": "愛知県",
+    "city": "豊川市"
+  },
+  "23208": {
+    "prefecture": "愛知県",
+    "city": "津島市"
+  },
+  "23209": {
+    "prefecture": "愛知県",
+    "city": "碧南市"
+  },
+  "23210": {
+    "prefecture": "愛知県",
+    "city": "刈谷市"
+  },
+  "23211": {
+    "prefecture": "愛知県",
+    "city": "豊田市"
+  },
+  "23212": {
+    "prefecture": "愛知県",
+    "city": "安城市"
+  },
+  "23213": {
+    "prefecture": "愛知県",
+    "city": "西尾市"
+  },
+  "23214": {
+    "prefecture": "愛知県",
+    "city": "蒲郡市"
+  },
+  "23215": {
+    "prefecture": "愛知県",
+    "city": "犬山市"
+  },
+  "23216": {
+    "prefecture": "愛知県",
+    "city": "常滑市"
+  },
+  "23217": {
+    "prefecture": "愛知県",
+    "city": "江南市"
+  },
+  "23219": {
+    "prefecture": "愛知県",
+    "city": "小牧市"
+  },
+  "23220": {
+    "prefecture": "愛知県",
+    "city": "稲沢市"
+  },
+  "23221": {
+    "prefecture": "愛知県",
+    "city": "新城市"
+  },
+  "23222": {
+    "prefecture": "愛知県",
+    "city": "東海市"
+  },
+  "23223": {
+    "prefecture": "愛知県",
+    "city": "大府市"
+  },
+  "23224": {
+    "prefecture": "愛知県",
+    "city": "知多市"
+  },
+  "23225": {
+    "prefecture": "愛知県",
+    "city": "知立市"
+  },
+  "23226": {
+    "prefecture": "愛知県",
+    "city": "尾張旭市"
+  },
+  "23227": {
+    "prefecture": "愛知県",
+    "city": "高浜市"
+  },
+  "23228": {
+    "prefecture": "愛知県",
+    "city": "岩倉市"
+  },
+  "23229": {
+    "prefecture": "愛知県",
+    "city": "豊明市"
+  },
+  "23230": {
+    "prefecture": "愛知県",
+    "city": "日進市"
+  },
+  "23231": {
+    "prefecture": "愛知県",
+    "city": "田原市"
+  },
+  "23232": {
+    "prefecture": "愛知県",
+    "city": "愛西市"
+  },
+  "23233": {
+    "prefecture": "愛知県",
+    "city": "清須市"
+  },
+  "23234": {
+    "prefecture": "愛知県",
+    "city": "北名古屋市"
+  },
+  "23235": {
+    "prefecture": "愛知県",
+    "city": "弥富市"
+  },
+  "23236": {
+    "prefecture": "愛知県",
+    "city": "みよし市"
+  },
+  "23237": {
+    "prefecture": "愛知県",
+    "city": "あま市"
+  },
+  "23238": {
+    "prefecture": "愛知県",
+    "city": "長久手市"
+  },
+  "23302": {
+    "prefecture": "愛知県",
+    "city": "東郷町"
+  },
+  "23342": {
+    "prefecture": "愛知県",
+    "city": "豊山町"
+  },
+  "23361": {
+    "prefecture": "愛知県",
+    "city": "大口町"
+  },
+  "23362": {
+    "prefecture": "愛知県",
+    "city": "扶桑町"
+  },
+  "23424": {
+    "prefecture": "愛知県",
+    "city": "大治町"
+  },
+  "23425": {
+    "prefecture": "愛知県",
+    "city": "蟹江町"
+  },
+  "23427": {
+    "prefecture": "愛知県",
+    "city": "飛島村"
+  },
+  "23441": {
+    "prefecture": "愛知県",
+    "city": "阿久比町"
+  },
+  "23442": {
+    "prefecture": "愛知県",
+    "city": "東浦町"
+  },
+  "23445": {
+    "prefecture": "愛知県",
+    "city": "南知多町"
+  },
+  "23446": {
+    "prefecture": "愛知県",
+    "city": "美浜町"
+  },
+  "23447": {
+    "prefecture": "愛知県",
+    "city": "武豊町"
+  },
+  "23501": {
+    "prefecture": "愛知県",
+    "city": "幸田町"
+  },
+  "23561": {
+    "prefecture": "愛知県",
+    "city": "設楽町"
+  },
+  "23562": {
+    "prefecture": "愛知県",
+    "city": "東栄町"
+  },
+  "23563": {
+    "prefecture": "愛知県",
+    "city": "豊根村"
+  },
+  "24201": {
+    "prefecture": "三重県",
+    "city": "津市"
+  },
+  "24202": {
+    "prefecture": "三重県",
+    "city": "四日市市"
+  },
+  "24203": {
+    "prefecture": "三重県",
+    "city": "伊勢市"
+  },
+  "24204": {
+    "prefecture": "三重県",
+    "city": "松阪市"
+  },
+  "24205": {
+    "prefecture": "三重県",
+    "city": "桑名市"
+  },
+  "24207": {
+    "prefecture": "三重県",
+    "city": "鈴鹿市"
+  },
+  "24208": {
+    "prefecture": "三重県",
+    "city": "名張市"
+  },
+  "24209": {
+    "prefecture": "三重県",
+    "city": "尾鷲市"
+  },
+  "24210": {
+    "prefecture": "三重県",
+    "city": "亀山市"
+  },
+  "24211": {
+    "prefecture": "三重県",
+    "city": "鳥羽市"
+  },
+  "24212": {
+    "prefecture": "三重県",
+    "city": "熊野市"
+  },
+  "24214": {
+    "prefecture": "三重県",
+    "city": "いなべ市"
+  },
+  "24215": {
+    "prefecture": "三重県",
+    "city": "志摩市"
+  },
+  "24216": {
+    "prefecture": "三重県",
+    "city": "伊賀市"
+  },
+  "24303": {
+    "prefecture": "三重県",
+    "city": "木曽岬町"
+  },
+  "24324": {
+    "prefecture": "三重県",
+    "city": "東員町"
+  },
+  "24341": {
+    "prefecture": "三重県",
+    "city": "菰野町"
+  },
+  "24343": {
+    "prefecture": "三重県",
+    "city": "朝日町"
+  },
+  "24344": {
+    "prefecture": "三重県",
+    "city": "川越町"
+  },
+  "24441": {
+    "prefecture": "三重県",
+    "city": "多気町"
+  },
+  "24442": {
+    "prefecture": "三重県",
+    "city": "明和町"
+  },
+  "24443": {
+    "prefecture": "三重県",
+    "city": "大台町"
+  },
+  "24461": {
+    "prefecture": "三重県",
+    "city": "玉城町"
+  },
+  "24470": {
+    "prefecture": "三重県",
+    "city": "度会町"
+  },
+  "24471": {
+    "prefecture": "三重県",
+    "city": "大紀町"
+  },
+  "24472": {
+    "prefecture": "三重県",
+    "city": "南伊勢町"
+  },
+  "24543": {
+    "prefecture": "三重県",
+    "city": "紀北町"
+  },
+  "24561": {
+    "prefecture": "三重県",
+    "city": "御浜町"
+  },
+  "24562": {
+    "prefecture": "三重県",
+    "city": "紀宝町"
+  },
+  "25201": {
+    "prefecture": "滋賀県",
+    "city": "大津市"
+  },
+  "25202": {
+    "prefecture": "滋賀県",
+    "city": "彦根市"
+  },
+  "25203": {
+    "prefecture": "滋賀県",
+    "city": "長浜市"
+  },
+  "25204": {
+    "prefecture": "滋賀県",
+    "city": "近江八幡市"
+  },
+  "25206": {
+    "prefecture": "滋賀県",
+    "city": "草津市"
+  },
+  "25207": {
+    "prefecture": "滋賀県",
+    "city": "守山市"
+  },
+  "25208": {
+    "prefecture": "滋賀県",
+    "city": "栗東市"
+  },
+  "25209": {
+    "prefecture": "滋賀県",
+    "city": "甲賀市"
+  },
+  "25210": {
+    "prefecture": "滋賀県",
+    "city": "野洲市"
+  },
+  "25211": {
+    "prefecture": "滋賀県",
+    "city": "湖南市"
+  },
+  "25212": {
+    "prefecture": "滋賀県",
+    "city": "高島市"
+  },
+  "25213": {
+    "prefecture": "滋賀県",
+    "city": "東近江市"
+  },
+  "25214": {
+    "prefecture": "滋賀県",
+    "city": "米原市"
+  },
+  "25383": {
+    "prefecture": "滋賀県",
+    "city": "日野町"
+  },
+  "25384": {
+    "prefecture": "滋賀県",
+    "city": "竜王町"
+  },
+  "25425": {
+    "prefecture": "滋賀県",
+    "city": "愛荘町"
+  },
+  "25441": {
+    "prefecture": "滋賀県",
+    "city": "豊郷町"
+  },
+  "25442": {
+    "prefecture": "滋賀県",
+    "city": "甲良町"
+  },
+  "25443": {
+    "prefecture": "滋賀県",
+    "city": "多賀町"
+  },
+  "26100": {
+    "prefecture": "京都府",
+    "city": "京都市"
+  },
+  "26201": {
+    "prefecture": "京都府",
+    "city": "福知山市"
+  },
+  "26202": {
+    "prefecture": "京都府",
+    "city": "舞鶴市"
+  },
+  "26203": {
+    "prefecture": "京都府",
+    "city": "綾部市"
+  },
+  "26204": {
+    "prefecture": "京都府",
+    "city": "宇治市"
+  },
+  "26205": {
+    "prefecture": "京都府",
+    "city": "宮津市"
+  },
+  "26206": {
+    "prefecture": "京都府",
+    "city": "亀岡市"
+  },
+  "26207": {
+    "prefecture": "京都府",
+    "city": "城陽市"
+  },
+  "26208": {
+    "prefecture": "京都府",
+    "city": "向日市"
+  },
+  "26209": {
+    "prefecture": "京都府",
+    "city": "長岡京市"
+  },
+  "26210": {
+    "prefecture": "京都府",
+    "city": "八幡市"
+  },
+  "26211": {
+    "prefecture": "京都府",
+    "city": "京田辺市"
+  },
+  "26212": {
+    "prefecture": "京都府",
+    "city": "京丹後市"
+  },
+  "26213": {
+    "prefecture": "京都府",
+    "city": "南丹市"
+  },
+  "26214": {
+    "prefecture": "京都府",
+    "city": "木津川市"
+  },
+  "26303": {
+    "prefecture": "京都府",
+    "city": "大山崎町"
+  },
+  "26322": {
+    "prefecture": "京都府",
+    "city": "久御山町"
+  },
+  "26343": {
+    "prefecture": "京都府",
+    "city": "井手町"
+  },
+  "26344": {
+    "prefecture": "京都府",
+    "city": "宇治田原町"
+  },
+  "26364": {
+    "prefecture": "京都府",
+    "city": "笠置町"
+  },
+  "26365": {
+    "prefecture": "京都府",
+    "city": "和束町"
+  },
+  "26366": {
+    "prefecture": "京都府",
+    "city": "精華町"
+  },
+  "26367": {
+    "prefecture": "京都府",
+    "city": "南山城村"
+  },
+  "26407": {
+    "prefecture": "京都府",
+    "city": "京丹波町"
+  },
+  "26463": {
+    "prefecture": "京都府",
+    "city": "伊根町"
+  },
+  "26465": {
+    "prefecture": "京都府",
+    "city": "与謝野町"
+  },
+  "27100": {
+    "prefecture": "大阪府",
+    "city": "大阪市"
+  },
+  "27140": {
+    "prefecture": "大阪府",
+    "city": "堺市"
+  },
+  "27202": {
+    "prefecture": "大阪府",
+    "city": "岸和田市"
+  },
+  "27203": {
+    "prefecture": "大阪府",
+    "city": "豊中市"
+  },
+  "27204": {
+    "prefecture": "大阪府",
+    "city": "池田市"
+  },
+  "27205": {
+    "prefecture": "大阪府",
+    "city": "吹田市"
+  },
+  "27206": {
+    "prefecture": "大阪府",
+    "city": "泉大津市"
+  },
+  "27207": {
+    "prefecture": "大阪府",
+    "city": "高槻市"
+  },
+  "27208": {
+    "prefecture": "大阪府",
+    "city": "貝塚市"
+  },
+  "27209": {
+    "prefecture": "大阪府",
+    "city": "守口市"
+  },
+  "27210": {
+    "prefecture": "大阪府",
+    "city": "枚方市"
+  },
+  "27211": {
+    "prefecture": "大阪府",
+    "city": "茨木市"
+  },
+  "27212": {
+    "prefecture": "大阪府",
+    "city": "八尾市"
+  },
+  "27213": {
+    "prefecture": "大阪府",
+    "city": "泉佐野市"
+  },
+  "27214": {
+    "prefecture": "大阪府",
+    "city": "富田林市"
+  },
+  "27215": {
+    "prefecture": "大阪府",
+    "city": "寝屋川市"
+  },
+  "27216": {
+    "prefecture": "大阪府",
+    "city": "河内長野市"
+  },
+  "27217": {
+    "prefecture": "大阪府",
+    "city": "松原市"
+  },
+  "27218": {
+    "prefecture": "大阪府",
+    "city": "大東市"
+  },
+  "27219": {
+    "prefecture": "大阪府",
+    "city": "和泉市"
+  },
+  "27220": {
+    "prefecture": "大阪府",
+    "city": "箕面市"
+  },
+  "27221": {
+    "prefecture": "大阪府",
+    "city": "柏原市"
+  },
+  "27222": {
+    "prefecture": "大阪府",
+    "city": "羽曳野市"
+  },
+  "27223": {
+    "prefecture": "大阪府",
+    "city": "門真市"
+  },
+  "27224": {
+    "prefecture": "大阪府",
+    "city": "摂津市"
+  },
+  "27225": {
+    "prefecture": "大阪府",
+    "city": "高石市"
+  },
+  "27226": {
+    "prefecture": "大阪府",
+    "city": "藤井寺市"
+  },
+  "27227": {
+    "prefecture": "大阪府",
+    "city": "東大阪市"
+  },
+  "27228": {
+    "prefecture": "大阪府",
+    "city": "泉南市"
+  },
+  "27229": {
+    "prefecture": "大阪府",
+    "city": "四條畷市"
+  },
+  "27230": {
+    "prefecture": "大阪府",
+    "city": "交野市"
+  },
+  "27231": {
+    "prefecture": "大阪府",
+    "city": "大阪狭山市"
+  },
+  "27232": {
+    "prefecture": "大阪府",
+    "city": "阪南市"
+  },
+  "27301": {
+    "prefecture": "大阪府",
+    "city": "島本町"
+  },
+  "27321": {
+    "prefecture": "大阪府",
+    "city": "豊能町"
+  },
+  "27322": {
+    "prefecture": "大阪府",
+    "city": "能勢町"
+  },
+  "27341": {
+    "prefecture": "大阪府",
+    "city": "忠岡町"
+  },
+  "27361": {
+    "prefecture": "大阪府",
+    "city": "熊取町"
+  },
+  "27362": {
+    "prefecture": "大阪府",
+    "city": "田尻町"
+  },
+  "27366": {
+    "prefecture": "大阪府",
+    "city": "岬町"
+  },
+  "27381": {
+    "prefecture": "大阪府",
+    "city": "太子町"
+  },
+  "27382": {
+    "prefecture": "大阪府",
+    "city": "河南町"
+  },
+  "27383": {
+    "prefecture": "大阪府",
+    "city": "千早赤阪村"
+  },
+  "28100": {
+    "prefecture": "兵庫県",
+    "city": "神戸市"
+  },
+  "28201": {
+    "prefecture": "兵庫県",
+    "city": "姫路市"
+  },
+  "28202": {
+    "prefecture": "兵庫県",
+    "city": "尼崎市"
+  },
+  "28203": {
+    "prefecture": "兵庫県",
+    "city": "明石市"
+  },
+  "28204": {
+    "prefecture": "兵庫県",
+    "city": "西宮市"
+  },
+  "28205": {
+    "prefecture": "兵庫県",
+    "city": "洲本市"
+  },
+  "28206": {
+    "prefecture": "兵庫県",
+    "city": "芦屋市"
+  },
+  "28207": {
+    "prefecture": "兵庫県",
+    "city": "伊丹市"
+  },
+  "28208": {
+    "prefecture": "兵庫県",
+    "city": "相生市"
+  },
+  "28209": {
+    "prefecture": "兵庫県",
+    "city": "豊岡市"
+  },
+  "28210": {
+    "prefecture": "兵庫県",
+    "city": "加古川市"
+  },
+  "28212": {
+    "prefecture": "兵庫県",
+    "city": "赤穂市"
+  },
+  "28213": {
+    "prefecture": "兵庫県",
+    "city": "西脇市"
+  },
+  "28214": {
+    "prefecture": "兵庫県",
+    "city": "宝塚市"
+  },
+  "28215": {
+    "prefecture": "兵庫県",
+    "city": "三木市"
+  },
+  "28216": {
+    "prefecture": "兵庫県",
+    "city": "高砂市"
+  },
+  "28217": {
+    "prefecture": "兵庫県",
+    "city": "川西市"
+  },
+  "28218": {
+    "prefecture": "兵庫県",
+    "city": "小野市"
+  },
+  "28219": {
+    "prefecture": "兵庫県",
+    "city": "三田市"
+  },
+  "28220": {
+    "prefecture": "兵庫県",
+    "city": "加西市"
+  },
+  "28221": {
+    "prefecture": "兵庫県",
+    "city": "丹波篠山市"
+  },
+  "28222": {
+    "prefecture": "兵庫県",
+    "city": "養父市"
+  },
+  "28223": {
+    "prefecture": "兵庫県",
+    "city": "丹波市"
+  },
+  "28224": {
+    "prefecture": "兵庫県",
+    "city": "南あわじ市"
+  },
+  "28225": {
+    "prefecture": "兵庫県",
+    "city": "朝来市"
+  },
+  "28226": {
+    "prefecture": "兵庫県",
+    "city": "淡路市"
+  },
+  "28227": {
+    "prefecture": "兵庫県",
+    "city": "宍粟市"
+  },
+  "28228": {
+    "prefecture": "兵庫県",
+    "city": "加東市"
+  },
+  "28229": {
+    "prefecture": "兵庫県",
+    "city": "たつの市"
+  },
+  "28301": {
+    "prefecture": "兵庫県",
+    "city": "猪名川町"
+  },
+  "28365": {
+    "prefecture": "兵庫県",
+    "city": "多可町"
+  },
+  "28381": {
+    "prefecture": "兵庫県",
+    "city": "稲美町"
+  },
+  "28382": {
+    "prefecture": "兵庫県",
+    "city": "播磨町"
+  },
+  "28442": {
+    "prefecture": "兵庫県",
+    "city": "市川町"
+  },
+  "28443": {
+    "prefecture": "兵庫県",
+    "city": "福崎町"
+  },
+  "28446": {
+    "prefecture": "兵庫県",
+    "city": "神河町"
+  },
+  "28464": {
+    "prefecture": "兵庫県",
+    "city": "太子町"
+  },
+  "28481": {
+    "prefecture": "兵庫県",
+    "city": "上郡町"
+  },
+  "28501": {
+    "prefecture": "兵庫県",
+    "city": "佐用町"
+  },
+  "28585": {
+    "prefecture": "兵庫県",
+    "city": "香美町"
+  },
+  "28586": {
+    "prefecture": "兵庫県",
+    "city": "新温泉町"
+  },
+  "29201": {
+    "prefecture": "奈良県",
+    "city": "奈良市"
+  },
+  "29202": {
+    "prefecture": "奈良県",
+    "city": "大和高田市"
+  },
+  "29203": {
+    "prefecture": "奈良県",
+    "city": "大和郡山市"
+  },
+  "29204": {
+    "prefecture": "奈良県",
+    "city": "天理市"
+  },
+  "29205": {
+    "prefecture": "奈良県",
+    "city": "橿原市"
+  },
+  "29206": {
+    "prefecture": "奈良県",
+    "city": "桜井市"
+  },
+  "29207": {
+    "prefecture": "奈良県",
+    "city": "五條市"
+  },
+  "29208": {
+    "prefecture": "奈良県",
+    "city": "御所市"
+  },
+  "29209": {
+    "prefecture": "奈良県",
+    "city": "生駒市"
+  },
+  "29210": {
+    "prefecture": "奈良県",
+    "city": "香芝市"
+  },
+  "29211": {
+    "prefecture": "奈良県",
+    "city": "葛城市"
+  },
+  "29212": {
+    "prefecture": "奈良県",
+    "city": "宇陀市"
+  },
+  "29322": {
+    "prefecture": "奈良県",
+    "city": "山添村"
+  },
+  "29342": {
+    "prefecture": "奈良県",
+    "city": "平群町"
+  },
+  "29343": {
+    "prefecture": "奈良県",
+    "city": "三郷町"
+  },
+  "29344": {
+    "prefecture": "奈良県",
+    "city": "斑鳩町"
+  },
+  "29345": {
+    "prefecture": "奈良県",
+    "city": "安堵町"
+  },
+  "29361": {
+    "prefecture": "奈良県",
+    "city": "川西町"
+  },
+  "29362": {
+    "prefecture": "奈良県",
+    "city": "三宅町"
+  },
+  "29363": {
+    "prefecture": "奈良県",
+    "city": "田原本町"
+  },
+  "29385": {
+    "prefecture": "奈良県",
+    "city": "曽爾村"
+  },
+  "29386": {
+    "prefecture": "奈良県",
+    "city": "御杖村"
+  },
+  "29401": {
+    "prefecture": "奈良県",
+    "city": "高取町"
+  },
+  "29402": {
+    "prefecture": "奈良県",
+    "city": "明日香村"
+  },
+  "29424": {
+    "prefecture": "奈良県",
+    "city": "上牧町"
+  },
+  "29425": {
+    "prefecture": "奈良県",
+    "city": "王寺町"
+  },
+  "29426": {
+    "prefecture": "奈良県",
+    "city": "広陵町"
+  },
+  "29427": {
+    "prefecture": "奈良県",
+    "city": "河合町"
+  },
+  "29441": {
+    "prefecture": "奈良県",
+    "city": "吉野町"
+  },
+  "29442": {
+    "prefecture": "奈良県",
+    "city": "大淀町"
+  },
+  "29443": {
+    "prefecture": "奈良県",
+    "city": "下市町"
+  },
+  "29444": {
+    "prefecture": "奈良県",
+    "city": "黒滝村"
+  },
+  "29446": {
+    "prefecture": "奈良県",
+    "city": "天川村"
+  },
+  "29447": {
+    "prefecture": "奈良県",
+    "city": "野迫川村"
+  },
+  "29449": {
+    "prefecture": "奈良県",
+    "city": "十津川村"
+  },
+  "29450": {
+    "prefecture": "奈良県",
+    "city": "下北山村"
+  },
+  "29451": {
+    "prefecture": "奈良県",
+    "city": "上北山村"
+  },
+  "29452": {
+    "prefecture": "奈良県",
+    "city": "川上村"
+  },
+  "29453": {
+    "prefecture": "奈良県",
+    "city": "東吉野村"
+  },
+  "30201": {
+    "prefecture": "和歌山県",
+    "city": "和歌山市"
+  },
+  "30202": {
+    "prefecture": "和歌山県",
+    "city": "海南市"
+  },
+  "30203": {
+    "prefecture": "和歌山県",
+    "city": "橋本市"
+  },
+  "30204": {
+    "prefecture": "和歌山県",
+    "city": "有田市"
+  },
+  "30205": {
+    "prefecture": "和歌山県",
+    "city": "御坊市"
+  },
+  "30206": {
+    "prefecture": "和歌山県",
+    "city": "田辺市"
+  },
+  "30207": {
+    "prefecture": "和歌山県",
+    "city": "新宮市"
+  },
+  "30208": {
+    "prefecture": "和歌山県",
+    "city": "紀の川市"
+  },
+  "30209": {
+    "prefecture": "和歌山県",
+    "city": "岩出市"
+  },
+  "30304": {
+    "prefecture": "和歌山県",
+    "city": "紀美野町"
+  },
+  "30341": {
+    "prefecture": "和歌山県",
+    "city": "かつらぎ町"
+  },
+  "30343": {
+    "prefecture": "和歌山県",
+    "city": "九度山町"
+  },
+  "30344": {
+    "prefecture": "和歌山県",
+    "city": "高野町"
+  },
+  "30361": {
+    "prefecture": "和歌山県",
+    "city": "湯浅町"
+  },
+  "30362": {
+    "prefecture": "和歌山県",
+    "city": "広川町"
+  },
+  "30366": {
+    "prefecture": "和歌山県",
+    "city": "有田川町"
+  },
+  "30381": {
+    "prefecture": "和歌山県",
+    "city": "美浜町"
+  },
+  "30382": {
+    "prefecture": "和歌山県",
+    "city": "日高町"
+  },
+  "30383": {
+    "prefecture": "和歌山県",
+    "city": "由良町"
+  },
+  "30390": {
+    "prefecture": "和歌山県",
+    "city": "印南町"
+  },
+  "30391": {
+    "prefecture": "和歌山県",
+    "city": "みなべ町"
+  },
+  "30392": {
+    "prefecture": "和歌山県",
+    "city": "日高川町"
+  },
+  "30401": {
+    "prefecture": "和歌山県",
+    "city": "白浜町"
+  },
+  "30404": {
+    "prefecture": "和歌山県",
+    "city": "上富田町"
+  },
+  "30406": {
+    "prefecture": "和歌山県",
+    "city": "すさみ町"
+  },
+  "30421": {
+    "prefecture": "和歌山県",
+    "city": "那智勝浦町"
+  },
+  "30422": {
+    "prefecture": "和歌山県",
+    "city": "太地町"
+  },
+  "30424": {
+    "prefecture": "和歌山県",
+    "city": "古座川町"
+  },
+  "30427": {
+    "prefecture": "和歌山県",
+    "city": "北山村"
+  },
+  "30428": {
+    "prefecture": "和歌山県",
+    "city": "串本町"
+  },
+  "31201": {
+    "prefecture": "鳥取県",
+    "city": "鳥取市"
+  },
+  "31202": {
+    "prefecture": "鳥取県",
+    "city": "米子市"
+  },
+  "31203": {
+    "prefecture": "鳥取県",
+    "city": "倉吉市"
+  },
+  "31204": {
+    "prefecture": "鳥取県",
+    "city": "境港市"
+  },
+  "31302": {
+    "prefecture": "鳥取県",
+    "city": "岩美町"
+  },
+  "31325": {
+    "prefecture": "鳥取県",
+    "city": "若桜町"
+  },
+  "31328": {
+    "prefecture": "鳥取県",
+    "city": "智頭町"
+  },
+  "31329": {
+    "prefecture": "鳥取県",
+    "city": "八頭町"
+  },
+  "31364": {
+    "prefecture": "鳥取県",
+    "city": "三朝町"
+  },
+  "31370": {
+    "prefecture": "鳥取県",
+    "city": "湯梨浜町"
+  },
+  "31371": {
+    "prefecture": "鳥取県",
+    "city": "琴浦町"
+  },
+  "31372": {
+    "prefecture": "鳥取県",
+    "city": "北栄町"
+  },
+  "31384": {
+    "prefecture": "鳥取県",
+    "city": "日吉津村"
+  },
+  "31386": {
+    "prefecture": "鳥取県",
+    "city": "大山町"
+  },
+  "31389": {
+    "prefecture": "鳥取県",
+    "city": "南部町"
+  },
+  "31390": {
+    "prefecture": "鳥取県",
+    "city": "伯耆町"
+  },
+  "31401": {
+    "prefecture": "鳥取県",
+    "city": "日南町"
+  },
+  "31402": {
+    "prefecture": "鳥取県",
+    "city": "日野町"
+  },
+  "31403": {
+    "prefecture": "鳥取県",
+    "city": "江府町"
+  },
+  "32201": {
+    "prefecture": "島根県",
+    "city": "松江市"
+  },
+  "32202": {
+    "prefecture": "島根県",
+    "city": "浜田市"
+  },
+  "32203": {
+    "prefecture": "島根県",
+    "city": "出雲市"
+  },
+  "32204": {
+    "prefecture": "島根県",
+    "city": "益田市"
+  },
+  "32205": {
+    "prefecture": "島根県",
+    "city": "大田市"
+  },
+  "32206": {
+    "prefecture": "島根県",
+    "city": "安来市"
+  },
+  "32207": {
+    "prefecture": "島根県",
+    "city": "江津市"
+  },
+  "32209": {
+    "prefecture": "島根県",
+    "city": "雲南市"
+  },
+  "32343": {
+    "prefecture": "島根県",
+    "city": "奥出雲町"
+  },
+  "32386": {
+    "prefecture": "島根県",
+    "city": "飯南町"
+  },
+  "32441": {
+    "prefecture": "島根県",
+    "city": "川本町"
+  },
+  "32448": {
+    "prefecture": "島根県",
+    "city": "美郷町"
+  },
+  "32449": {
+    "prefecture": "島根県",
+    "city": "邑南町"
+  },
+  "32501": {
+    "prefecture": "島根県",
+    "city": "津和野町"
+  },
+  "32505": {
+    "prefecture": "島根県",
+    "city": "吉賀町"
+  },
+  "32525": {
+    "prefecture": "島根県",
+    "city": "海士町"
+  },
+  "32526": {
+    "prefecture": "島根県",
+    "city": "西ノ島町"
+  },
+  "32527": {
+    "prefecture": "島根県",
+    "city": "知夫村"
+  },
+  "32528": {
+    "prefecture": "島根県",
+    "city": "隠岐の島町"
+  },
+  "33100": {
+    "prefecture": "岡山県",
+    "city": "岡山市"
+  },
+  "33202": {
+    "prefecture": "岡山県",
+    "city": "倉敷市"
+  },
+  "33203": {
+    "prefecture": "岡山県",
+    "city": "津山市"
+  },
+  "33204": {
+    "prefecture": "岡山県",
+    "city": "玉野市"
+  },
+  "33205": {
+    "prefecture": "岡山県",
+    "city": "笠岡市"
+  },
+  "33207": {
+    "prefecture": "岡山県",
+    "city": "井原市"
+  },
+  "33208": {
+    "prefecture": "岡山県",
+    "city": "総社市"
+  },
+  "33209": {
+    "prefecture": "岡山県",
+    "city": "高梁市"
+  },
+  "33210": {
+    "prefecture": "岡山県",
+    "city": "新見市"
+  },
+  "33211": {
+    "prefecture": "岡山県",
+    "city": "備前市"
+  },
+  "33212": {
+    "prefecture": "岡山県",
+    "city": "瀬戸内市"
+  },
+  "33213": {
+    "prefecture": "岡山県",
+    "city": "赤磐市"
+  },
+  "33214": {
+    "prefecture": "岡山県",
+    "city": "真庭市"
+  },
+  "33215": {
+    "prefecture": "岡山県",
+    "city": "美作市"
+  },
+  "33216": {
+    "prefecture": "岡山県",
+    "city": "浅口市"
+  },
+  "33346": {
+    "prefecture": "岡山県",
+    "city": "和気町"
+  },
+  "33423": {
+    "prefecture": "岡山県",
+    "city": "早島町"
+  },
+  "33445": {
+    "prefecture": "岡山県",
+    "city": "里庄町"
+  },
+  "33461": {
+    "prefecture": "岡山県",
+    "city": "矢掛町"
+  },
+  "33586": {
+    "prefecture": "岡山県",
+    "city": "新庄村"
+  },
+  "33606": {
+    "prefecture": "岡山県",
+    "city": "鏡野町"
+  },
+  "33622": {
+    "prefecture": "岡山県",
+    "city": "勝央町"
+  },
+  "33623": {
+    "prefecture": "岡山県",
+    "city": "奈義町"
+  },
+  "33643": {
+    "prefecture": "岡山県",
+    "city": "西粟倉村"
+  },
+  "33663": {
+    "prefecture": "岡山県",
+    "city": "久米南町"
+  },
+  "33666": {
+    "prefecture": "岡山県",
+    "city": "美咲町"
+  },
+  "33681": {
+    "prefecture": "岡山県",
+    "city": "吉備中央町"
+  },
+  "34100": {
+    "prefecture": "広島県",
+    "city": "広島市"
+  },
+  "34202": {
+    "prefecture": "広島県",
+    "city": "呉市"
+  },
+  "34203": {
+    "prefecture": "広島県",
+    "city": "竹原市"
+  },
+  "34204": {
+    "prefecture": "広島県",
+    "city": "三原市"
+  },
+  "34205": {
+    "prefecture": "広島県",
+    "city": "尾道市"
+  },
+  "34207": {
+    "prefecture": "広島県",
+    "city": "福山市"
+  },
+  "34208": {
+    "prefecture": "広島県",
+    "city": "府中市"
+  },
+  "34209": {
+    "prefecture": "広島県",
+    "city": "三次市"
+  },
+  "34210": {
+    "prefecture": "広島県",
+    "city": "庄原市"
+  },
+  "34211": {
+    "prefecture": "広島県",
+    "city": "大竹市"
+  },
+  "34212": {
+    "prefecture": "広島県",
+    "city": "東広島市"
+  },
+  "34213": {
+    "prefecture": "広島県",
+    "city": "廿日市市"
+  },
+  "34214": {
+    "prefecture": "広島県",
+    "city": "安芸高田市"
+  },
+  "34215": {
+    "prefecture": "広島県",
+    "city": "江田島市"
+  },
+  "34302": {
+    "prefecture": "広島県",
+    "city": "府中町"
+  },
+  "34304": {
+    "prefecture": "広島県",
+    "city": "海田町"
+  },
+  "34307": {
+    "prefecture": "広島県",
+    "city": "熊野町"
+  },
+  "34309": {
+    "prefecture": "広島県",
+    "city": "坂町"
+  },
+  "34368": {
+    "prefecture": "広島県",
+    "city": "安芸太田町"
+  },
+  "34369": {
+    "prefecture": "広島県",
+    "city": "北広島町"
+  },
+  "34431": {
+    "prefecture": "広島県",
+    "city": "大崎上島町"
+  },
+  "34462": {
+    "prefecture": "広島県",
+    "city": "世羅町"
+  },
+  "34545": {
+    "prefecture": "広島県",
+    "city": "神石高原町"
+  },
+  "35201": {
+    "prefecture": "山口県",
+    "city": "下関市"
+  },
+  "35202": {
+    "prefecture": "山口県",
+    "city": "宇部市"
+  },
+  "35203": {
+    "prefecture": "山口県",
+    "city": "山口市"
+  },
+  "35204": {
+    "prefecture": "山口県",
+    "city": "萩市"
+  },
+  "35206": {
+    "prefecture": "山口県",
+    "city": "防府市"
+  },
+  "35207": {
+    "prefecture": "山口県",
+    "city": "下松市"
+  },
+  "35208": {
+    "prefecture": "山口県",
+    "city": "岩国市"
+  },
+  "35210": {
+    "prefecture": "山口県",
+    "city": "光市"
+  },
+  "35211": {
+    "prefecture": "山口県",
+    "city": "長門市"
+  },
+  "35212": {
+    "prefecture": "山口県",
+    "city": "柳井市"
+  },
+  "35213": {
+    "prefecture": "山口県",
+    "city": "美祢市"
+  },
+  "35215": {
+    "prefecture": "山口県",
+    "city": "周南市"
+  },
+  "35216": {
+    "prefecture": "山口県",
+    "city": "山陽小野田市"
+  },
+  "35305": {
+    "prefecture": "山口県",
+    "city": "周防大島町"
+  },
+  "35321": {
+    "prefecture": "山口県",
+    "city": "和木町"
+  },
+  "35341": {
+    "prefecture": "山口県",
+    "city": "上関町"
+  },
+  "35343": {
+    "prefecture": "山口県",
+    "city": "田布施町"
+  },
+  "35344": {
+    "prefecture": "山口県",
+    "city": "平生町"
+  },
+  "35502": {
+    "prefecture": "山口県",
+    "city": "阿武町"
+  },
+  "36201": {
+    "prefecture": "徳島県",
+    "city": "徳島市"
+  },
+  "36202": {
+    "prefecture": "徳島県",
+    "city": "鳴門市"
+  },
+  "36203": {
+    "prefecture": "徳島県",
+    "city": "小松島市"
+  },
+  "36204": {
+    "prefecture": "徳島県",
+    "city": "阿南市"
+  },
+  "36205": {
+    "prefecture": "徳島県",
+    "city": "吉野川市"
+  },
+  "36206": {
+    "prefecture": "徳島県",
+    "city": "阿波市"
+  },
+  "36207": {
+    "prefecture": "徳島県",
+    "city": "美馬市"
+  },
+  "36208": {
+    "prefecture": "徳島県",
+    "city": "三好市"
+  },
+  "36301": {
+    "prefecture": "徳島県",
+    "city": "勝浦町"
+  },
+  "36302": {
+    "prefecture": "徳島県",
+    "city": "上勝町"
+  },
+  "36321": {
+    "prefecture": "徳島県",
+    "city": "佐那河内村"
+  },
+  "36341": {
+    "prefecture": "徳島県",
+    "city": "石井町"
+  },
+  "36342": {
+    "prefecture": "徳島県",
+    "city": "神山町"
+  },
+  "36368": {
+    "prefecture": "徳島県",
+    "city": "那賀町"
+  },
+  "36383": {
+    "prefecture": "徳島県",
+    "city": "牟岐町"
+  },
+  "36387": {
+    "prefecture": "徳島県",
+    "city": "美波町"
+  },
+  "36388": {
+    "prefecture": "徳島県",
+    "city": "海陽町"
+  },
+  "36401": {
+    "prefecture": "徳島県",
+    "city": "松茂町"
+  },
+  "36402": {
+    "prefecture": "徳島県",
+    "city": "北島町"
+  },
+  "36403": {
+    "prefecture": "徳島県",
+    "city": "藍住町"
+  },
+  "36404": {
+    "prefecture": "徳島県",
+    "city": "板野町"
+  },
+  "36405": {
+    "prefecture": "徳島県",
+    "city": "上板町"
+  },
+  "36468": {
+    "prefecture": "徳島県",
+    "city": "つるぎ町"
+  },
+  "36489": {
+    "prefecture": "徳島県",
+    "city": "東みよし町"
+  },
+  "37201": {
+    "prefecture": "香川県",
+    "city": "高松市"
+  },
+  "37202": {
+    "prefecture": "香川県",
+    "city": "丸亀市"
+  },
+  "37203": {
+    "prefecture": "香川県",
+    "city": "坂出市"
+  },
+  "37204": {
+    "prefecture": "香川県",
+    "city": "善通寺市"
+  },
+  "37205": {
+    "prefecture": "香川県",
+    "city": "観音寺市"
+  },
+  "37206": {
+    "prefecture": "香川県",
+    "city": "さぬき市"
+  },
+  "37207": {
+    "prefecture": "香川県",
+    "city": "東かがわ市"
+  },
+  "37208": {
+    "prefecture": "香川県",
+    "city": "三豊市"
+  },
+  "37322": {
+    "prefecture": "香川県",
+    "city": "土庄町"
+  },
+  "37324": {
+    "prefecture": "香川県",
+    "city": "小豆島町"
+  },
+  "37341": {
+    "prefecture": "香川県",
+    "city": "三木町"
+  },
+  "37364": {
+    "prefecture": "香川県",
+    "city": "直島町"
+  },
+  "37386": {
+    "prefecture": "香川県",
+    "city": "宇多津町"
+  },
+  "37387": {
+    "prefecture": "香川県",
+    "city": "綾川町"
+  },
+  "37403": {
+    "prefecture": "香川県",
+    "city": "琴平町"
+  },
+  "37404": {
+    "prefecture": "香川県",
+    "city": "多度津町"
+  },
+  "37406": {
+    "prefecture": "香川県",
+    "city": "まんのう町"
+  },
+  "38201": {
+    "prefecture": "愛媛県",
+    "city": "松山市"
+  },
+  "38202": {
+    "prefecture": "愛媛県",
+    "city": "今治市"
+  },
+  "38203": {
+    "prefecture": "愛媛県",
+    "city": "宇和島市"
+  },
+  "38204": {
+    "prefecture": "愛媛県",
+    "city": "八幡浜市"
+  },
+  "38205": {
+    "prefecture": "愛媛県",
+    "city": "新居浜市"
+  },
+  "38206": {
+    "prefecture": "愛媛県",
+    "city": "西条市"
+  },
+  "38207": {
+    "prefecture": "愛媛県",
+    "city": "大洲市"
+  },
+  "38210": {
+    "prefecture": "愛媛県",
+    "city": "伊予市"
+  },
+  "38213": {
+    "prefecture": "愛媛県",
+    "city": "四国中央市"
+  },
+  "38214": {
+    "prefecture": "愛媛県",
+    "city": "西予市"
+  },
+  "38215": {
+    "prefecture": "愛媛県",
+    "city": "東温市"
+  },
+  "38356": {
+    "prefecture": "愛媛県",
+    "city": "上島町"
+  },
+  "38386": {
+    "prefecture": "愛媛県",
+    "city": "久万高原町"
+  },
+  "38401": {
+    "prefecture": "愛媛県",
+    "city": "松前町"
+  },
+  "38402": {
+    "prefecture": "愛媛県",
+    "city": "砥部町"
+  },
+  "38422": {
+    "prefecture": "愛媛県",
+    "city": "内子町"
+  },
+  "38442": {
+    "prefecture": "愛媛県",
+    "city": "伊方町"
+  },
+  "38484": {
+    "prefecture": "愛媛県",
+    "city": "松野町"
+  },
+  "38488": {
+    "prefecture": "愛媛県",
+    "city": "鬼北町"
+  },
+  "38506": {
+    "prefecture": "愛媛県",
+    "city": "愛南町"
+  },
+  "39201": {
+    "prefecture": "高知県",
+    "city": "高知市"
+  },
+  "39202": {
+    "prefecture": "高知県",
+    "city": "室戸市"
+  },
+  "39203": {
+    "prefecture": "高知県",
+    "city": "安芸市"
+  },
+  "39204": {
+    "prefecture": "高知県",
+    "city": "南国市"
+  },
+  "39205": {
+    "prefecture": "高知県",
+    "city": "土佐市"
+  },
+  "39206": {
+    "prefecture": "高知県",
+    "city": "須崎市"
+  },
+  "39208": {
+    "prefecture": "高知県",
+    "city": "宿毛市"
+  },
+  "39209": {
+    "prefecture": "高知県",
+    "city": "土佐清水市"
+  },
+  "39210": {
+    "prefecture": "高知県",
+    "city": "四万十市"
+  },
+  "39211": {
+    "prefecture": "高知県",
+    "city": "香南市"
+  },
+  "39212": {
+    "prefecture": "高知県",
+    "city": "香美市"
+  },
+  "39301": {
+    "prefecture": "高知県",
+    "city": "東洋町"
+  },
+  "39302": {
+    "prefecture": "高知県",
+    "city": "奈半利町"
+  },
+  "39303": {
+    "prefecture": "高知県",
+    "city": "田野町"
+  },
+  "39304": {
+    "prefecture": "高知県",
+    "city": "安田町"
+  },
+  "39305": {
+    "prefecture": "高知県",
+    "city": "北川村"
+  },
+  "39306": {
+    "prefecture": "高知県",
+    "city": "馬路村"
+  },
+  "39307": {
+    "prefecture": "高知県",
+    "city": "芸西村"
+  },
+  "39341": {
+    "prefecture": "高知県",
+    "city": "本山町"
+  },
+  "39344": {
+    "prefecture": "高知県",
+    "city": "大豊町"
+  },
+  "39363": {
+    "prefecture": "高知県",
+    "city": "土佐町"
+  },
+  "39364": {
+    "prefecture": "高知県",
+    "city": "大川村"
+  },
+  "39386": {
+    "prefecture": "高知県",
+    "city": "いの町"
+  },
+  "39387": {
+    "prefecture": "高知県",
+    "city": "仁淀川町"
+  },
+  "39401": {
+    "prefecture": "高知県",
+    "city": "中土佐町"
+  },
+  "39402": {
+    "prefecture": "高知県",
+    "city": "佐川町"
+  },
+  "39403": {
+    "prefecture": "高知県",
+    "city": "越知町"
+  },
+  "39405": {
+    "prefecture": "高知県",
+    "city": "梼原町"
+  },
+  "39410": {
+    "prefecture": "高知県",
+    "city": "日高村"
+  },
+  "39411": {
+    "prefecture": "高知県",
+    "city": "津野町"
+  },
+  "39412": {
+    "prefecture": "高知県",
+    "city": "四万十町"
+  },
+  "39424": {
+    "prefecture": "高知県",
+    "city": "大月町"
+  },
+  "39427": {
+    "prefecture": "高知県",
+    "city": "三原村"
+  },
+  "39428": {
+    "prefecture": "高知県",
+    "city": "黒潮町"
+  },
+  "40100": {
+    "prefecture": "福岡県",
+    "city": "北九州市"
+  },
+  "40130": {
+    "prefecture": "福岡県",
+    "city": "福岡市"
+  },
+  "40202": {
+    "prefecture": "福岡県",
+    "city": "大牟田市"
+  },
+  "40203": {
+    "prefecture": "福岡県",
+    "city": "久留米市"
+  },
+  "40204": {
+    "prefecture": "福岡県",
+    "city": "直方市"
+  },
+  "40205": {
+    "prefecture": "福岡県",
+    "city": "飯塚市"
+  },
+  "40206": {
+    "prefecture": "福岡県",
+    "city": "田川市"
+  },
+  "40207": {
+    "prefecture": "福岡県",
+    "city": "柳川市"
+  },
+  "40210": {
+    "prefecture": "福岡県",
+    "city": "八女市"
+  },
+  "40211": {
+    "prefecture": "福岡県",
+    "city": "筑後市"
+  },
+  "40212": {
+    "prefecture": "福岡県",
+    "city": "大川市"
+  },
+  "40213": {
+    "prefecture": "福岡県",
+    "city": "行橋市"
+  },
+  "40214": {
+    "prefecture": "福岡県",
+    "city": "豊前市"
+  },
+  "40215": {
+    "prefecture": "福岡県",
+    "city": "中間市"
+  },
+  "40216": {
+    "prefecture": "福岡県",
+    "city": "小郡市"
+  },
+  "40217": {
+    "prefecture": "福岡県",
+    "city": "筑紫野市"
+  },
+  "40218": {
+    "prefecture": "福岡県",
+    "city": "春日市"
+  },
+  "40219": {
+    "prefecture": "福岡県",
+    "city": "大野城市"
+  },
+  "40220": {
+    "prefecture": "福岡県",
+    "city": "宗像市"
+  },
+  "40221": {
+    "prefecture": "福岡県",
+    "city": "太宰府市"
+  },
+  "40223": {
+    "prefecture": "福岡県",
+    "city": "古賀市"
+  },
+  "40224": {
+    "prefecture": "福岡県",
+    "city": "福津市"
+  },
+  "40225": {
+    "prefecture": "福岡県",
+    "city": "うきは市"
+  },
+  "40226": {
+    "prefecture": "福岡県",
+    "city": "宮若市"
+  },
+  "40227": {
+    "prefecture": "福岡県",
+    "city": "嘉麻市"
+  },
+  "40228": {
+    "prefecture": "福岡県",
+    "city": "朝倉市"
+  },
+  "40229": {
+    "prefecture": "福岡県",
+    "city": "みやま市"
+  },
+  "40230": {
+    "prefecture": "福岡県",
+    "city": "糸島市"
+  },
+  "40231": {
+    "prefecture": "福岡県フクオカケン",
+    "city": "那珂川市ナカガワシ"
+  },
+  "40341": {
+    "prefecture": "福岡県",
+    "city": "宇美町"
+  },
+  "40342": {
+    "prefecture": "福岡県",
+    "city": "篠栗町"
+  },
+  "40343": {
+    "prefecture": "福岡県",
+    "city": "志免町"
+  },
+  "40344": {
+    "prefecture": "福岡県",
+    "city": "須恵町"
+  },
+  "40345": {
+    "prefecture": "福岡県",
+    "city": "新宮町"
+  },
+  "40348": {
+    "prefecture": "福岡県",
+    "city": "久山町"
+  },
+  "40349": {
+    "prefecture": "福岡県",
+    "city": "粕屋町"
+  },
+  "40381": {
+    "prefecture": "福岡県",
+    "city": "芦屋町"
+  },
+  "40382": {
+    "prefecture": "福岡県",
+    "city": "水巻町"
+  },
+  "40383": {
+    "prefecture": "福岡県",
+    "city": "岡垣町"
+  },
+  "40384": {
+    "prefecture": "福岡県",
+    "city": "遠賀町"
+  },
+  "40401": {
+    "prefecture": "福岡県",
+    "city": "小竹町"
+  },
+  "40402": {
+    "prefecture": "福岡県",
+    "city": "鞍手町"
+  },
+  "40421": {
+    "prefecture": "福岡県",
+    "city": "桂川町"
+  },
+  "40447": {
+    "prefecture": "福岡県",
+    "city": "筑前町"
+  },
+  "40448": {
+    "prefecture": "福岡県",
+    "city": "東峰村"
+  },
+  "40503": {
+    "prefecture": "福岡県",
+    "city": "大刀洗町"
+  },
+  "40522": {
+    "prefecture": "福岡県",
+    "city": "大木町"
+  },
+  "40544": {
+    "prefecture": "福岡県",
+    "city": "広川町"
+  },
+  "40601": {
+    "prefecture": "福岡県",
+    "city": "香春町"
+  },
+  "40602": {
+    "prefecture": "福岡県",
+    "city": "添田町"
+  },
+  "40604": {
+    "prefecture": "福岡県",
+    "city": "糸田町"
+  },
+  "40605": {
+    "prefecture": "福岡県",
+    "city": "川崎町"
+  },
+  "40608": {
+    "prefecture": "福岡県",
+    "city": "大任町"
+  },
+  "40609": {
+    "prefecture": "福岡県",
+    "city": "赤村"
+  },
+  "40610": {
+    "prefecture": "福岡県",
+    "city": "福智町"
+  },
+  "40621": {
+    "prefecture": "福岡県",
+    "city": "苅田町"
+  },
+  "40625": {
+    "prefecture": "福岡県",
+    "city": "みやこ町"
+  },
+  "40642": {
+    "prefecture": "福岡県",
+    "city": "吉富町"
+  },
+  "40646": {
+    "prefecture": "福岡県",
+    "city": "上毛町"
+  },
+  "40647": {
+    "prefecture": "福岡県",
+    "city": "築上町"
+  },
+  "41201": {
+    "prefecture": "佐賀県",
+    "city": "佐賀市"
+  },
+  "41202": {
+    "prefecture": "佐賀県",
+    "city": "唐津市"
+  },
+  "41203": {
+    "prefecture": "佐賀県",
+    "city": "鳥栖市"
+  },
+  "41204": {
+    "prefecture": "佐賀県",
+    "city": "多久市"
+  },
+  "41205": {
+    "prefecture": "佐賀県",
+    "city": "伊万里市"
+  },
+  "41206": {
+    "prefecture": "佐賀県",
+    "city": "武雄市"
+  },
+  "41207": {
+    "prefecture": "佐賀県",
+    "city": "鹿島市"
+  },
+  "41208": {
+    "prefecture": "佐賀県",
+    "city": "小城市"
+  },
+  "41209": {
+    "prefecture": "佐賀県",
+    "city": "嬉野市"
+  },
+  "41210": {
+    "prefecture": "佐賀県",
+    "city": "神埼市"
+  },
+  "41327": {
+    "prefecture": "佐賀県",
+    "city": "吉野ヶ里町"
+  },
+  "41341": {
+    "prefecture": "佐賀県",
+    "city": "基山町"
+  },
+  "41345": {
+    "prefecture": "佐賀県",
+    "city": "上峰町"
+  },
+  "41346": {
+    "prefecture": "佐賀県",
+    "city": "みやき町"
+  },
+  "41387": {
+    "prefecture": "佐賀県",
+    "city": "玄海町"
+  },
+  "41401": {
+    "prefecture": "佐賀県",
+    "city": "有田町"
+  },
+  "41423": {
+    "prefecture": "佐賀県",
+    "city": "大町町"
+  },
+  "41424": {
+    "prefecture": "佐賀県",
+    "city": "江北町"
+  },
+  "41425": {
+    "prefecture": "佐賀県",
+    "city": "白石町"
+  },
+  "41441": {
+    "prefecture": "佐賀県",
+    "city": "太良町"
+  },
+  "42201": {
+    "prefecture": "長崎県",
+    "city": "長崎市"
+  },
+  "42202": {
+    "prefecture": "長崎県",
+    "city": "佐世保市"
+  },
+  "42203": {
+    "prefecture": "長崎県",
+    "city": "島原市"
+  },
+  "42204": {
+    "prefecture": "長崎県",
+    "city": "諫早市"
+  },
+  "42205": {
+    "prefecture": "長崎県",
+    "city": "大村市"
+  },
+  "42207": {
+    "prefecture": "長崎県",
+    "city": "平戸市"
+  },
+  "42208": {
+    "prefecture": "長崎県",
+    "city": "松浦市"
+  },
+  "42209": {
+    "prefecture": "長崎県",
+    "city": "対馬市"
+  },
+  "42210": {
+    "prefecture": "長崎県",
+    "city": "壱岐市"
+  },
+  "42211": {
+    "prefecture": "長崎県",
+    "city": "五島市"
+  },
+  "42212": {
+    "prefecture": "長崎県",
+    "city": "西海市"
+  },
+  "42213": {
+    "prefecture": "長崎県",
+    "city": "雲仙市"
+  },
+  "42214": {
+    "prefecture": "長崎県",
+    "city": "南島原市"
+  },
+  "42307": {
+    "prefecture": "長崎県",
+    "city": "長与町"
+  },
+  "42308": {
+    "prefecture": "長崎県",
+    "city": "時津町"
+  },
+  "42321": {
+    "prefecture": "長崎県",
+    "city": "東彼杵町"
+  },
+  "42322": {
+    "prefecture": "長崎県",
+    "city": "川棚町"
+  },
+  "42323": {
+    "prefecture": "長崎県",
+    "city": "波佐見町"
+  },
+  "42383": {
+    "prefecture": "長崎県",
+    "city": "小値賀町"
+  },
+  "42391": {
+    "prefecture": "長崎県",
+    "city": "佐々町"
+  },
+  "42411": {
+    "prefecture": "長崎県",
+    "city": "新上五島町"
+  },
+  "43100": {
+    "prefecture": "熊本県",
+    "city": "熊本市"
+  },
+  "43202": {
+    "prefecture": "熊本県",
+    "city": "八代市"
+  },
+  "43203": {
+    "prefecture": "熊本県",
+    "city": "人吉市"
+  },
+  "43204": {
+    "prefecture": "熊本県",
+    "city": "荒尾市"
+  },
+  "43205": {
+    "prefecture": "熊本県",
+    "city": "水俣市"
+  },
+  "43206": {
+    "prefecture": "熊本県",
+    "city": "玉名市"
+  },
+  "43208": {
+    "prefecture": "熊本県",
+    "city": "山鹿市"
+  },
+  "43210": {
+    "prefecture": "熊本県",
+    "city": "菊池市"
+  },
+  "43211": {
+    "prefecture": "熊本県",
+    "city": "宇土市"
+  },
+  "43212": {
+    "prefecture": "熊本県",
+    "city": "上天草市"
+  },
+  "43213": {
+    "prefecture": "熊本県",
+    "city": "宇城市"
+  },
+  "43214": {
+    "prefecture": "熊本県",
+    "city": "阿蘇市"
+  },
+  "43215": {
+    "prefecture": "熊本県",
+    "city": "天草市"
+  },
+  "43216": {
+    "prefecture": "熊本県",
+    "city": "合志市"
+  },
+  "43348": {
+    "prefecture": "熊本県",
+    "city": "美里町"
+  },
+  "43364": {
+    "prefecture": "熊本県",
+    "city": "玉東町"
+  },
+  "43367": {
+    "prefecture": "熊本県",
+    "city": "南関町"
+  },
+  "43368": {
+    "prefecture": "熊本県",
+    "city": "長洲町"
+  },
+  "43369": {
+    "prefecture": "熊本県",
+    "city": "和水町"
+  },
+  "43403": {
+    "prefecture": "熊本県",
+    "city": "大津町"
+  },
+  "43404": {
+    "prefecture": "熊本県",
+    "city": "菊陽町"
+  },
+  "43423": {
+    "prefecture": "熊本県",
+    "city": "南小国町"
+  },
+  "43424": {
+    "prefecture": "熊本県",
+    "city": "小国町"
+  },
+  "43425": {
+    "prefecture": "熊本県",
+    "city": "産山村"
+  },
+  "43428": {
+    "prefecture": "熊本県",
+    "city": "高森町"
+  },
+  "43432": {
+    "prefecture": "熊本県",
+    "city": "西原村"
+  },
+  "43433": {
+    "prefecture": "熊本県",
+    "city": "南阿蘇村"
+  },
+  "43441": {
+    "prefecture": "熊本県",
+    "city": "御船町"
+  },
+  "43442": {
+    "prefecture": "熊本県",
+    "city": "嘉島町"
+  },
+  "43443": {
+    "prefecture": "熊本県",
+    "city": "益城町"
+  },
+  "43444": {
+    "prefecture": "熊本県",
+    "city": "甲佐町"
+  },
+  "43447": {
+    "prefecture": "熊本県",
+    "city": "山都町"
+  },
+  "43468": {
+    "prefecture": "熊本県",
+    "city": "氷川町"
+  },
+  "43482": {
+    "prefecture": "熊本県",
+    "city": "芦北町"
+  },
+  "43484": {
+    "prefecture": "熊本県",
+    "city": "津奈木町"
+  },
+  "43501": {
+    "prefecture": "熊本県",
+    "city": "錦町"
+  },
+  "43505": {
+    "prefecture": "熊本県",
+    "city": "多良木町"
+  },
+  "43506": {
+    "prefecture": "熊本県",
+    "city": "湯前町"
+  },
+  "43507": {
+    "prefecture": "熊本県",
+    "city": "水上村"
+  },
+  "43510": {
+    "prefecture": "熊本県",
+    "city": "相良村"
+  },
+  "43511": {
+    "prefecture": "熊本県",
+    "city": "五木村"
+  },
+  "43512": {
+    "prefecture": "熊本県",
+    "city": "山江村"
+  },
+  "43513": {
+    "prefecture": "熊本県",
+    "city": "球磨村"
+  },
+  "43514": {
+    "prefecture": "熊本県",
+    "city": "あさぎり町"
+  },
+  "43531": {
+    "prefecture": "熊本県",
+    "city": "苓北町"
+  },
+  "44201": {
+    "prefecture": "大分県",
+    "city": "大分市"
+  },
+  "44202": {
+    "prefecture": "大分県",
+    "city": "別府市"
+  },
+  "44203": {
+    "prefecture": "大分県",
+    "city": "中津市"
+  },
+  "44204": {
+    "prefecture": "大分県",
+    "city": "日田市"
+  },
+  "44205": {
+    "prefecture": "大分県",
+    "city": "佐伯市"
+  },
+  "44206": {
+    "prefecture": "大分県",
+    "city": "臼杵市"
+  },
+  "44207": {
+    "prefecture": "大分県",
+    "city": "津久見市"
+  },
+  "44208": {
+    "prefecture": "大分県",
+    "city": "竹田市"
+  },
+  "44209": {
+    "prefecture": "大分県",
+    "city": "豊後高田市"
+  },
+  "44210": {
+    "prefecture": "大分県",
+    "city": "杵築市"
+  },
+  "44211": {
+    "prefecture": "大分県",
+    "city": "宇佐市"
+  },
+  "44212": {
+    "prefecture": "大分県",
+    "city": "豊後大野市"
+  },
+  "44213": {
+    "prefecture": "大分県",
+    "city": "由布市"
+  },
+  "44214": {
+    "prefecture": "大分県",
+    "city": "国東市"
+  },
+  "44322": {
+    "prefecture": "大分県",
+    "city": "姫島村"
+  },
+  "44341": {
+    "prefecture": "大分県",
+    "city": "日出町"
+  },
+  "44461": {
+    "prefecture": "大分県",
+    "city": "九重町"
+  },
+  "44462": {
+    "prefecture": "大分県",
+    "city": "玖珠町"
+  },
+  "45201": {
+    "prefecture": "宮崎県",
+    "city": "宮崎市"
+  },
+  "45202": {
+    "prefecture": "宮崎県",
+    "city": "都城市"
+  },
+  "45203": {
+    "prefecture": "宮崎県",
+    "city": "延岡市"
+  },
+  "45204": {
+    "prefecture": "宮崎県",
+    "city": "日南市"
+  },
+  "45205": {
+    "prefecture": "宮崎県",
+    "city": "小林市"
+  },
+  "45206": {
+    "prefecture": "宮崎県",
+    "city": "日向市"
+  },
+  "45207": {
+    "prefecture": "宮崎県",
+    "city": "串間市"
+  },
+  "45208": {
+    "prefecture": "宮崎県",
+    "city": "西都市"
+  },
+  "45209": {
+    "prefecture": "宮崎県",
+    "city": "えびの市"
+  },
+  "45341": {
+    "prefecture": "宮崎県",
+    "city": "三股町"
+  },
+  "45361": {
+    "prefecture": "宮崎県",
+    "city": "高原町"
+  },
+  "45382": {
+    "prefecture": "宮崎県",
+    "city": "国富町"
+  },
+  "45383": {
+    "prefecture": "宮崎県",
+    "city": "綾町"
+  },
+  "45401": {
+    "prefecture": "宮崎県",
+    "city": "高鍋町"
+  },
+  "45402": {
+    "prefecture": "宮崎県",
+    "city": "新富町"
+  },
+  "45403": {
+    "prefecture": "宮崎県",
+    "city": "西米良村"
+  },
+  "45404": {
+    "prefecture": "宮崎県",
+    "city": "木城町"
+  },
+  "45405": {
+    "prefecture": "宮崎県",
+    "city": "川南町"
+  },
+  "45406": {
+    "prefecture": "宮崎県",
+    "city": "都農町"
+  },
+  "45421": {
+    "prefecture": "宮崎県",
+    "city": "門川町"
+  },
+  "45429": {
+    "prefecture": "宮崎県",
+    "city": "諸塚村"
+  },
+  "45430": {
+    "prefecture": "宮崎県",
+    "city": "椎葉村"
+  },
+  "45431": {
+    "prefecture": "宮崎県",
+    "city": "美郷町"
+  },
+  "45441": {
+    "prefecture": "宮崎県",
+    "city": "高千穂町"
+  },
+  "45442": {
+    "prefecture": "宮崎県",
+    "city": "日之影町"
+  },
+  "45443": {
+    "prefecture": "宮崎県",
+    "city": "五ヶ瀬町"
+  },
+  "46201": {
+    "prefecture": "鹿児島県",
+    "city": "鹿児島市"
+  },
+  "46203": {
+    "prefecture": "鹿児島県",
+    "city": "鹿屋市"
+  },
+  "46204": {
+    "prefecture": "鹿児島県",
+    "city": "枕崎市"
+  },
+  "46206": {
+    "prefecture": "鹿児島県",
+    "city": "阿久根市"
+  },
+  "46208": {
+    "prefecture": "鹿児島県",
+    "city": "出水市"
+  },
+  "46210": {
+    "prefecture": "鹿児島県",
+    "city": "指宿市"
+  },
+  "46213": {
+    "prefecture": "鹿児島県",
+    "city": "西之表市"
+  },
+  "46214": {
+    "prefecture": "鹿児島県",
+    "city": "垂水市"
+  },
+  "46215": {
+    "prefecture": "鹿児島県",
+    "city": "薩摩川内市"
+  },
+  "46216": {
+    "prefecture": "鹿児島県",
+    "city": "日置市"
+  },
+  "46217": {
+    "prefecture": "鹿児島県",
+    "city": "曽於市"
+  },
+  "46218": {
+    "prefecture": "鹿児島県",
+    "city": "霧島市"
+  },
+  "46219": {
+    "prefecture": "鹿児島県",
+    "city": "いちき串木野市"
+  },
+  "46220": {
+    "prefecture": "鹿児島県",
+    "city": "南さつま市"
+  },
+  "46221": {
+    "prefecture": "鹿児島県",
+    "city": "志布志市"
+  },
+  "46222": {
+    "prefecture": "鹿児島県",
+    "city": "奄美市"
+  },
+  "46223": {
+    "prefecture": "鹿児島県",
+    "city": "南九州市"
+  },
+  "46224": {
+    "prefecture": "鹿児島県",
+    "city": "伊佐市"
+  },
+  "46225": {
+    "prefecture": "鹿児島県",
+    "city": "姶良市"
+  },
+  "46303": {
+    "prefecture": "鹿児島県",
+    "city": "三島村"
+  },
+  "46304": {
+    "prefecture": "鹿児島県",
+    "city": "十島村"
+  },
+  "46392": {
+    "prefecture": "鹿児島県",
+    "city": "さつま町"
+  },
+  "46404": {
+    "prefecture": "鹿児島県",
+    "city": "長島町"
+  },
+  "46452": {
+    "prefecture": "鹿児島県",
+    "city": "湧水町"
+  },
+  "46468": {
+    "prefecture": "鹿児島県",
+    "city": "大崎町"
+  },
+  "46482": {
+    "prefecture": "鹿児島県",
+    "city": "東串良町"
+  },
+  "46490": {
+    "prefecture": "鹿児島県",
+    "city": "錦江町"
+  },
+  "46491": {
+    "prefecture": "鹿児島県",
+    "city": "南大隅町"
+  },
+  "46492": {
+    "prefecture": "鹿児島県",
+    "city": "肝付町"
+  },
+  "46501": {
+    "prefecture": "鹿児島県",
+    "city": "中種子町"
+  },
+  "46502": {
+    "prefecture": "鹿児島県",
+    "city": "南種子町"
+  },
+  "46505": {
+    "prefecture": "鹿児島県",
+    "city": "屋久島町"
+  },
+  "46523": {
+    "prefecture": "鹿児島県",
+    "city": "大和村"
+  },
+  "46524": {
+    "prefecture": "鹿児島県",
+    "city": "宇検村"
+  },
+  "46525": {
+    "prefecture": "鹿児島県",
+    "city": "瀬戸内町"
+  },
+  "46527": {
+    "prefecture": "鹿児島県",
+    "city": "龍郷町"
+  },
+  "46529": {
+    "prefecture": "鹿児島県",
+    "city": "喜界町"
+  },
+  "46530": {
+    "prefecture": "鹿児島県",
+    "city": "徳之島町"
+  },
+  "46531": {
+    "prefecture": "鹿児島県",
+    "city": "天城町"
+  },
+  "46532": {
+    "prefecture": "鹿児島県",
+    "city": "伊仙町"
+  },
+  "46533": {
+    "prefecture": "鹿児島県",
+    "city": "和泊町"
+  },
+  "46534": {
+    "prefecture": "鹿児島県",
+    "city": "知名町"
+  },
+  "46535": {
+    "prefecture": "鹿児島県",
+    "city": "与論町"
+  },
+  "47201": {
+    "prefecture": "沖縄県",
+    "city": "那覇市"
+  },
+  "47205": {
+    "prefecture": "沖縄県",
+    "city": "宜野湾市"
+  },
+  "47207": {
+    "prefecture": "沖縄県",
+    "city": "石垣市"
+  },
+  "47208": {
+    "prefecture": "沖縄県",
+    "city": "浦添市"
+  },
+  "47209": {
+    "prefecture": "沖縄県",
+    "city": "名護市"
+  },
+  "47210": {
+    "prefecture": "沖縄県",
+    "city": "糸満市"
+  },
+  "47211": {
+    "prefecture": "沖縄県",
+    "city": "沖縄市"
+  },
+  "47212": {
+    "prefecture": "沖縄県",
+    "city": "豊見城市"
+  },
+  "47213": {
+    "prefecture": "沖縄県",
+    "city": "うるま市"
+  },
+  "47214": {
+    "prefecture": "沖縄県",
+    "city": "宮古島市"
+  },
+  "47215": {
+    "prefecture": "沖縄県",
+    "city": "南城市"
+  },
+  "47301": {
+    "prefecture": "沖縄県",
+    "city": "国頭村"
+  },
+  "47302": {
+    "prefecture": "沖縄県",
+    "city": "大宜味村"
+  },
+  "47303": {
+    "prefecture": "沖縄県",
+    "city": "東村"
+  },
+  "47306": {
+    "prefecture": "沖縄県",
+    "city": "今帰仁村"
+  },
+  "47308": {
+    "prefecture": "沖縄県",
+    "city": "本部町"
+  },
+  "47311": {
+    "prefecture": "沖縄県",
+    "city": "恩納村"
+  },
+  "47313": {
+    "prefecture": "沖縄県",
+    "city": "宜野座村"
+  },
+  "47314": {
+    "prefecture": "沖縄県",
+    "city": "金武町"
+  },
+  "47315": {
+    "prefecture": "沖縄県",
+    "city": "伊江村"
+  },
+  "47324": {
+    "prefecture": "沖縄県",
+    "city": "読谷村"
+  },
+  "47325": {
+    "prefecture": "沖縄県",
+    "city": "嘉手納町"
+  },
+  "47326": {
+    "prefecture": "沖縄県",
+    "city": "北谷町"
+  },
+  "47327": {
+    "prefecture": "沖縄県",
+    "city": "北中城村"
+  },
+  "47328": {
+    "prefecture": "沖縄県",
+    "city": "中城村"
+  },
+  "47329": {
+    "prefecture": "沖縄県",
+    "city": "西原町"
+  },
+  "47348": {
+    "prefecture": "沖縄県",
+    "city": "与那原町"
+  },
+  "47350": {
+    "prefecture": "沖縄県",
+    "city": "南風原町"
+  },
+  "47353": {
+    "prefecture": "沖縄県",
+    "city": "渡嘉敷村"
+  },
+  "47354": {
+    "prefecture": "沖縄県",
+    "city": "座間味村"
+  },
+  "47355": {
+    "prefecture": "沖縄県",
+    "city": "粟国村"
+  },
+  "47356": {
+    "prefecture": "沖縄県",
+    "city": "渡名喜村"
+  },
+  "47357": {
+    "prefecture": "沖縄県",
+    "city": "南大東村"
+  },
+  "47358": {
+    "prefecture": "沖縄県",
+    "city": "北大東村"
+  },
+  "47359": {
+    "prefecture": "沖縄県",
+    "city": "伊平屋村"
+  },
+  "47360": {
+    "prefecture": "沖縄県",
+    "city": "伊是名村"
+  },
+  "47361": {
+    "prefecture": "沖縄県",
+    "city": "久米島町"
+  },
+  "47362": {
+    "prefecture": "沖縄県",
+    "city": "八重瀬町"
+  },
+  "47375": {
+    "prefecture": "沖縄県",
+    "city": "多良間村"
+  },
+  "47381": {
+    "prefecture": "沖縄県",
+    "city": "竹富町"
+  },
+  "47382": {
+    "prefecture": "沖縄県",
+    "city": "与那国町"
+  }
+}

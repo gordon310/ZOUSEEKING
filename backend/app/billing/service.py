@@ -188,17 +188,22 @@ class BillingService:
         product_code: str,
         billing_region: str,
         *,
+        report_key: Optional[str] = None,
         now: datetime,
     ) -> CheckoutOutcome:
+        await self.catalog.ensure_loaded()
         price = self.catalog.resolve(product_code, billing_region)
+        if price.mode == "payment" and not str(report_key or "").strip():
+            raise BillingConflict()
         try:
             subject = await self.store.get_subject(user_id, product_code)
         except (KeyError, LookupError) as exc:
             raise BillingNotFound() from exc
 
+        checkout_subject_id = str(report_key).strip() if price.mode == "payment" else str(subject.subject_id)
         metadata = {
             "user_id": str(user_id),
-            "subject_id": str(subject.subject_id),
+            "subject_id": checkout_subject_id,
             "product_code": price.product_code,
             "price_version": price.price_version,
             "billing_region": str(billing_region).strip().upper(),
@@ -209,7 +214,7 @@ class BillingService:
             "success_url": self.success_url,
             "cancel_url": self.cancel_url,
             "allow_promotion_codes": True,
-            "client_reference_id": str(subject.subject_id),
+            "client_reference_id": checkout_subject_id,
             "metadata": metadata,
         }
         if price.mode == "subscription":
@@ -231,7 +236,7 @@ class BillingService:
         await self.store.append_audit(
             AuditRecord(
                 actor_id=str(user_id),
-                subject_id=str(subject.subject_id),
+                subject_id=checkout_subject_id,
                 action="billing.checkout.created",
                 provider_object_id=result.session_id,
                 event_id=None,

@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import json
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException
@@ -25,6 +26,7 @@ from .routes.health import router as health_router
 from .routes.intake import cleanup_expired_sessions, router as intake_router
 from .routes.renovation import router as renovation_router
 from .routes.privacy import router as privacy_router
+from .recognition.routes import router as recognition_router
 from .release_scope import request_allowed
 from .admin.routes import router as admin_router
 from .billing.routes import router as billing_router
@@ -85,6 +87,7 @@ app.include_router(billing_router)
 app.include_router(usage_router)
 app.include_router(admin_router)
 app.include_router(privacy_router)
+app.include_router(recognition_router)
 
 
 @app.get("/internal/provenance/diagnostics")
@@ -103,20 +106,91 @@ async def provenance_diagnostics(x_internal_diagnostics_token: Optional[str] = H
     }
 
 
-async def _has_report_unlock(conn: Any, user_id: Any) -> bool:
-    """D8b account-level unlock: any paid risk_report_single order unlocks all
-    deep reports for the account. Server-side gate - never client-controlled."""
+UTC_PLUS_8 = timezone(timedelta(hours=8), name="UTC+08:00")
+
+
+def _current_month_key(now: Optional[datetime] = None) -> str:
+    return (now or datetime.now(timezone.utc)).astimezone(UTC_PLUS_8).strftime("%Y-%m")
+
+
+async def _has_report_unlock(conn: Any, user_id: Any, report_key: str) -> bool:
+    """Return whether this exact report is paid or covered by C Plus quota."""
     row = await conn.fetchrow(
         """
-        select 1 from public.payment_orders
-        where owner_user_id=$1
-          and product_code='risk_report_single'
-          and status='paid'
+        select 1
+        from public.payment_orders
+        where owner_user_id=$1 and product_code='risk_report_single'
+          and subject_id=$2 and status='paid'
+        union all
+        select 1
+        from public.subscriptions s
+        join public.usage_quotas uq
+          on uq.scope_key = 'user:' || s.user_id::text
+         and uq.usage_kind = 'report'
+         and uq.period_key = $3
+        where s.user_id=$1 and s.product_code='c_plus_monthly'
+          and s.status in ('active', 'trialing')
+          and (s.current_period_end is null or s.current_period_end > now())
+          and uq.consumed_units + uq.reserved_units < uq.limit_units
+        union all
+        select 1
+        from public.usage_events ue
+        where ue.scope_key = 'user:' || $1::text
+          and ue.usage_kind = 'report'
+          and ue.operation = 'consume'
+          and ue.fingerprint = 'c-plus-report:' || $2
         limit 1
         """,
         user_id,
+        report_key,
+        _current_month_key(),
     )
     return row is not None
+
+
+async def _consume_c_plus_report_quota(user_id: Any, report_key: str) -> bool:
+    """Consume one C Plus report slot once, keyed by the generated report."""
+    period_key = _current_month_key()
+    scope_key = f"user:{user_id}"
+    async with get_pool().acquire() as conn:
+        async with conn.transaction():
+            sub = await conn.fetchrow(
+                "select 1 from public.subscriptions"
+                " where user_id=$1 and product_code='c_plus_monthly'"
+                "   and status in ('active', 'trialing')"
+                "   and (current_period_end is null or current_period_end > now())"
+                " limit 1",
+                user_id,
+            )
+            if sub is None:
+                return False
+            await conn.execute(
+                "insert into public.usage_quotas"
+                " (scope_key, usage_kind, period_key, limit_units)"
+                " values ($1, 'report', $2, 12)"
+                " on conflict (scope_key, usage_kind, period_key) do nothing",
+                scope_key, period_key,
+            )
+            fingerprint = f"c-plus-report:{report_key}"
+            event = await conn.fetchrow(
+                "insert into public.usage_events"
+                " (scope_key, usage_kind, operation, units, period_key, idempotency_key, fingerprint, actor_user_id)"
+                " values ($1, 'report', 'consume', 1, $2, $3, $3, $4)"
+                " on conflict (scope_key, usage_kind, operation, fingerprint) do nothing"
+                " returning id",
+                scope_key, period_key, fingerprint, user_id,
+            )
+            if event is None:
+                return True
+            updated = await conn.execute(
+                "update public.usage_quotas set consumed_units=consumed_units+1"
+                " where scope_key=$1 and usage_kind='report' and period_key=$2"
+                " and consumed_units + reserved_units < limit_units",
+                scope_key, period_key,
+            )
+            if not updated or int(updated.split()[-1]) != 1:
+                raise RuntimeError("subscription report quota exhausted")
+            return True
 
 
 def row_to_report(row: Any) -> dict[str, Any]:
@@ -239,6 +313,7 @@ async def run_generation_job(job_id: str, query_id: str, owner_user_id: str, req
                 job_id,
             )
         await save_report(query_id, owner_user_id, report)
+        await _consume_c_plus_report_quota(owner_user_id, report["query_key"])
         async with get_pool().acquire() as conn:
             await conn.execute("update queries set status='completed', updated_at=now() where id=$1", query_id)
             await conn.execute(
@@ -498,10 +573,10 @@ async def get_my_report(query_key: str, user: AuthUser = Depends(require_user)) 
         )
         if not row:
             raise HTTPException(status_code=404, detail="report not found")
-        unlocked = await _has_report_unlock(conn, user.user_id)
+        unlocked = await _has_report_unlock(conn, user.user_id, query_key)
     if not unlocked:
         # D7/D8b: full report content is a paid deliverable (risk_report_single,
-        # account-level unlock). A locked response carries metadata only - the
+        # report-scoped unlock). A locked response carries metadata only - the
         # content fields (markdown/rental/sale/summary/...) are never sent.
         return {
             "locked": True,
@@ -509,6 +584,6 @@ async def get_my_report(query_key: str, user: AuthUser = Depends(require_user)) 
             "slug": row["slug"],
             "title": row["title"],
             "publish_month": row["publish_month"],
-            "unlock_hint": "完整深度报告与导出为付费权益(risk_report_single)。购买一次解锁本账号全部报告。",
+            "unlock_hint": "完整深度报告与导出为付费权益(risk_report_single)。购买后解锁本份深度报告。",
         }
     return row_to_report(row)

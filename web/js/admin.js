@@ -1313,6 +1313,73 @@
     else if (target === "collection") loadLiveCollectionRuns(collectionState.page + dir);
   }
 
+  // ---- pricing catalog -------------------------------------------------------
+  const pricingState = { loaded: false, busy: false, products: [] };
+  const pricingStatus = document.querySelector("#pricingStatus");
+  const pricingCount = document.querySelector("#pricingCount");
+  const pricingProduct = document.querySelector("#pricingProduct");
+  const pricingPriceList = document.querySelector("#pricingPriceList");
+  const pricingRegionList = document.querySelector("#pricingRegionList");
+  const pricingPlanList = document.querySelector("#pricingPlanList");
+
+  function pricingError(error) {
+    if (Number(error?.status) === 403) return t("admin.error403", "当前账号无权访问该模块（403）。需要 finance / super_admin 角色。");
+    return error?.message || t("admin.errorUnknown", "后台请求失败，请稍后重试。");
+  }
+
+  function pricingNumber(id) {
+    const value = Number(document.querySelector(id)?.value);
+    return Number.isFinite(value) && value >= 0 ? value : null;
+  }
+
+  function renderPricing(payload) {
+    const products = Array.isArray(payload?.products) ? payload.products : [];
+    const prices = Array.isArray(payload?.prices) ? payload.prices : [];
+    const regions = Array.isArray(payload?.regions) ? payload.regions : [];
+    const plans = Array.isArray(payload?.plans) ? payload.plans : [];
+    pricingState.products = products;
+    if (pricingProduct) pricingProduct.innerHTML = products.map((p) => `<option value="${views.escape(p.product_code)}">${views.escape(p.name || p.product_code)}</option>`).join("");
+    if (pricingPriceList) pricingPriceList.innerHTML = prices.length ? prices.map((p) => `<tr><th scope="row">${views.escape(p.product_code)}</th><td>${views.escape(p.currency)}</td><td>${views.escape(p.amount_minor)}</td><td class="admin-wrap">${views.escape(p.stripe_price_id || "—")}</td><td>v${views.escape(p.price_version)}</td><td>${p.active ? "active" : "inactive"} <button class="admin-action" type="button" data-pricing-status-id="${views.escape(p.id)}" data-pricing-status-value="${p.active ? "false" : "true"}">${p.active ? "下架" : "上架"}</button></td><td>${views.escape(views.fmtDateTime(p.created_at))}</td></tr>`).join("") : views.emptyRow(7, "没有价格记录。");
+    pricingPriceList?.querySelectorAll("[data-pricing-status-id]").forEach((button) => button.addEventListener("click", async () => {
+      try { await api.setPricingPriceStatus(button.dataset.pricingStatusId, button.dataset.pricingStatusValue === "true"); await loadPricing(true); setText(pricingStatus, "价格状态已更新并写入审计。"); } catch (error) { setText(pricingStatus, pricingError(error)); }
+    }));
+    if (pricingRegionList) pricingRegionList.innerHTML = regions.length ? regions.map((r) => `<tr><th scope="row">${views.escape(r.region_code)}</th><td>${views.escape(r.currency)}</td><td>${r.active ? "active" : "inactive"}</td></tr>`).join("") : views.emptyRow(3, "没有区域映射。");
+    if (pricingPlanList) pricingPlanList.innerHTML = plans.length ? plans.map((p) => `<tr><th scope="row">${views.escape(p.plan_code)}<span>${views.escape(p.name)}</span></th><td>${p.monthly_query_limit}</td><td>${p.monthly_report_quota}</td><td>${p.subscription_slots}</td><td>${p.export_rows_monthly}</td><td>v${p.plan_version ?? 1}</td></tr>`).join("") : views.emptyRow(6, "没有套餐额度。");
+    setText(pricingCount, `${prices.length} 个价格版本 · ${plans.length} 个套餐`);
+  }
+
+  async function loadPricing(force = false) {
+    if (!isLive || pricingState.busy || (pricingState.loaded && !force)) return;
+    pricingState.busy = true;
+    setText(pricingStatus, t("admin.loading", "正在从后台加载……"));
+    try {
+      renderPricing(await api.getPricing());
+      pricingState.loaded = true;
+      setText(pricingStatus, t("admin.pricingLoaded", "定价配置已从数据库加载。"));
+    } catch (error) {
+      setText(pricingStatus, pricingError(error));
+      pricingStatus?.classList.add("error");
+    } finally { pricingState.busy = false; }
+  }
+
+  async function submitPricingWrites() {
+    const priceButton = document.querySelector("#pricingPriceBtn");
+    const regionButton = document.querySelector("#pricingRegionBtn");
+    const planButton = document.querySelector("#pricingPlanBtn");
+    priceButton?.addEventListener("click", async () => {
+      try {
+        await api.createPricingPrice({ product_code: pricingProduct?.value, currency: document.querySelector("#pricingCurrency")?.value, amount_minor: pricingNumber("#pricingAmount"), stripe_price_id: document.querySelector("#pricingStripeId")?.value || "" });
+        await loadPricing(true); setText(pricingStatus, "价格新版本已创建并写入审计。");
+      } catch (error) { setText(pricingStatus, pricingError(error)); }
+    });
+    regionButton?.addEventListener("click", async () => {
+      try { await api.upsertPricingRegion({ region_code: document.querySelector("#pricingRegionCode")?.value, currency: document.querySelector("#pricingRegionCurrency")?.value, active: Boolean(document.querySelector("#pricingRegionActive")?.checked) }); await loadPricing(true); setText(pricingStatus, "区域映射已保存并写入审计。"); } catch (error) { setText(pricingStatus, pricingError(error)); }
+    });
+    planButton?.addEventListener("click", async () => {
+      try { await api.upsertPricingPlan({ plan_code: document.querySelector("#pricingPlanCode")?.value, name: document.querySelector("#pricingPlanName")?.value, monthly_query_limit: pricingNumber("#pricingPlanQueries"), monthly_report_quota: pricingNumber("#pricingPlanReports"), subscription_slots: pricingNumber("#pricingPlanSlots"), export_rows_monthly: pricingNumber("#pricingPlanExports"), active: true }); await loadPricing(true); setText(pricingStatus, "套餐额度已保存并递增版本、写入审计。"); } catch (error) { setText(pricingStatus, pricingError(error)); }
+    });
+  }
+
   // ---- tabs & legacy demo interactions ---------------------------------------
   function applyTab(name) {
     const selected = name || "overview";
@@ -1368,6 +1435,7 @@
       if (tab.dataset.adminTab === "collection") ensureCollectionTabData();
       if (tab.dataset.adminTab === "quality") ensureQualityTabData();
       if (tab.dataset.adminTab === "service") ensureServiceTabData();
+      if (tab.dataset.adminTab === "pricing") loadPricing();
     });
   });
 
@@ -1589,6 +1657,8 @@
     bootstrapQualityTab();
     bootstrapServiceTab();
     loadOverviewKpis();
+    submitPricingWrites();
+    loadPricing();
   } else {
     renderDemoMembers();
   }

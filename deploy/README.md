@@ -17,6 +17,36 @@ chmod 600 /opt/zouseeking/deploy/.env
 The existing `/opt/zoubeacon` website and its Cloudflare Origin Certificate are
 used by the multi-site Nginx container. Do not replace the certificate files.
 
+## JPPGSKILL 内网服务
+
+当前版本默认不启动 JPPGSKILL，也不上线图片 AI 识别。只有完成负责人/法务和运营配置后，才使用 `--profile ai` 显式启动；后端同时需要将 `RECOGNITION_AI_ENABLED=true`。
+
+首次部署前，先使用已配置 SSH deploy key 将 JPPGSKILL clone 到
+`/opt/jppskill`，并在服务器填写 `deploy/jpsskill.env`。该服务只加入
+Compose 内部网络，不映射宿主端口；`api` 容器通过
+`http://jpsskill:8100` 调用它。
+
+```bash
+cd /opt
+git clone <jppskill-repository-url> jppskill
+cd /opt/zouseeking
+cp deploy/jpsskill.env.example deploy/jpsskill.env
+# Edit deploy/jpsskill.env on the server and add the real OpenAI values.
+chmod 600 deploy/jpsskill.env
+docker compose -f deploy/docker-compose.prod.yml --profile ai up -d --build jpsskill
+```
+
+健康检查（在 `/opt/zouseeking` 目录执行）：
+
+```bash
+cd /opt/zouseeking
+docker compose -f deploy/docker-compose.prod.yml exec jpsskill node -e "fetch('http://127.0.0.1:8100/api/analyze',{method:'OPTIONS'}).then(r=>process.exit(r.status===204?0:1))"
+```
+
+`api` 未配置 `depends_on: jpsskill`。因此 Compose 不保证两个容器的启动顺序；
+如果 `api` 在 JPPGSKILL 就绪前启动，首次调用可能失败，应用侧应通过重试或健康状态处理，
+而不依赖 Compose 的启动顺序。
+
 ## First deployment and cutover
 
 ```bash

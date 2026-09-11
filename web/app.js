@@ -1383,6 +1383,7 @@ async function startReportUnlock(queryKey) {
       body: JSON.stringify({
         product_code: "risk_report_single",
         billing_region: "CN", // V1: mainland-China local price; region picker follows
+        query_key: queryKey,
       }),
     });
     if (checkout?.url) {
@@ -1974,8 +1975,8 @@ function renderDetail() {
         <p class="meta"><span class="pill">${escapeHtml(record.publish_month || "")}</span></p>
         <div class="locked-report" role="status">
           <p>🔒 ${escapeHtml(record.unlock_hint || "完整深度报告为付费权益。")}</p>
-          <p class="locked-note">免费预览已含关键指标;购买后本账号全部深度报告与导出解锁。</p>
-          <button class="primary" type="button" data-unlock-report>解锁深度报告</button>
+          <p class="locked-note">${escapeHtml(uiText("report.singleUnlockCopy", "购买后解锁本份深度报告"))}</p>
+          <button class="primary" type="button" data-unlock-report>${escapeHtml(uiText("report.unlock", "解锁深度报告"))}</button>
         </div>
       </article>`;
     document.querySelectorAll("[data-unlock-report]").forEach((button) => {
@@ -1993,6 +1994,7 @@ function renderDetail() {
       <h2>${escapeHtml(displayPropertyText(record.title))}</h2>
       <p class="meta">
         <span class="pill">${escapeHtml(record.publish_month)}</span>
+        <span class="pill">${escapeHtml(uiText("report.unlocked", "已解锁"))}</span>
         <span class="pill">${escapeHtml((record.regions || []).join(" / "))}</span>
         <span class="pill">${escapeHtml((record.layouts || []).join(" / "))}</span>
       </p>
@@ -2059,6 +2061,8 @@ async function init() {
     state.records = [];
   }
   await loadFieldOptions();
+  if ($("#prefectureSelect")) renderQueryOptions();
+  consumeRecognitionPrefill();
   await handleAuthRedirect();
   await refreshSupabaseSession();
   await loadRemoteReports();
@@ -2149,6 +2153,20 @@ async function init() {
   document.body.classList.remove("auth-pending");
   document.body.classList.add("auth-ready");
   render();
+}
+
+function consumeRecognitionPrefill() {
+  try {
+    const raw = sessionStorage.getItem("zou_recognition_prefill");
+    if (!raw) return;
+    sessionStorage.removeItem("zou_recognition_prefill");
+    const options = JSON.parse(raw);
+    applyOptionsToForm(options);
+    state.queryOptions = readQueryOptions();
+    setMessage(uiText("recognition.prefillApplied", "识别结果已预填，请核对后查询。"), "success");
+  } catch {
+    sessionStorage.removeItem("zou_recognition_prefill");
+  }
 }
 
 init().catch((error) => {

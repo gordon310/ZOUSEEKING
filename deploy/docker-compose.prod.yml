@@ -1,6 +1,7 @@
 # This compose deployment replaces the existing zoubeacon-nginx single
 # container after the cutover steps in deploy/README.md are completed.
 # The collected-data bind mount persists acquisition outputs across restarts.
+# jpsskill runs on the internal network only and is opt-in: use --profile ai to start it.
 services:
   api:
     build:
@@ -12,6 +13,18 @@ services:
       - ../data/collected:/app/data/collected
     expose:
       - "8000"
+
+  jpsskill:
+    profiles: ["ai"]
+    build:
+      context: /opt/jppskill
+      dockerfile: Dockerfile
+    env_file: ./jpsskill.env
+    restart: unless-stopped
+    expose:
+      - "8100"
+    volumes:
+      - /opt/jppskill-data:/app/data
 
   worker:
     build:

@@ -1,6 +1,6 @@
 (() => {
   const STORAGE_KEY = "zou_ui_locale";
-  const LOCALES = ["zh-CN", "en", "ja"];
+  const LOCALES = ["zh-CN", "zh-Hant", "en", "ja"];
   const DICTIONARY = {
     "zh-CN": {
       "brand.business": "小象数据",
@@ -1573,16 +1573,75 @@
     }
   };
 
+  const SIMPLIFIED_TO_TRADITIONAL = {
+    资: "資", 料: "料", 设: "設", 置: "置", 下: "下", 载: "載", 文: "文", 件: "件", 视: "視", 频: "頻", 软: "軟", 体: "體", 登: "登", 录: "錄", 注: "註", 册: "冊", 保: "保", 存: "存", 网: "網", 络: "絡", 息: "息", 后: "後", 台: "臺", 订: "訂", 单: "單", 额: "額", 汇: "匯", 率: "率", 房: "房", 价: "價", 建: "建", 筑: "築", 贷: "貸", 款: "款", 数: "數", 据: "據", 据: "據", 询: "詢", 查: "查", 统: "統", 计: "計", 析: "析", 趋: "趨", 势: "勢", 图: "圖", 表: "表", 选: "選", 择: "擇", 类: "類", 型: "型", 规: "規", 则: "則", 说: "說", 明: "明", 读: "讀", 取: "取", 位: "位", 置: "置", 识: "識", 别: "別", 仅: "僅", 用: "用", 于: "於", 预: "預", 填: "填", 条: "條", 件: "件", 产: "產", 业: "業", 关: "關", 系: "係", 账: "帳", 户: "戶", 额: "額", 权: "權", 利: "利", 复: "複", 制: "製", 发: "發", 送: "送", 邮: "郵", 过: "過", 还: "還", 现: "現", 实: "實", 际: "際", 备: "備", 份: "份", 术: "術", 语: "語", 认: "認", 证: "證", 证: "證", 审: "審", 核: "核", 质: "質", 量: "量", 旧: "舊", 新: "新", 变: "變", 更: "更", 状: "狀", 态: "態", 处: "處", 理: "理", 运: "運", 行: "行", 级: "級", 别: "別", 号: "號", 线: "線", 进: "進", 还: "還", 产: "產", 购: "購", 买: "買", 卖: "賣", 总: "總", 门: "門", 开: "開", 关: "關", 间: "間", 问: "問", 须: "須", 录: "錄", 预: "預", 测: "測", 试: "試", 览: "覽", 机: "機", 构: "構", 员: "員", 员: "員", 团: "團", 队: "隊", 务: "務", 责: "責", 任: "任", 联: "聯", 系: "繫", 动: "動", 发: "發", 现: "現", 许: "許", 访: "訪", 询: "詢", 处: "處", 处: "處", 备: "備", 术: "術", 这: "這", 个: "個", 们: "們", 你: "你", 这: "這", 么: "麼", 里: "裡", 还: "還", 为: "為", 什: "什", 么: "麼", 说: "說", 无: "無", 还: "還", 让: "讓", 给: "給", 认: "認", 识: "識", 价: "價", 费: "費", 读: "讀", 写: "寫", 处: "處", 结: "結", 果: "果", 项: "項", 目: "目", 证: "證", 统: "統", 计: "計", 评: "評", 论: "論", 组: "組", 织: "織", 录: "錄", 传: "傳", 统: "統", 过: "過", 继: "繼", 续: "續", 头: "頭", 页: "頁", 览: "覽", 线: "線", 仅: "僅", 认: "認", 许: "許", 级: "級", 轻: "輕", 松: "鬆", 处: "處", 备: "備", 复: "複", 杂: "雜", 现: "現", 讲: "講", 义: "義", 体: "體", 范: "範", 围: "圍", 广: "廣", 该: "該", 统: "統", 购: "購", 费: "費", 组: "組", 读: "讀", 书: "書", 这: "這", 还: "還", 够: "夠", 业: "業", 产: "產", 备: "備", 进: "進", 退: "退", 选: "選", 择: "擇", 处: "處", 询: "詢", 误: "誤", 败: "敗", 闭: "閉", 尽: "盡", 仅: "僅", 终: "終", 完: "完", 成: "成", 续: "續", 预: "預", 计: "計", 约: "約", 会: "會", 议: "議", 题: "題", 见: "見", 观: "觀", 觉: "覺", 现: "現", 归: "歸", 纳: "納", 处: "處", 资: "資", 讯: "訊", 维: "維", 护: "護", 软: "軟", 硬: "硬", 盘: "盤", 码: "碼", 确: "確", 定: "定", 释: "釋", 放: "放", 读: "讀", 录: "錄", 级: "級", 复: "複", 盖: "蓋", 继: "繼", 续: "續", 处: "處", 这: "這", 里: "裡", 头: "頭", 条: "條", 处: "處", 还: "還", 仅: "僅", 还: "還", 过: "過", 线: "線", 进: "進", 变: "變", 处: "處", 结: "結", 说: "說", 读: "讀", 产: "產", 级: "級", 够: "夠", 终: "終", 览: "覽", 视: "視", 频: "頻", 预: "預", 览: "覽", 试: "試", 证: "證", 录: "錄", 规: "規", 则: "則", 载: "載", 复: "複", 发: "發", 现: "現", 仅: "僅", 询: "詢", 说: "說", 计: "計", 统: "統", 资: "資", 讯: "訊", 识: "識", 别: "別", 认: "認", 证: "證", 设: "設", 置: "置", 开: "開", 关: "關", 账: "帳", 户: "戶", 订: "訂", 单: "單", 额: "額", 汇: "匯", 率: "率", 价: "價", 建: "建", 筑: "築", 贷: "貸", 款: "款"
+  };
+  Object.assign(SIMPLIFIED_TO_TRADITIONAL, {
+    与: "與", 从: "從", 来: "來", 当: "當", 应: "應", 并: "並", 对: "對", 国: "國", 经: "經", 业: "業", 产: "產", 这: "這", 里: "裡", 后: "後", 还: "還", 过: "過", 开: "開", 关: "關", 问: "問", 见: "見", 时: "時", 间: "間", 现: "現", 发: "發", 结: "結", 论: "論", 评: "評", 组: "組", 织: "織", 续: "續", 变: "變", 认: "認", 识: "識", 证: "證", 读: "讀", 写: "寫", 记: "記", 采: "採", 连: "連", 接: "接", 内: "內", 容: "容", 库: "庫", 输: "輸", 页: "頁", 帐: "帳", 号: "號", 户: "戶", 电: "電", 邮: "郵", 箱: "箱", 话: "話", 编: "編", 辑: "輯", 模: "模", 块: "塊", 启: "啟", 标: "標", 签: "籤", 财: "財", 务: "務", 员: "員", 货: "貨", 币: "幣", 详: "詳", 细: "細", 锁: "鎖", 购: "購", 买: "買", 解: "解", 报: "報", 告: "告", 败: "敗", 区: "區", 域: "域", 额: "額", 套: "套", 席: "席", 邀: "邀", 请: "請", 阅: "閱", 导: "導", 拖: "拖", 拽: "曳", 备: "備", 权: "權", 限: "限", 积: "積", 面: "面", 售: "售", 指: "指", 标: "標", 均: "均", 值: "值", 关: "關", 键: "鍵", 预: "預", 都: "都", 府: "府", 县: "縣", 乡: "鄉", 镇: "鎮", 楼: "樓", 场: "場", 联: "聯", 精: "精", 确: "確", 税: "稅", 缮: "繕", 划: "劃", 专: "專", 荐: "薦", 协: "協", 步: "步", 骤: "驟", 源: "源", 算: "算", 通: "通", 程: "程", 序: "序", 伺: "伺", 器: "器", 只: "只"
+  });
+  const TAIWAN_TERMS = [
+    ["界面语言", "介面語言"], ["界面", "介面"], ["设置", "設定"], ["下载", "下載"], ["文件", "檔案"], ["视频", "影片"], ["软件", "軟體"], ["登录", "登入"], ["注册", "註冊"], ["保存", "儲存"], ["网络", "網路"], ["信息", "資訊"], ["后台", "後台"], ["订单", "訂單"], ["金额", "金額"], ["汇率", "匯率"], ["房价", "房價"], ["建筑", "建築"], ["贷款", "貸款"], ["数据", "資料"], ["资料", "資料"], ["账户", "帳戶"], ["查询", "查詢"], ["分析", "分析"], ["预览", "預覽"], ["演示", "預覽"], ["测试", "試用"], ["切换", "切換"], ["展示", "顯示"], ["按钮", "按鈕"], ["调取", "調取"], ["没有", "沒有"], ["接入", "接通"], ["当前", "目前"], ["后端", "後端"], ["报告", "報告"], ["查看", "查看"], ["状态", "狀態"], ["加载", "載入"], ["时", "時"], ["间", "間"]
+  ];
+
+  function toTraditional(value) {
+    let text = String(value);
+    for (const [from, to] of TAIWAN_TERMS) text = text.replaceAll(from, to);
+    text = text.replace(/[\u3400-\u9fff]/g, (char) => SIMPLIFIED_TO_TRADITIONAL[char] || char);
+    for (const [from, to] of TAIWAN_TERMS) text = text.replaceAll(from, to);
+    return text.replace(/\bsynthetic_fixture\b/g, "synthetic_sample").replace(/\bdemo\b/gi, "preview").replace(/\bfixture\b/gi, "sample");
+  }
+
+  const DICTIONARY_ZH_HANT = Object.fromEntries(
+    Object.entries(DICTIONARY["zh-CN"]).map(([key, value]) => [key, toTraditional(value)])
+  );
+  DICTIONARY["zh-Hant"] = DICTIONARY_ZH_HANT;
+
   function normalizeLocale(value) {
     return LOCALES.includes(value) ? value : "zh-CN";
   }
 
+  function localeFromLanguage(language) {
+    const normalized = String(language || "").toLowerCase();
+    if (["zh-hant", "zh-tw", "zh-hk", "zh-mo"].some((prefix) => normalized === prefix || normalized.startsWith(`${prefix}-`))) return "zh-Hant";
+    if (["zh-cn", "zh-sg", "zh"].some((prefix) => normalized === prefix || normalized.startsWith(`${prefix}-`))) return "zh-CN";
+    if (normalized === "ja" || normalized.startsWith("ja-")) return "ja";
+    return "en";
+  }
+
+  function localeFromRegion(timeZone) {
+    const normalized = String(timeZone || "").toLowerCase();
+    if (normalized.includes("taipei") || normalized.includes("hong_kong") || normalized.includes("macau")) return "zh-Hant";
+    return null;
+  }
+
+  function detectLocale({ savedLocale, urlLang, browserLanguage, timeZone } = {}) {
+    if (LOCALES.includes(savedLocale)) return savedLocale;
+    if (urlLang) return LOCALES.includes(urlLang) ? urlLang : localeFromLanguage(urlLang);
+    const browserLocale = localeFromLanguage(browserLanguage);
+    if (browserLocale === "en" && localeFromRegion(timeZone)) return "zh-Hant";
+    return browserLocale;
+  }
+
   function readLocale() {
+    let savedLocale = null;
     try {
-      return normalizeLocale(localStorage.getItem(STORAGE_KEY));
+      savedLocale = localStorage.getItem(STORAGE_KEY);
     } catch {
-      return "zh-CN";
+      // Private browsing can reject storage; fall back to URL/browser detection.
     }
+    let urlLang = null;
+    try {
+      urlLang = new URLSearchParams(location.search).get("lang");
+    } catch {
+      // Older embedded contexts may not expose location or URLSearchParams.
+    }
+    let timeZone = "";
+    try {
+      timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch {
+      // Region assistance is optional.
+    }
+    return detectLocale({ savedLocale, urlLang, browserLanguage: navigator.language, timeZone });
   }
 
   let currentLocale = readLocale();
@@ -1635,6 +1694,15 @@
     window.location.reload();
   }
 
-  window.ZouI18n = { t, apply, locale, setLocale };
+  window.ZouI18n = {
+    t,
+    apply,
+    locale,
+    setLocale,
+    detectedLocale: currentLocale,
+    keys: (localeName) => Object.keys(DICTIONARY[normalizeLocale(localeName)] || {}),
+    placeholders: (localeName, key) => [...String(DICTIONARY[normalizeLocale(localeName)]?.[key] || "").matchAll(/\{[^}]+\}/g)].map((match) => match[0]).sort(),
+    detectLocale,
+  };
   apply(document);
 })();

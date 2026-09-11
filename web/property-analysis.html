@@ -42,6 +42,12 @@
             <path d="M4 6.5h16M4 12h16M4 17.5h16" />
           </svg>
         </button>
+        <label class="locale-switcher">
+          <span class="sr-only" data-i18n="locale.label">界面语言</span>
+          <select data-locale-switcher data-i18n-aria-label="locale.label">
+            <option value="zh-CN">简体中文</option><option value="zh-Hant">繁體中文</option><option value="en">English</option><option value="ja">日本語</option>
+          </select>
+        </label>
         <nav id="beaconMenu" class="beacon-menu" aria-label="快捷导航" hidden>
           <a href="index.html">回到小象数据</a>
           <a id="reviewLink" href="ui-review.html" hidden>前端流程评审</a>

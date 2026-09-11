@@ -36,6 +36,16 @@ def _iso(value: Optional[datetime]) -> Optional[str]:
     return value.astimezone(timezone.utc).isoformat()
 
 
+def _row_value(row: Any, name: str, default: Any = None) -> Any:
+    """Read asyncpg/fake rows without turning a missing optional key into a 500."""
+    if row is None:
+        return default
+    try:
+        return row[name]
+    except (KeyError, IndexError, TypeError):
+        return getattr(row, name, default)
+
+
 def _empty_entitlements() -> Dict[str, Dict[str, Any]]:
     return {
         "queries": {"used": 0, "limit": None},
@@ -65,12 +75,9 @@ class MemberReadStore:
                 # A missing/blank profile is the free tier.  This must still
                 # resolve and read free_c from the database; it must not skip
                 # the entitlement lookup and silently use code defaults.
-                tier = (profile["membership_tier"] if profile else None) or "free"
-                try:
-                    audience = (profile["audience"] if profile else None) or "c"
-                except (KeyError, IndexError):
-                    # Older test doubles / pre-migration rows have no field.
-                    audience = "c"
+                tier = _row_value(profile, "membership_tier") or "free"
+                # Older test doubles / pre-migration rows have no field.
+                audience = _row_value(profile, "audience") or "c"
             except (asyncpg.UndefinedTableError, asyncpg.UndefinedColumnError):
                 available = False
 
@@ -86,7 +93,7 @@ class MemberReadStore:
                     try:
                         entitlement_rows = await conn.fetch(
                             "select metric, period, limit_units, active from public.plan_entitlements where plan_code=$1",
-                            plan["plan_code"],
+                            _row_value(plan, "plan_code"),
                         )
                     except Exception as exc:
                         logger.warning("member entitlement DB read unavailable; using fallback: %s", type(exc).__name__)
@@ -96,16 +103,20 @@ class MemberReadStore:
 
             try:
                 rows = await conn.fetch(
-                    "select usage_kind, consumed_units, limit_units from public.usage_quotas "
+                    "select usage_kind, period_key, consumed_units, limit_units from public.usage_quotas "
                     "where scope_key=$1 and period_key = any($2::text[])",
                     f"user:{user.user_id}", [day_key, month_key],
                 )
-                usage = {(str(row["usage_kind"]), str(row["period_key"])): row for row in rows}
+                usage = {
+                    (str(_row_value(row, "usage_kind")), str(_row_value(row, "period_key"))): row
+                    for row in rows
+                    if _row_value(row, "usage_kind") is not None and _row_value(row, "period_key") is not None
+                }
             except asyncpg.UndefinedTableError:
                 available = False
                 usage = {}
 
-            code = str(plan["plan_code"]) if plan else plan_for_tier(tier, audience)
+            code = str(_row_value(plan, "plan_code")) if plan else plan_for_tier(tier, audience)
             legacy = dict(plan) if plan else {}
             # Resolution order is plan_entitlements (DB) > pricing_plans
             # monthly_* legacy columns (DB) > code defaults.
@@ -120,7 +131,7 @@ class MemberReadStore:
                 period_value = day_key if primary_period == "day" else month_key
                 matching_row = usage.get((kind, period_value))
                 entitlements[name] = {
-                    "used": int(matching_row["consumed_units"]) if matching_row else 0,
+                    "used": int(_row_value(matching_row, "consumed_units", 0)),
                     "limit": periods[primary_period],
                     "period": primary_period,
                     "periods": periods,
@@ -135,12 +146,12 @@ class MemberReadStore:
                     user.user_id,
                 )
                 if row:
-                    status = str(row["status"])
+                    status = str(_row_value(row, "status", ""))
                     subscription = {
-                        "plan": row["product_code"],
+                        "plan": _row_value(row, "product_code"),
                         "status": "active" if status == "trialing" else "past_due" if status == "unpaid" else status,
-                        "current_period_end": _iso(row["current_period_end"]),
-                        "cancel_at_period_end": bool(row["cancel_at_period_end"]),
+                        "current_period_end": _iso(_row_value(row, "current_period_end")),
+                        "cancel_at_period_end": bool(_row_value(row, "cancel_at_period_end", False)),
                     }
             except asyncpg.UndefinedTableError:
                 available = False

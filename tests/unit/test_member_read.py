@@ -2,9 +2,11 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 import pytest
+from fastapi.testclient import TestClient
 
-from backend.app.auth import AuthUser
-from backend.app.member.routes import _period
+from backend.app.auth import AuthUser, require_user
+from backend.app.main import app
+from backend.app.member.routes import _period, get_member_read_store
 from backend.app.member.routes import MemberReadStore
 
 
@@ -13,10 +15,11 @@ FIXED_NOW = datetime(2026, 8, 31, 12, 0, tzinfo=timezone.utc)
 
 
 class _FakeConnection:
-    def __init__(self, *, profile, plan, entitlements):
+    def __init__(self, *, profile, plan, entitlements, usage=None):
         self.profile = profile
         self.plan = plan
         self.entitlements = entitlements
+        self.usage = usage or []
         self.queries = []
         self.fetchrow_args = []
 
@@ -36,7 +39,11 @@ class _FakeConnection:
         if "plan_entitlements" in query:
             return self.entitlements
         if "usage_quotas" in query:
-            return []
+            selected = query.lower().split("from", 1)[0]
+            return [
+                {key: value for key, value in row.items() if key in selected}
+                for row in self.usage
+            ]
         raise AssertionError(f"unexpected fetch query: {query}")
 
 
@@ -140,6 +147,38 @@ async def test_day_entitlement_is_primary_when_day_and_month_are_configured(monk
     assert snapshot["entitlements"]["queries"]["limit"] == 3
     assert snapshot["entitlements"]["queries"]["period"] == "day"
     assert snapshot["entitlements"]["queries"]["periods"] == {"day": 3, "month": 20}
+
+
+@pytest.mark.asyncio
+async def test_api_me_with_usage_rows_returns_current_consumption(monkeypatch):
+    connection = _FakeConnection(
+        profile={"membership_tier": "free"},
+        plan={"plan_code": "free_c", "monthly_query_limit": None, "monthly_report_quota": None, "subscription_slots": None, "export_rows_monthly": None},
+        entitlements=[
+            {"metric": "query", "period": "day", "limit_units": 5, "active": True},
+            {"metric": "stats_query", "period": "month", "limit_units": 10, "active": True},
+            {"metric": "export_row", "period": "month", "limit_units": 100, "active": True},
+        ],
+        usage=[
+            {"usage_kind": "query", "period_key": "2026-08-31", "consumed_units": 2, "limit_units": 5},
+            {"usage_kind": "stats_query", "period_key": "2026-08", "consumed_units": 3, "limit_units": 10},
+            {"usage_kind": "export_row", "period_key": "2026-08", "consumed_units": 4, "limit_units": 100},
+        ],
+    )
+    monkeypatch.setattr("backend.app.member.routes.get_pool", lambda: _FakePool(connection))
+    monkeypatch.setattr("backend.app.member.routes.utcnow", lambda: FIXED_NOW)
+
+    app.dependency_overrides[require_user] = lambda: TEST_USER
+    app.dependency_overrides[get_member_read_store] = lambda: MemberReadStore()
+    try:
+        response = TestClient(app).get("/api/me")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json()["entitlements"]["queries"]["used"] == 2
+    assert response.json()["entitlements"]["stats_queries"]["used"] == 3
+    assert response.json()["entitlements"]["exports_rows"]["used"] == 4
 
 
 def test_member_read_period_switches_at_utc_plus_8_midnight() -> None:

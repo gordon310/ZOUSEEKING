@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .db import close, connect, get_pool, init_schema
-from .auth import AuthUser, require_user
+from .auth import AuthUser, optional_user, require_user
 from .intake import storage as intake_storage
 from .intake.market_engine import build_sale_report, load_snapshots, match_snapshot
 from .intake.repository import IntakeRepository
@@ -110,6 +110,26 @@ async def provenance_diagnostics(x_internal_diagnostics_token: Optional[str] = H
 
 UTC_PLUS_8 = timezone(timedelta(hours=8), name="UTC+08:00")
 
+# These fields are the paid/deep-report payload. The public response is an
+# explicit allow-list and must never derive its shape by deleting from this set.
+LOCKED_REPORT_FIELDS = frozenset({
+    "markdown",
+    "xhs_content",
+    "rental",
+    "sale",
+    "images",
+    "raw_record",
+    "risk_summary",
+    "risks",
+})
+
+
+def _row_get(row: Any, name: str, fallback: Any = None) -> Any:
+    try:
+        return row[name]
+    except (KeyError, IndexError, TypeError):
+        return fallback
+
 
 def _current_month_key(now: Optional[datetime] = None) -> str:
     return (now or datetime.now(timezone.utc)).astimezone(UTC_PLUS_8).strftime("%Y-%m")
@@ -205,9 +225,11 @@ def row_to_report(row: Any) -> dict[str, Any]:
         return value
 
     return {
+        "query_key": _row_get(row, "query_key"),
         "slug": row["slug"],
         "title": row["title"],
         "publish_month": row["publish_month"],
+        "created_at": _row_get(row, "created_at"),
         "markdown": row["markdown"],
         "xhs_content": row["xhs_content"],
         "rental": json_value("rental", []),
@@ -216,7 +238,44 @@ def row_to_report(row: Any) -> dict[str, Any]:
         "images": json_value("images", []),
         "data_sources": json_value("data_sources", []),
         "raw_record": json_value("raw_record", {}),
+        "unlocked": True,
     }
+
+
+def public_report_from_row(row: Any, query_key: str) -> dict[str, Any]:
+    """Return only the report fields intentionally available before purchase.
+
+    Keep this allow-list separate from ``row_to_report``: a locked response must
+    not inherit new deep-report columns by accident when the stored report grows.
+    """
+
+    def json_value(name: str, fallback: Any) -> Any:
+        value = _row_get(row, name, fallback)
+        if value is None:
+            return fallback
+        if isinstance(value, str):
+            return json.loads(value)
+        return value
+
+    result: dict[str, Any] = {
+        "locked": True,
+        "unlocked": False,
+        "query_key": query_key,
+        "slug": row["slug"],
+        "title": row["title"],
+        "publish_month": row["publish_month"],
+        "summary": json_value("summary", {}),
+        "data_sources": json_value("data_sources", []),
+        "unlock_hint": "完整深度报告与导出为付费权益(risk_report_single)。购买后解锁本份深度报告。",
+    }
+    created_at = _row_get(row, "created_at")
+    if created_at is not None:
+        result["created_at"] = created_at
+    for name in ("address", "location", "source", "source_label"):
+        value = _row_get(row, name)
+        if value is not None:
+            result[name] = value
+    return result
 
 
 async def save_report(query_id: str, owner_user_id: str, report: dict[str, Any]) -> None:
@@ -487,7 +546,7 @@ async def get_job(job_id: str, user: AuthUser = Depends(require_user)) -> JobRes
     async with get_pool().acquire() as conn:
         job = await conn.fetchrow(
             """
-            select gj.*
+            select gj.*, q.query_key
             from generation_jobs gj
             join queries q on q.id = gj.query_id
             where gj.id=$1 and q.owner_user_id=$2
@@ -514,6 +573,7 @@ async def get_job(job_id: str, user: AuthUser = Depends(require_user)) -> JobRes
                 report = row_to_report(row)
         return JobResponse(
             job_id=str(job["id"]),
+            query_key=str(job["query_key"]) if job["query_key"] else None,
             status=job["status"],
             progress=job["progress"],
             current_step=job["current_step"],
@@ -560,32 +620,27 @@ async def list_my_queries(user: AuthUser = Depends(require_user)) -> list[dict[s
 
 
 @app.get("/api/reports/{query_key}")
-async def get_my_report(query_key: str, user: AuthUser = Depends(require_user)) -> dict[str, Any]:
+async def get_my_report(query_key: str, user: Optional[AuthUser] = Depends(optional_user)) -> dict[str, Any]:
     async with get_pool().acquire() as conn:
         row = await conn.fetchrow(
             """
             select pr.*
             from property_reports pr
             join queries q on q.id = pr.query_id
-            where pr.query_key=$1 and q.owner_user_id=$2
+            where pr.query_key=$1
             limit 1
             """,
             query_key,
-            user.user_id,
         )
         if not row:
             raise HTTPException(status_code=404, detail="report not found")
-        unlocked = await _has_report_unlock(conn, user.user_id, query_key)
+        owner_user_id = _row_get(row, "owner_user_id")
+        unlocked = bool(
+            user
+            and owner_user_id is not None
+            and str(owner_user_id) == str(user.user_id)
+            and await _has_report_unlock(conn, user.user_id, query_key)
+        )
     if not unlocked:
-        # D7/D8b: full report content is a paid deliverable (risk_report_single,
-        # report-scoped unlock). A locked response carries metadata only - the
-        # content fields (markdown/rental/sale/summary/...) are never sent.
-        return {
-            "locked": True,
-            "query_key": query_key,
-            "slug": row["slug"],
-            "title": row["title"],
-            "publish_month": row["publish_month"],
-            "unlock_hint": "完整深度报告与导出为付费权益(risk_report_single)。购买后解锁本份深度报告。",
-        }
+        return public_report_from_row(row, query_key)
     return row_to_report(row)

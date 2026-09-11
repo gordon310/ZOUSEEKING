@@ -28,6 +28,7 @@ class QueryResponse(BaseModel):
 
 class JobResponse(BaseModel):
     job_id: str
+    query_key: Optional[str] = None
     status: str
     progress: int
     current_step: str

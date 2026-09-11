@@ -36,6 +36,7 @@ test.beforeEach(async ({ page }) => {
         contentType: "application/json",
         body: JSON.stringify({
           session_id: SESSION_ID,
+          query_key: "大阪府::大阪市::北区::塔楼::2026::8",
           completeness: {
             identity: {
               confirmed: 2,
@@ -185,6 +186,10 @@ test("anonymous user reaches free preview on mobile", async ({ page }) => {
   await page.getByRole("button", { name: "生成免费预览" }).click();
   await expect(page.getByRole("heading", { name: "免费项目预览" })).toBeVisible();
   await expect(page.locator("#previewStep").getByText("法律与交易资料")).toBeVisible();
+  await expect(page.getByRole("link", { name: "查看报告" })).toHaveAttribute(
+    "href",
+    "report.html?key=%E5%A4%A7%E9%98%AA%E5%BA%9C%3A%3A%E5%A4%A7%E9%98%AA%E5%B8%82%3A%3A%E5%8C%97%E5%8C%BA%3A%3A%E5%A1%94%E6%A5%BC%3A%3A2026%3A%3A8",
+  );
 });
 
 test("ZOUBEACON shell switches between desktop rail and mobile flow navigation", async ({ page }) => {

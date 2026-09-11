@@ -11,8 +11,8 @@ import uuid
 
 import pytest
 
-from backend.app.auth import AuthUser, require_user
-from backend.app.main import app
+from backend.app.auth import AuthUser, optional_user, require_user
+from backend.app.main import LOCKED_REPORT_FIELDS, app
 from fastapi.testclient import TestClient
 
 OWNER_ID = uuid.UUID("00000000-0000-0000-0000-000000000030")
@@ -33,6 +33,8 @@ def _report_row(owner_user_id=OWNER_ID):
         "images": "[]",
         "data_sources": "[]",
         "raw_record": "{}",
+        "query_key": QUERY_KEY,
+        "created_at": "2026-09-11T12:00:00+00:00",
         "owner_user_id": owner_user_id,
     }
 
@@ -73,8 +75,9 @@ class FakePool:
         return FakeAcquire(self._conn)
 
 
-def _client(pool: FakePool, user: AuthUser) -> TestClient:
-    app.dependency_overrides[require_user] = lambda: user
+def _client(pool: FakePool, user: AuthUser | None) -> TestClient:
+    if user is not None:
+        app.dependency_overrides[optional_user] = lambda: user
     import backend.app.main as main
 
     main.get_pool = lambda: pool
@@ -97,9 +100,13 @@ def test_report_locked_without_paid_order():
     assert response.status_code == 200
     body = response.json()
     assert body["locked"] is True
+    assert body["unlocked"] is False
     assert body["query_key"] == QUERY_KEY
+    assert body["summary"]["title"] == "总而言之"
+    assert body["data_sources"] == []
+    assert body["created_at"] == "2026-09-11T12:00:00+00:00"
     # content fields must not leave the server while locked
-    for forbidden in ("markdown", "rental", "sale", "summary", "raw_record", "xhs_content"):
+    for forbidden in LOCKED_REPORT_FIELDS:
         assert forbidden not in body
     assert "unlock_hint" in body
 
@@ -125,6 +132,22 @@ def test_report_purchase_only_unlocks_the_matching_report():
         _cleanup()
     assert response.status_code == 200
     assert response.json()["locked"] is True
+
+
+def test_anonymous_report_gets_free_summary_without_locked_fields():
+    client = _client(FakePool(FakeConnection(_report_row(), paid=False)), None)
+    try:
+        response = client.get(f"/api/reports/{QUERY_KEY}")
+    finally:
+        _cleanup()
+    assert response.status_code == 200
+    body = response.json()
+    assert body["unlocked"] is False
+    assert body["title"] == "东京都渋谷区塔楼成交参考"
+    assert body["summary"] == {"title": "总而言之"}
+    assert "sale" not in body
+    assert "rental" not in body
+    assert "markdown" not in body
 
 
 def test_active_c_plus_quota_unlocks_report_without_single_purchase():

@@ -66,3 +66,11 @@ async def require_user(authorization: Optional[str] = Header(default=None)) -> A
         email=str(payload.get("email") or ""),
         username=str(metadata.get("username") or metadata.get("name") or payload.get("email") or "用户"),
     )
+
+
+async def optional_user(authorization: Optional[str] = Header(default=None)) -> Optional[AuthUser]:
+    """Authenticate when a bearer token is supplied, while allowing anonymous reads."""
+
+    if not authorization:
+        return None
+    return await require_user(authorization)

@@ -113,7 +113,19 @@ async def _sync_membership_entitlement(
         period_end is None or period_end > datetime.now(timezone.utc)
     )
     tier = product_code.removesuffix("_monthly") if active else "free_c"
-    plan_code = plan_for_tier(tier)
+    audience = "b" if organization_id is not None else "c"
+    if user_id is not None:
+        try:
+            profile = await conn.fetchrow(
+                "select audience from public.user_profiles where user_id=$1",
+                user_id,
+            )
+            audience = (profile["audience"] if profile else None) or "c"
+        except Exception:
+            # The audience migration is forward-only; retain C as the safe
+            # default while an older schema is being upgraded.
+            audience = "c"
+    plan_code = plan_for_tier(tier, audience)
     plan_row = None
     entitlement_rows = []
     try:

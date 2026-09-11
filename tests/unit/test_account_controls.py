@@ -40,6 +40,10 @@ def test_profile_patch_rejects_unknown_and_server_managed_fields():
         validate_profile_patch({"membership_tier": "pro"})
     assert managed.value.code == "managed_profile_field"
 
+    with pytest.raises(AccountContractError) as managed_audience:
+        validate_profile_patch({"audience": "b"})
+    assert managed_audience.value.code == "managed_profile_field"
+
 
 def test_profile_patch_rejects_control_characters_and_oversized_values():
     with pytest.raises(AccountContractError) as control:

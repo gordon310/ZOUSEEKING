@@ -177,6 +177,7 @@ def _serialize_member(row: asyncpg.Record, *, email_visible: bool) -> dict[str, 
         "favorite_asset_type": row["favorite_asset_type"] or "",
         "bio": row["bio"] or "",
         "membership_tier": row["membership_tier"] or "free",
+        "audience": row["audience"] or "c",
         "daily_query_limit": row["daily_query_limit"],
         "status": row["status"] or "active",
         "created_at": _iso(row["created_at"]),
@@ -322,7 +323,7 @@ _MEMBER_BASE_SELECT = """
         select
           up.user_id, up.email, up.username, up.display_name,
           up.city, up.favorite_area, up.favorite_asset_type, up.bio,
-          up.membership_tier, up.daily_query_limit,
+          up.membership_tier, up.audience, up.daily_query_limit,
           up.status,
           up.created_at, up.updated_at,
           coalesce((
@@ -1086,6 +1087,36 @@ class AdminService:
             "previous_status": previous_status,
             "changed": True,
         }
+
+    async def set_member_audience(
+        self, *, user_id: UUID, audience: str, actor: UUID
+    ) -> Optional[dict[str, Any]]:
+        """Set audience and append its audit event in the same transaction."""
+        async with self._acquire().acquire() as conn:
+            async with conn.transaction():
+                current = await conn.fetchrow(
+                    "select audience from public.user_profiles where user_id = $1 for update",
+                    user_id,
+                )
+                if current is None:
+                    return None
+                previous = current["audience"] or "c"
+                if previous == audience:
+                    return {"user_id": str(user_id), "audience": audience,
+                            "previous_audience": previous, "changed": False}
+                await conn.execute(
+                    "update public.user_profiles set audience = $2 where user_id = $1",
+                    user_id, audience,
+                )
+                await conn.execute(
+                    "insert into public.audit_events"
+                    " (actor_user_id, action, target_type, target_id, summary)"
+                    " values ($1, 'admin.member.audience_changed', 'user', $2, $3::jsonb)",
+                    actor, str(user_id),
+                    json.dumps({"audience": audience, "previous_audience": previous}, ensure_ascii=False),
+                )
+        return {"user_id": str(user_id), "audience": audience,
+                "previous_audience": previous, "changed": True}
 
     # -- pricing catalog writes ---------------------------------------------
 

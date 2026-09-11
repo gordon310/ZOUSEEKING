@@ -122,6 +122,12 @@
         { method: "POST", body: { status } },
       );
     },
+    setMemberAudience(userId, audience) {
+      return request(`/api/admin/members/${encodeURIComponent(userId)}/audience`, {
+        method: "POST",
+        body: { audience },
+      });
+    },
     // GET /api/admin/audit?actor=&action=&since=&limit=
     listAudit({ actor = "", action = "", since = "", limit = 100 } = {}) {
       return request("/api/admin/audit", { params: { actor, action, since, limit } });

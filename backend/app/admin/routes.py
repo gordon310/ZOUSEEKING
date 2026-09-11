@@ -109,6 +109,10 @@ class MemberStatusRequest(BaseModel):
     status: str
 
 
+class MemberAudienceRequest(BaseModel):
+    audience: str
+
+
 class CollectionSourceUpsertRequest(BaseModel):
     """POST /api/admin/collection/sources body (register or update)."""
 
@@ -177,6 +181,13 @@ def _member_status_or_400(status: Optional[str]) -> str:
         raise HTTPException(
             status_code=400, detail="无效的会员状态（仅 active / suspended）"
         )
+    return value
+
+
+def _member_audience_or_400(audience: Optional[str]) -> str:
+    value = (audience or "").strip()
+    if value not in {"c", "b"}:
+        raise HTTPException(status_code=400, detail="无效的端别（仅 c / b）")
     return value
 
 
@@ -673,6 +684,23 @@ async def set_member_status(
         user_id=parsed_user_id,
         status=status,
         actor=principal.user.user_id,
+    )
+    if result is None:
+        raise HTTPException(status_code=404, detail="会员不存在")
+    return result
+
+
+@router.post("/members/{user_id}/audience")
+async def set_member_audience(
+    user_id: str,
+    body: MemberAudienceRequest,
+    principal: AdminPrincipal = Depends(require_admin_role(MEMBER_OPS, SUPER_ADMIN)),
+    service: AdminService = Depends(get_admin_service),
+) -> dict[str, Any]:
+    parsed_user_id = _parse_user_id(user_id)
+    audience = _member_audience_or_400(body.audience)
+    result = await service.set_member_audience(
+        user_id=parsed_user_id, audience=audience, actor=principal.user.user_id
     )
     if result is None:
         raise HTTPException(status_code=404, detail="会员不存在")

@@ -53,19 +53,25 @@ class MemberReadStore:
         entitlements = _empty_entitlements()
         available = True
         tier = None
+        audience = "c"
         subscription = None
         pool = get_pool()
         async with pool.acquire() as conn:
             try:
                 profile = await conn.fetchrow(
-                    "select membership_tier from public.user_profiles where user_id=$1",
+                    "select membership_tier, audience from public.user_profiles where user_id=$1",
                     user.user_id,
                 )
                 # A missing/blank profile is the free tier.  This must still
                 # resolve and read free_c from the database; it must not skip
                 # the entitlement lookup and silently use code defaults.
                 tier = (profile["membership_tier"] if profile else None) or "free"
-            except asyncpg.UndefinedTableError:
+                try:
+                    audience = (profile["audience"] if profile else None) or "c"
+                except (KeyError, IndexError):
+                    # Older test doubles / pre-migration rows have no field.
+                    audience = "c"
+            except (asyncpg.UndefinedTableError, asyncpg.UndefinedColumnError):
                 available = False
 
             plan = None
@@ -74,7 +80,7 @@ class MemberReadStore:
                 plan = await conn.fetchrow(
                     "select plan_code, audience, monthly_query_limit, monthly_report_quota, subscription_slots, export_rows_monthly "
                     "from public.pricing_plans where plan_code=$1 and active=true",
-                    plan_for_tier(tier),
+                    plan_for_tier(tier, audience),
                 )
                 if plan:
                     try:
@@ -99,7 +105,7 @@ class MemberReadStore:
                 available = False
                 usage = {}
 
-            code = str(plan["plan_code"]) if plan else plan_for_tier(tier)
+            code = str(plan["plan_code"]) if plan else plan_for_tier(tier, audience)
             legacy = dict(plan) if plan else {}
             # Resolution order is plan_entitlements (DB) > pricing_plans
             # monthly_* legacy columns (DB) > code defaults.
@@ -144,6 +150,7 @@ class MemberReadStore:
             "user_id": str(user.user_id),
             "email": user.email,
             "membership_tier": tier,
+            "audience": audience,
             "entitlements": entitlements,
             "subscription": subscription,
                 "period": {

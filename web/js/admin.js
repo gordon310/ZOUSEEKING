@@ -109,7 +109,7 @@
   const t = (key, fallback = "") =>
     window.ZouI18n && typeof window.ZouI18n.t === "function" ? window.ZouI18n.t(key, fallback) : fallback;
 
-  const MEMBERS_COLSPAN = 8;
+  const MEMBERS_COLSPAN = 9;
 
   // ---- shared state ---------------------------------------------------------
   const debounceTimers = {};
@@ -1508,6 +1508,17 @@
     const action = button.dataset.memberAction;
     if (action === "suspend" || action === "resume") {
       submitMemberStatusChange(userId, action);
+    }
+  });
+  memberList?.addEventListener("change", async (event) => {
+    const select = event.target.closest("[data-member-audience]");
+    if (!select || !isLive || !memberState.canWrite || !select.value) return;
+    try {
+      await api.setMemberAudience(select.dataset.memberId, select.value);
+      setMemberNotice(t("admin.audienceChanged", "端别已更新，审计已记录。"));
+    } catch (error) {
+      setMemberNotice(apiErrorMessage(error, memberGateRolesHint()));
+      await loadLiveMembers(liveState.members.page);
     }
   });
 

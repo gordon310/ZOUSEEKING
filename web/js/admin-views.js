@@ -200,10 +200,10 @@
 
   // ---------- live member list / detail ----------
 
-  // 8 columns: 会员 / 等级 / 状态 / 内部角色 / 订阅 / 当月用量 / 加入时间 / 操作
+  // 9 columns: 会员 / 端别 / 等级 / 状态 / 内部角色 / 订阅 / 当月用量 / 加入时间 / 操作
   const memberLiveHeaders = `
     <tr>
-      <th scope="col">会员</th><th scope="col">等级</th><th scope="col">状态</th><th scope="col">内部角色</th>
+      <th scope="col">会员</th><th scope="col">${escape(t("admin.audience", "端别"))}</th><th scope="col">等级</th><th scope="col">状态</th><th scope="col">内部角色</th>
       <th scope="col">订阅</th><th scope="col">当月用量</th><th scope="col">加入时间</th><th scope="col">操作</th>
     </tr>`;
   const memberDemoHeaders = `
@@ -258,7 +258,7 @@
       writeBlockedTitle = "",
     } = options;
     if (!items || !items.length) {
-      return emptyRow(8, t("admin.emptyMembers", "没有符合条件的会员。"));
+      return emptyRow(9, t("admin.emptyMembers", "没有符合条件的会员。"));
     }
     return items
       .map((member) => {
@@ -273,6 +273,7 @@
         return `
         <tr data-member-row data-member-id="${escape(member.user_id)}" data-member-status="${escape(status)}">
           <th scope="row">${escape(name)}<span>${escape(sub)}</span></th>
+          <td><select class="admin-member-audience" data-member-audience data-member-id="${escape(member.user_id)}"${canWrite ? "" : " disabled"} aria-label="${escape(t("admin.audience", "端别"))}"><option value="c"${member.audience === "c" ? " selected" : ""}>C</option><option value="b"${member.audience === "b" ? " selected" : ""}>B</option></select></td>
           <td>${escape(tierLabel(member.membership_tier))}</td>
           <td><span class="admin-table-status ${statusClassFor(status)}">${escape(statusText)}</span></td>
           <td>${escape(rolesText(member.roles))}</td>
@@ -293,6 +294,7 @@
     const name = member.display_name || member.username || "—";
     lines.push(`会员：${name}`);
     if (member.email) lines.push(`邮箱（按角色显示）：${member.email}`);
+    lines.push(`${t("admin.audience", "端别")}：${member.audience === "b" ? "B" : "C"}`);
     lines.push(`等级：${tierLabel(member.membership_tier)}（每日额度 ${member.daily_query_limit ?? "—"} 次）`);
     lines.push(`状态：${member.status === "suspended" ? "已停用" : "正常"}`);
     lines.push(`加入时间：${fmtDateTime(member.created_at)}`);

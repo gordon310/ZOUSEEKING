@@ -80,6 +80,7 @@ FAKE_MEMBER_PAGE = {
             "display_name": "Alice",
             "email": "alice@example.com",
             "membership_tier": "pro",
+            "audience": "b",
             "daily_query_limit": 50,
             "status": "active",
             "roles": [{"role": "member_ops", "expires_at": None}],
@@ -135,6 +136,7 @@ class FakeAdminService:
         self.collection_list_calls = 0
         self.collection_enqueues = []
         self.status_calls = []
+        self.audience_calls = []
 
     async def fetch_active_roles(self, user_id):
         return list(self.roles)
@@ -227,6 +229,17 @@ class FakeAdminService:
             "user_id": str(user_id),
             "status": status,
             "previous_status": "active",
+            "changed": True,
+        }
+
+    async def set_member_audience(self, *, user_id, audience, actor):
+        self.audience_calls.append({"user_id": user_id, "audience": audience, "actor": actor})
+        if str(user_id) in self.missing_users:
+            return None
+        return {
+            "user_id": str(user_id),
+            "audience": audience,
+            "previous_audience": "c",
             "changed": True,
         }
 
@@ -386,6 +399,35 @@ def test_members_response_masks_email_only_outside_gate() -> None:
     visible = _build_app(FakeAdminService(roles=["member_ops"]))
     payload = _call(visible, "get", "/api/admin/members").json()
     assert payload["items"][0]["email"] == "alice@example.com"
+    assert payload["items"][0]["audience"] == "b"
+
+
+def test_member_audience_change_requires_role_validates_and_is_audited() -> None:
+    app = _build_app(FakeAdminService(roles=["member_ops"]))
+    response = _call(
+        app,
+        "post",
+        f"/api/admin/members/{MEMBER}/audience",
+        json={"audience": "b"},
+    )
+    assert response.status_code == 200
+    assert response.json()["audience"] == "b"
+
+    invalid = _call(
+        app,
+        "post",
+        f"/api/admin/members/{MEMBER}/audience",
+        json={"audience": "x"},
+    )
+    assert invalid.status_code == 400
+
+    denied = _build_app(FakeAdminService(roles=["finance"]))
+    assert _call(
+        denied,
+        "post",
+        f"/api/admin/members/{MEMBER}/audience",
+        json={"audience": "c"},
+    ).status_code == 403
 
 
 def test_member_detail_unknown_user_is_404() -> None:

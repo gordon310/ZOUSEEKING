@@ -1879,12 +1879,15 @@ async function register(event) {
   try {
     submitButton.disabled = true;
     setMessage("正在注册，小象在 Supabase 门口排队……");
+    const signupAudience = document.body?.dataset.audience ||
+      (window.location.hostname === "platform.zoubeacon.com" ? "b" : "c");
     const data = await supabaseAuthFetch(`/signup?redirect_to=${encodeURIComponent(appRedirectUrl())}`, {
       method: "POST",
       body: JSON.stringify({
         email,
         password,
         data: {
+          audience: signupAudience === "b" ? "b" : "c",
           username,
           consent_version: consent.consentVersion,
           consent_at: consent.consentAt,

@@ -90,6 +90,26 @@ async def test_empty_db_entitlements_use_code_default(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_business_audience_selects_free_b_entitlements(monkeypatch):
+    connection = _FakeConnection(
+        profile={"membership_tier": "free", "audience": "b"},
+        plan={"plan_code": "free_b", "monthly_query_limit": 30, "monthly_report_quota": 5, "subscription_slots": None, "export_rows_monthly": None},
+        entitlements=[
+            {"metric": "query", "period": "month", "limit_units": 30, "active": True},
+            {"metric": "stats_query", "period": "month", "limit_units": 5, "active": True},
+        ],
+    )
+    monkeypatch.setattr("backend.app.member.routes.get_pool", lambda: _FakePool(connection))
+
+    snapshot = await MemberReadStore().get_me(TEST_USER, now=FIXED_NOW)
+
+    assert snapshot["audience"] == "b"
+    assert snapshot["entitlements"]["queries"]["limit"] == 30
+    assert snapshot["entitlements"]["stats_queries"]["limit"] == 5
+    assert any("pricing_plans" in query and args == ("free_b",) for query, args in connection.fetchrow_args)
+
+
+@pytest.mark.asyncio
 async def test_plan_entitlements_override_legacy_pricing_columns(monkeypatch):
     connection = _FakeConnection(
         profile={"membership_tier": "free"},

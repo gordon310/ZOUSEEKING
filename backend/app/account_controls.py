@@ -26,6 +26,7 @@ PROFILE_MANAGED_FIELDS = frozenset(
         "email",
         "username",
         "membership_tier",
+        "audience",
         "daily_query_limit",
         "organization_id",
         "organization_role",

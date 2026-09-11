@@ -6,8 +6,15 @@ from backend.app.billing.entitlements import (
     DEFAULT_ENTITLEMENTS,
     entitlement_limit,
     normalize_entitlements,
+    plan_for_tier,
     period_key,
 )
+
+
+def test_plan_for_tier_respects_audience_for_free_tier() -> None:
+    assert plan_for_tier("free", "b") == "free_b"
+    assert plan_for_tier("free", "c") == "free_c"
+    assert plan_for_tier("free", None) == "free_c"
 
 
 def test_default_entitlements_cover_c_and_b_plans() -> None:

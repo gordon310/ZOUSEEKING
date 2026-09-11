@@ -1,5 +1,6 @@
 # This compose deployment replaces the existing zoubeacon-nginx single
 # container after the cutover steps in deploy/README.md are completed.
+# The collected-data bind mount persists acquisition outputs across restarts.
 services:
   api:
     build:
@@ -7,16 +8,19 @@ services:
       dockerfile: deploy/Dockerfile.backend
     env_file: .env
     restart: unless-stopped
+    volumes:
+      - ../data/collected:/app/data/collected
     expose:
       - "8000"
 
-  # NOTE: collection worker writes under /app/data inside the container (ephemeral); add a bind mount if outputs must persist across restarts.
   worker:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.backend
     env_file: .env
     restart: unless-stopped
+    volumes:
+      - ../data/collected:/app/data/collected
     command: ["python", "/app/scripts/collection_worker.py", "--loop", "60", "--interval", "10"]
 
   scheduler:

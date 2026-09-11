@@ -5,11 +5,11 @@ WORKDIR /app
 COPY backend/ /app/backend/
 COPY scripts/ /app/scripts/
 COPY configs/ /app/configs/
-COPY data/collected/ /app/data/collected/
 COPY data/input/ /app/data/input/
 COPY web/content-library.json /app/web/content-library.json
 COPY backend/requirements.txt /app/backend/requirements.txt
 
+RUN mkdir -p /app/data/collected
 RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 
 ENV PYTHONPATH=/app/backend:/app

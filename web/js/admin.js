@@ -1321,6 +1321,7 @@
   const pricingPriceList = document.querySelector("#pricingPriceList");
   const pricingRegionList = document.querySelector("#pricingRegionList");
   const pricingPlanList = document.querySelector("#pricingPlanList");
+  const pricingEntitlementList = document.querySelector("#pricingEntitlementList");
 
   function pricingError(error) {
     if (Number(error?.status) === 403) return t("admin.error403", "当前账号无权访问该模块（403）。需要 finance / super_admin 角色。");
@@ -1337,6 +1338,7 @@
     const prices = Array.isArray(payload?.prices) ? payload.prices : [];
     const regions = Array.isArray(payload?.regions) ? payload.regions : [];
     const plans = Array.isArray(payload?.plans) ? payload.plans : [];
+    const entitlements = Array.isArray(payload?.entitlements) ? payload.entitlements : [];
     pricingState.products = products;
     if (pricingProduct) pricingProduct.innerHTML = products.map((p) => `<option value="${views.escape(p.product_code)}">${views.escape(p.name || p.product_code)}</option>`).join("");
     if (pricingPriceList) pricingPriceList.innerHTML = prices.length ? prices.map((p) => `<tr><th scope="row">${views.escape(p.product_code)}</th><td>${views.escape(p.currency)}</td><td>${views.escape(p.amount_minor)}</td><td class="admin-wrap">${views.escape(p.stripe_price_id || "—")}</td><td>v${views.escape(p.price_version)}</td><td>${p.active ? "active" : "inactive"} <button class="admin-action" type="button" data-pricing-status-id="${views.escape(p.id)}" data-pricing-status-value="${p.active ? "false" : "true"}">${p.active ? "下架" : "上架"}</button></td><td>${views.escape(views.fmtDateTime(p.created_at))}</td></tr>`).join("") : views.emptyRow(7, "没有价格记录。");
@@ -1344,8 +1346,9 @@
       try { await api.setPricingPriceStatus(button.dataset.pricingStatusId, button.dataset.pricingStatusValue === "true"); await loadPricing(true); setText(pricingStatus, "价格状态已更新并写入审计。"); } catch (error) { setText(pricingStatus, pricingError(error)); }
     }));
     if (pricingRegionList) pricingRegionList.innerHTML = regions.length ? regions.map((r) => `<tr><th scope="row">${views.escape(r.region_code)}</th><td>${views.escape(r.currency)}</td><td>${r.active ? "active" : "inactive"}</td></tr>`).join("") : views.emptyRow(3, "没有区域映射。");
-    if (pricingPlanList) pricingPlanList.innerHTML = plans.length ? plans.map((p) => `<tr><th scope="row">${views.escape(p.plan_code)}<span>${views.escape(p.name)}</span></th><td>${p.monthly_query_limit}</td><td>${p.monthly_report_quota}</td><td>${p.subscription_slots}</td><td>${p.export_rows_monthly}</td><td>v${p.plan_version ?? 1}</td></tr>`).join("") : views.emptyRow(6, "没有套餐额度。");
-    setText(pricingCount, `${prices.length} 个价格版本 · ${plans.length} 个套餐`);
+    if (pricingPlanList) pricingPlanList.innerHTML = plans.length ? plans.map((p) => `<tr><th scope="row">${views.escape(p.plan_code)}</th><td>${views.escape(p.name)}</td><td>${views.escape(p.audience || "c")}</td><td>${p.active ? "active" : "inactive"}</td><td>v${p.plan_version ?? 1}</td></tr>`).join("") : views.emptyRow(5, "没有套餐。");
+    if (pricingEntitlementList) pricingEntitlementList.innerHTML = entitlements.length ? entitlements.map((e) => `<tr><th scope="row">${views.escape(e.plan_code)}</th><td>${views.escape(e.metric)}</td><td>${views.escape(e.period)}</td><td>${views.escape(e.limit_units)}</td><td>${e.active ? "active" : "inactive"}</td><td>${views.escape(views.fmtDateTime(e.effective_from || e.created_at))}</td></tr>`).join("") : views.emptyRow(6, "没有权益。");
+    setText(pricingCount, `${prices.length} 个价格版本 · ${plans.length} 个套餐 · ${entitlements.length} 个权益版本`);
   }
 
   async function loadPricing(force = false) {
@@ -1366,6 +1369,7 @@
     const priceButton = document.querySelector("#pricingPriceBtn");
     const regionButton = document.querySelector("#pricingRegionBtn");
     const planButton = document.querySelector("#pricingPlanBtn");
+    const entitlementButton = document.querySelector("#pricingEntitlementBtn");
     priceButton?.addEventListener("click", async () => {
       try {
         await api.createPricingPrice({ product_code: pricingProduct?.value, currency: document.querySelector("#pricingCurrency")?.value, amount_minor: pricingNumber("#pricingAmount"), stripe_price_id: document.querySelector("#pricingStripeId")?.value || "" });
@@ -1376,7 +1380,12 @@
       try { await api.upsertPricingRegion({ region_code: document.querySelector("#pricingRegionCode")?.value, currency: document.querySelector("#pricingRegionCurrency")?.value, active: Boolean(document.querySelector("#pricingRegionActive")?.checked) }); await loadPricing(true); setText(pricingStatus, "区域映射已保存并写入审计。"); } catch (error) { setText(pricingStatus, pricingError(error)); }
     });
     planButton?.addEventListener("click", async () => {
-      try { await api.upsertPricingPlan({ plan_code: document.querySelector("#pricingPlanCode")?.value, name: document.querySelector("#pricingPlanName")?.value, monthly_query_limit: pricingNumber("#pricingPlanQueries"), monthly_report_quota: pricingNumber("#pricingPlanReports"), subscription_slots: pricingNumber("#pricingPlanSlots"), export_rows_monthly: pricingNumber("#pricingPlanExports"), active: true }); await loadPricing(true); setText(pricingStatus, "套餐额度已保存并递增版本、写入审计。"); } catch (error) { setText(pricingStatus, pricingError(error)); }
+      try { await api.upsertPricingPlan({ plan_code: document.querySelector("#pricingPlanCode")?.value, name: document.querySelector("#pricingPlanName")?.value, audience: document.querySelector("#pricingPlanAudience")?.value, monthly_query_limit: pricingNumber("#pricingPlanQueries"), monthly_report_quota: pricingNumber("#pricingPlanReports"), subscription_slots: pricingNumber("#pricingPlanSlots"), export_rows_monthly: pricingNumber("#pricingPlanExports"), active: Boolean(document.querySelector("#pricingPlanActive")?.checked) }); await loadPricing(true); setText(pricingStatus, "套餐已保存并写入审计。"); } catch (error) { setText(pricingStatus, pricingError(error)); }
+    });
+    entitlementButton?.addEventListener("click", async () => {
+      const limit = pricingNumber("#pricingEntitlementLimit");
+      if (limit === null) { setText(pricingStatus, "权益上限必须是大于等于 0 的数字。"); return; }
+      try { await api.upsertPricingEntitlement({ plan_code: document.querySelector("#pricingEntitlementPlan")?.value, metric: document.querySelector("#pricingEntitlementMetric")?.value, period: document.querySelector("#pricingEntitlementPeriod")?.value, limit_units: limit, active: Boolean(document.querySelector("#pricingEntitlementActive")?.checked) }); await loadPricing(true); setText(pricingStatus, "权益新版本已创建，旧版本已停用并写入审计。"); } catch (error) { setText(pricingStatus, pricingError(error)); }
     });
   }
 

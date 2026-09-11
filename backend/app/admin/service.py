@@ -1097,12 +1097,14 @@ class AdminService:
                 "from public.pricing_prices order by product_code, currency, price_version desc, created_at desc"
             )
             regions = await conn.fetch("select region_code, currency, active, created_by, created_at from public.pricing_regions order by region_code")
-            plans = await conn.fetch("select plan_code, name, monthly_query_limit, monthly_report_quota, subscription_slots, export_rows_monthly, plan_version, active, created_by, created_at from public.pricing_plans order by plan_code")
+            plans = await conn.fetch("select plan_code, name, audience, monthly_query_limit, monthly_report_quota, subscription_slots, export_rows_monthly, plan_version, active, created_by, created_at from public.pricing_plans order by plan_code")
+            entitlements = await conn.fetch("select id, plan_code, metric, limit_units, period, active, effective_from, created_by, created_at from public.plan_entitlements order by plan_code, metric, period, created_at desc")
         return {
             "products": [self._pricing_row(row) for row in products],
             "prices": [self._pricing_row(row) for row in prices],
             "regions": [self._pricing_row(row) for row in regions],
             "plans": [self._pricing_row(row) for row in plans],
+            "entitlements": [self._pricing_row(row) for row in entitlements],
         }
 
     @staticmethod
@@ -1143,14 +1145,25 @@ class AdminService:
                 await conn.execute("insert into public.audit_events (actor_user_id, action, target_type, target_id, summary) values ($1,'admin.pricing.region_upserted','pricing_region',$2,$3::jsonb)", actor, region_code, json.dumps({"currency": currency, "active": active}, ensure_ascii=False))
         return self._pricing_row(row)
 
-    async def upsert_pricing_plan(self, *, plan_code: str, name: str, monthly_query_limit: int, monthly_report_quota: int, subscription_slots: int, export_rows_monthly: int, active: bool, actor: UUID) -> dict[str, Any]:
+    async def upsert_pricing_plan(self, *, plan_code: str, name: str, audience: str = "c", monthly_query_limit: int = 0, monthly_report_quota: int = 0, subscription_slots: int = 0, export_rows_monthly: int = 0, active: bool = True, actor: UUID) -> dict[str, Any]:
         async with self._acquire().acquire() as conn:
             async with conn.transaction():
                 row = await conn.fetchrow(
-                    "insert into public.pricing_plans (plan_code,name,monthly_query_limit,monthly_report_quota,subscription_slots,export_rows_monthly,active,created_by) values ($1,$2,$3,$4,$5,$6,$7,$8) on conflict (plan_code) do update set name=excluded.name, monthly_query_limit=excluded.monthly_query_limit, monthly_report_quota=excluded.monthly_report_quota, subscription_slots=excluded.subscription_slots, export_rows_monthly=excluded.export_rows_monthly, active=excluded.active, created_by=excluded.created_by, plan_version=public.pricing_plans.plan_version+1 returning plan_code,name,monthly_query_limit,monthly_report_quota,subscription_slots,export_rows_monthly,plan_version,active,created_by,created_at",
-                    plan_code, name, monthly_query_limit, monthly_report_quota, subscription_slots, export_rows_monthly, active, actor,
+                    "insert into public.pricing_plans (plan_code,name,audience,monthly_query_limit,monthly_report_quota,subscription_slots,export_rows_monthly,active,created_by) values ($1,$2,$3,$4,$5,$6,$7,$8,$9) on conflict (plan_code) do update set name=excluded.name, audience=excluded.audience, monthly_query_limit=excluded.monthly_query_limit, monthly_report_quota=excluded.monthly_report_quota, subscription_slots=excluded.subscription_slots, export_rows_monthly=excluded.export_rows_monthly, active=excluded.active, created_by=excluded.created_by, plan_version=public.pricing_plans.plan_version+1 returning plan_code,name,audience,monthly_query_limit,monthly_report_quota,subscription_slots,export_rows_monthly,plan_version,active,created_by,created_at",
+                    plan_code, name, audience, monthly_query_limit, monthly_report_quota, subscription_slots, export_rows_monthly, active, actor,
                 )
-                await conn.execute("insert into public.audit_events (actor_user_id, action, target_type, target_id, summary) values ($1,'admin.pricing.plan_upserted','pricing_plan',$2,$3::jsonb)", actor, plan_code, json.dumps({"plan_version": row["plan_version"], "monthly_query_limit": monthly_query_limit, "monthly_report_quota": monthly_report_quota, "subscription_slots": subscription_slots, "export_rows_monthly": export_rows_monthly}, ensure_ascii=False))
+                await conn.execute("insert into public.audit_events (actor_user_id, action, target_type, target_id, summary) values ($1,'admin.pricing.plan_upserted','pricing_plan',$2,$3::jsonb)", actor, plan_code, json.dumps({"plan_version": row["plan_version"], "audience": audience}, ensure_ascii=False))
+        return self._pricing_row(row)
+
+    async def upsert_pricing_entitlement(self, *, plan_code: str, metric: str, period: str, limit_units: int, active: bool, actor: UUID) -> dict[str, Any]:
+        async with self._acquire().acquire() as conn:
+            async with conn.transaction():
+                await conn.execute("update public.plan_entitlements set active=false where plan_code=$1 and metric=$2 and period=$3 and active", plan_code, metric, period)
+                row = await conn.fetchrow(
+                    "insert into public.plan_entitlements (plan_code,metric,period,limit_units,active,effective_from,created_by) values ($1,$2,$3,$4,$5,now(),$6) returning id,plan_code,metric,period,limit_units,active,effective_from,created_by,created_at",
+                    plan_code, metric, period, limit_units, active, actor,
+                )
+                await conn.execute("insert into public.audit_events (actor_user_id, action, target_type, target_id, summary) values ($1,'admin.pricing.entitlement_versioned','plan_entitlement',$2,$3::jsonb)", actor, str(row["id"]), json.dumps({"plan_code": plan_code, "metric": metric, "period": period, "limit_units": limit_units, "active": active}, ensure_ascii=False))
         return self._pricing_row(row)
 
 

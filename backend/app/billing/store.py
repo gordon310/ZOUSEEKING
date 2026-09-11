@@ -87,6 +87,7 @@ from .ports import (
     RefundRequest,
     SubscriptionSnapshot,
 )
+from .entitlements import normalize_entitlements, plan_for_tier
 
 # Personal products belong to the authenticated user; the B-side product
 # belongs to the user's organization (membership-resolved).
@@ -111,8 +112,18 @@ async def _sync_membership_entitlement(
     active = status in {"active", "trialing"} and (
         period_end is None or period_end > datetime.now(timezone.utc)
     )
-    tier = product_code.removesuffix("_monthly") if active else "free"
-    daily_limit = {"c_plus": 100, "b_data_pro": 500}.get(tier, 3)
+    tier = product_code.removesuffix("_monthly") if active else "free_c"
+    plan_code = plan_for_tier(tier)
+    plan_row = None
+    entitlement_rows = []
+    try:
+        plan_row = await conn.fetchrow("select plan_code, monthly_query_limit, monthly_report_quota, subscription_slots, export_rows_monthly from public.pricing_plans where plan_code=$1 and active=true", plan_code)
+        entitlement_rows = await conn.fetch("select metric, period, limit_units, active from public.plan_entitlements where plan_code=$1", plan_code)
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("billing entitlement DB read unavailable; using fallback: %s", type(exc).__name__)
+    resolved = normalize_entitlements(plan_code, rows=entitlement_rows, legacy=dict(plan_row) if plan_row else {})
+    daily_limit = resolved.get(("query", "day"), 3)
     has_profiles = await conn.fetchval("select to_regclass('public.user_profiles')")
     if has_profiles:
         if user_id is not None:
@@ -133,10 +144,7 @@ async def _sync_membership_entitlement(
         return
     period_key = datetime.now(timezone.utc).astimezone(_UTC_PLUS_8).strftime("%Y-%m")
     scope_key = f"user:{user_id}" if user_id is not None else f"org:{organization_id}"
-    limits = (
-        [("report", 12)] if product_code == "c_plus_monthly" else
-        [("query", 500), ("stats_query", 100), ("export_row", 10000), ("subscription_slot", 10)]
-    )
+    limits = [(metric, limit) for (metric, period), limit in resolved.items() if period == "month" and limit > 0]
     for usage_kind, limit in limits:
         await conn.execute(
             "insert into public.usage_quotas"

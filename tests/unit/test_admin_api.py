@@ -242,6 +242,9 @@ class FakeAdminService:
     async def upsert_pricing_plan(self, **kwargs):
         return {"plan_code": kwargs["plan_code"], "plan_version": 2, "created_by": str(kwargs["actor"])}
 
+    async def upsert_pricing_entitlement(self, **kwargs):
+        return {"plan_code": kwargs["plan_code"], "metric": kwargs["metric"], "period": kwargs["period"], "limit_units": kwargs["limit_units"], "active": kwargs["active"], "created_by": str(kwargs["actor"])}
+
 
 def _build_app(fake_service: FakeAdminService) -> FastAPI:
     app = FastAPI()
@@ -366,6 +369,16 @@ def test_pricing_write_requires_finance_and_passes_actor_to_service() -> None:
 
     denied = _build_app(FakeAdminService(roles=["member_ops"]))
     assert _call(denied, "post", "/api/admin/pricing/prices", json=body).status_code == 403
+
+
+def test_entitlement_write_validates_enums_and_nonnegative_limit() -> None:
+    allowed = _build_app(FakeAdminService(roles=["finance"]))
+    valid = {"plan_code": "c_plus", "metric": "report", "period": "month", "limit_units": 12}
+    assert _call(allowed, "post", "/api/admin/pricing/entitlements", json=valid).status_code == 201
+    assert _call(allowed, "post", "/api/admin/pricing/entitlements", json={**valid, "period": "week"}).status_code == 400
+    assert _call(allowed, "post", "/api/admin/pricing/entitlements", json={**valid, "limit_units": -1}).status_code == 400
+    denied = _build_app(FakeAdminService(roles=["member_ops"]))
+    assert _call(denied, "post", "/api/admin/pricing/entitlements", json=valid).status_code == 403
 
 
 def test_members_response_masks_email_only_outside_gate() -> None:

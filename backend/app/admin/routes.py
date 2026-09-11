@@ -142,10 +142,19 @@ class PricingRegionRequest(BaseModel):
 class PricingPlanRequest(BaseModel):
     plan_code: str
     name: str
-    monthly_query_limit: int
-    monthly_report_quota: int
-    subscription_slots: int
-    export_rows_monthly: int
+    audience: str = "c"
+    monthly_query_limit: int = 0
+    monthly_report_quota: int = 0
+    subscription_slots: int = 0
+    export_rows_monthly: int = 0
+    active: bool = True
+
+
+class PricingEntitlementRequest(BaseModel):
+    plan_code: str
+    metric: str
+    period: str
+    limit_units: int
     active: bool = True
 
 
@@ -268,6 +277,13 @@ def _pricing_nonnegative(value: int) -> int:
     return value
 
 
+def _pricing_enum(value: str, allowed: tuple[str, ...], label: str) -> str:
+    normalized = (value or "").strip()
+    if normalized not in allowed:
+        raise HTTPException(status_code=400, detail=f"无效的{label}")
+    return normalized
+
+
 @router.get("/members")
 async def list_members(
     q: str = Query("", max_length=120),
@@ -343,10 +359,26 @@ async def upsert_pricing_plan(
 ) -> dict[str, Any]:
     return await service.upsert_pricing_plan(
         plan_code=_pricing_code(body.plan_code), name=body.name.strip(),
+        audience=_pricing_enum(body.audience, ("c", "b"), "audience"),
         monthly_query_limit=_pricing_nonnegative(body.monthly_query_limit),
         monthly_report_quota=_pricing_nonnegative(body.monthly_report_quota),
         subscription_slots=_pricing_nonnegative(body.subscription_slots),
         export_rows_monthly=_pricing_nonnegative(body.export_rows_monthly), active=body.active,
+        actor=principal.user.user_id,
+    )
+
+
+@router.post("/pricing/entitlements", status_code=201)
+async def upsert_pricing_entitlement(
+    body: PricingEntitlementRequest,
+    principal: AdminPrincipal = Depends(require_admin_role(FINANCE, SUPER_ADMIN)),
+    service: AdminService = Depends(get_admin_service),
+) -> dict[str, Any]:
+    metric = _pricing_enum(body.metric, ("query", "report", "stats_query", "export_row", "subscription_slot"), "metric")
+    period = _pricing_enum(body.period, ("day", "month"), "period")
+    return await service.upsert_pricing_entitlement(
+        plan_code=_pricing_code(body.plan_code), metric=metric, period=period,
+        limit_units=_pricing_nonnegative(body.limit_units), active=body.active,
         actor=principal.user.user_id,
     )
 

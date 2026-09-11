@@ -410,7 +410,7 @@
               <div><p class="eyebrow">PRICING CATALOG</p><h2 data-i18n="admin.tabPricing">定价与套餐</h2></div>
               <span class="admin-panel-count" id="pricingCount">—</span>
             </div>
-            <p class="admin-panel-note" data-i18n="admin.pricingNote">价格、区域和额度来自数据库；改价只新增版本并记录审计。</p>
+            <p class="admin-panel-note" data-i18n="admin.pricingNote">价格、区域和键值权益来自数据库；改价/改权益只新增版本并记录审计。</p>
             <p class="admin-live-status" id="pricingStatus" aria-live="polite"></p>
             <div class="member-toolbar">
               <label><span data-i18n="admin.pricingProduct">商品</span><select id="pricingProduct"></select></label>
@@ -428,15 +428,26 @@
             <div class="member-toolbar">
               <label><span>Plan code</span><input id="pricingPlanCode" maxlength="64" placeholder="c_plus" /></label>
               <label><span>名称</span><input id="pricingPlanName" maxlength="120" /></label>
+              <label><span data-i18n="admin.pricingAudience">Audience</span><select id="pricingPlanAudience"><option value="c">c</option><option value="b">b</option></select></label>
+              <label><span data-i18n="admin.pricingActive">Active</span><input id="pricingPlanActive" type="checkbox" checked /></label>
               <label><span>查询</span><input id="pricingPlanQueries" type="number" min="0" /></label>
               <label><span>报告/分析</span><input id="pricingPlanReports" type="number" min="0" /></label>
               <label><span>槽位</span><input id="pricingPlanSlots" type="number" min="0" /></label>
               <label><span>导出行</span><input id="pricingPlanExports" type="number" min="0" /></label>
               <button class="admin-action" type="button" id="pricingPlanBtn">保存套餐额度</button>
             </div>
+            <div class="member-toolbar">
+              <label><span>Plan code</span><input id="pricingEntitlementPlan" maxlength="64" placeholder="c_plus" /></label>
+              <label><span data-i18n="admin.pricingMetric">Metric</span><select id="pricingEntitlementMetric"><option value="query">query</option><option value="report">report</option><option value="stats_query">stats_query</option><option value="export_row">export_row</option><option value="subscription_slot">subscription_slot</option></select></label>
+              <label><span data-i18n="admin.pricingPeriod">Period</span><select id="pricingEntitlementPeriod"><option value="day">day</option><option value="month">month</option></select></label>
+              <label><span data-i18n="admin.pricingLimit">Limit</span><input id="pricingEntitlementLimit" type="number" min="0" /></label>
+              <label><span data-i18n="admin.pricingActive">Active</span><input id="pricingEntitlementActive" type="checkbox" checked /></label>
+              <button class="admin-action" type="button" id="pricingEntitlementBtn">保存权益版本</button>
+            </div>
             <div class="admin-table-wrap"><table class="admin-table"><caption data-i18n="admin.pricingPrices">价格版本（含历史）</caption><thead><tr><th>商品</th><th>币种</th><th>金额</th><th>Stripe price id</th><th>版本</th><th>状态</th><th>创建时间</th></tr></thead><tbody id="pricingPriceList"><tr><td colspan="7"><div class="admin-empty">—</div></td></tr></tbody></table></div>
             <div class="admin-table-wrap"><table class="admin-table"><caption data-i18n="admin.pricingRegions">区域映射</caption><thead><tr><th>Region</th><th>Currency</th><th>Active</th></tr></thead><tbody id="pricingRegionList"></tbody></table></div>
-            <div class="admin-table-wrap"><table class="admin-table"><caption data-i18n="admin.pricingPlans">套餐额度</caption><thead><tr><th>Plan</th><th>查询</th><th>报告/分析</th><th>订阅槽位</th><th>导出行</th><th>版本</th></tr></thead><tbody id="pricingPlanList"></tbody></table></div>
+            <div class="admin-table-wrap"><table class="admin-table"><caption data-i18n="admin.pricingPlans">套餐</caption><thead><tr><th>Plan</th><th>名称</th><th>Audience</th><th>状态</th><th>版本</th></tr></thead><tbody id="pricingPlanList"></tbody></table></div>
+            <div class="admin-table-wrap"><table class="admin-table"><caption data-i18n="admin.pricingEntitlements">套餐权益（含历史）</caption><thead><tr><th>Plan</th><th>Metric</th><th>周期</th><th>上限</th><th>状态</th><th>生效时间</th></tr></thead><tbody id="pricingEntitlementList"></tbody></table></div>
           </section>
 
           <section class="admin-panel" id="roles" data-admin-section="roles">

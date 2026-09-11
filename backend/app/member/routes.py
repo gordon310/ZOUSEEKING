@@ -6,14 +6,17 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 import asyncpg
+import logging
 from fastapi import APIRouter, Depends
 
 from ..auth import AuthUser, require_user
 from ..db import get_pool
 from ..usage.ledger import period_bounds
+from ..billing.entitlements import normalize_entitlements, period_key, plan_for_tier
 
 
 router = APIRouter(tags=["member"])
+logger = logging.getLogger(__name__)
 
 
 def utcnow() -> datetime:
@@ -45,7 +48,8 @@ class MemberReadStore:
     """Read the current user's profile, monthly ledger and subscription."""
 
     async def _snapshot(self, user: AuthUser, *, now: datetime) -> Dict[str, Any]:
-        period_key, period_start, period_end = _period(now)
+        month_key, period_start, period_end = _period(now)
+        day_key = period_key(now, "day")
         entitlements = _empty_entitlements()
         available = True
         tier = None
@@ -62,38 +66,49 @@ class MemberReadStore:
                 available = False
 
             plan = None
+            entitlement_rows = []
             if tier:
                 try:
                     plan = await conn.fetchrow(
-                        "select monthly_query_limit, monthly_report_quota, export_rows_monthly "
+                        "select plan_code, audience, monthly_query_limit, monthly_report_quota, subscription_slots, export_rows_monthly "
                         "from public.pricing_plans where plan_code=$1 and active=true",
-                        tier,
+                        plan_for_tier(tier),
                     )
-                except asyncpg.UndefinedTableError:
+                    if plan:
+                        try:
+                            entitlement_rows = await conn.fetch(
+                                "select metric, period, limit_units, active from public.plan_entitlements where plan_code=$1",
+                                plan["plan_code"],
+                            )
+                        except Exception as exc:
+                            logger.warning("member entitlement DB read unavailable; using fallback: %s", type(exc).__name__)
+                except Exception as exc:
+                    logger.warning("member plan DB read unavailable; using fallback: %s", type(exc).__name__)
                     available = False
 
             try:
                 rows = await conn.fetch(
                     "select usage_kind, consumed_units, limit_units from public.usage_quotas "
-                    "where scope_key=$1 and period_key=$2",
-                    f"user:{user.user_id}", period_key,
+                    "where scope_key=$1 and period_key = any($2::text[])",
+                    f"user:{user.user_id}", [day_key, month_key],
                 )
-                usage = {str(row["usage_kind"]): row for row in rows}
+                usage = {(str(row["usage_kind"]), str(row["period_key"])): row for row in rows}
             except asyncpg.UndefinedTableError:
                 available = False
                 usage = {}
 
-            limits = {
-                "query": plan["monthly_query_limit"] if plan else None,
-                "report": plan["monthly_report_quota"] if plan else None,
-                "export_row": plan["export_rows_monthly"] if plan else None,
-            }
-            names = {"query": "queries", "report": "reports", "export_row": "exports_rows"}
-            for kind, name in names.items():
-                row = usage.get(kind)
+            code = str(plan["plan_code"]) if plan else plan_for_tier(tier)
+            legacy = dict(plan) if plan else {}
+            limits = normalize_entitlements(code, rows=entitlement_rows, legacy=legacy)
+            names = {"query": "queries", "report": "reports", "stats_query": "stats_queries", "export_row": "exports_rows", "subscription_slot": "subscription_slots"}
+            for (kind, period), limit in limits.items():
+                name = names[kind]
+                period_value = day_key if period == "day" else month_key
+                matching_row = usage.get((kind, period_value))
                 entitlements[name] = {
-                    "used": int(row["consumed_units"]) if row else 0,
-                    "limit": int(limits[kind]) if limits[kind] is not None else None,
+                    "used": int(matching_row["consumed_units"]) if matching_row else 0,
+                    "limit": int(limit),
+                    "period": period,
                 }
 
             try:
@@ -122,8 +137,8 @@ class MemberReadStore:
             "membership_tier": tier,
             "entitlements": entitlements,
             "subscription": subscription,
-            "period": {
-                "key": period_key,
+                "period": {
+                "key": month_key,
                 "start": _iso(period_start),
                 "end": _iso(period_end),
             },

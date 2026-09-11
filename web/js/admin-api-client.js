@@ -103,6 +103,9 @@
     upsertPricingPlan(body) {
       return request("/api/admin/pricing/plans", { method: "POST", body });
     },
+    upsertPricingEntitlement(body) {
+      return request("/api/admin/pricing/entitlements", { method: "POST", body });
+    },
     // GET /api/admin/members?q=&page=&page_size=
     listMembers({ q = "", page = 1, page_size = 20 } = {}) {
       return request("/api/admin/members", { params: { q, page, page_size } });

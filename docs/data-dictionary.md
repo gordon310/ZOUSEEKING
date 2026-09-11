@@ -98,4 +98,5 @@ canonical history 与 staging 的 later-ID reconciliation、provenance constrain
 | `pricing_products` | `product_code`, `name`, `checkout_mode`, `active` | 后台可启停的收费商品；结账模式为 `payment` 或 `subscription`。 |
 | `pricing_prices` | `product_code`, `currency`, `amount_minor`, `stripe_price_id`, `price_version`, `effective_from`, `created_by`, `created_at` | 本地价格的不可变版本记录；金额为币种最小单位，订单应保存选中的版本。 |
 | `pricing_regions` | `region_code`, `currency`, `active` | 账单地区到批准币种的服务端映射；不做客户端汇率换算。 |
-| `pricing_plans` | `plan_code`, `name`, `monthly_query_limit`, `monthly_report_quota`, `subscription_slots`, `export_rows_monthly`, `plan_version` | 服务端额度配置；每次后台调整递增 `plan_version` 并写入审计。 |
+| `pricing_plans` | `plan_code`, `name`, `audience`, `monthly_query_limit`, `monthly_report_quota`, `subscription_slots`, `export_rows_monthly`, `plan_version` | 服务端套餐目录；`audience` 为 `c`/`b`，旧额度列仅作兼容回退。 |
+| `plan_entitlements` | `plan_code`, `metric`, `limit_units`, `period`, `active`, `effective_from`, `created_by` | 键值化权益；metric 为 query/report/stats_query/export_row/subscription_slot，period 为 day/month；active 唯一当前版本，历史版本保留。 |

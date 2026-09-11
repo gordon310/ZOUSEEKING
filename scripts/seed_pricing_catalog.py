@@ -26,16 +26,17 @@ PRODUCTS = {
 }
 REGIONS = {"CN": "CNY", "JP": "JPY", "US": "USD", "TW": "TWD", "HK": "HKD", "SG": "SGD", "MO": "HKD"}
 PLANS = {
-    "free": ("Free", 3, 0, 0, 0),
-    "c_plus": ("C Plus", 100, 12, 3, 0),
-    "b_data_pro": ("B Data Pro", 500, 100, 10, 10000),
+    "free_c": {"name": "C Free", "audience": "c", "entitlements": {("query", "day"): 3}},
+    "c_plus": {"name": "C Plus", "audience": "c", "entitlements": {("query", "month"): 100, ("report", "month"): 12, ("subscription_slot", "month"): 3}},
+    "free_b": {"name": "B Free", "audience": "b", "entitlements": {("query", "month"): 30, ("stats_query", "month"): 5}},
+    "b_data_pro": {"name": "B Data Pro", "audience": "b", "entitlements": {("query", "month"): 500, ("stats_query", "month"): 100, ("subscription_slot", "month"): 10, ("export_row", "month"): 10000}},
 }
 
 
 async def seed() -> dict[str, int]:
     raw_ids = os.getenv("STRIPE_PRICE_IDS", "{}")
     price_ids = json.loads(raw_ids) if raw_ids.strip() else {}
-    counts = {"products": 0, "prices": 0, "regions": 0, "plans": 0}
+    counts = {"products": 0, "prices": 0, "regions": 0, "plans": 0, "entitlements": 0}
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
@@ -43,8 +44,19 @@ async def seed() -> dict[str, int]:
                 counts["products"] += int(bool(await conn.fetchval("insert into public.pricing_products (product_code,name,checkout_mode) values ($1,$2,$3) on conflict (product_code) do nothing returning product_code", code, name, mode)))
             for code, currency in REGIONS.items():
                 counts["regions"] += int(bool(await conn.fetchval("insert into public.pricing_regions (region_code,currency) values ($1,$2) on conflict (region_code) do nothing returning region_code", code, currency)))
-            for code, (name, query_limit, report_quota, slots, export_rows) in PLANS.items():
-                counts["plans"] += int(bool(await conn.fetchval("insert into public.pricing_plans (plan_code,name,monthly_query_limit,monthly_report_quota,subscription_slots,export_rows_monthly) values ($1,$2,$3,$4,$5,$6) on conflict (plan_code) do nothing returning plan_code", code, name, query_limit, report_quota, slots, export_rows)))
+            await conn.execute("update public.pricing_plans set active=false, note='migrated to free_c/free_b; retained for compatibility' where plan_code='free'")
+            for code, spec in PLANS.items():
+                entitlements = spec["entitlements"]
+                legacy = (entitlements.get(("query", "month"), 0), entitlements.get(("report", "month"), 0), entitlements.get(("subscription_slot", "month"), 0), entitlements.get(("export_row", "month"), 0))
+                counts["plans"] += int(bool(await conn.fetchval(
+                    "insert into public.pricing_plans (plan_code,name,audience,monthly_query_limit,monthly_report_quota,subscription_slots,export_rows_monthly) values ($1,$2,$3,$4,$5,$6,$7) on conflict (plan_code) do update set name=excluded.name, audience=excluded.audience, active=true returning plan_code",
+                    code, spec["name"], spec["audience"], *legacy,
+                )))
+                for (metric, period), limit_units in entitlements.items():
+                    counts["entitlements"] += int(bool(await conn.fetchval(
+                        "insert into public.plan_entitlements (plan_code,metric,period,limit_units,active,effective_from) values ($1,$2,$3,$4,true,now()) on conflict (plan_code,metric,period) where active do update set limit_units=excluded.limit_units, effective_from=excluded.effective_from returning id",
+                        code, metric, period, limit_units,
+                    )))
             for product_code, mode, currency, amount_minor in _PRICE_SPECS:
                 stripe_id = str(price_ids.get(f"{product_code}:{currency}", "")).strip()
                 counts["prices"] += int(bool(await conn.fetchval(

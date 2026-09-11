@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple
 
 from ..db import get_pool
+from .entitlements import PLAN_AUDIENCE, normalize_entitlements
 
 
 ProductCode = Literal["risk_report_single", "c_plus_monthly", "b_data_pro_monthly"]
@@ -60,6 +61,13 @@ class PlanDefinition:
     monthly_report_quota: int
     subscription_slots: int
     export_rows_monthly: int
+    audience: str = "c"
+    entitlements: Mapping[Tuple[str, str], int] = None
+
+    def limit(self, metric: str, period: str) -> Optional[int]:
+        if self.entitlements and (metric, period) in self.entitlements:
+            return self.entitlements[(metric, period)]
+        return None
 
 
 _PRICE_SPECS: Tuple[Tuple[str, CheckoutMode, str, int], ...] = (
@@ -117,9 +125,19 @@ class PriceCatalog:
                 for code, mode, currency, amount in _PRICE_SPECS
             },
             "plans": {
-                "free": PlanDefinition("free", "Free", 3, 0, 0, 0),
-                "c_plus": PlanDefinition("c_plus", "C Plus", 100, 12, 3, 0),
-                "b_data_pro": PlanDefinition("b_data_pro", "B Data Pro", 500, 100, 10, 10000),
+                **({"free": PlanDefinition("free", "Free", 3, 0, 0, 0, "c", normalize_entitlements("free_c", legacy={"monthly_query_limit": 3}))}),
+                **{code: PlanDefinition(
+                    code, name, legacy[0], legacy[1], legacy[2], legacy[3], PLAN_AUDIENCE[code],
+                    normalize_entitlements(code, legacy={
+                        "monthly_query_limit": legacy[0], "monthly_report_quota": legacy[1],
+                        "subscription_slots": legacy[2], "export_rows_monthly": legacy[3],
+                    }),
+                ) for code, (name, *legacy) in {
+                    "free_c": ("C Free", 3, 0, 0, 0),
+                    "c_plus": ("C Plus", 100, 12, 3, 0),
+                    "free_b": ("B Free", 30, 0, 0, 0),
+                    "b_data_pro": ("B Data Pro", 500, 100, 10, 10000),
+                }.items()}
             },
         }
 
@@ -141,19 +159,26 @@ class PriceCatalog:
                         "from public.pricing_prices pp join public.pricing_products p on p.product_code = pp.product_code "
                         "where pp.active = true and p.active = true order by pp.product_code, pp.currency, pp.price_version desc, pp.effective_from desc, pp.created_at desc"
                     )
-                    plans = await conn.fetch("select plan_code, name, monthly_query_limit, monthly_report_quota, subscription_slots, export_rows_monthly from public.pricing_plans where active = true")
+                    plans = await conn.fetch("select plan_code, name, audience, monthly_query_limit, monthly_report_quota, subscription_slots, export_rows_monthly from public.pricing_plans where active = true")
+                    try:
+                        entitlements = await conn.fetch("select plan_code, metric, limit_units, period, active from public.plan_entitlements where active = true")
+                    except Exception as exc:
+                        logger.warning("plan entitlements table unavailable; using legacy plan columns: %s", type(exc).__name__)
+                        entitlements = []
                 if not products or not regions or not prices:
                     raise LookupError("pricing catalog is empty")
                 self._db_rows = {
                     "regions": {str(row["region_code"]): str(row["currency"]) for row in regions},
                     "products": {str(row["product_code"]): dict(row) for row in products},
                     "prices": {(str(row["product_code"]), str(row["currency"])): dict(row) for row in prices},
-                    "plans": {
-                        str(row["plan_code"]): PlanDefinition(
-                            str(row["plan_code"]), str(row["name"]), int(row["monthly_query_limit"]),
-                            int(row["monthly_report_quota"]), int(row["subscription_slots"]), int(row["export_rows_monthly"]),
-                        ) for row in plans
-                    },
+                        "plans": {
+                            str(row["plan_code"]): PlanDefinition(
+                                str(row["plan_code"]), str(row["name"]), int(row["monthly_query_limit"]),
+                                int(row["monthly_report_quota"]), int(row["subscription_slots"]), int(row["export_rows_monthly"]),
+                                str(dict(row).get("audience") or PLAN_AUDIENCE.get(str(row["plan_code"]), "c")),
+                                normalize_entitlements(str(row["plan_code"]), rows=[e for e in entitlements if str(e["plan_code"]) == str(row["plan_code"])], legacy=dict(row)),
+                            ) for row in plans
+                        },
                 }
             except Exception as exc:
                 logger.warning("pricing DB catalog unavailable; using fallback defaults: %s", type(exc).__name__)

@@ -123,7 +123,7 @@ async def test_catalog_prefers_db_snapshot_and_reuses_ttl_cache() -> None:
     await catalog.ensure_loaded()
 
     assert (first.amount_minor, first.price_version, first.stripe_price_id) == (5000, "2", "price_db")
-    assert connection.calls == 4
+    assert connection.calls == 5
 
 
 @pytest.mark.asyncio

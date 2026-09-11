@@ -35,6 +35,6 @@ def test_render_staging_allows_its_static_frontend_origin():
 
 
 def test_frontend_release_config_does_not_pin_a_managed_supabase_project():
-    config = (ROOT / "web/config.js").read_text(encoding="utf-8")
+    config = (ROOT / "web" / "config.example.js").read_text(encoding="utf-8")
 
     assert "supabase.co" not in config

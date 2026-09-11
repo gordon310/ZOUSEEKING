@@ -105,6 +105,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Prepare result directory
         run: mkdir -p ci-results
+      - name: Provide frontend config
+        run: test -f web/config.js || cp web/config.example.js web/config.js
       - name: Run Playwright
         continue-on-error: true
         run: python3 scripts/ci/release_evidence.py record --name browser --output ci-results/browser.json -- npm run test:web -- --workers=1

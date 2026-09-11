@@ -190,6 +190,8 @@ class BillingService:
         billing_region: str,
         *,
         report_key: Optional[str] = None,
+        success_url: Optional[str] = None,
+        cancel_url: Optional[str] = None,
         now: datetime,
     ) -> CheckoutOutcome:
         await self.catalog.ensure_loaded()
@@ -212,8 +214,8 @@ class BillingService:
         params: dict[str, Any] = {
             "mode": price.mode,
             "line_items": [{"price": price.stripe_price_id, "quantity": 1}],
-            "success_url": self.success_url,
-            "cancel_url": self.cancel_url,
+            "success_url": success_url or self.success_url,
+            "cancel_url": cancel_url or self.cancel_url,
             "allow_promotion_codes": True,
             "client_reference_id": checkout_subject_id,
             "metadata": metadata,

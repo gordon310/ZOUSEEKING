@@ -135,6 +135,7 @@ const elements = {
   projectName: document.querySelector("#projectName"),
   projectNameHelp: document.querySelector("#projectNameHelp"),
   previewContent: document.querySelector("#previewContent"),
+  reportLink: document.querySelector("#reportLink"),
   progressItems: Array.from(document.querySelectorAll("[data-stage]")),
   characterCount: document.querySelector("#sourceCharacterCount"),
   progressRing: document.querySelector("#progressRing"),
@@ -610,6 +611,11 @@ function renderPreview(preview) {
   }
 
   elements.previewContent.append(completeness, costs, risks, comparison);
+  const reportKey = preview?.query_key || state.session?.query_key || state.session?.queryKey || "";
+  if (elements.reportLink && reportKey) {
+    elements.reportLink.href = `report.html?key=${encodeURIComponent(reportKey)}`;
+    elements.reportLink.classList.remove("hidden");
+  }
 }
 
 async function startIntake(event) {

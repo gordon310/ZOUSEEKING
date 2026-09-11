@@ -1,0 +1,22 @@
+.report-page { max-width: 960px; }
+.report-status { margin: 18px 0; color: var(--navy-soft); }
+.report-shell { margin-top: 18px; padding: clamp(22px, 4vw, 42px); border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--white); box-shadow: var(--shadow); }
+.report-header h1 { margin-bottom: 8px; }
+.report-address { margin: 0; color: var(--navy-soft); }
+.report-meta { display: flex; flex-wrap: wrap; gap: 18px 32px; margin: 24px 0 0; padding-top: 18px; border-top: 1px solid var(--line); }
+.report-meta div { min-width: 150px; }
+.report-meta dt { color: var(--muted); font-size: 12px; }
+.report-meta dd { margin: 3px 0 0; font-weight: 700; }
+.report-section, .report-details { margin-top: 30px; }
+.report-section h2, .report-details h2, .report-paywall h2 { margin: 0 0 10px; font-size: 20px; }
+.report-section p { margin: 0; white-space: pre-wrap; }
+.report-paywall { margin-top: 30px; padding: 28px; border: 1px solid #f0c4ae; border-radius: var(--radius-md); background: var(--surface-warm); text-align: center; }
+.report-lock { font-size: 30px; }
+.report-paywall p { margin: 6px 0; color: var(--navy-soft); }
+.report-price { min-height: 24px; color: var(--navy) !important; font-size: 18px; font-weight: 800; }
+.report-paywall .primary-product-link, .report-paywall button { margin-top: 16px; cursor: pointer; }
+.report-details-content { display: grid; gap: 18px; }
+.report-detail-card { padding: 18px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); }
+.report-detail-card h3 { margin: 0 0 8px; font-size: 16px; }
+.report-detail-card p { margin: 4px 0; }
+.report-error { color: var(--danger); }

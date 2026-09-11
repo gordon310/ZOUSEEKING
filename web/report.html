@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="查看小象避坑日本物件报告。" />
+    <title data-i18n-title="report.pageTitle">物件报告｜小象避坑 ZOUBEACON</title>
+    <link rel="icon" href="assets/logoELE-beacon.svg?v=20260827-zo" />
+    <link rel="stylesheet" href="property-analysis.css?v=20260828-02" />
+    <link rel="stylesheet" href="report-page.css?v=20260912-01" />
+  </head>
+  <body>
+    <main class="beacon-app">
+      <header class="beacon-header">
+        <a class="beacon-brand" href="property-analysis.html" aria-label="小象避坑 ZOUBEACON">
+          <img class="beacon-mark" src="assets/logoELE-beacon.svg" alt="" />
+          <span class="beacon-brand-copy"><strong>小象避坑</strong><span>ZOUBEACON</span></span>
+        </a>
+        <label class="locale-switcher">
+          <span class="sr-only" data-i18n="locale.label">界面语言</span>
+          <select data-locale-switcher data-i18n-aria-label="locale.label">
+            <option value="zh-CN">中文</option><option value="en">English</option><option value="ja">日本語</option>
+          </select>
+        </label>
+      </header>
+      <div class="beacon-page report-page">
+        <p class="eyebrow" data-i18n="report.eyebrow">PROPERTY REPORT</p>
+        <div id="reportStatus" class="report-status" role="status" aria-live="polite" data-i18n="report.loading">正在读取报告……</div>
+        <section id="reportContent" class="report-shell" aria-labelledby="reportTitle" hidden>
+          <header class="report-header">
+            <h1 id="reportTitle"></h1>
+            <p id="reportAddress" class="report-address"></p>
+            <dl class="report-meta">
+              <div><dt data-i18n="report.generatedAt">生成时间</dt><dd id="reportGeneratedAt"></dd></div>
+              <div><dt data-i18n="report.source">数据来源</dt><dd id="reportSource"></dd></div>
+            </dl>
+          </header>
+          <section id="reportSummary" class="report-section" aria-labelledby="summaryTitle">
+            <h2 id="summaryTitle" data-i18n="report.summary">报告概要</h2>
+            <p id="reportSummaryText"></p>
+          </section>
+          <section id="reportPaywall" class="report-paywall" hidden>
+            <div class="report-lock" aria-hidden="true">🔒</div>
+            <h2 data-i18n="report.lockedTitle">完整报告已锁定</h2>
+            <p data-i18n="report.lockedCopy">解锁本报告查看完整内容</p>
+            <p id="reportPrice" class="report-price"></p>
+            <a id="reportLoginButton" class="primary-product-link" href="mypage.html" data-i18n="report.loginUnlock">注册/登录后解锁</a>
+            <button id="reportUnlockButton" class="primary-product-link" type="button" data-i18n="report.unlockWithPrice" hidden>解锁本报告</button>
+          </section>
+          <section id="reportDetails" class="report-details" hidden aria-labelledby="detailsTitle">
+            <h2 id="detailsTitle" data-i18n="report.details">完整报告</h2>
+            <div id="reportDetailsContent"></div>
+          </section>
+        </section>
+      </div>
+    </main>
+    <script src="config.js"></script>
+    <script src="js/i18n.js"></script>
+    <script type="module" src="js/report-page.js"></script>
+  </body>
+</html>

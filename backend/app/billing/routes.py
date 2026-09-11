@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import json
 import os
 from typing import Any, List, Optional
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
@@ -30,8 +31,11 @@ class CheckoutRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     product_code: str = Field(..., min_length=1)
-    billing_region: str = Field(..., min_length=2, max_length=2, pattern=r"^[A-Za-z]{2}$")
+    billing_region: Optional[str] = Field(default=None, min_length=2, max_length=2, pattern=r"^[A-Za-z]{2}$")
     query_key: Optional[str] = Field(default=None, min_length=1, max_length=500)
+    # C-end report clients use the domain language from the paywall contract.
+    region: Optional[str] = Field(default=None, min_length=2, max_length=2, pattern=r"^[A-Za-z]{2}$")
+    subject_id: Optional[str] = Field(default=None, min_length=1, max_length=500)
 
 
 class RefundRequestBody(BaseModel):
@@ -56,8 +60,8 @@ def get_billing_service() -> BillingService:
         gateway=StripeHttpGateway(secret_key),
         store=PostgresBillingStore(),
         webhook_secret=webhook_secret,
-        success_url=os.getenv("BILLING_SUCCESS_URL", "https://zouseeking-web-staging.onrender.com/mypage.html"),
-        cancel_url=os.getenv("BILLING_CANCEL_URL", "https://zouseeking-web-staging.onrender.com/mypage.html"),
+        success_url=os.getenv("BILLING_SUCCESS_URL", "https://zouseeking-web-staging.onrender.com/report.html"),
+        cancel_url=os.getenv("BILLING_CANCEL_URL", "https://zouseeking-web-staging.onrender.com/report.html"),
         portal_return_url=os.getenv("BILLING_PORTAL_RETURN_URL", "https://zouseeking-web-staging.onrender.com/mypage.html"),
     )
 
@@ -70,6 +74,15 @@ def _http_error(error: Exception) -> HTTPException:
     if isinstance(error, BillingError):
         return HTTPException(status_code=error.status_code, detail=error.public_message)
     return HTTPException(status_code=500, detail="billing operation failed")
+
+
+def _report_return_url(base: str, *, status: str, query_key: Optional[str]) -> str:
+    if not query_key:
+        return base
+    parts = urlsplit(base)
+    query = dict(parse_qsl(parts.query, keep_blank_values=True))
+    query.update({"payment": status, "key": query_key})
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
 
 
 def _status_payload(status: Any) -> dict[str, Any]:
@@ -104,8 +117,10 @@ async def create_checkout(
             user.user_id,
             user.email,
             request.product_code,
-            request.billing_region,
-            report_key=request.query_key,
+            request.region or request.billing_region,
+            report_key=request.subject_id or request.query_key,
+            success_url=_report_return_url(service.success_url, status="success", query_key=request.subject_id or request.query_key),
+            cancel_url=_report_return_url(service.cancel_url, status="cancel", query_key=request.subject_id or request.query_key),
             now=datetime.now(timezone.utc),
         )
     except (PriceUnavailable, BillingError) as error:

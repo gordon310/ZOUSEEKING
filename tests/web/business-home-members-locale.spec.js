@@ -123,7 +123,11 @@ test("小象数据六个补齐页面都提供可评审入口", async ({ page }) 
     await page.goto(`/${route}`);
     await expect(page.locator("body.business-page-ready")).toBeVisible();
     await expect(page.locator("h1")).toHaveText(heading);
-    await expect(page.locator(".business-demo-label, .business-fixture-note").first()).toContainText("synthetic_fixture");
+    if (route !== "exports.html") {
+      await expect(page.locator(".business-demo-label, .business-fixture-note").first()).toContainText("synthetic_fixture");
+    } else {
+      await expect(page.locator(".business-fixture-note").first()).toContainText("真实数据");
+    }
     await expect(page.locator("[data-locale-switcher]")).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 
@@ -155,7 +159,7 @@ test("机构、账单和用量页提供本地演示操作", async ({ page }) => 
   await expect(page.locator("#usageNotice")).toContainText("查询");
 });
 
-test("订阅、导出和服务任务页提供本地演示操作", async ({ page }) => {
+test("订阅和服务任务页提供本地演示操作，导出页连接真实接口", async ({ page }) => {
   await page.goto("/subscriptions.html");
   await page.locator("#subscriptionForm button[type='submit']").click();
   await expect(page.locator("#subscriptionList [data-subscription-row]")).toHaveCount(4);
@@ -163,9 +167,18 @@ test("订阅、导出和服务任务页提供本地演示操作", async ({ page 
   await page.locator("[data-subscription-action='toggle']").first().click();
   await expect(page.locator("#subscriptionNotice")).toContainText("本地");
 
+  let exportCreated = false;
+  await page.route("**/api/usage/summary", (route) => route.fulfill({ json: { available: true, entitlements: { exports_rows: { used: 2, limit: 10 } } } }));
+  await page.route("**/api/exports", (route) => {
+    if (route.request().method() === "POST") {
+      exportCreated = true;
+      return route.fulfill({ json: { id: "export-1", status: "completed", row_count: 2, created_at: "2026-09-12T00:00:00Z", download_url: "/api/exports/export-1" } });
+    }
+    return route.fulfill({ json: { exports: exportCreated ? [{ id: "export-1", status: "completed", row_count: 2, created_at: "2026-09-12T00:00:00Z" }] : [] } });
+  });
   await page.goto("/exports.html");
   await page.locator("#exportForm button[type='submit']").click();
-  await expect(page.locator("#exportList [data-export-row]")).toHaveCount(3);
+  await expect(page.locator("#exportList [data-export-row]")).toHaveCount(1);
   await expect(page.locator("#exportNotice")).toContainText("创建");
 
   await page.goto("/service-tasks.html");

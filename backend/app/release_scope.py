@@ -21,6 +21,10 @@ PHASE_ONE_API_CONTRACT = (
     "PUT /api/intake/sessions/{session_id}/location",
     "PUT /api/intake/sessions/{session_id}/fields/{field_name}",
     "POST /api/intake/sessions/{session_id}/preview",
+    "POST /api/exports",
+    "GET /api/exports",
+    "GET /api/exports/{export_id}",
+    "GET /api/usage/summary",
 )
 
 # Back-office surface (ADMIN_ENABLED gate still applies at the service layer;

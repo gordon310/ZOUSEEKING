@@ -91,6 +91,15 @@ canonical history 与 staging 的 later-ID reconciliation、provenance constrain
 | `payment_orders.subject_id` | `用户UUID::地区::物件类型::2026::8` | 单份风险报告的报告标识；旧订单为空或仍为用户语义时不匹配任何新报告。 |
 | `usage_quotas.usage_kind=report` | `limit_units=12` | C Plus 的 UTC+8 自然月报告额度；不结转，消费事实写入 `usage_events`。 |
 | `user_profiles.membership_tier` | `c_plus` / `b_data_pro` | 由受信任计费 webhook 更新，客户端不可写。 |
+
+## B 端导出
+
+| 表/字段 | 含义与约束 |
+| --- | --- |
+| `exports.owner_user_id` | 服务端从认证用户推导；只允许导出该用户拥有的 `queries` 与 `property_reports`。 |
+| `exports.row_count` | 本次 CSV 的报告行数；成功写入同一事务中的 `usage_events.usage_kind=export_row`，按实际行数计量。 |
+| `exports.csv_content` | 服务端生成的 UTF-8 BOM CSV 二进制内容；不保存他人数据、照片、联系方式或合成样例。 |
+| `plan_entitlements(metric=export_row, period=month)` | 导出行数额度的唯一优先配置；旧 `pricing_plans.export_rows_monthly` 仅作数据库兼容回退。 |
 # 定价与套餐目录（pricing_admin migration）
 
 | 表 | 字段 | 含义与约束 |

@@ -34,6 +34,16 @@
     getSubscription: () => request("/api/billing/subscription"),
     getMe: () => request("/api/me"),
     getUsageSummary: () => request("/api/usage/summary"),
+    listExports: () => request("/api/exports"),
+    createExport: () => request("/api/exports", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) }),
+    downloadExport: async (exportId) => {
+      const headers = {};
+      const token = accessToken();
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const response = await fetch(`${base}/api/exports/${encodeURIComponent(exportId)}`, { headers });
+      if (!response.ok) throw new Error(`API ${response.status}`);
+      return response.blob();
+    },
     createBillingCheckout: (productCode, billingRegion = "CN") => request("/api/billing/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

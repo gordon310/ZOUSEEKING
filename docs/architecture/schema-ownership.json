@@ -27,7 +27,12 @@
     "20260905000601_collection_runs.sql",
     "20260906000100_collection_sources.sql",
     "20260911000100_report_purchase_subject.sql",
-    "20260912000100_pricing_admin.sql"
+    "20260912000100_pricing_admin.sql",
+    "20260912000200_plan_entitlements.sql",
+    "20260912000300_pricing_legacy_nullable.sql",
+    "20260912000400_user_profile_on_signup.sql",
+    "20260912000500_user_profile_audience.sql",
+    "20260912000600_exports.sql"
   ],
   "legacy_sql_files": [
     "backend/sql/001_foundation_data_contract.sql",

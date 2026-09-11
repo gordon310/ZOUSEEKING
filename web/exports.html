@@ -33,16 +33,15 @@
         </label>
       </nav>
 
-      <aside class="business-side-card" aria-labelledby="demoAccountHeading">
+      <aside class="business-side-card" aria-labelledby="accountHeading">
         <p class="eyebrow">BUSINESS SPACE</p>
-        <h2 id="demoAccountHeading" data-i18n="business.demoAccount">演示机构</h2>
-        <p class="business-side-copy" data-i18n="business.demoTier">B Data Pro · 演示会员</p>
-        <span class="business-demo-label" data-i18n="common.fixture">界面演示 · synthetic_fixture</span>
+        <h2 id="accountHeading" data-i18n="business.accountSpace">账户空间</h2>
+        <p class="business-side-copy" data-i18n="business.accountSpaceCopy">仅显示当前登录账户可访问的数据。</p>
         <dl class="business-side-meta">
-          <div><dt data-i18n="business.role">角色</dt><dd data-i18n="business.demoRole">机构所有者</dd></div>
-          <div><dt data-i18n="business.organization">机构</dt><dd data-i18n="business.demoOrganization">东京生活研究所</dd></div>
-          <div><dt data-i18n="business.partnerStatus">合作方状态</dt><dd data-i18n="business.verified">已核验</dd></div>
-          <div><dt data-i18n="business.seats">席位</dt><dd id="businessSeatSummary">已使用 4 / 5 个席位</dd></div>
+          <div><dt data-i18n="business.role">角色</dt><dd data-i18n="business.currentUser">当前登录用户</dd></div>
+          <div><dt data-i18n="business.organization">机构</dt><dd data-i18n="business.notAvailable">由服务端返回</dd></div>
+          <div><dt data-i18n="business.partnerStatus">数据范围</dt><dd data-i18n="business.ownedReports">本人报告</dd></div>
+          <div><dt data-i18n="business.seats">状态</dt><dd id="businessSeatSummary" data-i18n="business.liveDataOnly">仅显示真实数据</dd></div>
         </dl>
         <a class="business-button secondary" href="profile.html" data-i18n="business.openProfile">打开账户资料</a>
         <nav class="business-side-links" aria-label="更多 B 端功能" data-i18n-aria-label="business.tools">
@@ -64,7 +63,7 @@
             <h1 data-i18n="hero.exportsTitle">数据导出</h1>
           </div>
         </div>
-        <p class="hero-copy" data-i18n="hero.exportsCopy">选择数据集和格式，查看导出任务的本地演示流程。</p>
+        <p class="hero-copy" data-i18n="hero.exportsCopy">导出当前账户有权访问的已生成报告，并查看真实导出历史。</p>
       </header>
 
       <section class="business-page-panel" aria-labelledby="exportsHeading">
@@ -73,14 +72,13 @@
             <p class="eyebrow">DATA EXPORTS</p>
             <h2 id="exportsHeading" data-i18n="business.exportsSection">数据导出</h2>
           </div>
-          <span class="business-fixture-note" data-i18n="common.fixture">界面演示 · synthetic_fixture</span>
+          <span class="business-fixture-note" data-i18n="business.liveDataOnly">仅显示真实数据</span>
         </div>
-        <p class="business-panel-copy" data-i18n="business.exportsCopy">选择公开数据集、格式和行数，查看导出队列；当前不会下载真实数据。</p>
+        <p class="business-panel-copy" data-i18n="business.exportsCopy">CSV 只包含当前账户拥有的已生成报告元数据；不会导出他人数据或合成样例。</p>
+        <div class="business-card" id="exportQuota" aria-live="polite"></div>
         <form class="business-form" id="exportForm">
-          <label for="exportDataset"><span data-i18n="business.dataset">数据集</span><select id="exportDataset" name="dataset"><option value="business.datasetRegional" data-i18n="business.datasetRegional">区域租售统计</option><option value="business.datasetTrend" data-i18n="business.datasetTrend">多月趋势摘要</option></select></label>
-          <label for="exportFormat"><span data-i18n="business.format">格式</span><select id="exportFormat" name="format"><option value="CSV">CSV</option><option value="XLSX">XLSX</option></select></label>
-          <label for="exportRows"><span data-i18n="business.rows">行数</span><select id="exportRows" name="rows"><option value="100">100</option><option value="500">500</option><option value="1000">1,000</option></select></label>
-          <button class="business-button" type="submit" data-i18n="business.createExport">创建导出任务（演示）</button>
+          <p class="business-panel-copy" data-i18n="business.exportScope">数据范围：本人已生成报告</p>
+          <button class="business-button" type="submit" data-i18n="business.createExport">导出本人报告 CSV</button>
         </form>
         <p class="business-notice" id="exportNotice" aria-live="polite"></p>
         <h3 class="business-subheading" data-i18n="business.exportHistory">导出任务</h3>
@@ -91,6 +89,7 @@
     <script src="config.js?v=20260830-01"></script>
     <script src="js/release-boundary.js?v=20260830-01"></script>
     <script src="js/i18n.js?v=20260829-01"></script>
-    <script src="js/business-pages.js?v=20260829-01"></script>
+    <script src="js/business-api.js?v=20260911-01"></script>
+    <script src="js/business-pages.js?v=20260912-01"></script>
   </body>
 </html>

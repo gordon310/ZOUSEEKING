@@ -164,51 +164,71 @@
   }
 
   function renderExports() {
-    const exports = [
-      { id: "EXP-001", dataset: "business.datasetRegional", format: "CSV", rows: "500", status: "business.exportCompleted", statusClass: "", created: "2026-08-28 15:20" },
-      { id: "EXP-002", dataset: "business.datasetTrend", format: "XLSX", rows: "1,000", status: "business.exportQueued", statusClass: "pending", created: "2026-08-29 09:05" },
-    ];
     const list = byId("exportList");
     const form = byId("exportForm");
-    if (!list || !form) return;
+    const quota = byId("exportQuota");
+    if (!list || !form || !quota) return;
+    list.textContent = t("business.loading");
+    quota.textContent = t("business.loading");
 
-    function render() {
-      list.innerHTML = `
-        <div class="business-list-row business-list-header" aria-hidden="true"><div>${escapeHtml(t("business.dataset"))}</div><div>${escapeHtml(t("business.format"))}</div><div>${escapeHtml(t("business.exportStatus"))}</div><div>${escapeHtml(t("business.createdAt"))}</div></div>
-        ${exports.map((item) => `
-          <div class="business-list-row" data-export-row data-export-id="${escapeHtml(item.id)}">
-            <div><strong>${escapeHtml(t(item.dataset))}</strong><span>${escapeHtml(item.id)} · ${escapeHtml(item.rows)} · synthetic_fixture</span></div>
-            <div><span>${escapeHtml(item.format)}</span></div>
-            <div>${status(item.status, item.statusClass)}</div>
-            <div class="business-list-action">${item.status === "business.exportCompleted" ? `<button class="business-button secondary" type="button" data-export-action="view" data-export-id="${escapeHtml(item.id)}">${escapeHtml(t("business.viewDemo"))}</button>` : `<span>${escapeHtml(item.created)}</span>`}</div>
-          </div>
-        `).join("")}
-      `;
+    function renderHistory(items) {
+      if (!items.length) {
+        list.innerHTML = `<p class="business-panel-copy">${escapeHtml(t("business.noExports"))}</p>`;
+        return;
+      }
+      list.innerHTML = items.map((item) => `
+        <div class="business-list-row" data-export-row data-export-id="${escapeHtml(item.id)}">
+          <div><strong>${escapeHtml(t("business.exportCsv"))}</strong><span>${escapeHtml(item.id)}</span></div>
+          <div>${escapeHtml(t("business.exportRowsCount", "{count} 行").replace("{count}", String(item.row_count)))}</div>
+          <div>${escapeHtml(item.status === "completed" ? t("business.exportStatusCompleted") : item.status)}</div>
+          <div class="business-list-action"><span>${escapeHtml(item.created_at || "—")}</span><button class="business-button secondary" type="button" data-export-action="download" data-export-id="${escapeHtml(item.id)}">${escapeHtml(t("business.download"))}</button></div>
+        </div>
+      `).join("");
     }
 
     list.addEventListener("click", (event) => {
-      const button = event.target.closest("[data-export-action='view']");
+      const button = event.target.closest("[data-export-action='download']");
       if (!button) return;
-      setNotice("exportNotice", t("business.exportNotice"));
+      window.ZouBusinessApi.downloadExport(button.dataset.exportId).then((blob) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `export-${button.dataset.exportId}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+      }).catch(() => setNotice("exportNotice", t("business.exportError")));
     });
 
-    form.addEventListener("submit", (event) => {
+    form.addEventListener("submit", async (event) => {
       event.preventDefault();
-      const data = new FormData(form);
-      exports.push({
-        id: `EXP-${String(exports.length + 1).padStart(3, "0")}`,
-        dataset: data.get("dataset") || "business.datasetRegional",
-        format: data.get("format") || "CSV",
-        rows: data.get("rows") || "500",
-        status: "business.exportQueued",
-        statusClass: "pending",
-        created: `${t("business.justNow")} · ${t("business.local")}`,
-      });
-      render();
-      setNotice("exportNotice", t("business.exportNotice"));
+      try {
+        await window.ZouBusinessApi.createExport();
+        setNotice("exportNotice", t("business.exportCreated"));
+        await load();
+      } catch (error) {
+        const message = String(error?.message || "");
+        setNotice("exportNotice", message.includes("429") ? t("business.exportQuotaExceeded") : message.includes("no owned reports") ? t("business.exportNoData") : t("business.exportError"));
+      }
     });
 
-    render();
+    async function load() {
+      if (!window.ZouBusinessApi) {
+        quota.textContent = t("business.exportError");
+        list.textContent = t("business.noExports");
+        return;
+      }
+      const [usageResult, exportsResult] = await Promise.allSettled([window.ZouBusinessApi.getUsageSummary(), window.ZouBusinessApi.listExports()]);
+      if (usageResult.status === "fulfilled") {
+        const item = usageResult.value?.entitlements?.exports_rows;
+        const limit = item?.limit;
+        const used = item?.used ?? 0;
+        quota.textContent = limit == null ? t("business.exportQuotaUnavailable") : format("business.exportQuotaRemaining", { remaining: Math.max(0, limit - used), limit });
+      } else quota.textContent = t("business.exportQuotaUnavailable");
+      if (exportsResult.status === "fulfilled") renderHistory(exportsResult.value?.exports || []);
+      else list.textContent = t("business.exportError");
+    }
+
+    load();
   }
 
   function renderServiceTasks() {

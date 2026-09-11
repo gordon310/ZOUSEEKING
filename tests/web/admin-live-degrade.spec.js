@@ -121,6 +121,35 @@ const MOCK_RUN_DONE = {
   created_at: "2026-09-05T00:00:00+00:00",
 };
 
+const MOCK_PRICING = {
+  products: [{ product_code: "risk_report_single", name: "深度报告（单份）" }],
+  prices: [
+    {
+      id: "pr1",
+      product_code: "risk_report_single",
+      currency: "JPY",
+      amount_minor: 500,
+      stripe_price_id: "price_test_001",
+      price_version: 1,
+      active: true,
+      created_at: "2026-09-11T02:00:00+00:00",
+    },
+  ],
+  regions: [{ region_code: "TW", currency: "TWD", active: true }],
+  plans: [
+    {
+      plan_code: "c_plus_monthly",
+      name: "C Plus 月付",
+      monthly_query_limit: 100,
+      monthly_report_quota: 12,
+      subscription_slots: 3,
+      export_rows_monthly: 0,
+      plan_version: 1,
+      active: true,
+    },
+  ],
+};
+
 function mockRunsPayload(items) {
   return { total: items.length, page: 1, page_size: 20, items };
 }
@@ -271,6 +300,10 @@ test("reads /api/admin/* with a Bearer token when configured; 403 degrades visib
         await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ user_id: MOCK_MEMBER.user_id, roles: ["member_ops"] }) });
         return;
       }
+      if (url.pathname === "/api/admin/pricing" && request.method() === "GET") {
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_PRICING) });
+        return;
+      }
       await route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
     });
 
@@ -405,6 +438,10 @@ test("reads /api/admin/* with a Bearer token when configured; 403 degrades visib
             changed: previous !== member.status,
           }),
         });
+        return;
+      }
+      if (path === "/api/admin/pricing" && method === "GET") {
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_PRICING) });
         return;
       }
       await route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
@@ -573,6 +610,10 @@ test("reads /api/admin/* with a Bearer token when configured; 403 degrades visib
         await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ revoked: true, user_id: decodeURIComponent(revokeMatch[1]), role: decodeURIComponent(revokeMatch[2]) }) });
         return;
       }
+      if (path === "/api/admin/pricing" && method === "GET") {
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_PRICING) });
+        return;
+      }
       await route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
     });
 
@@ -664,6 +705,10 @@ test("reads /api/admin/* with a Bearer token when configured; 403 degrades visib
       if (path === "/api/admin/internal/roles") {
         roleListRequests.push(method);
         await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ items: [] }) });
+        return;
+      }
+      if (path === "/api/admin/pricing" && method === "GET") {
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_PRICING) });
         return;
       }
       await route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
@@ -763,6 +808,10 @@ test("collection tab as data_ops lists real runs and enqueues through the API", 
       await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify(created) });
       return;
     }
+    if (path === "/api/admin/pricing" && method === "GET") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_PRICING) });
+      return;
+    }
     await route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
   });
 
@@ -856,6 +905,10 @@ test("collection tab as non-data_ops shows the role hint and never fetches runs"
     if (path === "/api/admin/collection/runs") {
       runsGets += 1;
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(mockRunsPayload([MOCK_RUN])) });
+      return;
+    }
+    if (path === "/api/admin/pricing" && method === "GET") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_PRICING) });
       return;
     }
     await route.fulfill({ status: 404, contentType: "application/json", body: "{}" });

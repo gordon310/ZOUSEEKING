@@ -123,8 +123,8 @@
           <label>
             <span data-i18n="analysis.metric">指标</span>
             <select id="analysisMetric">
-              <option value="rent" data-i18n="analysis.rent">月租金</option>
               <option value="sale" data-i18n="analysis.sale">买房总价</option>
+              <option value="rent" data-i18n="analysis.rent">月租金</option>
               <option value="ratio" data-i18n="analysis.ratio">租售比</option>
             </select>
           </label>
@@ -132,54 +132,27 @@
             <span data-i18n="analysis.layout">物件类型 / 面积段</span>
             <select id="analysisLayout"></select>
           </label>
+          <label>
+            <span data-i18n="analysis.fromMonth">起始月份</span>
+            <input id="analysisFromMonth" type="month" />
+          </label>
+          <label>
+            <span data-i18n="analysis.toMonth">结束月份</span>
+            <input id="analysisToMonth" type="month" />
+          </label>
           <button type="submit" data-i18n="analysis.submit">生成趋势图</button>
         </form>
-        <p class="query-hint" id="analysisHint" data-i18n="analysis.hint">会按月份聚合平均值。比较区可以单独选择最多三条数据。</p>
+        <p class="query-hint" id="analysisHint" data-i18n="analysis.hint">结果由服务端按月份聚合；仅统计你有权访问的真实数据。</p>
+        <p class="query-hint" id="analysisQuota"></p>
         <div class="chart-card">
           <canvas id="analysisChart" width="680" height="320" aria-label="月份趋势图" data-i18n-aria-label="analysis.chartAria"></canvas>
         </div>
-        <div class="compare-box">
-          <div class="section-title">
-            <p class="eyebrow" data-i18n="analysis.compareEyebrow">Compare</p>
-            <h2 data-i18n="analysis.compareTitle">最多三列比较</h2>
-          </div>
-          <p class="query-hint" data-i18n="analysis.compareCopy">选择最多三条报告，再勾选要比较的物件类型 / 面积段和指标。</p>
-          <div class="compare-selectors">
-            <label>
-              <span data-i18n="analysis.compareA">对比 A</span>
-              <select id="compareSelectA"></select>
-            </label>
-            <label>
-              <span data-i18n="analysis.compareB">对比 B</span>
-              <select id="compareSelectB"></select>
-            </label>
-            <label>
-              <span data-i18n="analysis.compareC">对比 C</span>
-              <select id="compareSelectC"></select>
-            </label>
-          </div>
-          <div class="metric-picker" id="metricPicker">
-            <label class="dimension-chip">
-              <input type="checkbox" value="rent" checked />
-              <span data-i18n="analysis.rent">租金</span>
-            </label>
-            <label class="dimension-chip">
-              <input type="checkbox" value="sale" checked />
-              <span data-i18n="analysis.sale">售价</span>
-            </label>
-            <label class="dimension-chip">
-              <input type="checkbox" value="ratio" checked />
-              <span data-i18n="analysis.ratio">租售比</span>
-            </label>
-          </div>
-          <div class="dimension-picker" id="dimensionPicker"></div>
-          <div class="compare-table-wrap" id="compareTable"></div>
-        </div>
         <div class="section-title compact-title">
-          <p class="eyebrow" data-i18n="analysis.resultsEyebrow">Matched Records</p>
-          <h2 data-i18n="analysis.resultsTitle">当前筛选数据</h2>
+          <p class="eyebrow" data-i18n="analysis.resultsEyebrow">Server result</p>
+          <h2 data-i18n="analysis.resultsTitle">统计结果与来源</h2>
         </div>
-        <div class="analysis-results" id="analysisResults"></div>
+        <div class="analysis-results" id="analysisResults" aria-live="polite"></div>
+        <div class="compare-table-wrap" id="analysisTable"></div>
       </section>
     </main>
 

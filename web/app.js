@@ -1018,37 +1018,6 @@ function renderMyPage() {
   });
 }
 
-function monthKey(text) {
-  const match = String(text || "").match(/(\d{4})年(\d{1,2})月/);
-  if (!match) return String(text || "未知月份");
-  return `${match[1]}-${String(match[2]).padStart(2, "0")}`;
-}
-
-function numberFromText(text) {
-  const cleaned = String(text || "").replace(/,/g, "");
-  const match = cleaned.match(/([0-9]+(?:\.[0-9]+)?)/);
-  return match ? Number(match[1]) : NaN;
-}
-
-function rowForLayout(rows, layout) {
-  return (rows || []).find((row) => row.layout === layout) || null;
-}
-
-function ratioForLayout(record, layout) {
-  const line = String(record.summary?.line || "");
-  const part = line.split("｜").reduce((acc, item, index, arr) => {
-    if (item === layout) return arr[index + 1] || "";
-    return acc;
-  }, "");
-  return numberFromText(part);
-}
-
-function analysisValue(record, metric, layout) {
-  if (metric === "rent") return numberFromText(rowForLayout(record.rental, layout)?.amount_jpy);
-  if (metric === "sale") return numberFromText(rowForLayout(record.sale, layout)?.amount_jpy);
-  return ratioForLayout(record, layout);
-}
-
 function analysisUnit(metric) {
   if (metric === "rent") return uiText("analysis.unitRent", "万日元/月");
   if (metric === "sale") return uiText("analysis.unitSale", "万日元");
@@ -1059,158 +1028,6 @@ function analysisMetricName(metric) {
   if (metric === "rent") return uiText("analysis.rent", "月租金");
   if (metric === "sale") return uiText("analysis.sale", "买房总价");
   return uiText("analysis.ratio", "租售比");
-}
-
-function formatAnalysisValue(value, metric) {
-  if (!Number.isFinite(value)) return "暂无";
-  return `${value.toFixed(metric === "ratio" ? 2 : 1)}${analysisUnit(metric)}`;
-}
-
-function allLayoutsForRecords(records) {
-  const layouts = new Set();
-  records.forEach((record) => {
-    [...(record.rental || []), ...(record.sale || [])].forEach((row) => {
-      if (row.layout) layouts.add(row.layout);
-    });
-  });
-  const preferred = ["1LDK", "2LDK", "3LDK", "80㎡左右", "110㎡左右", "140㎡左右"];
-  return [...preferred.filter((item) => layouts.has(item)), ...[...layouts].filter((item) => !preferred.includes(item)).sort()];
-}
-
-function compareCell(record, layout) {
-  return {
-    rent: formatAnalysisValue(analysisValue(record, "rent", layout), "rent"),
-    sale: formatAnalysisValue(analysisValue(record, "sale", layout), "sale"),
-    ratio: formatAnalysisValue(analysisValue(record, "ratio", layout), "ratio"),
-  };
-}
-
-function compareOptionLabel(record) {
-  return `${displayPropertyText(record.title)}｜${record.publish_month}`;
-}
-
-function syncCompareSelect(select, records, fallbackIndex) {
-  if (!select) return;
-  const current = select.value;
-  select.innerHTML = `<option value="">不选择</option>${records
-    .map((record) => `<option value="${escapeHtml(record.id)}">${escapeHtml(compareOptionLabel(record))}</option>`)
-    .join("")}`;
-  if (records.some((record) => record.id === current)) {
-    select.value = current;
-  } else if (current === "" && select.dataset.ready) {
-    select.value = "";
-  } else if (records[fallbackIndex]) {
-    select.value = records[fallbackIndex].id;
-  }
-  select.dataset.ready = "1";
-}
-
-function selectedCompareRecords(candidates) {
-  const ids = ["#compareSelectA", "#compareSelectB", "#compareSelectC"].map((selector) => $(selector)?.value).filter(Boolean);
-  const seen = new Set();
-  return ids
-    .filter((id) => {
-      if (seen.has(id)) return false;
-      seen.add(id);
-      return true;
-    })
-    .map((id) => candidates.find((record) => record.id === id))
-    .filter(Boolean);
-}
-
-function renderDimensions(selected) {
-  const picker = $("#dimensionPicker");
-  if (!picker) return [];
-  const layouts = allLayoutsForRecords(selected);
-  const checked = new Set([...picker.querySelectorAll("input:checked")].map((input) => input.value));
-  const active = layouts.filter((layout) => checked.size ? checked.has(layout) : true);
-  picker.innerHTML = layouts.length
-    ? layouts
-        .map((layout) => `
-          <label class="dimension-chip">
-            <input type="checkbox" value="${escapeHtml(layout)}" ${active.includes(layout) ? "checked" : ""} />
-            <span>${escapeHtml(layout)}</span>
-          </label>
-        `)
-        .join("")
-    : `<div class="empty">${escapeHtml(uiText("analysis.noCompareSelection", "所选报告没有可比较维度。"))}</div>`;
-  picker.querySelectorAll("input").forEach((input) => {
-    input.addEventListener("change", renderAnalysis);
-  });
-  return active.length ? active : layouts;
-}
-
-function selectedCompareMetrics() {
-  const checked = [...document.querySelectorAll("#metricPicker input:checked")].map((input) => input.value);
-  return checked.length ? checked : ["rent", "sale", "ratio"];
-}
-
-function compareMetricLabel(metric) {
-  if (metric === "rent") return uiText("analysis.rent", "租金");
-  if (metric === "sale") return uiText("analysis.sale", "售价");
-  return uiText("analysis.ratio", "租售比");
-}
-
-function renderCompare(matched) {
-  if (!$("#compareSelectA") || !$("#compareTable")) return;
-  const candidates = matched.slice(0, 30).map((item) => item.record);
-  ["#compareSelectA", "#compareSelectB", "#compareSelectC"].forEach((selector, index) => {
-    syncCompareSelect($(selector), candidates, index);
-  });
-
-  const selected = selectedCompareRecords(candidates);
-  const layouts = renderDimensions(selected);
-  const metrics = selectedCompareMetrics();
-  if (!candidates.length) {
-    $("#compareTable").innerHTML = `<div class="empty">${escapeHtml(uiText("analysis.noCompareData", "没有可比较的数据。先换个关键词。"))}</div>`;
-    return;
-  }
-  if (!selected.length || !layouts.length) {
-    $("#compareTable").innerHTML = `<div class="empty">${escapeHtml(uiText("analysis.noCompareSelection", "请选择要比较的数据和维度。"))}</div>`;
-    return;
-  }
-  $("#compareTable").innerHTML = `
-    <table class="compare-table">
-      <thead>
-        <tr>
-          <th rowspan="2">维度</th>
-          ${selected.map((record) => `<th colspan="${metrics.length}">${escapeHtml(displayPropertyText(record.title))}<small>${escapeHtml(record.publish_month)}</small></th>`).join("")}
-        </tr>
-        <tr>
-          ${selected.map(() => metrics.map((metric) => `<th>${escapeHtml(compareMetricLabel(metric))}</th>`).join("")).join("")}
-        </tr>
-      </thead>
-      <tbody>
-        ${layouts
-          .map((layout) => {
-            const cells = selected
-              .map((record) => {
-                const values = compareCell(record, layout);
-                return metrics.map((metric) => `<td>${escapeHtml(values[metric])}</td>`).join("");
-              })
-              .join("");
-            return `
-              <tr>
-                <th>${escapeHtml(layout)}</th>
-                ${cells}
-              </tr>
-            `;
-          })
-          .join("")}
-      </tbody>
-    </table>
-  `;
-}
-
-function analysisLayouts() {
-  const layouts = new Set();
-  state.records.forEach((record) => {
-    [...(record.rental || []), ...(record.sale || [])].forEach((row) => {
-      if (row.layout) layouts.add(row.layout);
-    });
-  });
-  const preferred = ["1LDK", "2LDK", "3LDK", "80㎡左右", "110㎡左右", "140㎡左右"];
-  return [...preferred.filter((item) => layouts.has(item)), ...[...layouts].filter((item) => !preferred.includes(item)).sort()];
 }
 
 function drawAnalysisChart(points, metric) {
@@ -1268,6 +1085,17 @@ function drawAnalysisChart(points, metric) {
   ctx.fillText(`${min.toFixed(1)}`, 6, yFor(min) + 4);
 }
 
+function analysisLayouts() {
+  return ["1LDK", "2LDK", "3LDK"];
+}
+
+function clearAnalysisChart() {
+  const canvas = $("#analysisChart");
+  const ctx = canvas?.getContext("2d");
+  if (!ctx) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
 function renderAnalysis() {
   const panel = $("#analysisPanel");
   if (!panel) return;
@@ -1279,46 +1107,84 @@ function renderAnalysis() {
     layoutSelect.innerHTML = analysisLayouts().map((layout) => optionHtml(layout)).join("");
     layoutSelect.dataset.ready = "1";
   }
+  if (!(analysisState.loaded || analysisState.loading)) {
+    clearAnalysisChart();
+    $("#analysisResults").innerHTML = `<div class="empty">${escapeHtml(uiText("analysis.runFirst", "请提交筛选条件以读取真实统计结果。"))}</div>`;
+    $("#analysisTable").innerHTML = "";
+  }
+}
 
-  const keyword = compact($("#analysisKeyword")?.value || "");
-  const metric = $("#analysisMetric")?.value || "rent";
-  const layout = $("#analysisLayout")?.value || analysisLayouts()[0] || "1LDK";
-  const matched = state.records
-    .filter((record) => !keyword || compact([record.title, record.publish_month, record.asset_type, (record.regions || []).join(""), record.markdown].join(" ")).includes(keyword))
-    .map((record) => ({ record, value: analysisValue(record, metric, layout) }))
-    .filter((item) => Number.isFinite(item.value));
+const analysisState = { loaded: false, loading: false };
 
-  const byMonth = new Map();
-  matched.forEach(({ record, value }) => {
-    const key = monthKey(record.publish_month);
-    const bucket = byMonth.get(key) || [];
-    bucket.push(value);
-    byMonth.set(key, bucket);
-  });
-  const points = [...byMonth.entries()]
-    .map(([month, values]) => ({ month, value: values.reduce((sum, value) => sum + value, 0) / values.length }))
-    .sort((a, b) => a.month.localeCompare(b.month));
-  drawAnalysisChart(points, metric);
+function analysisApiError(error) {
+  try {
+    const payload = JSON.parse(error.message);
+    return payload?.error?.message || payload?.detail || error.message;
+  } catch {
+    return error.message;
+  }
+}
 
-  $("#analysisHint").textContent = formatUiText("analysis.dynamicHint", `${analysisMetricName(metric)}｜${layout}｜匹配 ${matched.length} 条，月份点 ${points.length} 个。`, {
-    metric: analysisMetricName(metric),
+function renderAnalysisResult(result) {
+  const points = Array.isArray(result.points) ? result.points : [];
+  const unit = result.unit === "percent" ? "%" : result.unit === "JPY/month" ? "JPY/month" : "JPY";
+  const chartPoints = points.map((point) => ({ ...point, value: unit === "JPY" || unit === "JPY/month" ? point.value / 10000 : point.value }));
+  drawAnalysisChart(chartPoints, result.metric);
+  $("#analysisHint").textContent = result.status === "insufficient_sample"
+    ? uiText("analysis.insufficient", "样本不足，无法生成统计分析；服务端没有用 0 或假数据填充图表。")
+    : formatUiText("analysis.resultHint", "{sample} 个样本 · {from} 至 {to} · {method}", {
+        sample: result.sample_count,
+        from: result.period?.from || "—",
+        to: result.period?.to || "—",
+        method: result.aggregation || "arithmetic_mean",
+      });
+  const quota = result.quota;
+  $("#analysisQuota").textContent = quota
+    ? formatUiText("analysis.quota", "本周期剩余分析次数：{remaining} / {limit}", quota)
+    : "";
+  const sources = (result.sources || []).map((source) => `${source.name || ""}${source.url ? ` · ${source.url}` : ""}`).join("；");
+  $("#analysisResults").innerHTML = `
+    <article class="analysis-row">
+      <div><h3>${escapeHtml(result.status === "ok" ? uiText("analysis.serverResult", "服务端统计结果") : uiText("analysis.insufficientTitle", "样本不足") )}</h3>
+      <p>${escapeHtml(uiText("analysis.sample", "样本数"))}：${escapeHtml(result.sample_count)} · ${escapeHtml(uiText("analysis.source", "来源"))}：${escapeHtml((result.source_class || []).join(", ") || "—")}</p>
+      <p>${escapeHtml(sources || uiText("analysis.sourceUnavailable", "未返回来源信息"))}</p></div>
+      <strong>${escapeHtml(unit)}</strong>
+    </article>`;
+  $("#analysisTable").innerHTML = points.length ? `
+    <table class="compare-table"><caption class="visually-hidden">${escapeHtml(uiText("analysis.tableCaption", "按月份统计结果"))}</caption>
+      <thead><tr><th>${escapeHtml(uiText("analysis.month", "月份"))}</th><th>${escapeHtml(uiText("analysis.value", "聚合值"))}</th><th>${escapeHtml(uiText("analysis.sample", "样本数"))}</th></tr></thead>
+      <tbody>${points.map((point) => `<tr><td>${escapeHtml(point.month)}</td><td>${escapeHtml(Number(point.value).toLocaleString())} ${escapeHtml(unit)}</td><td>${escapeHtml(point.sample_count)}</td></tr>`).join("")}</tbody>
+    </table>` : "";
+}
+
+async function loadAnalysis() {
+  renderAnalysis();
+  if (!isLoggedIn() || !canUseAuthenticatedBackend()) {
+    $("#analysisResults").innerHTML = `<div class="empty">${escapeHtml(uiText("analysis.backendRequired", "请登录并连接真实分析服务；不会显示本地演示数据。"))}</div>`;
+    return;
+  }
+  const layout = $("#analysisLayout")?.value || "1LDK";
+  const body = {
+    keyword: compact($("#analysisKeyword")?.value || ""),
+    metric: $("#analysisMetric")?.value || "sale",
     layout,
-    matched: matched.length,
-    points: points.length,
-  });
-  renderCompare(matched);
-  $("#analysisResults").innerHTML = matched
-    .slice(0, 10)
-    .map(({ record, value }) => `
-      <article class="analysis-row">
-        <div>
-          <h3>${escapeHtml(displayPropertyText(record.title))}</h3>
-          <p>${escapeHtml(record.publish_month)}｜${escapeHtml(displayPropertyText((record.regions || []).join(" / ") || record.asset_type || ""))}</p>
-        </div>
-        <strong>${escapeHtml(value.toFixed(metric === "ratio" ? 2 : 1))}${escapeHtml(analysisUnit(metric))}</strong>
-      </article>
-    `)
-    .join("") || `<div class="empty">${escapeHtml(uiText("analysis.noMatched", "暂时没有匹配数据。换个关键词试试。"))}</div>`;
+    from_month: $("#analysisFromMonth")?.value || null,
+    to_month: $("#analysisToMonth")?.value || null,
+  };
+  analysisState.loading = true;
+  $("#analysisResults").innerHTML = `<div class="empty">${escapeHtml(uiText("analysis.loading", "正在读取服务端统计……"))}</div>`;
+  try {
+    const result = await apiFetch("/api/analysis", { method: "POST", body: JSON.stringify(body) });
+    analysisState.loaded = true;
+    renderAnalysisResult(result);
+  } catch (error) {
+    analysisState.loaded = false;
+    clearAnalysisChart();
+    $("#analysisTable").innerHTML = "";
+    $("#analysisResults").innerHTML = `<div class="empty">${escapeHtml(analysisApiError(error))}</div>`;
+  } finally {
+    analysisState.loading = false;
+  }
 }
 
 async function runJphouseFromMyPage(queryId) {
@@ -2077,20 +1943,23 @@ function closeImage() {
 }
 
 async function init() {
-  try {
-    const response = await fetch("content-library.json", { cache: "no-store" });
-    if (!response.ok) throw new Error(`content-library.json ${response.status}`);
-    state.records = await response.json();
-  } catch {
-    // Generated content is optional for account/privacy controls and may be absent in a clean checkout.
-    state.records = [];
+  const isAnalysisPage = Boolean($("#analysisPanel"));
+  if (!isAnalysisPage) {
+    try {
+      const response = await fetch("content-library.json", { cache: "no-store" });
+      if (!response.ok) throw new Error(`content-library.json ${response.status}`);
+      state.records = await response.json();
+    } catch {
+      // Generated content is optional for account/privacy controls and may be absent in a clean checkout.
+      state.records = [];
+    }
   }
   await loadFieldOptions();
   if ($("#prefectureSelect")) renderQueryOptions();
   consumeRecognitionPrefill();
   await handleAuthRedirect();
   await refreshSupabaseSession();
-  await loadRemoteReports();
+  if (!isAnalysisPage) await loadRemoteReports();
   try {
     await ensureUserProfile();
   } catch {
@@ -2147,15 +2016,7 @@ async function init() {
   on("#confirmDeleteAccountButton", "click", requestAccountDeletion);
   on("#analysisForm", "submit", (event) => {
     event.preventDefault();
-    renderAnalysis();
-  });
-  on("#analysisMetric", "change", renderAnalysis);
-  on("#analysisLayout", "change", renderAnalysis);
-  on("#compareSelectA", "change", renderAnalysis);
-  on("#compareSelectB", "change", renderAnalysis);
-  on("#compareSelectC", "change", renderAnalysis);
-  document.querySelectorAll("#metricPicker input").forEach((input) => {
-    input.addEventListener("change", renderAnalysis);
+    loadAnalysis();
   });
   on("#closeImage", "click", closeImage);
   on("#imageDialog", "click", (event) => {

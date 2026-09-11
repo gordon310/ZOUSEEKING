@@ -33,6 +33,7 @@ from .billing.routes import router as billing_router
 from .usage.routes import router as usage_router
 from .member.routes import router as member_router
 from .exports.routes import router as exports_router
+from .analysis.routes import router as analysis_router
 
 
 ALLOWED_ORIGINS = [
@@ -89,6 +90,7 @@ app.include_router(billing_router)
 app.include_router(usage_router)
 app.include_router(member_router)
 app.include_router(exports_router)
+app.include_router(analysis_router)
 app.include_router(admin_router)
 app.include_router(privacy_router)
 app.include_router(recognition_router)

@@ -24,6 +24,7 @@ PHASE_ONE_API_CONTRACT = (
     "POST /api/exports",
     "GET /api/exports",
     "GET /api/exports/{export_id}",
+    "POST /api/analysis",
     "GET /api/usage/summary",
 )
 

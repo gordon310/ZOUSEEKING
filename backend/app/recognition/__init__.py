@@ -1,2 +1,1 @@
 """Property listing recognition boundary."""
-

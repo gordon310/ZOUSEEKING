@@ -43,4 +43,3 @@
 - [ ] Make active subscription quota available before falling back to one-time purchase.
 - [ ] Mark cancelled, past-due, failed, refunded, or expired subscriptions inactive for new access.
 - [ ] Record the investigation table and exact verification commands in the task report.
-

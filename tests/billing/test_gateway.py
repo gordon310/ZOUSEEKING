@@ -48,6 +48,39 @@ def test_create_checkout_session_sends_authenticated_form_request() -> None:
     assert timeout == 30.0
 
 
+def test_create_checkout_session_encodes_nested_parameters_with_brackets() -> None:
+    gateway = StripeHttpGateway("sk_test_secret")
+    requests = []
+
+    def urlopen(request, *, timeout):
+        requests.append(request)
+        return StubResponse(
+            {
+                "id": "cs_test_1",
+                "url": "https://checkout.stripe.com/c/pay/cs_test_1",
+            }
+        )
+
+    gateway._urlopen = urlopen
+
+    asyncio.run(
+        gateway.create_checkout_session(
+            {
+                "mode": "payment",
+                "line_items": [{"price": "price_xxx", "quantity": 1}],
+                "allow_promotion_codes": True,
+                "metadata": {"user_id": "user_1"},
+            }
+        )
+    )
+
+    body = requests[0].data.decode()
+    assert "line_items%5B0%5D%5Bprice%5D=price_xxx" in body
+    assert "line_items%5B0%5D%5Bquantity%5D=1" in body
+    assert "metadata%5Buser_id%5D=user_1" in body
+    assert "allow_promotion_codes=true" in body
+
+
 def test_http_error_includes_stripe_error_message() -> None:
     gateway = StripeHttpGateway("sk_test_secret")
 

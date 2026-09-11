@@ -22,6 +22,38 @@ class BillingGatewayError(Exception):
     """An error returned by the payment provider or its HTTP transport."""
 
 
+def _flatten_params(params: Mapping[str, Any], prefix: str = "") -> list[tuple[str, str]]:
+    """Flatten nested dict/list params into Stripe bracket-encoded form pairs."""
+    items: list[tuple[str, str]] = []
+    for key, value in params.items():
+        full_key = f"{prefix}[{key}]" if prefix else str(key)
+        if isinstance(value, Mapping):
+            items.extend(_flatten_params(value, full_key))
+        elif isinstance(value, (list, tuple)):
+            for index, entry in enumerate(value):
+                indexed_key = f"{full_key}[{index}]"
+                if isinstance(entry, Mapping):
+                    items.extend(_flatten_params(entry, indexed_key))
+                elif isinstance(entry, (list, tuple)):
+                    # nested lists beyond one level are not used by the current
+                    # callers; encode entries in bracket form for consistency
+                    for sub_index, sub in enumerate(entry):
+                        items.append((f"{indexed_key}[{sub_index}]", _scalar(sub)))
+                else:
+                    items.append((indexed_key, _scalar(entry)))
+        elif value is None:
+            continue
+        else:
+            items.append((full_key, _scalar(value)))
+    return items
+
+
+def _scalar(value: Any) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return str(value)
+
+
 class StripeHttpGateway(StripeGateway):
     def __init__(self, secret_key: str, *, timeout: float = 30.0) -> None:
         self._api_base = "https://api.stripe.com/v1"
@@ -32,7 +64,7 @@ class StripeHttpGateway(StripeGateway):
     async def _request(
         self, method: str, path: str, params: Mapping[str, Any] | None = None
     ) -> dict[str, Any]:
-        body = urllib.parse.urlencode(params) if params else None
+        body = urllib.parse.urlencode(_flatten_params(params)) if params else None
         request = urllib.request.Request(
             f"{self._api_base}{path}",
             data=body.encode() if body else None,

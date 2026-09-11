@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from uuid import UUID
 
 from fastapi.testclient import TestClient
@@ -11,6 +12,13 @@ from backend.app.exports.routes import get_export_store
 
 USER_ID = UUID("00000000-0000-0000-0000-000000000030")
 OTHER_USER_ID = UUID("00000000-0000-0000-0000-000000000031")
+
+
+def test_export_sql_casts_data_class_enum_before_coalesce() -> None:
+    sql_source = Path("backend/app/exports/routes.py").read_text(encoding="utf-8")
+
+    assert sql_source.count("coalesce(pr.data_class::text, '') <> 'synthetic_fixture'") == 2
+    assert "coalesce(pr.data_class, '') <> 'synthetic_fixture'" not in sql_source
 
 
 class FakeExportStore:

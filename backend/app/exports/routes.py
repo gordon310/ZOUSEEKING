@@ -91,7 +91,7 @@ class DbExportStore:
                 from public.queries q
                 join public.property_reports pr on pr.query_id = q.id
                 where q.owner_user_id=$1 and q.id = any($2::uuid[])
-                  and coalesce(pr.data_class, '') <> 'synthetic_fixture'
+                  and coalesce(pr.data_class::text, '') <> 'synthetic_fixture'
                 order by q.created_at desc
                 """,
                 user_id, unique_ids,
@@ -107,7 +107,7 @@ class DbExportStore:
             from public.queries q
             join public.property_reports pr on pr.query_id = q.id
             where q.owner_user_id=$1
-              and coalesce(pr.data_class, '') <> 'synthetic_fixture'
+              and coalesce(pr.data_class::text, '') <> 'synthetic_fixture'
             order by q.created_at desc
             limit $2
             """,

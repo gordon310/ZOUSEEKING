@@ -57,3 +57,51 @@ def test_valid_pdf_returns_a_server_generated_path(monkeypatch):
     assert result.path.endswith(".pdf")
     assert captured["timeout"] == 8
     assert captured["request"].get_header("X-upsert") == "false"
+
+
+def test_secret_key_sends_only_apikey_header(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://example.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "sb_secret_xxx")
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, traceback):
+            return False
+
+    captured = {}
+
+    def succeed(request, timeout):
+        captured["request"] = request
+        return Response()
+
+    monkeypatch.setattr("backend.app.intake.storage.urlopen", succeed)
+    upload_private_file("session-1", "contract.pdf", "application/pdf", b"%PDF-1.7")
+
+    assert captured["request"].get_header("Apikey") == "sb_secret_xxx"
+    assert captured["request"].get_header("Authorization") is None
+
+
+def test_legacy_key_sends_apikey_and_bearer_headers(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://example.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "eyJlegacy")
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, traceback):
+            return False
+
+    captured = {}
+
+    def succeed(request, timeout):
+        captured["request"] = request
+        return Response()
+
+    monkeypatch.setattr("backend.app.intake.storage.urlopen", succeed)
+    upload_private_file("session-1", "contract.pdf", "application/pdf", b"%PDF-1.7")
+
+    assert captured["request"].get_header("Apikey") == "eyJlegacy"
+    assert captured["request"].get_header("Authorization") == "Bearer eyJlegacy"

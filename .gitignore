@@ -1,3 +1,6 @@
+# Generated during deployment by deploy/render-frontend-config.py
+web/config.js
+
 node_modules/
 __pycache__/
 *.pyc

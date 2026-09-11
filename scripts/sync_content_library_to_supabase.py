@@ -11,6 +11,13 @@ WEB_LIBRARY = ROOT / "web" / "content-library.json"
 WEB_CONFIG = ROOT / "web" / "config.js"
 
 
+def _service_headers(key: str) -> dict[str, str]:
+    headers = {"apikey": key}
+    if not key.startswith("sb_secret_"):
+        headers["Authorization"] = f"Bearer {key}"
+    return headers
+
+
 def default_supabase_url() -> str:
     env_url = os.environ.get("SUPABASE_URL", "").strip()
     if env_url:
@@ -59,8 +66,7 @@ def request_json(url, method="GET", payload=None):
         data=data,
         method=method,
         headers={
-            "apikey": key,
-            "Authorization": f"Bearer {key}",
+            **_service_headers(key),
             "Content-Type": "application/json",
             "Prefer": "resolution=merge-duplicates,return=representation",
         },

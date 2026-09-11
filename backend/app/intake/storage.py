@@ -65,6 +65,13 @@ def _config() -> tuple[str, str, str]:
     return base_url, service_key, bucket
 
 
+def _service_headers(key: str) -> dict[str, str]:
+    headers = {"apikey": key}
+    if not key.startswith("sb_secret_"):
+        headers["Authorization"] = f"Bearer {key}"
+    return headers
+
+
 def _object_path(session_id: str, extension: str) -> str:
     if not session_id or "/" in session_id or "\\" in session_id or ".." in session_id:
         raise StorageUnavailable()
@@ -80,8 +87,7 @@ def upload_private_file(session_id: str, filename: str, media_type: str, content
         data=content,
         method="POST",
         headers={
-            "Authorization": f"Bearer {service_key}",
-            "apikey": service_key,
+            **_service_headers(service_key),
             "Content-Type": media_type,
             "x-upsert": "false",
         },
@@ -111,10 +117,7 @@ def delete_private_file(path: str) -> None:
     request = Request(
         f"{base_url}/storage/v1/object/{quote(bucket, safe='')}/{quote(path, safe='/')}",
         method="DELETE",
-        headers={
-            "Authorization": f"Bearer {service_key}",
-            "apikey": service_key,
-        },
+        headers=_service_headers(service_key),
     )
     try:
         with urlopen(request, timeout=8) as response:

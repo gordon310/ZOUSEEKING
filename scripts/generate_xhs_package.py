@@ -172,8 +172,11 @@ def render_markdown(config):
 
     rental = config["sections"]["rental"]
     lines.append(f"## {rental['title']}")
-    for row in rental["rows"]:
-        lines.append(row_line(row))
+    if rental["rows"]:
+        for row in rental["rows"]:
+            lines.append(row_line(row))
+    else:
+        lines.append("暂无授权租金数据")
 
     sale = config["sections"]["sale"]
     lines.extend(["", f"## {sale['title']}"])

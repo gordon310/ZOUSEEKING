@@ -1,6 +1,4 @@
 {
-  "count": 23,
-  "failed_count": 0,
   "collected": [
     {
       "ward": "北区",
@@ -325,7 +323,6 @@
       }
     }
   ],
-  "failed": [],
   "_filtered": {
     "fields": [
       "rents",
@@ -333,5 +330,6 @@
     ],
     "reason": "unlicensed_source",
     "rules_version": "licensed-aggregate-v1"
-  }
+  },
+  "generated_at": "2026-08-23T09:36:15.745095Z"
 }

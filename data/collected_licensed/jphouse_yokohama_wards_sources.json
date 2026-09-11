@@ -1,6 +1,4 @@
 {
-  "count": 18,
-  "failed_count": 0,
   "collected": [
     {
       "ward": "鶴見区",
@@ -255,7 +253,6 @@
       }
     }
   ],
-  "failed": [],
   "_filtered": {
     "fields": [
       "rents",
@@ -263,5 +260,6 @@
     ],
     "reason": "unlicensed_source",
     "rules_version": "licensed-aggregate-v1"
-  }
+  },
+  "generated_at": "2026-08-23T09:58:20.783838Z"
 }

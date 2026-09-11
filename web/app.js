@@ -704,7 +704,9 @@ function displayMarkdown(markdown) {
 function previewText(record) {
   const rental = record.rental?.[0];
   const sale = record.sale?.[0];
-  const rent = rental ? `${rental.layout} 租 ${rental.amount_jpy} / ${rental.amount_rmb}` : "暂无租赁数据";
+  const rent = rental
+    ? `${rental.layout} 租 ${rental.amount_jpy} / ${rental.amount_rmb}`
+    : uiText("report.rentalUnavailable", "暂无授权租金数据");
   const buy = sale ? `${sale.layout} 买 ${sale.amount_jpy} / ${sale.amount_rmb}` : "暂无买卖数据";
   return `${rent}；${buy}`;
 }
@@ -1983,6 +1985,9 @@ function renderDetail() {
   }
   const rental = record.rental || [];
   const sale = record.sale || [];
+  const rentalHtml = rental.length
+    ? rental.map((row) => `<p><b>${escapeHtml(row.layout)}</b>｜${escapeHtml(rowLine(row))}</p>`).join("")
+    : `<p class="empty">${escapeHtml(uiText("report.rentalUnavailable", "暂无授权租金数据"))}</p>`;
   $("#detailContent").innerHTML = `
     <article class="detail-card">
       <h2>${escapeHtml(displayPropertyText(record.title))}</h2>
@@ -2005,7 +2010,7 @@ function renderDetail() {
       <div class="detail-grid">
         <section>
           <h3>租房子</h3>
-          ${rental.map((row) => `<p><b>${escapeHtml(row.layout)}</b>｜${escapeHtml(rowLine(row))}</p>`).join("")}
+          ${rentalHtml}
         </section>
         <section>
           <h3>买房子</h3>

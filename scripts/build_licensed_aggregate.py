@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -52,38 +53,36 @@ def _filter_entries(entries: list[Any], filtered_fields: set[str]) -> list[dict[
     return result
 
 
-def filter_aggregate(data: Any) -> tuple[Any, dict[str, Any]]:
-    """Return a same-shaped aggregate with unlicensed fields removed."""
+def _utc_timestamp(value: datetime | None = None) -> str:
+    return (value or datetime.now(timezone.utc)).astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def filter_aggregate(data: Any, generated_at: str | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Return a stable aggregate wrapper with unlicensed fields removed."""
     filtered_fields: set[str] = set()
     if isinstance(data, list):
-        result = _filter_entries(data, filtered_fields)
-        summary = {
-            "fields": sorted(filtered_fields),
-            "reason": "unlicensed_source",
-            "rules_version": RULES_VERSION,
-        }
-        result.append({"_filtered": summary})
-        return result, summary
-    if not isinstance(data, dict):
+        entries = _filter_entries(data, filtered_fields)
+    elif isinstance(data, dict):
+        value = data.get("collected", [])
+        if not isinstance(value, list):
+            filtered_fields.add("collected")
+            entries = []
+        else:
+            entries = _filter_entries(value, filtered_fields)
+        filtered_fields.update(key for key in data if key not in {"collected", "count", "failed_count", "failed"})
+    else:
         raise ValueError("aggregate root must be a list or object")
 
-    result: dict[str, Any] = {}
-    for key, value in data.items():
-        if key == "collected":
-            if not isinstance(value, list):
-                filtered_fields.add("collected")
-                continue
-            result[key] = _filter_entries(value, filtered_fields)
-        elif key in _TOP_LEVEL_FIELDS:
-            result[key] = copy.deepcopy(value)
-        else:
-            filtered_fields.add(key)
     summary = {
         "fields": sorted(filtered_fields),
         "reason": "unlicensed_source",
         "rules_version": RULES_VERSION,
     }
-    result["_filtered"] = summary
+    result = {
+        "collected": entries,
+        "_filtered": summary,
+        "generated_at": generated_at or _utc_timestamp(),
+    }
     return result, summary
 
 
@@ -91,7 +90,8 @@ def build_family(family: str, root: Path = ROOT) -> tuple[Path, dict[str, Any]]:
     input_path = root / "data" / "collected" / f"{family}_sources.json"
     output_path = root / "data" / "collected_licensed" / f"{family}_sources.json"
     data = json.loads(input_path.read_text(encoding="utf-8"))
-    filtered, summary = filter_aggregate(data)
+    generated_at = _utc_timestamp(datetime.fromtimestamp(input_path.stat().st_mtime, timezone.utc))
+    filtered, summary = filter_aggregate(data, generated_at=generated_at)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
         json.dumps(filtered, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

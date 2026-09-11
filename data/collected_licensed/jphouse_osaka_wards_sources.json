@@ -1,0 +1,337 @@
+{
+  "count": 23,
+  "failed_count": 0,
+  "collected": [
+    {
+      "ward": "北区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_osaka_wards/kita.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_osaka_wards/jphouse_osaka_kita_tower_2026_08",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 5816,
+          "2LDK": 10204,
+          "3LDK": 7588
+        },
+        "unit_man_yen_per_sqm": 109.336,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "都島区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_osaka_wards/miyakojima.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_osaka_wards/jphouse_osaka_miyakojima_tower_2026_08",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 2716,
+          "2LDK": 4082,
+          "3LDK": 3935
+        },
+        "unit_man_yen_per_sqm": 58.5646,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "福島区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_osaka_wards/fukushima.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_osaka_wards/jphouse_osaka_fukushima_tower_2026_08",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 6171,
+          "2LDK": 5758,
+          "3LDK": 5694
+        },
+        "unit_man_yen_per_sqm": 83.4834,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "此花区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_osaka_wards/konohana.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_osaka_wards/jphouse_osaka_konohana_tower_2026_08",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 2750,
+          "2LDK": 2750,
+          "3LDK": 3168
+        },
+        "unit_man_yen_per_sqm": 41.1447,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "西区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_osaka_wards/nishi.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_osaka_wards/jphouse_osaka_nishi_tower_2026_08",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 4723,
+          "2LDK": 6312,
+          "3LDK": 6993
+        },
+        "unit_man_yen_per_sqm": 84.167,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "港区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_osaka_wards/minato.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_osaka_wards/jphouse_osaka_minato_tower_2026_08",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 2500,
+          "2LDK": 3331,
+          "3LDK": 3794
+        },
+        "unit_man_yen_per_sqm": 54.8823,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "大正区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_osaka_wards/taisho.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_osaka_wards/jphouse_osaka_taisho_tower_2026_08",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 2400,
+          "2LDK": 3100,
+          "3LDK": 2133
+        },
+        "unit_man_yen_per_sqm": 53.1243,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "天王寺区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_osaka_wards/tennoji.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_osaka_wards/jphouse_osaka_tennoji_tower_2026_08",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 3108,
+          "2LDK": 4751,
+          "3LDK": 7254
+        },
+        "unit_man_yen_per_sqm": 79.8305,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "浪速区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_osaka_wards/naniwa.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_osaka_wards/jphouse_osaka_naniwa_tower_2026_08",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 3588,
+          "2LDK": 6970,
+          "3LDK": 7087
+        },
+        "unit_man_yen_per_sqm": 84.8397,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "西淀川区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_osaka_wards/nishiyodogawa.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_osaka_wards/jphouse_osaka_nishiyodogawa_tower_2026_08",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 1950,
+          "2LDK": 1818,
+          "3LDK": 2868
+        },
+        "unit_man_yen_per_sqm": 45.4447,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "淀川区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_osaka_wards/yodogawa.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_osaka_wards/jphouse_osaka_yodogawa_tower_2026_08",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 1512,
+          "2LDK": 2844,
+          "3LDK": 3834
+        },
+        "unit_man_yen_per_sqm": 51.8149,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "东淀川区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_osaka_wards/higashiyodogawa.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_osaka_wards/jphouse_osaka_higashiyodogawa_tower_2026_08",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 900,
+          "2LDK": 3311,
+          "3LDK": 3105
+        },
+        "unit_man_yen_per_sqm": 45.9157,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "东成区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_osaka_wards/higashinari.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_osaka_wards/jphouse_osaka_higashinari_tower_2026_08",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 1800,
+          "2LDK": 3450,
+          "3LDK": 3107
+        },
+        "unit_man_yen_per_sqm": 56.1806,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "生野区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_osaka_wards/ikuno.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_osaka_wards/jphouse_osaka_ikuno_tower_2026_08",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 1400,
+          "2LDK": 1400,
+          "3LDK": 2766
+        },
+        "unit_man_yen_per_sqm": 39.0115,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "旭区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_osaka_wards/asahi.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_osaka_wards/jphouse_osaka_asahi_tower_2026_08",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 1500,
+          "2LDK": 2058,
+          "3LDK": 2327
+        },
+        "unit_man_yen_per_sqm": 35.1582,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "城東区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_osaka_wards/joto.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_osaka_wards/jphouse_osaka_joto_tower_2026_08",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 2025,
+          "2LDK": 2788,
+          "3LDK": 3561
+        },
+        "unit_man_yen_per_sqm": 44.8856,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "鶴見区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_osaka_wards/tsurumi.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_osaka_wards/jphouse_osaka_tsurumi_tower_2026_08",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 2810,
+          "2LDK": 3133,
+          "3LDK": 3840
+        },
+        "unit_man_yen_per_sqm": 50.9258,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "阿倍野区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_osaka_wards/abeno.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_osaka_wards/jphouse_osaka_abeno_tower_2026_08",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 4933,
+          "2LDK": 4655,
+          "3LDK": 4961
+        },
+        "unit_man_yen_per_sqm": 67.0659,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "住之江区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_osaka_wards/suminoe.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_osaka_wards/jphouse_osaka_suminoe_tower_2026_08",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 945,
+          "2LDK": 2483,
+          "3LDK": 2490
+        },
+        "unit_man_yen_per_sqm": 32.0251,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "住吉区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_osaka_wards/sumiyoshi.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_osaka_wards/jphouse_osaka_sumiyoshi_tower_2026_08",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 1400,
+          "2LDK": 2667,
+          "3LDK": 3317
+        },
+        "unit_man_yen_per_sqm": 41.5014,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "东住吉区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_osaka_wards/higashisumiyoshi.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_osaka_wards/jphouse_osaka_higashisumiyoshi_tower_2026_08",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 2314,
+          "2LDK": 2314,
+          "3LDK": 3523
+        },
+        "unit_man_yen_per_sqm": 40.9721,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "平野区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_osaka_wards/hirano.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_osaka_wards/jphouse_osaka_hirano_tower_2026_08",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 2037,
+          "2LDK": 2037,
+          "3LDK": 2111
+        },
+        "unit_man_yen_per_sqm": 30.2252,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    },
+    {
+      "ward": "西成区",
+      "config": "/Users/gordonmac/GordonDev/JPPropDIs/configs/jphouse_osaka_wards/nishinari.json",
+      "output": "/Users/gordonmac/GordonDev/JPPropDIs/data/output/jphouse_osaka_wards/jphouse_osaka_nishinari_tower_2026_08",
+      "sale": {
+        "layout_price_man_yen": {
+          "1LDK": 2300,
+          "2LDK": 1871,
+          "3LDK": 2733
+        },
+        "unit_man_yen_per_sqm": 31.5734,
+        "updated": "2026年［令和8年］1～3月"
+      }
+    }
+  ],
+  "failed": [],
+  "_filtered": {
+    "fields": [
+      "rents",
+      "source_update"
+    ],
+    "reason": "unlicensed_source",
+    "rules_version": "licensed-aggregate-v1"
+  }
+}

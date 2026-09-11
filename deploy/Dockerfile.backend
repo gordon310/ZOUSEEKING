@@ -6,6 +6,7 @@ COPY backend/ /app/backend/
 COPY scripts/ /app/scripts/
 COPY configs/ /app/configs/
 COPY data/input/ /app/data/input/
+COPY data/collected_licensed/ /app/data/collected_licensed/
 COPY web/content-library.json /app/web/content-library.json
 COPY backend/requirements.txt /app/backend/requirements.txt
 

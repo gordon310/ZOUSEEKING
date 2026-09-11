@@ -67,8 +67,8 @@ def _sample_config(tmp: Path, stem: str = "minato", url: str | None = None) -> P
     return path
 
 
-def _fixture_aggregate(tmp: Path, stem: str = "minato") -> Path:
-    agg = tmp / "data" / "collected" / "jphouse_23ku_sources.json"
+def _fixture_aggregate(tmp: Path, stem: str = "minato", *, include_rents: bool = False) -> Path:
+    agg = tmp / "data" / "collected_licensed" / "jphouse_23ku_sources.json"
     agg.parent.mkdir(parents=True, exist_ok=True)
     # Real shape of data/collected/jphouse_23ku_sources.json: a bare list of
     # per-ward records (the osaka/yokohama families wrap a "collected" list).
@@ -78,8 +78,6 @@ def _fixture_aggregate(tmp: Path, stem: str = "minato") -> Path:
                 {
                     "ward": "港区",
                     "config": str(tmp / "configs" / "jphouse_23ku" / f"{stem}.json"),
-                    "rents": {"1LDK": 22.5, "2LDK": 33.4, "3LDK": 61.2},
-                    "suumo_updated": "2026年7月10日更新",
                     "sale": {
                         "layout_price_man_yen": {
                             "1LDK": 5816, "2LDK": 10204, "3LDK": 7588
@@ -92,6 +90,11 @@ def _fixture_aggregate(tmp: Path, stem: str = "minato") -> Path:
         ),
         encoding="utf-8",
     )
+    if include_rents:
+        payload = json.loads(agg.read_text(encoding="utf-8"))
+        payload[0]["rents"] = {"1LDK": 22.5, "2LDK": 33.4, "3LDK": 61.2}
+        payload[0]["suumo_updated"] = "unlicensed-source-marker"
+        agg.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
     return agg
 
 
@@ -143,7 +146,7 @@ async def test_real_runner_visible_side_effect_is_updated_snapshot_file(
     outcome = await runner("jphouse_23ku/minato", "official_open")
 
     assert isinstance(outcome, CollectionOutcome)
-    assert outcome.rows == 6  # 3 rent + 3 sale layout prices
+    assert outcome.rows == 3  # 3 authorized sale layout prices
     assert HEX64.match(outcome.snapshot_hash or "")
 
     snapshot_path = (
@@ -159,7 +162,6 @@ async def test_real_runner_visible_side_effect_is_updated_snapshot_file(
     assert persisted["slug"] == "jphouse_tokyo_23ku_minato_2026_08"
     assert persisted["publish_month"] == "2026年8月"
     assert persisted["parser_version"] == "jphouse-local-readin-v1"
-    assert persisted["rents_updated"] == "2026年7月10日更新"
     assert persisted["sale_updated"] == "2026年［令和8年］1～3月"
     assert persisted["source_urls"] == ["https://example.invalid/suumo"]
 
@@ -167,13 +169,7 @@ async def test_real_runner_visible_side_effect_is_updated_snapshot_file(
     # strings - and stay consistent with the fixture aggregate numbers.
     rent_rows = [r for r in persisted["rows"] if r["metric"] == "rent"]
     sale_rows = [r for r in persisted["rows"] if r["metric"] == "sale_price"]
-    assert [r["layout"] for r in rent_rows] == ["1LDK", "2LDK", "3LDK"]
-    assert rent_rows[0] == {
-        "metric": "rent",
-        "layout": "1LDK",
-        "value_man_yen": 22.5,
-        "unit": "man_yen_per_month",
-    }
+    assert rent_rows == []
     assert sale_rows[0]["value_man_yen"] == 5816
     assert sale_rows[0]["unit"] == "man_yen"
 
@@ -187,7 +183,7 @@ async def test_real_runner_rows_and_hash_are_deterministic(tmp_path: Path) -> No
     first = await runner("jphouse_23ku/minato", "official_open")
     second = await runner("jphouse_23ku/minato", "official_open")
     assert first == second  # same content -> same rows/hash (idempotent replay)
-    assert first.rows == 6
+    assert first.rows == 3
     assert first.snapshot_hash == second.snapshot_hash
 
 
@@ -267,6 +263,24 @@ async def test_runner_reports_aggregate_missing(tmp_path: Path) -> None:
     with pytest.raises(CollectionRunError) as excinfo:
         await runner("jphouse_23ku/minato", "official_open")
     assert excinfo.value.code == "aggregate_missing"
+
+
+@pytest.mark.asyncio
+async def test_runner_tolerates_filtered_rents_and_keeps_sale_metrics(tmp_path: Path) -> None:
+    _sample_config(tmp_path)
+    _fixture_aggregate(tmp_path, include_rents=False)
+    runner = _real_runner(tmp_path)
+
+    outcome = await runner("jphouse_23ku/minato", "official_open")
+
+    assert outcome.rows == 3
+    assert outcome.snapshot_hash
+    persisted = json.loads(
+        (tmp_path / "data/collected/jphouse_runs/jphouse_23ku/minato.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert {row["metric"] for row in persisted["rows"]} == {"sale_price"}
 
 
 @pytest.mark.asyncio

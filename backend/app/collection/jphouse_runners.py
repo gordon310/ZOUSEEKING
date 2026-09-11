@@ -23,8 +23,8 @@ worker.CollectionOutcome``.  The runner:
 
 Collector seam / live collection scope
 --------------------------------------
-The *default* collector (``collect_local_readin``) reads the source's already
-collected numeric snapshot from ``data/collected/<family>_sources.json`` and
+The *default* collector (``collect_local_readin``) reads the source's authorized
+numeric snapshot from ``data/collected_licensed/<family>_sources.json`` and
 rebuilds the value rows from the numeric fields (never from presentation
 strings), following the migration comment: raw payloads never live on the run
 row.  Source URLs and the recorded source periods are carried from the config
@@ -63,6 +63,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 
 # Per-source run snapshots written by these runners (repo-relative).
 RUN_SNAPSHOT_ROOT_REL = "data/collected/jphouse_runs"
+LICENSED_AGGREGATE_DIR = "data/collected_licensed"
 
 # Version of the read-in/parser pipeline producing the snapshot rows.  Bump
 # only when the numeric interpretation changes (the run ledger records it).
@@ -90,19 +91,19 @@ FAMILIES = (
     JphouseFamily(
         prefix="jphouse_23ku",
         config_dir_rel="configs/jphouse_23ku",
-        aggregate_rel="data/collected/jphouse_23ku_sources.json",
+        aggregate_rel="data/collected_licensed/jphouse_23ku_sources.json",
         label_ja="东京23区",
     ),
     JphouseFamily(
         prefix="jphouse_osaka_wards",
         config_dir_rel="configs/jphouse_osaka_wards",
-        aggregate_rel="data/collected/jphouse_osaka_wards_sources.json",
+        aggregate_rel="data/collected_licensed/jphouse_osaka_wards_sources.json",
         label_ja="大阪市各区",
     ),
     JphouseFamily(
         prefix="jphouse_yokohama_wards",
         config_dir_rel="configs/jphouse_yokohama_wards",
-        aggregate_rel="data/collected/jphouse_yokohama_wards_sources.json",
+        aggregate_rel="data/collected_licensed/jphouse_yokohama_wards_sources.json",
         label_ja="横浜市各区",
     ),
 )
@@ -183,8 +184,8 @@ def collect_local_readin(
 ) -> CollectResult:
     """Default collector: deterministic local data read-in.
 
-    Reads the family's already collected numeric aggregate
-    (``data/collected/<family>_sources.json``) and returns the value rows for
+    Reads the family's authorized numeric aggregate
+    (``data/collected_licensed/<family>_sources.json`` by default) and returns the value rows for
     the config identity plus the recorded source periods.  See the module
     docstring for why this - not live fetching - is the default collector in
     this unit.
@@ -193,11 +194,13 @@ def collect_local_readin(
     # these symbols must never be required at module import time (no cycle).
     from backend.app.collection.worker import CollectionRunError
 
-    aggregate_path = repo_root / family.aggregate_rel
+    aggregate_dir = os.environ.get("LICENSED_AGGREGATE_DIR", LICENSED_AGGREGATE_DIR)
+    aggregate_path = repo_root / aggregate_dir / Path(family.aggregate_rel).name
+    aggregate_display = str(Path(aggregate_dir) / Path(family.aggregate_rel).name)
     if not aggregate_path.exists():
         raise CollectionRunError(
             f"[jphouse] aggregate snapshot missing for {family.prefix}/{stem}:"
-            f" {family.aggregate_rel}",
+            f" {aggregate_display}",
             code="aggregate_missing",
         )
     try:
@@ -205,7 +208,7 @@ def collect_local_readin(
     except (OSError, json.JSONDecodeError) as exc:
         raise CollectionRunError(
             f"[jphouse] aggregate snapshot unreadable for {family.prefix}/{stem}:"
-            f" {family.aggregate_rel} ({exc.__class__.__name__})",
+            f" {aggregate_display} ({exc.__class__.__name__})",
             code="aggregate_invalid",
         ) from exc
 
@@ -224,13 +227,11 @@ def collect_local_readin(
             break
     if matched is None:
         raise CollectionRunError(
-            f"[jphouse] no collected record for {wanted} in {family.aggregate_rel}",
+            f"[jphouse] no collected record for {wanted} in {aggregate_display}",
             code="aggregate_entry_missing",
         )
 
     meta: dict = {}
-    if isinstance(matched.get("suumo_updated"), str):
-        meta["rents_updated"] = matched["suumo_updated"]
     sale = matched.get("sale")
     if isinstance(sale, dict) and isinstance(sale.get("updated"), str):
         meta["sale_updated"] = sale["updated"]

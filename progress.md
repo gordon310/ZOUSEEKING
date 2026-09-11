@@ -8,6 +8,7 @@
 - 来源登记表 collection_sources（migration 20260906000100）已入 repo 且 **staging 已应用**（09-07 用户批准，连同 20260904000100；history 22/22 本地=远端）
 - Release gate 全量 18 SQL step（含 V1 业务域 + business RLS matrix），CI 绿
 - 2026-09-11 修复发布门禁回归：`fb36907` 下架未授权条目后内容库仅剩 3 条，B 端首页 Playwright 断言仍写死 5 条卡片 → 断言改为由 `data/content_library.json` 推导（`min(5, len)`）并补匿名上限 5 条用例；顺带入库 Codex 支付接线批次 A 证据报告（`docs/superpowers/reports/`）并清理其尾随空白。commit `3b4eeb2` / `8eb9b03` / `1af1329`
+- 2026-09-11 晚班：Release Gate 连续红链（244f5bd/513dfdb/5c71a26 引入，管家定位出 5 个独立根因）修复完毕，CI run `34600659312` 七 job 全绿；当前 main=`e100374`（含 `web/config.example.js` 前端配置契约、定价控制台 spec mock、schema 清单 24 迁移、M1 grant 基线 318）
 - P2 待推进：P2-2 JPPGSKILL 联调、P2-3 深度报告真实链接线（引擎 P2-3b 已就绪）、P2-4 支付接线（Stripe 后端已就绪）、P2-5 合规、P2-6 提审材料；live 采集激活卡海外执行（国交省 land 国内不可达）
 
 ## Recently completed
@@ -312,6 +313,20 @@
 - **验证**:模拟 CI(mv data/collected 后)三个相关测试文件 **16 passed**;恢复运行时数据 SHA 一致;全量 `pytest tests/unit tests/api` **280 passed, 83 skipped**,compileall 干净。CI Python checks 应转绿(等 Release Gate 复核)。
 - **遗留(不属本单元,需夜间班/管家接)**:Playwright evidence 上传失败为 bad7c87/599b148 新引入(d7bf35a 时 Playwright 12min 全绿 → 现 1m6s + 空 evidence 目录),疑与 staging `consumer_active` phase-switch 的 acceptance 配置交互,属夜间班热改区,晨班未盲修。
 
+## Release Gate 红链修复(2026-09-11 夜班,管家定位根因 + 派工 Codex 落地 + 管家验收)
+
+- **发现**:main 在 244f5bd/513dfdb/5c71a26 连续 3 推全红(run 34593304827:Repository policy / Python / Playwright / Disposable SQL 四个 job 失败)。管家读 CI 原始日志定位出 **5 个独立根因**,逐条派工 Codex 机械落地(Codex 沙箱起不了 Playwright webServer,浏览器/单测验收由管家实跑)。
+- **修 1(244f5bd 引入)**:`web/config.js` 被 gitignore 后,`web/*.html` 的 `config.js` 脚本在 CI 404、`tests/smoke/test_staging_contract.py` 读不到文件。→ 入库 `web/config.example.js`(与 244f5bd 删除前逐字同款默认值),smoke 契约改读该文件,browser job 在 Playwright 前 `test -f web/config.js || cp web/config.example.js web/config.js`。
+- **修 2**:schema 清单少登记 `20260912000100_pricing_admin.sql`(磁盘 24 vs 清单 23)→ `docs/architecture/schema-ownership.json` 补登 + `tests/architecture/test_schema_ownership_audit.py` 期望 23→24。
+- **修 3**:`tests/sql/test_m1_reconciliation_contract.sql` 的 service_role public grant 基线 290 过期(两张新表)→ 按 CI 实测改 **318**(anon=1 / authenticated=23 未变,无 schema 改动)。
+- **修 4**:`backend/app/recognition/__init__.py` 与 `docs/superpowers/plans/2026-09-11-report-currency-membership.md` 末尾多余空行 → `git diff --check` 红,已清理。
+- **修 5(5c71a26 引入)**:新定价控制台的 `GET /api/admin/pricing`(`web/js/admin.js` 初始化即发)未在 `tests/web/admin-live-degrade.spec.js` 的 6 个手写 route mock 里补 handler → 落到 fallback 404 → console error 掀翻 `expect(errors).toEqual([])`(6 failed)。→ 新增 `MOCK_PRICING` + 6 处分支(既有 `arrayContaining` 断言无需改,**未放宽/注释任何断言**)。
+- **验证(全部本地实跑)**:全量 `pytest -q` **423 passed, 83 skipped**;`npm run test:web -- --workers=1` 在 CI 同条件(先删除 `web/config.js`,再跑 workflow 复制步)**47 passed / 0 failed**;`python3 scripts/check_schema_ownership.py --json` status=pass(24 迁移);`npm run check:schema-ownership -- --json` 退出码 0;`check_release_policy.py` PASS;`secret_scan.py` PASS;`git diff --check` 干净。
+- **CI 复核**:run **34600659312**(e100374)七个 job **全绿**(Node / Playwright / Python / SQL-RLS / Supply-chain / Repository policy / Release evidence)。
+- **commit**:`1735dff`(前端配置契约)/`3a60ab9`(schema 清单 + M1 基线)/`ef14ac9`(spec 定价 mock)/`e100374`(EOF 空白),已 push origin/main,树净。
+- **红线**:零 migration 新增或修改、零数据库写、零部署、未触凭据/冻结字段、无删除操作。
+- **待用户决策(红线外)**:未跟踪文件 `docs/architecture/2026-09-11-system-architecture-and-logic.md`(165KB,5 路代码深读汇总,基线 5c71a26)——仓库为 **PUBLIC**,管家未擅自入库,等 Gordon 决定入库/裁剪/删除。
+
 ## Last updated
 
-2026-09-09
+2026-09-11

@@ -7,8 +7,8 @@ snapshots with explicit period/source notes; nothing here is modeled or syntheti
 On deployed services without repo data/collected, falls back to backend/data/market_snapshots (embedded copy, same content).
 
 D6a (2026-09-07): paid/deep reports consume the sale (closed-transaction) side only.
-The rents side is SUUMO-sourced and not authorized for commercial display, so it is
-carried in the data layer but never emitted into reports until a license exists.
+Legacy snapshots may still contain SUUMO rent keys, but embedded snapshots no longer
+retain them and missing keys are intentionally treated as empty.
 
 Coverage: ward-level rows for 23ku (Tokyo), Osaka 23 wards, Yokohama 18 wards.
 Queries outside coverage (or for asset types without data) resolve to None and the
@@ -91,8 +91,8 @@ class WardSnapshot:
     family: str
     prefecture: str
     ward: str
-    rents: Mapping[str, float | None]  # man-yen per month; SUUMO-sourced, NOT for display
-    rents_period: str
+    rents: Mapping[str, float | None]  # compatibility only; never emitted
+    rents_period: str  # compatibility only; empty for cleaned snapshots
     sale: Mapping[str, Any]
     sale_period: str
     source_file: str

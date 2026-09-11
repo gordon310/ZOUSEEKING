@@ -1066,7 +1066,7 @@ I've read all 19 pages and 14 JS modules. Here's the complete technical specific
 
 ## 1. 迁移清单（按时间顺序）
 
-编号不连续处标「缺口」，历史缺失 ID **未 repair/伪造**（`supabase/migrations/README.md:21-24`）。文件列共 **24 个**，但 `docs/architecture/schema-ownership.json` 的 `forward_migration_files` 只列 **23 个**——`20260912000100` 未被登记（见 §6）。
+编号不连续处标「缺口」，历史缺失 ID **未 repair/伪造**（`supabase/migrations/README.md:21-24`）。文件列共 **24 个**，`docs/architecture/schema-ownership.json` 的 `forward_migration_files` 已完整登记；最新两条分别登记报告购买主体与后台定价目录。
 
 ### A. Baseline / 数据契约（2026-08-24 批次）
 
@@ -1122,7 +1122,7 @@ I've read all 19 pages and 14 JS modules. Here's the complete technical specific
 | `20260905000601_collection_runs.sql`（90 行）**V1 采集** | 采集执行台账 | `collection_runs`（`:33-58`，`source_type` 5 值 check、`status` 5 值 check、`completed_at` 需 `started_at` check）；索引 `:62-65`；RLS enable `:69`；`revoke … from anon,authenticated`（`:71`）；`grant all … service_role`（`:73`）；表/列注释 `:75-91`（内部域） |
 | `20260906000100_collection_sources.sql`（84 行）**采集/来源登记 P1.3** | 授权来源登记 | `collection_sources`（`:30-56`，**`source_key` 为主键**、`rights_confirmed boolean default false`、`robots_policy`/`rate_limit_note`/`retention_policy`、`cadence` check `daily/weekly/monthly/event`、`url_or_note` check）；触发器 `:58-60`（**未加 `drop if exists`**）；索引 `:64-65`；RLS enable `:67`；`revoke … from anon,authenticated`（`:69`）；`grant all … service_role`（`:71`）；注释 `:73-84`（`rights_confirmed=yes` 是 live 采集前置） |
 | `20260911000100_report_purchase_subject.sql`（7 行）**定价/业务域** | 一次性购买的报告主体 | `payment_orders` 加 `subject_id text`（`:3-4`）；索引 `idx_payment_orders_owner_product_subject_status`（`:6-7`）；既有 order `subject_id` 保持 NULL、不解锁任何报告（`:1-2`） |
-| `20260912000100_pricing_admin.sql`（64 行）**定价** | 后台定价目录（**未被 schema-ownership.json 登记**） | `pricing_products`（`:4-10`，`checkout_mode` check）；`pricing_prices`（`:12-24`，`currency` 7 值含 `SGD`、`amount_minor > 0`、`price_version > 0`）；索引 `:26-27`；`pricing_regions`（`:29-35`）；`pricing_plans`（`:37-48`，`monthly_query_limit/monthly_report_quota/subscription_slots/export_rows_monthly`）；**DO 循环**统一 RLS enable + revoke + grant service_role（`:50-59`）；注释 `:61-64`（价格 append-only、plan `plan_version` 递增） |
+| `20260912000100_pricing_admin.sql`（64 行）**定价** | 后台定价目录（已登记于 schema-ownership.json） | `pricing_products`（`:4-10`，`checkout_mode` check）；`pricing_prices`（`:12-24`，`currency` 7 值含 `SGD`、`amount_minor > 0`、`price_version > 0`）；索引 `:26-27`；`pricing_regions`（`:29-35`）；`pricing_plans`（`:37-48`，`monthly_query_limit/monthly_report_quota/subscription_slots/export_rows_monthly`）；**DO 循环**统一 RLS enable + revoke + grant service_role（`:50-59`）；注释 `:61-64`（价格 append-only、plan `plan_version` 递增） |
 
 ---
 
@@ -1234,7 +1234,7 @@ Intake（2026-08-25）：`analysis_sessions`（`token_hash` unique）→ 1:N `pr
 
 ## 6. 坑 / 注意事项
 
-1. **审计清单与磁盘不一致**：迁移目录 **24 个** SQL，但 `docs/architecture/schema-ownership.json:6-30` 只登记 **23 个**，缺 `20260912000100_pricing_admin.sql`。`scripts/check_schema_ownership.py` 是否会因此报错**未确认**——需运行只读审计确认。
+1. **审计清单与磁盘一致**：迁移目录与 `docs/architecture/schema-ownership.json:6-30` 均为 **24 个** SQL；已登记 `20260911000100_report_purchase_subject.sql` 与 `20260912000100_pricing_admin.sql`。仍不得据此推断这些 migration 已执行。
 2. **迁移编号存在缺口**：`…000700` 直接跳 `20260825000400`；`20260828000100`→`20260829000100`→`20260902000100` 亦不连续。README 明确「三条原有 ledger ID 保持不变，没有伪造或 repair 缺失的历史 ID」（`supabase/migrations/README.md:19-24`）。因此 fresh-install 顺序（README:28-42）与目录数字顺序一致，但**不可假设每个时间戳都有文件**。
 3. **同一逻辑被多次重写**（读代码勿只读首个文件）：
    - policy 版本防重叠：`20260824000400:5-17` 触发器 → 被 `20260824000500:129-130` 删除 → 改为 GiST 排除约束 `20260824000500:127-158`（staging 协调再建于 `20260902000100:290-309`）。
@@ -1249,7 +1249,7 @@ Intake（2026-08-25）：`analysis_sessions`（`token_hash` unique）→ 1:N `pr
 10. **license 现实**：`data/source_registry.json` 无已授权真实来源；SUUMO 审查结论为**不通过**（商业用途需 Recruit 书面许可，`docs/superpowers/plans/2026-09-07-source-authorization-review.md:8-15`）→ 当前**不可 live 采集/展示**。`collection_sources.rights_confirmed` 默认 `false`，作为调度前置闸门（`20260906000100:36,78-80`）。
 11. **`backend/sql/`、旧 restore 包、schema dump 不是 migration history**（`supabase/migrations/README.md:97-98`；`schema-ownership-audit.md:53-67`）；`INIT_SCHEMA=true` 只在 local/dev/test 生效，staging 为 `INIT_SCHEMA=false`（`schema-ownership-audit.md:14,80`）。
 12. **`20260912000100_pricing_admin` 使用 `SGD` 币种**（`20260912000100:15,31`），而 V1 冻结枚举为 `CNY/HKD/TWD/MOP/JPY/USD`（`20260905000200:53-55`）——两套币种集合不同，跨表校验需注意。
-13. **`market_snapshots` 含未过滤的 `rents`/`suumo_updated`**，而 `collected_licensed` 已过滤——两目录语义不同，勿混用（用途**未确认**）。
+13. **快照清理**：嵌入 `backend/data/market_snapshots/` 已移除 `rents`/`suumo_updated`；测试夹具和采集脚本仍保留兼容/解析证据，不能把它们当作已授权发布数据。
 
 ---
 

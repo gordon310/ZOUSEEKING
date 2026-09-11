@@ -47,7 +47,7 @@ migration_baseline_status=canonical_staging_reconciled_production_pending
 ## Canonical history decision
 
 `supabase/migrations/` 是唯一 canonical forward history。Fresh install 必须按
-文件名执行以下 13 个 ID：
+文件名执行以下 24 个 ID（后 11 个为后续业务域 forward migrations，尚未因本次审计而执行）：
 
 | ID | 责任 |
 | --- | --- |
@@ -64,6 +64,9 @@ migration_baseline_status=canonical_staging_reconciled_production_pending
 | `20260829000100` | final canonical RLS、least-privilege grants 和 public field-option exception |
 | `20260902000100` | staging baseline reconciliation、complete provenance、constraints 与 final least-privilege access contract |
 | `20260902000200` | 显式固定 managed/disposable 环境一致的 `service_role` 表权限 |
+| `20260904000100`–`20260906000100` | intake、组织/产品/订阅、用量、服务任务、财务审计、会员状态、采集来源等业务域 |
+| `20260911000100` | 报告购买订单的 `subject_id` 主体关联 |
+| `20260912000100` | 后台定价产品、价格、区域和套餐目录 |
 
 三条已经应用且原本存在于当前 history 的文件没有被改写：
 

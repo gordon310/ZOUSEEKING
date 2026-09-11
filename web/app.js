@@ -813,11 +813,11 @@ function renderProfile() {
 
   const profile = state.profile;
   const displayName = profile.display_name || profile.username || state.session.username;
-  const tier = profile.membership_tier === "free" ? "免费版" : profile.membership_tier;
+    const tier = profile.membership_tier === "free" ? "免费版" : profile.membership_tier || "真实会员等级未返回";
   $("#profileSummary").innerHTML = `
     <div class="profile-line"><span>昵称</span><strong>${escapeHtml(displayName)}</strong></div>
     <div class="profile-line"><span>邮箱</span><strong>${escapeHtml(profile.email || state.session.email)}</strong></div>
-    <div class="profile-line"><span>会员</span><strong>${escapeHtml(tier)}｜每日 ${escapeHtml(profile.daily_query_limit || 3)} 次</strong></div>
+    <div class="profile-line"><span>会员</span><strong>${escapeHtml(tier)}｜每日 ${escapeHtml(profile.daily_query_limit == null ? "额度未返回" : profile.daily_query_limit)} 次</strong></div>
     <div class="profile-line"><span>关注</span><strong>${escapeHtml(displayPropertyText([profile.favorite_area, profile.favorite_asset_type].filter(Boolean).join(" / ") || "还没填"))}</strong></div>
   `;
 
@@ -1751,12 +1751,12 @@ async function handleStructuredQuery(event) {
       status = backendResult.status;
     } catch (error) {
       if ($("#progressDialog").open) $("#progressDialog").close();
-      setMessage(`后端查询失败，先显示本地缓存：${error.message}`, "error");
-      await showProgress(queryTitle(options), matchedCount);
+      setMessage(`后端查询失败，未使用本地演示结果：${error.message}`, "error");
+      return;
     }
   } else {
-    setMessage(uiText("query.backendFallback", "后端尚未配置，当前只显示本地公开数据；登录后的项目查询需要连接 API。"), "error");
-    await showProgress(queryTitle(options), matchedCount);
+    setMessage(uiText("query.backendUnavailable", "真实查询服务尚未连接；未创建或展示本地演示结果。"), "error");
+    return;
   }
   saveQuery(options, status, matchedCount);
   state.queryOptions = options;

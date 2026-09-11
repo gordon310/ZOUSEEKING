@@ -9,7 +9,7 @@ transaction dry-run、later-ID push、逻辑备份隔离恢复及运行验收。
 
 **本地与 staging ownership contract：SHIP。production baseline：BLOCKED。**
 
-- `supabase/migrations/` 是唯一允许新增的 forward migration history，当前清单为 13 个文件。
+- `supabase/migrations/` 是唯一允许新增的 forward migration history，当前清单为 24 个文件；其中包含报告购买主体与定价后台两条最新 forward migration。
 - `backend/sql/` 的 8 个 SQL 文件分别属于历史 bootstrap、迁移前来源、生成支持或手工支持材料，不能拼接成第二条 migration history。
 - `backend/app/db.py::init_schema` 仍读取 `backend/sql/schema.sql`，但 `backend/app/main.py::should_init_schema` 只在显式 `INIT_SCHEMA=true` 且 `ENVIRONMENT` 为 `local`、`development` 或 `test` 时调用；Render staging 的 `INIT_SCHEMA=false`。该路径保留为 disposable local/test compatibility，不是托管环境建库入口。
 - `migration_baseline_status = canonical_staging_reconciled_production_pending`：
@@ -47,8 +47,10 @@ render.yaml           ->  staging ENVIRONMENT=staging, INIT_SCHEMA=false
 | `20260829000100_baseline_access_contract.sql` | 22 张 application table 的最终 RLS/grant/access contract |
 | `20260902000100_staging_baseline_reconciliation.sql` | 在不伪造旧 ledger 的前提下协调 staging provenance、constraints、least-privilege RLS/grants 与 Storage policy 边界 |
 | `20260902000200_service_role_grant_portability.sql` | 显式固定 22 张 application table 的 trusted `service_role` 权限，消除 managed staging 与 disposable CLI 版本差异 |
+| `20260911000100_report_purchase_subject.sql` | 为一次性报告购买订单登记报告主体 `subject_id`，用于报告级解锁关联 |
+| `20260912000100_pricing_admin.sql` | 增加后台定价产品、价格、区域和套餐目录表及 service-role 访问边界 |
 
-文件名必须保持唯一 14 位时间戳并按顺序应用。已应用文件不可编辑；任何线上修复只能新增更晚的 reviewed forward migration。
+文件名必须保持唯一 14 位时间戳并按顺序应用。已应用文件不可编辑；任何线上修复只能新增更晚的 reviewed forward migration。本批新增文件尚未执行，仍需独立迁移审查与受控发布。
 
 ## Legacy SQL 处置
 

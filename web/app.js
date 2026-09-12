@@ -265,7 +265,7 @@ function saveQueryHistory(items) {
 }
 
 function passwordIsValid(password) {
-  return (
+  return window.ZouAuthRecovery?.isPasswordValid?.(password) ?? (
     typeof password === "string" &&
     password.length >= PASSWORD_MIN_LENGTH &&
     password.length <= PASSWORD_MAX_LENGTH &&
@@ -374,6 +374,17 @@ function appRedirectUrl() {
   url.hash = "";
   url.search = "";
   return url.toString();
+}
+
+function passwordResetRedirectUrl() {
+  return window.ZouAuthRecovery?.buildResetRedirectUrl?.(window.location.origin) || `${window.location.origin}/reset-password.html`;
+}
+
+function passwordRecoveryApi() {
+  return window.ZouAuthRecovery?.createAuthApi?.({
+    supabaseUrl: SUPABASE_URL,
+    anonKey: SUPABASE_ANON_KEY,
+  });
 }
 
 function cloneDefaultFieldOptions() {
@@ -1696,24 +1707,21 @@ async function requestPasswordReset(event) {
   const email = $("#forgotPasswordEmail")?.value.trim();
   const submitButton = $("#forgotPasswordForm button[type='submit']");
   if (!email) {
-    setMessage("请输入注册邮箱。", "error");
+    setMessage(uiText("account.resetEmailRequired", "请输入注册邮箱。"), "error");
     return;
   }
   if (!hasSupabase()) {
-    setMessage("账户服务还未配置，暂时无法发送找回邮件；没有修改任何账户。", "error");
+    setMessage(uiText("account.resetUnavailable", "暂时无法发送重置邮件，请稍后再试。"), "error");
     return;
   }
   try {
     submitButton.disabled = true;
-    setMessage("正在发送找回邮件……");
-    await supabaseAuthFetch(`/recover?redirect_to=${encodeURIComponent(appRedirectUrl())}`, {
-      method: "POST",
-      body: JSON.stringify({ email }),
-    });
+    setMessage(uiText("account.resetSending", "正在发送重置邮件……"));
+    await passwordRecoveryApi().resetPasswordForEmail(email, { redirectTo: passwordResetRedirectUrl() });
     $("#forgotPasswordForm").reset();
-    setMessage("如果这个邮箱已注册，找回密码邮件会发到邮箱；请检查收件箱和垃圾邮件。", "success");
+    setMessage(uiText("account.resetSent", "如果该邮箱已注册，重置邮件会发送到邮箱；请查收收件箱和垃圾邮件。"), "success");
   } catch {
-    setMessage("找回密码请求未完成，请稍后再试。", "error");
+    setMessage(uiText("account.resetUnavailable", "暂时无法发送重置邮件，请稍后再试。"), "error");
   } finally {
     submitButton.disabled = false;
   }

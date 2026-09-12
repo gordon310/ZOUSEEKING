@@ -32,6 +32,14 @@ test("zh-Hant has exactly the zh-CN keys", () => {
   assert.deepEqual(i18n.keys("zh-Hant"), i18n.keys("zh-CN"));
 });
 
+test("all supported locales have the same key set", () => {
+  const i18n = loadI18n();
+  const expected = i18n.keys("zh-CN");
+  for (const locale of ["zh-Hant", "en", "ja"]) {
+    assert.deepEqual(i18n.keys(locale), expected, locale);
+  }
+});
+
 test("zh-Hant keeps the same placeholders as zh-CN", () => {
   const i18n = loadI18n();
   for (const key of i18n.keys("zh-CN")) {

@@ -59,7 +59,13 @@ test("browser language mapping selects the expected locale", () => {
   assert.equal(loadI18n({ language: "fr-FR" }).detectedLocale, "en");
 });
 
-test("saved locale has priority over URL and browser language", () => {
-  assert.equal(loadI18n({ savedLocale: "en", search: "?lang=zh-TW", language: "zh-TW" }).locale(), "en");
+test("explicit URL locale has priority over saved and browser language", () => {
+  assert.equal(loadI18n({ savedLocale: "en", search: "?lang=zh-TW", language: "en-US" }).locale(), "zh-Hant");
   assert.equal(loadI18n({ search: "?lang=zh-TW", language: "en-US" }).locale(), "zh-Hant");
+});
+
+test("Taiwan copy uses Taiwan terms for the affected login and intake text", () => {
+  const i18n = loadI18n({ language: "zh-TW" });
+  assert.equal(i18n.t("account.loginQueryCopy"), "未登入只能看最近 5 條資料。註冊很簡單，別緊張，不查戶口。");
+  assert.equal(i18n.t("intake.copy"), "我們幫你整理物件關鍵資料、核對潛在風險與合規資訊，讓你看得更清楚，決策更安心。");
 });

@@ -34,6 +34,12 @@ function setText(element, value) {
   element.textContent = value == null ? "" : String(value);
 }
 
+function interp(text, params = {}) {
+  return String(text).replace(/\{(\w+)\}/g, (match, key) =>
+    Object.prototype.hasOwnProperty.call(params, key) ? String(params[key]) : match,
+  );
+}
+
 function formatDate(value) {
   if (!value) return t("report.notAvailable", "—");
   const date = new Date(value);
@@ -127,7 +133,10 @@ async function preparePaywall(report) {
     const price = selectPrice(prices, PRODUCT_CODE, currency);
     setText(elements.price, price ? priceLabel(price) : t("report.priceUnavailable", "当前地区暂未提供价格"));
     elements.unlock.disabled = !price;
-    elements.unlock.textContent = price ? `${t("report.unlockWithPrice", "解锁本报告")} ${priceLabel(price)}` : t("report.unlockWithPrice", "解锁本报告");
+    elements.unlock.textContent = interp(
+      t("report.unlockWithPrice", "解锁本报告（{price}）"),
+      { price: priceLabel(price) },
+    );
     elements.unlock.onclick = () => startCheckout(region);
   } catch {
     setText(elements.price, t("report.priceUnavailable", "当前地区暂未提供价格"));

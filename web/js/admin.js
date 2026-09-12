@@ -190,11 +190,14 @@
         if (!row) return;
         if (button.dataset.memberAction === "view") {
           if (detail) detail.textContent = row.detail;
-          setMemberNotice(`已查看 ${row.label} 的演示详情；真实会员字段仍需服务端授权。`);
+          setMemberNotice(interp(t("admin.demoMemberViewed", "已查看 {name} 的演示详情；真实会员字段仍需服务端授权。"), { name: row.label }));
           return;
         }
         row.status = row.status === "paused" ? "active" : "paused";
-        setMemberNotice(`已在本地演示状态中${row.status === "paused" ? "暂停" : "恢复"} ${row.label}；没有修改真实会员资料。`);
+        setMemberNotice(interp(t("admin.demoMemberStatusChanged", "已在本地演示状态中将 {name} 设为{status}；没有修改真实会员资料。"), {
+          name: row.label,
+          status: row.status === "paused" ? t("admin.statusPaused", "暂停") : t("admin.memberResume", "恢复"),
+        }));
         renderDemoMembers();
       });
     });
@@ -205,8 +208,8 @@
     memberTableHead.innerHTML = isLive ? views.memberLiveHeaders : views.memberDemoHeaders;
     if (memberTableCaption) {
       memberTableCaption.textContent = isLive
-        ? "会员资料与额度（来自真实后台 /api/admin/members）"
-        : "会员资料与额度状态（界面演示）";
+        ? t("admin.memberCaptionLive", "会员资料与额度（来自真实后台 /api/admin/members）")
+        : t("admin.memberCaptionDemo", "会员资料与额度状态（界面演示）");
     }
     if (memberStatusFilterLabel) memberStatusFilterLabel.hidden = isLive;
     if (memberPager) memberPager.hidden = !isLive;
@@ -235,7 +238,7 @@
   function memberGateRolesHint() {
     return t(
       "admin.memberWriteBlocked",
-      "需要 member_ops / super_admin 角色才能停用/恢复会员。",
+      t("admin.memberWriteBlocked", "需要 member_ops / super_admin 角色才能停用/恢复会员。"),
     );
   }
 
@@ -318,7 +321,7 @@
 
   async function showLiveMemberDetail(userId) {
     if (!detail || !userId) return;
-    setText(detailHeading, "会员详情");
+    setText(detailHeading, t("admin.memberDetail", "会员详情"));
     detail.textContent = t("admin.loading", "正在从后台加载……");
     try {
       const member = await api.getMember(userId);
@@ -367,7 +370,7 @@
           { status: label, name: shortName(userId) },
         ),
       );
-      if (detail) setText(detailHeading, "会员详情");
+      if (detail) setText(detailHeading, t("admin.memberDetail", "会员详情"));
     } catch (error) {
       setMemberNotice(memberStatusWriteErrorText(error));
     }
@@ -440,7 +443,7 @@
           target: "orders",
         });
       }
-      setText(orderTotals, `共 ${liveState.orders.total} 笔 · 金额小计 ${orderSubtotalText(payload)}`);
+      setText(orderTotals, interp(t("admin.orderTotals", "共 {count} 笔 · 金额小计 {subtotal}"), { count: liveState.orders.total, subtotal: orderSubtotalText(payload) }));
       setStatus(financeStatus, t("admin.financeMinorNote", "金额按 ISO 货币最小单位换算展示（如 JPY 不分、USD 分）。"));
     } catch (error) {
       orderList.innerHTML = "";
@@ -484,7 +487,7 @@
           target: "refunds",
         });
       }
-      setText(refundTotals, `共 ${liveState.refunds.total} 笔`);
+      setText(refundTotals, interp(t("admin.refundTotals", "共 {count} 笔"), { count: liveState.refunds.total }));
     } catch (error) {
       refundList.innerHTML = "";
       if (refundPager) refundPager.innerHTML = "";
@@ -615,7 +618,7 @@
         ),
         expiredLabel: "已过期",
       });
-      setText(roleCount, `${items.length} 条`);
+      setText(roleCount, interp(t("admin.itemCount", "{count} 条"), { count: items.length }));
       if (!keepStatus) {
         setStatus(
           roleStatus,
@@ -887,7 +890,7 @@
           target: "collection",
         });
       }
-      setText(collectionCount, `${items.length} / ${collectionState.total} 条`);
+      setText(collectionCount, interp(t("admin.pageItemCount", "{shown} / {total} 条"), { shown: items.length, total: collectionState.total }));
       if (!keepStatus) {
         setStatus(
           collectionStatus,
@@ -1083,7 +1086,7 @@
       qualityList.innerHTML = views.qualityRunsHtml(items, {
         canRetry: qualityState.active,
       });
-      setText(qualityCount, `${items.length} 个异常`);
+      setText(qualityCount, interp(t("admin.issueCount", "{count} 个异常"), { count: items.length }));
       setStatus(
         qualityStatus,
         items.length
@@ -1260,7 +1263,7 @@
       const items = payload?.items || [];
       const total = Number(payload?.total) || items.length;
       serviceList.innerHTML = views.serviceTasksHtml(items);
-      setText(serviceCount, `${items.length} / ${total} 条`);
+      setText(serviceCount, interp(t("admin.pageItemCount", "{shown} / {total} 条"), { shown: items.length, total }));
       setStatus(
         serviceStatus,
         items.length
@@ -1291,7 +1294,10 @@
       const s = (await api.listOverviewStats()) || {};
       setText(kpiTodayTotal, String(s.collection_today_total ?? "—"));
       if (kpiTodayNote) {
-        kpiTodayNote.textContent = `今日成功 ${s.collection_today_succeeded ?? 0} · 失败 ${s.collection_today_failed ?? 0} · 实时`;
+        kpiTodayNote.textContent = interp(t("admin.kpiToday", "今日成功 {succeeded} · 失败 {failed} · 实时"), {
+          succeeded: s.collection_today_succeeded ?? 0,
+          failed: s.collection_today_failed ?? 0,
+        });
       }
       setText(kpiRunning, String(s.collection_running ?? "—"));
       setText(kpiFailed, String(s.collection_failed_total ?? "—"));
@@ -1341,14 +1347,14 @@
     const entitlements = Array.isArray(payload?.entitlements) ? payload.entitlements : [];
     pricingState.products = products;
     if (pricingProduct) pricingProduct.innerHTML = products.map((p) => `<option value="${views.escape(p.product_code)}">${views.escape(p.name || p.product_code)}</option>`).join("");
-    if (pricingPriceList) pricingPriceList.innerHTML = prices.length ? prices.map((p) => `<tr><th scope="row">${views.escape(p.product_code)}</th><td>${views.escape(p.currency)}</td><td>${views.escape(p.amount_minor)}</td><td class="admin-wrap">${views.escape(p.stripe_price_id || "—")}</td><td>v${views.escape(p.price_version)}</td><td>${p.active ? "active" : "inactive"} <button class="admin-action" type="button" data-pricing-status-id="${views.escape(p.id)}" data-pricing-status-value="${p.active ? "false" : "true"}">${p.active ? "下架" : "上架"}</button></td><td>${views.escape(views.fmtDateTime(p.created_at))}</td></tr>`).join("") : views.emptyRow(7, "没有价格记录。");
+    if (pricingPriceList) pricingPriceList.innerHTML = prices.length ? prices.map((p) => `<tr><th scope="row">${views.escape(p.product_code)}</th><td>${views.escape(p.currency)}</td><td>${views.escape(p.amount_minor)}</td><td class="admin-wrap">${views.escape(p.stripe_price_id || "—")}</td><td>v${views.escape(p.price_version)}</td><td>${p.active ? "active" : "inactive"} <button class="admin-action" type="button" data-pricing-status-id="${views.escape(p.id)}" data-pricing-status-value="${p.active ? "false" : "true"}">${p.active ? t("admin.takeDown", "下架") : t("admin.publish", "上架")}</button></td><td>${views.escape(views.fmtDateTime(p.created_at))}</td></tr>`).join("") : views.emptyRow(7, t("admin.emptyPrices", "没有价格记录。"));
     pricingPriceList?.querySelectorAll("[data-pricing-status-id]").forEach((button) => button.addEventListener("click", async () => {
-      try { await api.setPricingPriceStatus(button.dataset.pricingStatusId, button.dataset.pricingStatusValue === "true"); await loadPricing(true); setText(pricingStatus, "价格状态已更新并写入审计。"); } catch (error) { setText(pricingStatus, pricingError(error)); }
+      try { await api.setPricingPriceStatus(button.dataset.pricingStatusId, button.dataset.pricingStatusValue === "true"); await loadPricing(true); setText(pricingStatus, t("admin.priceStatusUpdated", "价格状态已更新并写入审计。")); } catch (error) { setText(pricingStatus, pricingError(error)); }
     }));
-    if (pricingRegionList) pricingRegionList.innerHTML = regions.length ? regions.map((r) => `<tr><th scope="row">${views.escape(r.region_code)}</th><td>${views.escape(r.currency)}</td><td>${r.active ? "active" : "inactive"}</td></tr>`).join("") : views.emptyRow(3, "没有区域映射。");
-    if (pricingPlanList) pricingPlanList.innerHTML = plans.length ? plans.map((p) => `<tr><th scope="row">${views.escape(p.plan_code)}</th><td>${views.escape(p.name)}</td><td>${views.escape(p.audience || "c")}</td><td>${p.active ? "active" : "inactive"}</td><td>v${p.plan_version ?? 1}</td></tr>`).join("") : views.emptyRow(5, "没有套餐。");
-    if (pricingEntitlementList) pricingEntitlementList.innerHTML = entitlements.length ? entitlements.map((e) => `<tr><th scope="row">${views.escape(e.plan_code)}</th><td>${views.escape(e.metric)}</td><td>${views.escape(e.period)}</td><td>${views.escape(e.limit_units)}</td><td>${e.active ? "active" : "inactive"}</td><td>${views.escape(views.fmtDateTime(e.effective_from || e.created_at))}</td></tr>`).join("") : views.emptyRow(6, "没有权益。");
-    setText(pricingCount, `${prices.length} 个价格版本 · ${plans.length} 个套餐 · ${entitlements.length} 个权益版本`);
+    if (pricingRegionList) pricingRegionList.innerHTML = regions.length ? regions.map((r) => `<tr><th scope="row">${views.escape(r.region_code)}</th><td>${views.escape(r.currency)}</td><td>${r.active ? "active" : "inactive"}</td></tr>`).join("") : views.emptyRow(3, t("admin.emptyRegions", "没有区域映射。"));
+    if (pricingPlanList) pricingPlanList.innerHTML = plans.length ? plans.map((p) => `<tr><th scope="row">${views.escape(p.plan_code)}</th><td>${views.escape(p.name)}</td><td>${views.escape(p.audience || "c")}</td><td>${p.active ? "active" : "inactive"}</td><td>v${p.plan_version ?? 1}</td></tr>`).join("") : views.emptyRow(5, t("admin.emptyPlans", "没有套餐。"));
+    if (pricingEntitlementList) pricingEntitlementList.innerHTML = entitlements.length ? entitlements.map((e) => `<tr><th scope="row">${views.escape(e.plan_code)}</th><td>${views.escape(e.metric)}</td><td>${views.escape(e.period)}</td><td>${views.escape(e.limit_units)}</td><td>${e.active ? "active" : "inactive"}</td><td>${views.escape(views.fmtDateTime(e.effective_from || e.created_at))}</td></tr>`).join("") : views.emptyRow(6, t("admin.emptyEntitlements", "没有权益。"));
+    setText(pricingCount, interp(t("admin.pricingCount", "{prices} 个价格版本 · {plans} 个套餐 · {entitlements} 个权益版本"), { prices: prices.length, plans: plans.length, entitlements: entitlements.length }));
   }
 
   async function loadPricing(force = false) {

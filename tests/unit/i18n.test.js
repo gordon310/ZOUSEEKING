@@ -117,6 +117,23 @@ test("zh-Hant keeps the same placeholders as zh-CN", () => {
   }
 });
 
+test("report, workspace and admin dynamic copy is localized with matching placeholders", () => {
+  const i18n = loadI18n();
+  const keys = [
+    "report.unlockWithPrice",
+    "workspace.versionCount",
+    "workspace.readonlyVersion",
+    "admin.orderTotals",
+    "admin.kpiToday",
+  ];
+  for (const key of keys) {
+    for (const locale of ["zh-CN", "zh-Hant", "en", "ja"]) {
+      assert.ok(i18n.keys(locale).includes(key), `${locale}: ${key}`);
+      assert.deepEqual(i18n.placeholders(locale, key), i18n.placeholders("zh-CN", key), `${locale}: ${key}`);
+    }
+  }
+});
+
 test("browser language mapping selects the expected locale", () => {
   assert.equal(loadI18n({ language: "zh-TW" }).detectedLocale, "zh-Hant");
   assert.equal(loadI18n({ language: "zh-HK" }).detectedLocale, "zh-Hant");

@@ -11,6 +11,9 @@
     const i18n = window.ZouI18n;
     return i18n && typeof i18n.t === "function" ? i18n.t(key, fallback) : fallback;
   };
+  const interp = (text, params = {}) => String(text).replace(/\{(\w+)\}/g, (match, key) =>
+    Object.prototype.hasOwnProperty.call(params, key) ? String(params[key]) : match,
+  );
 
   function escape(value) {
     return String(value ?? "")
@@ -52,31 +55,18 @@
   }
 
   const ORDER_STATUS_TEXT = {
-    pending: "待支付",
-    paid: "已支付",
-    failed: "支付失败",
-    canceled: "已取消",
-    refunded: "已退款",
-    partially_refunded: "部分退款",
+    pending: t("admin.statusOrderPending", "待支付"), paid: t("admin.statusOrderPaid", "已支付"),
+    failed: t("admin.statusOrderFailed", "支付失败"), canceled: t("admin.statusCanceled", "已取消"),
+    refunded: t("admin.statusRefunded", "已退款"), partially_refunded: t("admin.statusPartiallyRefunded", "部分退款"),
   };
   const REFUND_STATUS_TEXT = {
-    pending: "待处理",
-    succeeded: "已退款",
-    failed: "退款失败",
+    pending: t("admin.statusRefundPending", "待处理"), succeeded: t("admin.statusRefundSucceeded", "已退款"), failed: t("admin.statusRefundFailed", "退款失败"),
   };
   const RUN_STATUS_TEXT = {
-    queued: "排队中",
-    running: "运行中",
-    succeeded: "已完成",
-    failed: "失败",
-    cancelled: "已取消",
+    queued: t("admin.statusQueued", "排队中"), running: t("admin.statusRunning", "运行中"), succeeded: t("admin.statusSucceeded", "已完成"), failed: t("admin.statusFailed", "失败"), cancelled: t("admin.statusCancelled", "已取消"),
   };
   const MEMBER_TIER_TEXT = {
-    free: "免费版",
-    basic: "基础版",
-    observer: "观察版",
-    pro: "专业版",
-    premium: "高级版",
+    free: t("admin.tierFree", "免费版"), basic: t("admin.tierBasic", "基础版"), observer: t("admin.tierObserver", "观察版"), pro: t("admin.tierPro", "专业版"), premium: t("admin.tierPremium", "高级版"),
   };
   // source_type vocabulary (mirrors the DB CHECK + backend admin service).
   const COLLECTION_SOURCE_TYPES = [
@@ -166,9 +156,9 @@
   ];
 
   function demoMemberStatusLabel(status) {
-    if (status === "paused") return "已暂停";
-    if (status === "review") return "待确认";
-    return "正常";
+    if (status === "paused") return t("admin.statusPaused", "已暂停");
+    if (status === "review") return t("admin.statusReview", "待确认");
+    return t("admin.statusActive", "正常");
   }
 
   function demoMemberStatusClass(status) {
@@ -179,7 +169,7 @@
 
   function demoMemberRowsHtml(rows) {
     if (!rows.length) {
-      return emptyRow(6, "没有符合条件的演示会员。");
+      return emptyRow(6, t("admin.emptyDemoMembers", "没有符合条件的演示会员。"));
     }
     return rows
       .map((row) => `
@@ -190,8 +180,8 @@
           <td>${escape(row.quota)}</td>
           <td>${escape(row.activity)}</td>
           <td class="member-actions">
-            <button class="admin-action" type="button" data-member-action="view" data-member-id="${escape(row.id)}">查看</button>
-            <button class="admin-action" type="button" data-member-action="toggle" data-member-id="${escape(row.id)}">${row.status === "paused" ? "恢复（演示）" : "暂停（演示）"}</button>
+            <button class="admin-action" type="button" data-member-action="view" data-member-id="${escape(row.id)}">${t("admin.view", "查看")}</button>
+            <button class="admin-action" type="button" data-member-action="toggle" data-member-id="${escape(row.id)}">${row.status === "paused" ? t("admin.resumeDemo", "恢复（演示）") : t("admin.pauseDemo", "暂停（演示）")}</button>
           </td>
         </tr>
       `)
@@ -203,13 +193,13 @@
   // 9 columns: 会员 / 端别 / 等级 / 状态 / 内部角色 / 订阅 / 当月用量 / 加入时间 / 操作
   const memberLiveHeaders = `
     <tr>
-      <th scope="col">会员</th><th scope="col">${escape(t("admin.audience", "端别"))}</th><th scope="col">等级</th><th scope="col">状态</th><th scope="col">内部角色</th>
-      <th scope="col">订阅</th><th scope="col">当月用量</th><th scope="col">加入时间</th><th scope="col">操作</th>
+      <th scope="col">${t("admin.member", "会员")}</th><th scope="col">${escape(t("admin.audience", "端别"))}</th><th scope="col">${t("admin.tier", "等级")}</th><th scope="col">${t("admin.status", "状态")}</th><th scope="col">${t("admin.internalRoles", "内部角色")}</th>
+      <th scope="col">${t("admin.subscriptions", "订阅")}</th><th scope="col">${t("admin.monthlyUsage", "当月用量")}</th><th scope="col">${t("admin.joinedAt", "加入时间")}</th><th scope="col">${t("admin.actions", "操作")}</th>
     </tr>`;
   const memberDemoHeaders = `
     <tr>
-      <th scope="col">会员</th><th scope="col">等级</th><th scope="col">状态</th><th scope="col">额度使用</th>
-      <th scope="col">最近活动</th><th scope="col">操作</th>
+      <th scope="col">${t("admin.member", "会员")}</th><th scope="col">${t("admin.tier", "等级")}</th><th scope="col">${t("admin.status", "状态")}</th><th scope="col">${t("admin.quotaUsage", "额度使用")}</th>
+      <th scope="col">${t("admin.recentActivity", "最近活动")}</th><th scope="col">${t("admin.actions", "操作")}</th>
     </tr>`;
 
   function tierLabel(tier) {
@@ -281,7 +271,7 @@
           <td>${quotasText(member.usage_quotas)}</td>
           <td>${escape(fmtDateTime(member.created_at))}</td>
           <td class="member-actions">
-            <button class="admin-action" type="button" data-member-action="view" data-member-id="${escape(member.user_id)}">查看</button>
+            <button class="admin-action" type="button" data-member-action="view" data-member-id="${escape(member.user_id)}">${t("admin.view", "查看")}</button>
             <button class="admin-action" type="button" data-member-action="${action}" data-member-id="${escape(member.user_id)}"${blocked}>${escape(actionLabel)}</button>
           </td>
         </tr>`;
@@ -292,22 +282,23 @@
   function memberDetailText(member) {
     const lines = [];
     const name = member.display_name || member.username || "—";
-    lines.push(`会员：${name}`);
-    if (member.email) lines.push(`邮箱（按角色显示）：${member.email}`);
-    lines.push(`${t("admin.audience", "端别")}：${member.audience === "b" ? "B" : "C"}`);
-    lines.push(`等级：${tierLabel(member.membership_tier)}（每日额度 ${member.daily_query_limit ?? "—"} 次）`);
-    lines.push(`状态：${member.status === "suspended" ? "已停用" : "正常"}`);
-    lines.push(`加入时间：${fmtDateTime(member.created_at)}`);
-    lines.push(`内部角色：${rolesText(member.roles)}`);
+    const detailLine = (key, fallback, value) => `${t(key, fallback)}：${value}`;
+    lines.push(detailLine("admin.detailMember", "会员", name));
+    if (member.email) lines.push(detailLine("admin.detailEmail", "邮箱（按角色显示）", member.email));
+    lines.push(detailLine("admin.audience", "端别", member.audience === "b" ? "B" : "C"));
+    lines.push(interp(t("admin.detailTier", "等级：{tier}（每日额度 {limit} 次）"), { tier: tierLabel(member.membership_tier), limit: member.daily_query_limit ?? "—" }));
+    lines.push(detailLine("admin.status", "状态", member.status === "suspended" ? t("admin.memberStatusSuspended", "已停用") : t("admin.memberStatusActive", "正常")));
+    lines.push(detailLine("admin.joinedAt", "加入时间", fmtDateTime(member.created_at)));
+    lines.push(detailLine("admin.internalRoles", "内部角色", rolesText(member.roles)));
     const subs = Array.isArray(member.subscriptions) ? member.subscriptions : [];
-    lines.push(`订阅：${subs.length ? subs.map((s) => `${s.product_code || "—"}（${s.status || "—"}）`).join("、") : "无"}`);
+    lines.push(detailLine("admin.subscriptions", "订阅", subs.length ? subs.map((s) => `${s.product_code || "—"}（${s.status || "—"}）`).join("、") : t("admin.none", "无")));
     const events = Array.isArray(member.usage_events) ? member.usage_events : [];
     if (events.length) {
       const recent = events
         .slice(0, 5)
         .map((event) => `${fmtDateTime(event.created_at)} ${event.usage_kind || ""} ${event.operation || ""}（+${event.units ?? 0}）`)
         .join("；");
-      lines.push(`最近用量事件：${recent}`);
+      lines.push(detailLine("admin.recentUsageEvents", "最近用量事件", recent));
     }
     return lines.join("\n");
   }
@@ -317,8 +308,8 @@
   // 7 columns: 用户 / 角色 / 授予人 / 授予时间 / 过期 / 备注 / 操作
   const ROLE_HEADERS = `
     <tr>
-      <th scope="col">用户</th><th scope="col">角色</th><th scope="col">授予人</th>
-      <th scope="col">授予时间</th><th scope="col">过期时间</th><th scope="col">备注</th><th scope="col">操作</th>
+      <th scope="col">${t("admin.user", "用户")}</th><th scope="col">${t("admin.role", "角色")}</th><th scope="col">${t("admin.grantedBy", "授予人")}</th>
+      <th scope="col">${t("admin.grantedAt", "授予时间")}</th><th scope="col">${t("admin.expiresAt", "过期时间")}</th><th scope="col">${t("admin.note", "备注")}</th><th scope="col">${t("admin.actions", "操作")}</th>
     </tr>`;
 
   function roleRowsHtml(items, options = {}) {
@@ -394,7 +385,7 @@
     return items
       .map((order) => `
         <tr>
-          <th scope="row">${escape(order.order_no || shortId(order.id))}${order.organization_id ? `<span>组织 ${escape(shortId(order.organization_id))}</span>` : ""}</th>
+          <th scope="row">${escape(order.order_no || shortId(order.id))}${order.organization_id ? `<span>${t("admin.organization", "组织")} ${escape(shortId(order.organization_id))}</span>` : ""}</th>
           <td>${escape(order.product_code || "—")}</td>
           <td>${escape(shortId(order.owner_user_id))}</td>
           <td>${badge(order.status, statusLabel(order.status, ORDER_STATUS_TEXT))}</td>
@@ -427,9 +418,9 @@
   // 8 columns: 来源 / 状态 / 行数 / 快照哈希 / 错误 / 操作人 / 创建时间 / 完成时间
   const collectionLiveHeaders = `
     <tr>
-      <th scope="col">来源</th><th scope="col">状态</th><th scope="col" class="num">行数</th>
-      <th scope="col">快照哈希</th><th scope="col">错误信息</th><th scope="col">操作人</th>
-      <th scope="col">创建时间</th><th scope="col">完成时间</th>
+      <th scope="col">${t("admin.source", "来源")}</th><th scope="col">${t("admin.status", "状态")}</th><th scope="col" class="num">${t("admin.rowCount", "行数")}</th>
+      <th scope="col">${t("admin.snapshotHash", "快照哈希")}</th><th scope="col">${t("admin.errorInfo", "错误信息")}</th><th scope="col">${t("admin.operator", "操作人")}</th>
+      <th scope="col">${t("admin.createdAt", "创建时间")}</th><th scope="col">${t("admin.completedAt", "完成时间")}</th>
     </tr>`;
 
   function hashCell(hash) {
@@ -470,9 +461,9 @@
 
   const qualityLiveHeaders = `
     <tr>
-      <th scope="col">来源</th><th scope="col">状态</th><th scope="col" class="num">行数</th>
-      <th scope="col">错误信息</th><th scope="col">创建时间</th><th scope="col">完成时间</th>
-      <th scope="col">操作</th>
+      <th scope="col">${t("admin.source", "来源")}</th><th scope="col">${t("admin.status", "状态")}</th><th scope="col" class="num">${t("admin.rowCount", "行数")}</th>
+      <th scope="col">${t("admin.errorInfo", "错误信息")}</th><th scope="col">${t("admin.createdAt", "创建时间")}</th><th scope="col">${t("admin.completedAt", "完成时间")}</th>
+      <th scope="col">${t("admin.actions", "操作")}</th>
     </tr>`;
 
   function qualityRunsHtml(items, { canRetry = false } = {}) {
@@ -493,7 +484,7 @@
               ? `<button type="button" class="admin-action" data-quality-retry
                      data-source-key="${escape(run.source_key)}"
                      data-source-type="${escape(run.source_type)}"
-                     data-run-id="${escape(run.id)}">重投</button>`
+                     data-run-id="${escape(run.id)}">${t("admin.retry", "重投")}</button>`
               : "—"
           }</td>
         </tr>`)
@@ -502,22 +493,15 @@
 
   // ---------- service dispatch: C-end task ledger (read-only) ----------
   const SERVICE_STATUS_TEXT = {
-    draft: "草稿",
-    open: "招募中",
-    matched_pending_consent: "已匹配待确认",
-    in_progress: "进行中",
-    completion_pending: "待完成确认",
-    completed: "已完成",
-    cancelled: "已取消",
-    expired: "已过期",
-    closed_unconfirmed: "关闭未确认",
-    suspended: "已暂停",
+    draft: t("admin.serviceDraft", "草稿"), open: t("admin.serviceOpen", "招募中"), matched_pending_consent: t("admin.serviceMatchedPending", "已匹配待确认"),
+    in_progress: t("admin.serviceInProgress", "进行中"), completion_pending: t("admin.serviceCompletionPending", "待完成确认"), completed: t("admin.statusSucceeded", "已完成"),
+    cancelled: t("admin.statusCancelled", "已取消"), expired: t("admin.expired", "已过期"), closed_unconfirmed: t("admin.serviceClosedUnconfirmed", "关闭未确认"), suspended: t("admin.statusPaused", "已暂停"),
   };
 
   const serviceLiveHeaders = `
     <tr>
-      <th scope="col">任务</th><th scope="col">区域</th><th scope="col">资产</th><th scope="col">报酬</th>
-      <th scope="col">状态</th><th scope="col" class="num">应征</th><th scope="col">截止</th><th scope="col">创建时间</th>
+      <th scope="col">${t("admin.task", "任务")}</th><th scope="col">${t("admin.region", "区域")}</th><th scope="col">${t("admin.asset", "资产")}</th><th scope="col">${t("admin.compensation", "报酬")}</th>
+      <th scope="col">${t("admin.status", "状态")}</th><th scope="col" class="num">${t("admin.applications", "应征")}</th><th scope="col">${t("admin.deadline", "截止")}</th><th scope="col">${t("admin.createdAt", "创建时间")}</th>
     </tr>`;
 
   function serviceTasksHtml(items) {
@@ -550,9 +534,9 @@
     const current = Math.min(Math.max(Number(page) || 1, 1), pages);
     return `
       <div class="admin-pager" data-pager-target="${escape(target)}">
-        <button type="button" class="admin-action" data-pager-dir="prev" ${current <= 1 ? "disabled" : ""}>上一页</button>
-        <span>第 ${current} / ${pages} 页 · 共 ${Number(total) || 0} 条</span>
-        <button type="button" class="admin-action" data-pager-dir="next" ${current >= pages ? "disabled" : ""}>下一页</button>
+        <button type="button" class="admin-action" data-pager-dir="prev" ${current <= 1 ? "disabled" : ""}>${t("admin.previous", "上一页")}</button>
+        <span>${interp(t("admin.pager", "第 {page} / {pages} 页 · 共 {total} 条"), { page: current, pages, total: Number(total) || 0 })}</span>
+        <button type="button" class="admin-action" data-pager-dir="next" ${current >= pages ? "disabled" : ""}>${t("admin.next", "下一页")}</button>
       </div>`;
   }
 

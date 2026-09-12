@@ -4,6 +4,9 @@ const STATE_QUERY = "state";
 const VERSION_QUERY = "version";
 const VERSION_IDS = new Set(["v1", "v2", "v3"]);
 const t = (key, fallback) => window.ZouI18n?.t(key, fallback) || fallback;
+const interp = (text, params = {}) => String(text).replace(/\{(\w+)\}/g, (match, key) =>
+  Object.prototype.hasOwnProperty.call(params, key) ? String(params[key]) : match,
+);
 
 const state = {
   demo: false,
@@ -199,7 +202,7 @@ function renderStateCard(view) {
           </div>
           <span class="state-mark ${mark.tone}">${mark.symbol}</span>
         </div>
-        <div class="progress-track" aria-label="报告生成进度"><span style="width: 58%"></span></div>
+        <div class="progress-track" aria-label="${t("workspace.progress", "报告生成进度")}"><span style="width: 58%"></span></div>
         <ol class="progress-steps">
           <li class="is-done">✓ 固定输入版本</li>
           <li class="is-done">✓ 整理证据</li>
@@ -287,13 +290,13 @@ function renderVersions(view) {
   const versions = showV2
     ? state.activeVersion === "v3" ? [VERSION_3, ...VERSION_DATA] : VERSION_DATA
     : [VERSION_DATA[1]];
-  elements.versionCount.textContent = `${versions.length} 个版本`;
+  elements.versionCount.textContent = interp(t("workspace.versionCount", "{count} 个版本"), { count: versions.length });
   elements.versionList.innerHTML = versions
     .map((version) => `
       <article class="version-item">
         <span class="version-number">${escapeHtml(version.label)}</span>
         <p><strong>${escapeHtml(version.title)}</strong><small>${escapeHtml(version.date)} · ${escapeHtml(version.note)}</small></p>
-        <button type="button" data-version="${escapeHtml(version.id)}">${version.id === state.activeVersion ? "当前版本" : "查看版本"}</button>
+        <button type="button" data-version="${escapeHtml(version.id)}">${version.id === state.activeVersion ? t("workspace.currentVersion", "当前版本") : t("workspace.viewVersion", "查看版本")}</button>
       </article>
     `)
     .join("");
@@ -305,7 +308,7 @@ function renderVersions(view) {
       url.searchParams.set(VERSION_QUERY, state.activeVersion);
       history.replaceState(null, "", url);
       render();
-      setNotice(`${state.activeVersion.toUpperCase()} 为只读历史版本。旧版本不会被新报告覆盖。`);
+      setNotice(interp(t("workspace.readonlyVersion", "{version} 为只读历史版本。旧版本不会被新报告覆盖。"), { version: state.activeVersion.toUpperCase() }));
     });
   });
 }
@@ -333,7 +336,7 @@ function render() {
   const reportVersion = state.activeVersion.toUpperCase();
   elements.reportVersionLabel.textContent = `FULL REPORT · ${reportVersion} · SYNTHETIC FIXTURE`;
   elements.reportMetaVersion.textContent = reportVersion;
-  elements.reportFooterVersion.textContent = `收费完整版 ${reportVersion} · 输入版本 I1 · 数据类别 synthetic_fixture`;
+  elements.reportFooterVersion.textContent = interp(t("workspace.reportFooterVersion", "收费完整版 {version} · 输入版本 I1 · 数据类别 synthetic_fixture"), { version: reportVersion });
   elements.completionValue.textContent = `${config.completion}%`;
   elements.completionMeter.style.width = `${config.completion}%`;
   updateNextAction(state.view);

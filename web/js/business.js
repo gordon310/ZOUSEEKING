@@ -1,4 +1,5 @@
 (() => {
+  const t = (key, fallback) => window.ZouI18n?.t(key, fallback) || fallback;
   const filter = document.querySelector("#businessTaskFilter");
   const message = document.querySelector("#businessTaskMessage");
   const cards = Array.from(document.querySelectorAll("[data-service-task]"));
@@ -19,14 +20,14 @@
     const status = card.querySelector(".service-task-status");
     if (status) {
       status.className = "service-task-status status-active";
-      status.textContent = "进行中";
+      status.textContent = t("business.inProgress", "进行中");
     }
     const owner = card.querySelector(".service-task-footer span");
-    if (owner) owner.textContent = "已分配给当前工作台";
+    if (owner) owner.textContent = t("business.assignedWorkspace", "已分配给当前工作台");
     button.classList.add("secondary-action");
     button.disabled = true;
-    button.textContent = "已接单（演示）";
-    setMessage("任务已在本地演示状态中标记为进行中；未创建真实订单。" );
+    button.textContent = t("business.acceptedDemo", "已接单（演示）");
+    setMessage(t("business.demoAssignedNotice", "任务已在本地演示状态中标记为进行中；未创建真实订单。"));
     renderTasks();
   }
 
@@ -40,7 +41,7 @@
         return;
       }
       const title = card.querySelector("h3")?.textContent || "服务任务";
-      setMessage(`已打开「${title}」的演示详情；真实任务详情待后端接入。`);
+      setMessage((t("business.demoDetails", "已打开「{title}」的演示详情；真实任务详情待后端接入。")).replace("{title}", title));
     });
   });
 

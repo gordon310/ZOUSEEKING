@@ -1,5 +1,6 @@
 const DEMO_MODE = new URL(window.location.href).searchParams.get("demo") === "1";
 const EMPTY_MODE = new URL(window.location.href).searchParams.get("empty") === "1";
+const t = (key, fallback) => window.ZouI18n?.t(key, fallback) || fallback;
 
 const PROJECTS = [
   { id: "project-01", title: "大阪市北区・塔楼演示项目", purpose: "自住购买", status: "preview", statusLabel: "免费预览", completion: 62, updated: "2026-08-27 11:05", note: "已确认售价、面积；法律与管理资料不足。" },
@@ -76,7 +77,7 @@ function initializeMenu() {
 }
 
 if (DEMO_MODE) elements.banner.hidden = false;
-if (DEMO_MODE && EMPTY_MODE) elements.notice.textContent = "当前是空状态演示；切换状态筛选不会填充真实项目。";
+if (DEMO_MODE && EMPTY_MODE) elements.notice.textContent = t("projects.emptyDemoNotice", "当前是空状态演示；切换状态筛选不会填充真实项目。");
 elements.filter.addEventListener("change", renderProjects);
 initializeMenu();
 renderProjects();

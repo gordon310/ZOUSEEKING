@@ -12,7 +12,7 @@
   if (brandName) brandName.textContent = "小象避坑";
   if (brandCode) brandCode.textContent = "ZOUBEACON";
   if (heroEyebrow) heroEyebrow.textContent = "小象避坑 / ZOUBEACON";
-  if (heroCopy) heroCopy.textContent = "查看账户资料、安全设置和隐私边界。物件资料只在授权项目空间内使用。";
+  if (heroCopy) heroCopy.textContent = window.ZouI18n?.t("profile.heroCopyRuntime", "查看账户资料、安全设置和隐私边界。物件资料只在授权项目空间内使用。") || "查看账户资料、安全设置和隐私边界。物件资料只在授权项目空间内使用。";
 
   const links = Array.from(document.querySelectorAll(".topbar-links a"));
   const consumerNav = [

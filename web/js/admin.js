@@ -588,7 +588,7 @@
       );
     }
     if (roleTableCaption) {
-      roleTableCaption.textContent = "内部角色分配（仅 super_admin 可见与操作）";
+      roleTableCaption.textContent = t("admin.roleCaptionDemo", "内部角色分配（仅 super_admin 可见与操作）");
     }
     if (hint) setStatus(roleStatus, hint, error ? "error" : info ? "info" : "");
   }
@@ -630,7 +630,7 @@
         );
       }
       if (roleTableCaption) {
-        roleTableCaption.textContent = "内部角色分配（写入 internal_role_assignments，全程审计）";
+        roleTableCaption.textContent = t("admin.roleCaptionLive", "内部角色分配（写入 internal_role_assignments，全程审计）");
       }
     } catch (error) {
       roleList.innerHTML = "";
@@ -1470,10 +1470,10 @@
         const statusNode = item?.querySelector(".admin-table-status");
         if (statusNode) {
           statusNode.className = "admin-table-status status-active";
-          statusNode.textContent = "进行中";
+          statusNode.textContent = t("admin.inProgress", "进行中");
         }
         button.disabled = true;
-        button.textContent = "已分配（演示）";
+        button.textContent = t("admin.assignedDemo", "已分配（演示）");
         setGlobalNotice("服务任务已在本地演示状态中分配；真实派单需要校验角色、归属和审计记录。");
         return;
       }

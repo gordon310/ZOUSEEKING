@@ -3,6 +3,7 @@ const DEMO_QUERY = "demo";
 const STATE_QUERY = "state";
 const VERSION_QUERY = "version";
 const VERSION_IDS = new Set(["v1", "v2", "v3"]);
+const t = (key, fallback) => window.ZouI18n?.t(key, fallback) || fallback;
 
 const state = {
   demo: false,
@@ -349,13 +350,13 @@ function bindActions() {
 function submitServiceRequest() {
   const selected = document.querySelector("input[name='serviceRequest']:checked");
   if (!selected) {
-    setNotice("请先选择一种小象避坑服务；当前没有提交任何真实订单。" );
+    setNotice(t("workspace.serviceRequired", "请先选择一种小象避坑服务；当前没有提交任何真实订单。"));
     return;
   }
   elements.serviceRequestButton.disabled = true;
-  elements.serviceRequestButton.textContent = "需求已提交（演示）";
-  elements.serviceRequestStatus.textContent = `已选择「${selected.value}」。真实版本会进入 B 端服务队列，当前只改变本地页面状态。`;
-  setNotice("服务需求已在本地演示状态中提交；真实派单需要后端校验和审计记录。" );
+  elements.serviceRequestButton.textContent = t("workspace.serviceRequested", "需求已提交（演示）");
+  elements.serviceRequestStatus.textContent = t("workspace.serviceSelected", "已选择「{value}」。真实版本会进入 B 端服务队列，当前只改变本地页面状态。").replace("{value}", selected.value);
+  setNotice(t("workspace.serviceSubmitted", "服务需求已在本地演示状态中提交；真实派单需要后端校验和审计记录。"));
 }
 
 function handleAction(action) {
@@ -374,7 +375,7 @@ function handleAction(action) {
   }
   if (action === "preview") return writeState("preview");
   if (action === "fake-upload") {
-    setNotice("已选择演示文件：长期修缮计划_演示.pdf。真实版本会在这里显示上传状态和文件大小。", "info");
+    setNotice(t("workspace.demoFileSelected", "已选择演示文件：长期修缮计划_演示.pdf。真实版本会在这里显示上传状态和文件大小。"), "info");
     return;
   }
   if (action === "scroll-report") {

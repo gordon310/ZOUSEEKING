@@ -12,6 +12,10 @@ const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const INTAKE_SESSION_KEY = "zou_house_property_intake_session";
 const DEMO_MODE = new URL(window.location.href).searchParams.get("demo") === "1";
 const t = (key, fallback) => window.ZouI18n?.t(key, fallback) || fallback;
+const copy = (key, fallback, values = {}) => Object.entries(values).reduce(
+  (text, [name, value]) => text.replaceAll(`{${name}}`, String(value ?? "")),
+  t(key, fallback),
+);
 const NOT_SUBDIVIDED_VALUE = "__not_subdivided__";
 const DIMENSION_LABELS = {
   identity: "项目身份",
@@ -221,10 +225,10 @@ function validateFiles(files) {
       ".png": "image/png",
     };
     if (!allowed[extension] || (file.type && file.type !== allowed[extension])) {
-      return "仅支持 PDF、JPG、PNG 文件。";
+      return t("intake.fileTypeInvalid", "仅支持 PDF、JPG、PNG 文件。");
     }
-    if (!file.size) return "上传文件不能为空。";
-    if (file.size > MAX_UPLOAD_BYTES) return "单个文件不能超过 20 MiB。";
+    if (!file.size) return t("intake.fileEmpty", "上传文件不能为空。");
+    if (file.size > MAX_UPLOAD_BYTES) return t("intake.fileTooLarge", "单个文件不能超过 20 MiB。");
   }
   return "";
 }
@@ -238,10 +242,10 @@ function validatePhotoFiles(files) {
       ".png": "image/png",
     };
     if (!allowed[extension] || (file.type && file.type !== allowed[extension])) {
-      return "物件照片仅支持 JPG、PNG 文件。";
+      return t("intake.photoTypeInvalid", "物件照片仅支持 JPG、PNG 文件。");
     }
-    if (!file.size) return "物件照片不能为空。";
-    if (file.size > MAX_UPLOAD_BYTES) return "单张物件照片不能超过 20 MiB。";
+    if (!file.size) return t("intake.photoEmpty", "物件照片不能为空。");
+    if (file.size > MAX_UPLOAD_BYTES) return t("intake.photoTooLarge", "单张物件照片不能超过 20 MiB。");
   }
   return "";
 }
@@ -262,13 +266,13 @@ function updateFilePresentation() {
   if (!elements.files || !elements.fileDropzone) return;
   const count = elements.files.files.length;
   const title = elements.fileDropzone.querySelector("strong");
-  if (title) title.textContent = count ? `${count} 个文件已选择，可继续提交` : "点击上传或拖拽文件到此处";
+  if (title) title.textContent = count ? copy("intake.filesSelected", "{count} 个文件已选择，可继续提交", { count }) : t("intake.fileDropTitle", "点击上传或拖拽文件到此处");
 }
 
 function updatePhotoPresentation() {
   if (!elements.photos) return;
   const count = elements.photos.files.length;
-  if (elements.photoSelectionSummary) elements.photoSelectionSummary.textContent = count ? `${count} 张物件照片已选择` : "尚未选择照片";
+  if (elements.photoSelectionSummary) elements.photoSelectionSummary.textContent = count ? copy("intake.photosSelected", "{count} 张物件照片已选择", { count }) : t("intake.noPhotoSelected", "尚未选择照片");
 }
 
 function handleFileDrop(event) {
@@ -288,7 +292,7 @@ function renderRecognizedFields() {
   elements.recognizedFields.replaceChildren();
   const filledFields = FIELD_META.filter(({ key }) => formValue(key) !== null);
   if (!filledFields.length) {
-    elements.recognizedFields.append(createElement("p", "填写售价或面积后，会在这里显示。", "rail-empty"));
+    elements.recognizedFields.append(createElement("p", t("intake.recognizedEmptyRuntime", "填写售价或面积后，会在这里显示。"), "rail-empty"));
     return;
   }
 
@@ -321,7 +325,7 @@ function updateProgressRail() {
   const completed = Object.values(checks).filter(Boolean).length;
   const percent = Math.round((completed / Object.keys(checks).length) * 100);
 
-  if (elements.completionCount) elements.completionCount.textContent = `已完成 ${completed}/6 项`;
+  if (elements.completionCount) elements.completionCount.textContent = copy("intake.completedCountRuntime", "已完成 {completed}/6 项", { completed });
   if (elements.progressPercent) elements.progressPercent.textContent = `${percent}%`;
   elements.progressRing?.style.setProperty("--progress", `${percent}%`);
   elements.progressRing?.setAttribute("aria-label", `资料完整度 ${percent}%`);
@@ -330,11 +334,11 @@ function updateProgressRail() {
   });
 
   if (elements.purposeSummary) elements.purposeSummary.textContent =
-    purpose === "rental_investment" ? "投资出租" : purpose === "self_use" ? "自住购买" : "未选择用途";
+    purpose === "rental_investment" ? t("intake.rentalInvestment", "投资出租") : purpose === "self_use" ? t("intake.selfUse", "自住购买") : t("intake.purposeUnselected", "未选择用途");
   const sourceSummary = source ||
     (fileCount || photoCount
       ? `${fileCount ? `${fileCount} 个资料文件` : ""}${fileCount && photoCount ? "、" : ""}${photoCount ? `${photoCount} 张物件照片` : ""}`
-      : "尚未提交资料");
+      : t("intake.materialsUnsubmitted", "尚未提交资料"));
   if (elements.sourceSummaryRail) elements.sourceSummaryRail.textContent = sourceSummary.length > 44 ? `${sourceSummary.slice(0, 44)}…` : sourceSummary;
 
   renderRecognizedFields();
@@ -483,9 +487,9 @@ function updateProjectNameDefault() {
 
 function handleProjectNameError(error) {
   const messages = {
-    duplicate_address: "同一地址已有调查记录，请手工修改记录名称。",
-    project_name_taken: "这个调查记录名称已存在，请换一个名称。",
-    project_name_required: "请先确认地址，或手工填写调查记录名称。",
+    duplicate_address: t("intake.projectNameDuplicateAddress", "同一地址已有调查记录，请手工修改记录名称。"),
+    project_name_taken: t("intake.projectNameTaken", "这个调查记录名称已存在，请换一个名称。"),
+    project_name_required: t("intake.projectNameRequired", "请先确认地址，或手工填写调查记录名称。"),
   };
   const message = messages[error.code];
   if (!message) return false;
@@ -539,17 +543,17 @@ function renderPreview(preview) {
   if (!elements.previewContent) return;
   elements.previewContent.replaceChildren();
   const completeness = createElement("section", undefined, "preview-section");
-  completeness.append(createElement("h3", "资料完整度"));
+  completeness.append(createElement("h3", t("intake.previewCompleteness", "资料完整度")));
   completeness.append(createElement("p", `物件类型：${ASSET_TYPE_LABELS[state.assetType] || "未选择"}`, "preview-note"));
   if (preview.data_class === "synthetic_fixture") {
-    completeness.append(createElement("p", "界面演示资料类别：synthetic_fixture。以下状态只用于确认操作流程，不代表真实结论。", "preview-note"));
+    completeness.append(createElement("p", t("intake.demoFixtureNote", "界面演示资料类别：synthetic_fixture。以下状态只用于确认操作流程，不代表真实结论。"), "preview-note"));
   }
   Object.entries(preview.completeness || {}).forEach(([name, result]) => {
     completeness.append(renderDimension(name, result));
   });
 
   const costs = createElement("section", undefined, "preview-section");
-  costs.append(createElement("h3", "购入费用项目"));
+  costs.append(createElement("h3", t("intake.acquisitionCosts", "购入费用项目")));
   const costData = preview.acquisition_costs || {};
   const costNote =
     costData.status === "insufficient_input"
@@ -582,7 +586,7 @@ function renderPreview(preview) {
   }
 
   const risks = createElement("section", undefined, "preview-section");
-  risks.append(createElement("h3", "当前资料提醒"));
+  risks.append(createElement("h3", t("intake.currentRisks", "当前资料提醒")));
   const riskItems = preview.risk_summary?.items || [];
   risks.append(
     createElement(
@@ -597,7 +601,7 @@ function renderPreview(preview) {
   });
 
   const comparison = createElement("section", undefined, "preview-section preview-limitations");
-  comparison.append(createElement("h3", "市场可比与下一步"));
+  comparison.append(createElement("h3", t("intake.marketComparison", "市场可比与下一步")));
   const comparable = preview.comparable || {};
   if (preview.comparable_status === "sufficient" && Array.isArray(comparable.reference) && comparable.reference.length) {
     const refList = createElement("ul", undefined, "plain-list");
@@ -605,11 +609,11 @@ function renderPreview(preview) {
       const yen = row.amount_yen ? `约 ${Math.round(row.amount_yen / 10000)}万日元` : row.amount_jpy || "";
       refList.append(createElement("li", `${row.layout || ""}：${yen}（${row.period || "期间未标注"}）`));
     });
-    comparison.append(createElement("p", "同区中古マンション成交参考（国交省取引数据，出所明記）。", "preview-note"), refList);
+    comparison.append(createElement("p", t("intake.comparableReference", "同区中古マンション成交参考（国交省取引数据，出所明記）。"), "preview-note"), refList);
   } else if (preview.comparable_status === "insufficient") {
     comparison.append(createElement("p", comparable.note || "该地址所在区暂无市场相场覆盖。", "preview-note"));
   } else {
-    comparison.append(createElement("p", "市场可比数据：尚未检查。完整报告、税费金额、自动提取和法律判断将在后续阶段提供。"));
+    comparison.append(createElement("p", t("intake.comparableUnavailable", "市场可比数据：尚未检查。完整报告、税费金额、自动提取和法律判断将在后续阶段提供。")));
   }
 
   elements.previewContent.append(completeness, costs, risks, comparison);
@@ -633,21 +637,21 @@ async function startIntake(event) {
   const photos = Array.from(elements.photos.files || []);
   const fileError = validateFiles(files);
   const photoError = validatePhotoFiles(photos);
-  if (!purpose) return setStatus("请选择自住或投资出租。", "error");
+  if (!purpose) return setStatus(t("intake.purposeRequired", "请选择自住或投资出租。"), "error");
   if (!assetType) {
     elements.assetType.setAttribute("aria-invalid", "true");
     elements.assetType.focus();
-    return setStatus("请选择物件类型（公寓、塔楼、一户建等），否则无法判断。", "error");
+    return setStatus(t("intake.assetTypeRequired", "请选择物件类型（公寓、塔楼、一户建等），否则无法判断。"), "error");
   }
   elements.assetType.removeAttribute("aria-invalid");
   state.assetType = assetType;
-  if (!source && !files.length && !photos.length) return setStatus("请先填写物件链接或说明，或上传资料/物件照片。", "error");
+  if (!source && !files.length && !photos.length) return setStatus(t("intake.sourceRequired", "请先填写物件链接或说明，或上传资料/物件照片。"), "error");
   if (fileError) return setStatus(fileError, "error");
   if (photoError) return setStatus(photoError, "error");
 
   state.busy = true;
-  setBusy(elements.submitButton, true, "正在整理…");
-  setStatus("正在创建临时分析项目，资料会在 24 小时后到期。", "info");
+  setBusy(elements.submitButton, true, t("intake.organizing", "正在整理…"));
+  setStatus(t("intake.sessionCreating", "正在创建临时分析项目，资料会在 24 小时后到期。"), "info");
   try {
     if (DEMO_MODE) {
       saveAnonymousSession({ ...DEMO_SESSION, assetType });
@@ -668,14 +672,14 @@ async function startIntake(event) {
     renderInputSummary();
     setStatus(
       DEMO_MODE
-        ? "演示资料已收好。下一步请确认关键字段。"
-        : "资料已收好。请核对自动填入的地址层级，或手动补全。",
+        ? t("intake.demoMaterialsSubmitted", "演示资料已收好。下一步请确认关键字段。")
+        : t("intake.materialsSubmittedStatus", "资料已收好。请核对自动填入的地址层级，或手动补全。"),
       "success",
     );
     setStage("confirm");
     document.querySelector("[data-field='asking_price_jpy']")?.focus();
   } catch (error) {
-    setStatus(error.message || "资料提交失败，请稍后重试。", "error");
+    setStatus(error.message || t("intake.materialSubmitFailed", "资料提交失败，请稍后重试。"), "error");
   } finally {
     state.busy = false;
     setBusy(elements.submitButton, false);
@@ -686,7 +690,7 @@ async function createFreePreview(event) {
   event.preventDefault();
   if (state.busy) return;
   if (!state.session?.sessionId || !state.session?.rawToken) {
-    setStatus("临时项目已失效，请重新开始。", "error");
+    setStatus(t("intake.sessionExpired", "临时项目已失效，请重新开始。"), "error");
     setStage("submit");
     return;
   }
@@ -706,18 +710,18 @@ async function createFreePreview(event) {
   const fields = ["asking_price_jpy", "area_sqm", "building_name", "address", "land_right"]
     .map((fieldName) => ({ fieldName, value: formValue(fieldName) }))
     .filter((field) => field.value !== null);
-  if (!fields.length) return setStatus("至少确认售价或专有面积中的一项，再生成预览。", "error");
+  if (!fields.length) return setStatus(t("intake.confirmFieldRequired", "至少确认售价或专有面积中的一项，再生成预览。"), "error");
 
   state.busy = true;
-  setBusy(elements.previewButton, true, "正在生成…");
-  setStatus("正在保存确认字段并计算资料完整度。", "info");
+  setBusy(elements.previewButton, true, t("intake.generating", "正在生成…"));
+  setStatus(t("intake.savingFields", "正在保存确认字段并计算资料完整度。"), "info");
   try {
     if (DEMO_MODE) {
       state.preview = DEMO_PREVIEW;
       renderPreview(state.preview);
       updateProjectNameDefault();
       setStage("preview");
-      setStatus("演示预览已生成。当前内容只用于确认界面和流程。", "success");
+      setStatus(t("intake.demoPreviewGenerated", "演示预览已生成。当前内容只用于确认界面和流程。"), "success");
       return;
     }
     for (const field of fields) {
@@ -734,9 +738,9 @@ async function createFreePreview(event) {
     renderPreview(state.preview);
     updateProjectNameDefault();
     setStage("preview");
-    setStatus("免费预览已生成。它只反映当前资料完整度，不替代专业交易核查。", "success");
+    setStatus(t("intake.previewGenerated", "免费预览已生成。它只反映当前资料完整度，不替代专业交易核查。"), "success");
   } catch (error) {
-    setStatus(error.message || "预览生成失败，请稍后重试。", "error");
+    setStatus(error.message || t("intake.previewFailed", "预览生成失败，请稍后重试。"), "error");
   } finally {
     state.busy = false;
     setBusy(elements.previewButton, false);
@@ -748,23 +752,23 @@ async function saveProject() {
   if (!elements.saveButton) return setStatus(t("intake.formUnavailable", "表单暂时无法使用，请刷新后重试。"), "error");
   if (DEMO_MODE) {
     state.busy = true;
-    setBusy(elements.saveButton, true, "保存演示项目…");
+    setBusy(elements.saveButton, true, t("intake.demoProjectSaving", "保存演示项目…"));
     saveAnonymousSession(null);
     setStage("save");
-    elements.saveButton.textContent = "演示项目已保存";
+    elements.saveButton.textContent = t("intake.demoProjectSaved", "演示项目已保存");
     elements.saveButton.disabled = true;
     elements.savedProjectLink?.classList.remove("hidden");
-    setStatus("演示项目已进入工作台界面。真实版本会在登录后由后端绑定项目归属。", "success");
+    setStatus(t("intake.demoProjectSavedStatus", "演示项目已进入工作台界面。真实版本会在登录后由后端绑定项目归属。"), "success");
     state.busy = false;
     return;
   }
   const accessToken = getExistingAccessToken();
   if (!accessToken) {
-    setStatus("请先在首页完成 Supabase 登录，再返回这里保存项目。匿名项目会保留到 24 小时到期。", "info");
+    setStatus(t("intake.loginRequiredToSave", "请先在首页完成 Supabase 登录，再返回这里保存项目。匿名项目会保留到 24 小时到期。"), "info");
     return;
   }
   state.busy = true;
-  setBusy(elements.saveButton, true, "正在保存…");
+  setBusy(elements.saveButton, true, t("intake.saving", "正在保存…"));
   try {
     const result = await convertSession(
       state.session.sessionId,
@@ -775,17 +779,17 @@ async function saveProject() {
     saveAnonymousSession(null);
     setStage("save");
     if (elements.saveButton) {
-      elements.saveButton.textContent = "项目已保存";
+      elements.saveButton.textContent = t("intake.projectSaved", "项目已保存");
       elements.saveButton.disabled = true;
     }
     if (elements.savedProjectLink) {
       elements.savedProjectLink.classList.remove("hidden");
       elements.savedProjectLink.href = "project.html?demo=1&state=ready";
     }
-    setStatus(`项目已保存到你的账户（${result.property_id}）。`, "success");
+    setStatus(copy("intake.projectSavedStatus", "项目已保存到你的账户（{propertyId}）。", { propertyId: result.property_id }), "success");
   } catch (error) {
     if (!handleProjectNameError(error)) {
-      setStatus(error.message || "项目保存失败，请先确认登录状态。", "error");
+      setStatus(error.message || t("intake.projectSaveFailed", "项目保存失败，请先确认登录状态。"), "error");
     }
   } finally {
     state.busy = false;
@@ -797,7 +801,7 @@ function closeMenu() {
   if (!elements.menu || !elements.menuToggle) return;
   elements.menu.hidden = true;
   elements.menuToggle.setAttribute("aria-expanded", "false");
-  elements.menuToggle.setAttribute("aria-label", "打开菜单");
+  elements.menuToggle.setAttribute("aria-label", t("intake.openMenu", "打开菜单"));
 }
 
 function toggleMenu() {
@@ -805,7 +809,7 @@ function toggleMenu() {
   const willOpen = elements.menu.hidden;
   elements.menu.hidden = !willOpen;
   elements.menuToggle.setAttribute("aria-expanded", String(willOpen));
-  elements.menuToggle.setAttribute("aria-label", willOpen ? "关闭菜单" : "打开菜单");
+  elements.menuToggle.setAttribute("aria-label", willOpen ? t("intake.closeMenu", "关闭菜单") : t("intake.openMenu", "打开菜单"));
   if (willOpen) elements.menu.querySelector("a")?.focus();
 }
 
@@ -866,7 +870,7 @@ async function initialize() {
   elements.projectName?.addEventListener("input", () => {
     state.projectNameTouched = true;
     elements.projectName?.removeAttribute("aria-invalid");
-    if (elements.projectNameHelp) elements.projectNameHelp.textContent = "保存时会使用这个名称；同一用户下名称不能重复。";
+    if (elements.projectNameHelp) elements.projectNameHelp.textContent = t("intake.projectNameHelpRuntime", "保存时会使用这个名称；同一用户下名称不能重复。");
   });
   elements.menuToggle?.addEventListener("click", toggleMenu);
   document.addEventListener("keydown", (event) => {
@@ -880,7 +884,7 @@ async function initialize() {
   if (DEMO_MODE) {
     document.querySelector("#demoBanner")?.removeAttribute("hidden");
     document.querySelector("#reviewLink")?.removeAttribute("hidden");
-    setStatus("界面演示已开启：可以依次体验提交、确认、预览和保存。", "info");
+    setStatus(t("intake.demoModeEnabled", "界面演示已开启：可以依次体验提交、确认、预览和保存。"), "info");
   }
   updateSourceCount();
   updateFilePresentation();
@@ -891,11 +895,11 @@ async function initialize() {
   updateProgressRail();
   if (state.session?.sessionId && state.session?.rawToken && state.assetType) {
     setStage("confirm");
-    setStatus("已恢复本次临时项目，请继续核对字段。", "info");
+    setStatus(t("intake.sessionRestored", "已恢复本次临时项目，请继续核对字段。"), "info");
   } else {
     setStage("submit");
     if (state.session?.sessionId && state.session?.rawToken) {
-      setStatus("当前临时项目缺少物件类型，请重新选择后提交。", "info");
+      setStatus(t("intake.sessionMissingAssetType", "当前临时项目缺少物件类型，请重新选择后提交。"), "info");
     }
   }
 }

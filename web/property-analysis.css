@@ -361,31 +361,6 @@ button:disabled {
   color: var(--danger);
 }
 
-.recognition-card {
-  display: grid;
-  gap: 10px;
-  margin-top: 24px;
-  padding: 18px;
-  border: 1px solid #f0c4ae;
-  border-radius: var(--radius-md);
-  background: var(--surface-warm);
-}
-
-.recognition-card h3,
-.recognition-card p { margin: 0; }
-
-.recognition-card h3 { font-size: 20px; }
-.recognition-card > div > p:last-child { color: var(--navy-soft); font-size: 14px; }
-.recognition-card .file-input { position: static; width: auto; height: auto; overflow: visible; clip: auto; }
-.recognition-status[data-tone="error"] { color: var(--danger); }
-.recognition-status[data-tone="warning"] { color: #9a6500; }
-.recognition-results { display: grid; gap: 10px; }
-.recognition-disclaimer { color: var(--orange-dark); font-weight: 800; }
-.recognition-candidate { display: grid; gap: 5px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--white); }
-.recognition-candidate h4,
-.recognition-candidate p { margin: 0; }
-.recognition-candidate a { color: var(--navy); font-size: 14px; font-weight: 700; }
-
 .intake-section {
   min-width: 0;
 }
@@ -595,7 +570,7 @@ input[type="number"]:focus {
   line-height: 1.55;
 }
 
-.photo-capture-card,
+.attachments-section,
 .location-card {
   padding: 18px;
   border: 1px solid var(--line);
@@ -603,29 +578,18 @@ input[type="number"]:focus {
   background: var(--surface);
 }
 
-.photo-capture-card {
+.attachments-section {
   margin: 0 0 25px;
 }
 
-.photo-capture-heading,
+.attachments-heading,
 .location-card-heading {
   display: flex;
   align-items: flex-start;
   gap: 13px;
 }
 
-.photo-capture-heading svg {
-  flex: 0 0 32px;
-  width: 32px;
-  height: 32px;
-  fill: none;
-  stroke: var(--orange-dark);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.8;
-}
-
-.photo-capture-heading h3,
+.attachments-heading h3,
 .location-card-heading h3 {
   margin: 0;
   color: var(--navy);
@@ -633,7 +597,6 @@ input[type="number"]:focus {
   font-weight: 800;
 }
 
-.photo-capture-heading p,
 .location-card-heading p {
   margin: 4px 0 0;
   color: var(--muted);
@@ -641,11 +604,7 @@ input[type="number"]:focus {
   line-height: 1.55;
 }
 
-.photo-capture-card .field-help {
-  margin: 13px 0 0;
-}
-
-.photo-capture-actions {
+.attachment-photo-actions {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -653,9 +612,13 @@ input[type="number"]:focus {
   margin-top: 17px;
 }
 
-.photo-capture-card .file-input:focus-visible ~ .photo-capture-actions .secondary-button {
+.attachments-section .file-input:focus-visible ~ .attachment-photo-actions .secondary-button {
   outline: 3px solid #2f70ef;
   outline-offset: 3px;
+}
+
+.attachment-privacy-note {
+  margin-bottom: 0;
 }
 
 .secondary-button {

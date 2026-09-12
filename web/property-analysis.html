@@ -4,15 +4,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="提交日本物件资料，先查看资料完整度和免费项目预览。" />
-    <link rel="manifest" href="manifest.webmanifest?v=20260912-r3" />
-    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=20260912-r3" />
+    <link rel="manifest" href="manifest.webmanifest?v=20260912-r4" />
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=20260912-r4" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="小象" />
     <meta name="theme-color" content="#0b1020" />
     <title data-i18n-title="intake.pageTitle">分析一个日本物件｜小象避坑 ZOUBEACON</title>
-    <link rel="icon" href="assets/logoELE-beacon.svg?v=20260912-r3" />
-    <link rel="stylesheet" href="property-analysis.css?v=20260912-r3" />
+    <link rel="icon" href="assets/logoELE-beacon.svg?v=20260912-r4" />
+    <link rel="stylesheet" href="property-analysis.css?v=20260912-r4" />
   </head>
   <body>
     <main class="beacon-app">
@@ -29,7 +29,7 @@
                 <feComposite in="logo-color" in2="logo-mask" operator="in" />
               </filter>
             </defs>
-            <image href="assets/logoELE.png?v=20260912-r3" width="1254" height="1254" preserveAspectRatio="none" filter="url(#beacon-logo-color)" />
+            <image href="assets/logoELE.png?v=20260912-r4" width="1254" height="1254" preserveAspectRatio="none" filter="url(#beacon-logo-color)" />
           </svg>
           <span class="beacon-brand-copy">
             <strong>小象避坑</strong>
@@ -138,17 +138,11 @@
                       <span id="sourceCharacterCount" class="character-count">0/500</span>
                     </div>
                     <p class="field-help" data-i18n="intake.propertySourceHelp">暂时无法读取的链接，可以直接输入你合法持有的资料摘要。</p>
+                    <p class="field-help" data-i18n="intake.propertySourceAddressHelp">也可以直接输入物件的具体地址。</p>
 
-                    <section class="photo-capture-card" aria-labelledby="photoCaptureHeading">
-                      <div class="photo-capture-heading">
-                        <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-                          <rect x="4" y="8" width="24" height="18" rx="3" />
-                          <path d="m10 8 2-3h8l2 3M16 12.5a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z" />
-                        </svg>
-                        <div>
-                          <h3 id="photoCaptureHeading" data-i18n="intake.photoCaptureTitle">拍摄物件照片</h3>
-                          <p data-i18n="intake.photoCaptureCopy">拍照后可获取设备位置，生成物件地址建议。</p>
-                        </div>
+                    <section class="attachments-section" aria-labelledby="attachmentsHeading">
+                      <div class="attachments-heading">
+                        <h3 id="attachmentsHeading" data-i18n="intake.filesAndPhotos">资料文件与物件照片（可选）</h3>
                       </div>
                       <input
                         id="propertyPhotos"
@@ -158,31 +152,32 @@
                         accept="image/jpeg,image/png"
                         capture="environment"
                         multiple
-                        aria-describedby="photoCaptureHelp photoSelectionSummary"
+                        aria-describedby="photoPrivacyNote photoSelectionSummary locationStatus"
                       />
                       <label class="sr-only" for="propertyPhotos" data-i18n="intake.propertyPhoto">物件照片</label>
-                      <div class="photo-capture-actions">
+                      <div class="attachment-photo-actions">
                         <button id="takePhotoButton" class="secondary-button" type="button" data-i18n="intake.takePhoto">拍摄物件照片</button>
                         <span id="photoSelectionSummary" class="photo-selection-summary" data-i18n="intake.noPhotoSelected">尚未选择照片</span>
                       </div>
-                      <p id="photoCaptureHelp" class="field-help" data-i18n="intake.photoCaptureHelp">点击“获取照片位置并生成地址”时才会请求定位权限。坐标只用于本次地址建议和调查记录命名，失败时可以手工填写地址。</p>
-                    </section>
+                      <p id="locationStatus" class="location-status" data-testid="location-status" role="status" aria-live="polite" data-i18n="intake.locationWaiting">选择照片后会自动尝试读取位置；无法识别时请手动填写。</p>
 
-                    <label class="field-label" for="propertyFiles" data-i18n="intake.fileLabel">上传 PDF、JPG、PNG，单个文件不超过 20MB</label>
-                    <div class="file-picker">
-                      <input id="propertyFiles" class="file-input" name="propertyFiles" type="file" accept=".pdf,.jpg,.jpeg,.png" multiple />
-                      <label class="file-dropzone" for="propertyFiles">
-                        <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-                          <path d="M16 22V6m0 0-6 6m6-6 6 6M7 18v6.5A2.5 2.5 0 0 0 9.5 27h13a2.5 2.5 0 0 0 2.5-2.5V18" />
-                        </svg>
-                        <span>
-                          <strong data-i18n="intake.fileDropTitle">点击上传或拖拽文件到此处</strong>
-                          <small data-i18n="intake.fileDropCopy">支持 PDF、JPG、PNG，单个文件不超过 20MB</small>
-                        </span>
-                      </label>
-                    </div>
+                      <label class="field-label" for="propertyFiles" data-i18n="intake.fileLabel">上传 PDF、JPG、PNG，单个文件不超过 20MB</label>
+                      <div class="file-picker">
+                        <input id="propertyFiles" class="file-input" name="propertyFiles" type="file" accept=".pdf,.jpg,.jpeg,.png" multiple />
+                        <label class="file-dropzone" for="propertyFiles">
+                          <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+                            <path d="M16 22V6m0 0-6 6m6-6 6 6M7 18v6.5A2.5 2.5 0 0 0 9.5 27h13a2.5 2.5 0 0 0 2.5-2.5V18" />
+                          </svg>
+                          <span>
+                            <strong data-i18n="intake.fileDropTitle">点击上传或拖拽文件到此处</strong>
+                            <small data-i18n="intake.fileDropCopy">支持 PDF、JPG、PNG，单个文件不超过 20MB</small>
+                          </span>
+                        </label>
+                      </div>
 
-                    <div class="privacy-note">
+                      <p id="photoPrivacyNote" class="field-help attachment-privacy-note" data-i18n="intake.photoPrivacyNote">照片仅用于读取位置，不存储。</p>
+
+                      <div class="privacy-note">
                       <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <path d="m12 3 7 3v5c0 4.6-2.9 8-7 10-4.1-2-7-5.4-7-10V6l7-3Z" />
                         <path d="m8.5 12 2.2 2.2 4.8-5" />
@@ -200,18 +195,6 @@
                     </p>
                   </form>
 
-                  <section class="recognition-card" aria-labelledby="recognitionHeading">
-                    <div>
-                      <p class="section-number">EXIF</p>
-                      <h3 id="recognitionHeading" data-i18n="recognition.title">从照片读取位置</h3>
-                      <p data-i18n="recognition.copy">上传物件照片，读取其中的 EXIF 位置信息并预填查询条件。</p>
-                    </div>
-                    <label class="field-label" for="recognitionImage" data-i18n="recognition.imageLabel">物件照片</label>
-                    <input id="recognitionImage" class="file-input" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" aria-describedby="recognitionLocationNotice" />
-                    <p id="recognitionLocationStatus" class="recognition-status" role="status" aria-live="polite"></p>
-                    <button id="recognitionLocationButton" class="secondary-button" type="button" data-i18n="recognition.locationButton">读取照片位置</button>
-                    <p id="recognitionLocationNotice" class="field-help" data-i18n="recognition.locationNotice">照片中的位置信息(EXIF)仅在本服务内解析,用于预填查询条件。</p>
-                  </section>
                 </section>
 
                 <section id="confirmStep" class="intake-section" aria-labelledby="confirmHeading" hidden>
@@ -236,15 +219,22 @@
                       </div>
                       <span class="status-chip" data-i18n="intake.optional">可选</span>
                     </div>
-                    <button id="locationButton" class="secondary-button" type="button" disabled data-i18n="intake.getLocation">获取照片位置并生成地址</button>
-                    <p id="locationStatus" class="location-status" data-testid="location-status" aria-live="polite" data-i18n="intake.locationWaiting">拍摄照片后，可以在这里请求位置权限。</p>
                     <div class="location-candidate">
                       <span data-i18n="intake.suggestedAddress">系统建议地址（待确认）</span>
                       <output id="locationCandidate" data-testid="location-candidate" data-i18n="intake.notObtained">尚未获取</output>
                     </div>
                   </section>
-                  <form id="confirmForm" class="confirm-form">
+                  <form id="confirmForm" class="confirm-form" novalidate>
                     <div class="field-grid">
+                      <label class="field-label required-label" for="prefecture"><span data-i18n="intake.prefecture">都道府县</span> <span aria-hidden="true" data-i18n="intake.required">必填</span></label>
+                      <select id="prefecture" class="asset-type-select" data-location-level="prefecture" required aria-describedby="locationFieldsHelp"><option value="" data-i18n="intake.selectPrefecture">请选择都道府县</option></select>
+
+                      <label class="field-label required-label" for="city"><span data-i18n="intake.city">市</span> <span aria-hidden="true" data-i18n="intake.required">必填</span></label>
+                      <select id="city" class="asset-type-select" data-location-level="city" required disabled aria-describedby="locationFieldsHelp"><option value="" data-i18n="intake.selectCity">请先选择都道府县</option></select>
+
+                      <label class="field-label required-label" for="ward"><span data-i18n="intake.ward">区</span> <span aria-hidden="true" data-i18n="intake.required">必填</span></label>
+                      <select id="ward" class="asset-type-select" data-location-level="ward" required disabled aria-describedby="locationFieldsHelp"><option value="" data-i18n="intake.selectWard">请先选择市</option></select>
+
                       <label class="field-label" for="askingPrice" data-i18n="intake.askingPrice">售价（日元）</label>
                       <input id="askingPrice" data-field="asking_price_jpy" type="number" min="0" inputmode="numeric" placeholder="例如 35000000" data-i18n-placeholder="intake.askingPricePlaceholder" />
 
@@ -260,6 +250,7 @@
                       <label class="field-label" for="landRight" data-i18n="intake.landRight">土地权利</label>
                       <input id="landRight" data-field="land_right" type="text" placeholder="例如 所有权" data-i18n-placeholder="intake.landRightPlaceholder" />
                     </div>
+                    <p id="locationFieldsHelp" class="field-help" data-i18n="intake.locationFieldsHelp">请依次选择都道府县、市和区；没有区级资料的城市请选择「未细分」。</p>
                     <p class="field-help" data-i18n="intake.confirmedFieldsHelp">已确认的字段才会进入预览；没有证据的字段会显示为资料不足。</p>
                     <div class="completion-strip">
                       <span data-i18n="intake.filled">已填写 <strong id="confirmedFieldCount">0/5 项</strong></span>
@@ -338,7 +329,6 @@
                 </div>
               </div>
               <p class="included-note"><span>✓</span> <span data-i18n="intake.includedFree">包含在免费预览中</span></p>
-              <button id="railPreviewButton" class="rail-cta" type="button" data-i18n="intake.generatePreview">生成免费预览</button>
             </section>
           </aside>
         </div>
@@ -355,10 +345,10 @@
       </nav>
     </main>
 
-    <script src="config.js?v=20260912-r3"></script>
-    <script src="js/pwa.js?v=20260912-r3"></script>
-    <script src="js/i18n.js?v=20260912-r3"></script>
-    <script type="module" src="js/property-intake.js?v=20260912-r3"></script>
-    <script type="module" src="js/recognition.js?v=20260912-r3"></script>
+    <script src="config.js?v=20260912-r4"></script>
+    <script src="js/pwa.js?v=20260912-r4"></script>
+    <script src="js/i18n.js?v=20260912-r4"></script>
+    <script type="module" src="js/property-intake.js?v=20260912-r4"></script>
+    <script type="module" src="js/recognition.js?v=20260912-r4"></script>
   </body>
 </html>

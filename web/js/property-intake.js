@@ -5,19 +5,14 @@ import {
   createSession,
   generatePreview,
   getExistingAccessToken,
-  saveLocation,
   uploadFiles,
 } from "./api-client.js";
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const INTAKE_SESSION_KEY = "zou_house_property_intake_session";
-const LOCATION_CONSENT_VERSION = "location-2026-08";
 const DEMO_MODE = new URL(window.location.href).searchParams.get("demo") === "1";
-const EMPTY_LOCATION = {
-  addressCandidate: "",
-  addressSource: "",
-  addressPrecision: "",
-};
+const t = (key, fallback) => window.ZouI18n?.t(key, fallback) || fallback;
+const NOT_SUBDIVIDED_VALUE = "__not_subdivided__";
 const DIMENSION_LABELS = {
   identity: "项目身份",
   price_cost: "价格与费用",
@@ -62,12 +57,6 @@ const DEMO_SESSION = {
   expiresAt: "2099-12-31T00:00:00Z",
 };
 
-const DEMO_LOCATION = {
-  address_candidate: "大阪府大阪市北区梅田",
-  address_source: "synthetic_fixture",
-  address_precision: "town",
-};
-
 const ASSET_TYPE_LABELS = {
   apartment: "公寓",
   tower: "塔楼",
@@ -100,14 +89,12 @@ const DEMO_PREVIEW = {
 const state = {
   session: loadAnonymousSession(),
   assetType: "",
-  location: { ...EMPTY_LOCATION },
   stage: "submit",
   busy: false,
   preview: null,
   projectNameTouched: false,
 };
 state.assetType = state.session?.assetType || "";
-state.location = { ...EMPTY_LOCATION, ...(state.session?.location || {}) };
 
 const elements = {
   submitStep: document.querySelector("#submitStep"),
@@ -129,7 +116,6 @@ const elements = {
   sourceSummary: document.querySelector("#sourceSummary"),
   assetTypeSummary: document.querySelector("#assetTypeSummary"),
   inputSummary: document.querySelector("#inputSummary"),
-  locationButton: document.querySelector("#locationButton"),
   locationStatus: document.querySelector("#locationStatus"),
   locationCandidate: document.querySelector("#locationCandidate"),
   projectName: document.querySelector("#projectName"),
@@ -148,11 +134,16 @@ const elements = {
   confirmedFieldCount: document.querySelector("#confirmedFieldCount"),
   confirmedFieldPercent: document.querySelector("#confirmedFieldPercent"),
   confirmedFieldBar: document.querySelector("#confirmedFieldBar"),
-  railPreviewButton: document.querySelector("#railPreviewButton"),
+  prefecture: document.querySelector("#prefecture"),
+  city: document.querySelector("#city"),
+  ward: document.querySelector("#ward"),
   fileDropzone: document.querySelector(".file-dropzone"),
   menuToggle: document.querySelector("#menuToggle"),
   menu: document.querySelector("#beaconMenu"),
 };
+
+const fieldOptions = { prefectures: [], cities: {}, wards: {} };
+let applyingLocationPrefill = false;
 
 function loadAnonymousSession() {
   if (DEMO_MODE) return null;
@@ -176,15 +167,17 @@ function saveAnonymousSession(session) {
 }
 
 function setStatus(message, tone = "error") {
+  if (!elements.status) return;
   elements.status.textContent = message;
   elements.status.dataset.tone = tone;
   elements.status.classList.toggle("is-empty", !message);
   if (message) {
-    elements.status.focus();
+    elements.status.focus?.();
   }
 }
 
 function setBusy(button, busy, busyLabel) {
+  if (!button) return;
   button.disabled = busy;
   if (busy) {
     button.dataset.defaultLabel = button.textContent;
@@ -203,7 +196,7 @@ function setStage(stage) {
   };
   const visibleStage = stage === "save" ? "preview" : stage;
   Object.entries(sections).forEach(([name, section]) => {
-    section.hidden = name !== visibleStage;
+    if (section) section.hidden = name !== visibleStage;
   });
   const currentStep = { submit: 1, confirm: 3, preview: 4, save: 5 }[stage] || 1;
   elements.progressItems.forEach((item) => {
@@ -262,23 +255,25 @@ function formValue(fieldName) {
 }
 
 function updateSourceCount() {
-  elements.characterCount.textContent = `${elements.source.value.length}/500`;
+  if (elements.characterCount && elements.source) elements.characterCount.textContent = `${elements.source.value.length}/500`;
 }
 
 function updateFilePresentation() {
+  if (!elements.files || !elements.fileDropzone) return;
   const count = elements.files.files.length;
   const title = elements.fileDropzone.querySelector("strong");
-  title.textContent = count ? `${count} 个文件已选择，可继续提交` : "点击上传或拖拽文件到此处";
+  if (title) title.textContent = count ? `${count} 个文件已选择，可继续提交` : "点击上传或拖拽文件到此处";
 }
 
 function updatePhotoPresentation() {
+  if (!elements.photos) return;
   const count = elements.photos.files.length;
-  elements.photoSelectionSummary.textContent = count ? `${count} 张物件照片已选择` : "尚未选择照片";
-  updateLocationAvailability();
+  if (elements.photoSelectionSummary) elements.photoSelectionSummary.textContent = count ? `${count} 张物件照片已选择` : "尚未选择照片";
 }
 
 function handleFileDrop(event) {
   event.preventDefault();
+  if (!elements.fileDropzone || !elements.files) return;
   elements.fileDropzone.classList.remove("is-dragover");
   const droppedFiles = Array.from(event.dataTransfer?.files || []);
   if (!droppedFiles.length || typeof DataTransfer === "undefined") return;
@@ -289,6 +284,7 @@ function handleFileDrop(event) {
 }
 
 function renderRecognizedFields() {
+  if (!elements.recognizedFields) return;
   elements.recognizedFields.replaceChildren();
   const filledFields = FIELD_META.filter(({ key }) => formValue(key) !== null);
   if (!filledFields.length) {
@@ -308,6 +304,7 @@ function renderRecognizedFields() {
 }
 
 function updateProgressRail() {
+  if (!elements.assetType || !elements.source || !elements.files || !elements.photos) return;
   const purpose = document.querySelector("input[name='purpose']:checked")?.value;
   const assetType = elements.assetType.value;
   const source = elements.source.value.trim();
@@ -324,30 +321,28 @@ function updateProgressRail() {
   const completed = Object.values(checks).filter(Boolean).length;
   const percent = Math.round((completed / Object.keys(checks).length) * 100);
 
-  elements.completionCount.textContent = `已完成 ${completed}/6 项`;
-  elements.progressPercent.textContent = `${percent}%`;
-  elements.progressRing.style.setProperty("--progress", `${percent}%`);
-  elements.progressRing.setAttribute("aria-label", `资料完整度 ${percent}%`);
-  elements.completionChecklist.querySelectorAll("[data-check]").forEach((item) => {
+  if (elements.completionCount) elements.completionCount.textContent = `已完成 ${completed}/6 项`;
+  if (elements.progressPercent) elements.progressPercent.textContent = `${percent}%`;
+  elements.progressRing?.style.setProperty("--progress", `${percent}%`);
+  elements.progressRing?.setAttribute("aria-label", `资料完整度 ${percent}%`);
+  elements.completionChecklist?.querySelectorAll("[data-check]").forEach((item) => {
     item.classList.toggle("is-complete", Boolean(checks[item.dataset.check]));
   });
 
-  elements.purposeSummary.textContent =
+  if (elements.purposeSummary) elements.purposeSummary.textContent =
     purpose === "rental_investment" ? "投资出租" : purpose === "self_use" ? "自住购买" : "未选择用途";
   const sourceSummary = source ||
     (fileCount || photoCount
       ? `${fileCount ? `${fileCount} 个资料文件` : ""}${fileCount && photoCount ? "、" : ""}${photoCount ? `${photoCount} 张物件照片` : ""}`
       : "尚未提交资料");
-  elements.sourceSummaryRail.textContent = sourceSummary.length > 44 ? `${sourceSummary.slice(0, 44)}…` : sourceSummary;
+  if (elements.sourceSummaryRail) elements.sourceSummaryRail.textContent = sourceSummary.length > 44 ? `${sourceSummary.slice(0, 44)}…` : sourceSummary;
 
   renderRecognizedFields();
   const confirmedCount = CONFIRM_FIELDS.filter((fieldName) => formValue(fieldName) !== null).length;
   const confirmedPercent = Math.round((confirmedCount / CONFIRM_FIELDS.length) * 100);
-  elements.confirmedFieldCount.textContent = `${confirmedCount}/${CONFIRM_FIELDS.length} 项`;
-  elements.confirmedFieldPercent.textContent = `${confirmedPercent}%`;
-  elements.confirmedFieldBar.style.width = `${confirmedPercent}%`;
-  elements.railPreviewButton.disabled = confirmedCount === 0;
-  updateLocationAvailability();
+  if (elements.confirmedFieldCount) elements.confirmedFieldCount.textContent = `${confirmedCount}/${CONFIRM_FIELDS.length} 项`;
+  if (elements.confirmedFieldPercent) elements.confirmedFieldPercent.textContent = `${confirmedPercent}%`;
+  if (elements.confirmedFieldBar) elements.confirmedFieldBar.style.width = `${confirmedPercent}%`;
 }
 
 function createElement(tagName, text, className = "") {
@@ -357,128 +352,133 @@ function createElement(tagName, text, className = "") {
   return element;
 }
 
-function saveLocationSummary(location) {
-  state.location = { ...EMPTY_LOCATION, ...location };
-  if (!DEMO_MODE && state.session) {
-    saveAnonymousSession({
-      ...state.session,
-      location: {
-        addressCandidate: state.location.addressCandidate,
-        addressSource: state.location.addressSource,
-        addressPrecision: state.location.addressPrecision,
-      },
-    });
-  }
-  elements.locationCandidate.textContent = state.location.addressCandidate || "尚未获取";
-}
-
-function updateLocationAvailability() {
-  if (!elements.locationButton) return;
-  const hasPhoto = elements.photos.files.length > 0;
-  const hasSession = Boolean(state.session?.sessionId && state.session?.rawToken);
-  elements.locationButton.disabled = state.busy || !hasPhoto || !hasSession;
-  if (!hasPhoto) {
-    elements.locationStatus.textContent = "拍摄照片后，可以在这里请求位置权限。";
-  } else if (!hasSession) {
-    elements.locationStatus.textContent = "先提交照片创建临时项目，再请求位置权限。";
-  }
-}
-
-function locationErrorMessage(error) {
-  if (error?.code === 1) return "无法获取设备位置（你拒绝了定位权限），请手工填写地址。";
-  if (error?.code === 3) return "无法获取设备位置（请求超时），请手工填写地址。";
-  return "无法获取设备位置，请手工填写地址。";
-}
-
-function requestDevicePosition() {
-  if (!navigator.geolocation) {
-    return Promise.reject(new Error("无法获取设备位置，请手工填写地址。"));
-  }
-  return new Promise((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(resolve, reject, {
-      enableHighAccuracy: true,
-      maximumAge: 0,
-      timeout: 10000,
-    });
-  });
-}
-
-function addressEvidenceLocator() {
-  return state.location.addressSource === "gsi_reverse_geocoder"
-    ? "国土地理院反向地址建议（用户确认/修正）"
-    : "";
-}
-
-async function captureLocation() {
-  if (state.busy) return;
-  if (!state.session?.sessionId || !state.session?.rawToken) {
-    setStatus("请先提交照片，创建临时分析项目。", "error");
-    return;
-  }
-  if (!elements.photos.files.length) {
-    setLocationStatus("请先拍摄或选择物件照片。", "error");
-    return;
-  }
-
-  state.busy = true;
-  setBusy(elements.locationButton, true, "正在获取位置…");
-  setLocationStatus("正在请求设备位置权限…", "info");
-  try {
-    const position = await requestDevicePosition();
-    const latitude = Number(position.coords?.latitude);
-    const longitude = Number(position.coords?.longitude);
-    const accuracy = Number(position.coords?.accuracy);
-    if (![latitude, longitude, accuracy].every(Number.isFinite) || accuracy <= 0) {
-      throw new Error("无法获取设备位置，请手工填写地址。");
-    }
-    const payload = {
-      latitude,
-      longitude,
-      accuracy_m: accuracy,
-      captured_at: new Date(position.timestamp || Date.now()).toISOString(),
-      consent_version: LOCATION_CONSENT_VERSION,
-      source: "device_geolocation",
-    };
-    const result = DEMO_MODE
-      ? DEMO_LOCATION
-      : await saveLocation(state.session.sessionId, state.session.rawToken, payload);
-    saveLocationSummary({
-      addressCandidate: result.address_candidate || "",
-      addressSource: result.address_source || "unavailable",
-      addressPrecision: result.address_precision || "",
-    });
-    const addressInput = document.querySelector("[data-field='address']");
-    if (result.address_candidate && !addressInput.value.trim()) {
-      addressInput.value = result.address_candidate;
-      updateProgressRail();
-    }
-    if (result.address_candidate) {
-      setLocationStatus("已生成地址建议，请在“完整地址”中确认或补全。", "success");
-      setStatus("已生成地址建议，请确认后再生成免费预览。", "success");
-    } else {
-      setLocationStatus("位置已保存，但暂时没有地址建议，请手工填写地址。", "info");
-      setStatus("位置已保存，但暂时没有地址建议，请手工填写地址。", "info");
-    }
-  } catch (error) {
-    const message = error?.status ? "地址建议服务暂时不可用，请手工填写地址。" : locationErrorMessage(error);
-    setLocationStatus(message, "error");
-    setStatus(message, "info");
-  } finally {
-    state.busy = false;
-    setBusy(elements.locationButton, false);
-    updateLocationAvailability();
-  }
-}
-
 function setLocationStatus(message, tone = "info") {
+  if (!elements.locationStatus) return;
   elements.locationStatus.textContent = message;
   elements.locationStatus.dataset.tone = tone;
 }
 
+function selectOption(value, label) {
+  const option = document.createElement("option");
+  option.value = value;
+  option.textContent = label;
+  return option;
+}
+
+function resetLocationSelect(select, placeholder, options = []) {
+  if (!select) return;
+  select.replaceChildren(selectOption("", placeholder), ...options.map((value) => selectOption(value, value)));
+  select.value = "";
+  select.disabled = true;
+}
+
+function populateCities(prefecture, selected = "") {
+  const cities = fieldOptions.cities[prefecture] || [];
+  resetLocationSelect(elements.city, t("intake.selectCity", "请先选择市"), cities);
+  if (!elements.city) return false;
+  elements.city.disabled = cities.length === 0;
+  if (!cities.includes(selected)) return false;
+  elements.city.value = selected;
+  return true;
+}
+
+function populateWards(prefecture, city, selected = "") {
+  const wards = fieldOptions.wards[`${prefecture}::${city}`] || [];
+  const options = wards.length ? wards : [NOT_SUBDIVIDED_VALUE];
+  if (!elements.ward) return false;
+  elements.ward.replaceChildren(
+    selectOption("", t("intake.selectWard", "请先选择区")),
+    ...options.map((value) => selectOption(value, value === NOT_SUBDIVIDED_VALUE ? t("intake.wardNotSubdivided", "未细分") : value)),
+  );
+  elements.ward.value = selected && options.includes(selected) ? selected : "";
+  elements.ward.disabled = false;
+  return Boolean(elements.ward.value);
+}
+
+function applyLocationPrefill(location = {}) {
+  if (!elements.prefecture || !fieldOptions.prefectures.length) return;
+  applyingLocationPrefill = true;
+  try {
+  const prefecture = String(location.prefecture || "");
+  const city = String(location.city || "");
+  const ward = String(location.ward || "");
+  const canSetPrefecture = !elements.prefecture.dataset.userModified;
+  const canSetCity = !elements.city?.dataset.userModified;
+  const canSetWard = !elements.ward?.dataset.userModified;
+  let matched = 0;
+  if (canSetPrefecture && fieldOptions.prefectures.includes(prefecture)) {
+    elements.prefecture.value = prefecture;
+    matched += 1;
+  }
+  if (canSetPrefecture && elements.prefecture.value && canSetCity && populateCities(elements.prefecture.value, city)) {
+    matched += 1;
+  }
+  if (canSetPrefecture && canSetCity && elements.city?.value && canSetWard && populateWards(elements.prefecture.value, elements.city.value, ward)) {
+    matched += 1;
+  }
+  if (matched) {
+    const complete = matched === 3;
+    setLocationStatus(
+      complete
+        ? t("intake.locationPrefillComplete", "已根据照片位置自动填入都道府县、市和区，请核对。")
+        : t("intake.locationPrefillPartial", "照片位置已填入可匹配的层级，请手动补全剩余地址层级。"),
+      complete ? "success" : "info",
+    );
+  } else if (prefecture || city || ward) {
+    setLocationStatus(t("intake.locationPrefillPartial", "照片位置已填入可匹配的层级，请手动补全剩余地址层级。"), "info");
+  }
+  } finally {
+    applyingLocationPrefill = false;
+  }
+}
+
+function locationValues() {
+  return {
+    prefecture: elements.prefecture?.value || "",
+    city: elements.city?.value || "",
+    ward: elements.ward?.value || "",
+  };
+}
+
+function validateLocationFields() {
+  const values = locationValues();
+  if (!values.prefecture) return t("intake.prefectureRequired", "请选择都道府县。");
+  if (!values.city) return t("intake.cityRequired", "请选择市。");
+  if (!values.ward) return t("intake.wardRequired", "请选择区；没有区级资料时请选择「未细分」。");
+  return "";
+}
+
+async function loadLocationFields() {
+  try {
+    const response = await fetch("field-options.json", { cache: "no-store" });
+    if (!response.ok) throw new Error("field_options_unavailable");
+    const payload = await response.json();
+    fieldOptions.prefectures = Array.isArray(payload.prefectures) ? payload.prefectures : [];
+    fieldOptions.cities = payload.cities || {};
+    fieldOptions.wards = payload.wards || {};
+  } catch {
+    setStatus(t("intake.locationOptionsFailed", "地址选项暂时无法加载，请刷新后重试。"), "error");
+    return;
+  }
+  if (elements.prefecture) {
+    resetLocationSelect(elements.prefecture, t("intake.selectPrefecture", "请选择都道府县"), fieldOptions.prefectures);
+    elements.prefecture.disabled = false;
+  }
+  let savedPrefill = null;
+  try {
+    savedPrefill = JSON.parse(window.sessionStorage.getItem("zou_recognition_prefill") || "null");
+  } catch {
+    savedPrefill = null;
+  }
+  if (savedPrefill) applyLocationPrefill(savedPrefill);
+}
+
 function updateProjectNameDefault() {
   if (state.projectNameTouched) return;
-  elements.projectName.value = formValue("address") || "";
-  elements.projectName.removeAttribute("aria-invalid");
+  if (elements.projectName) {
+    elements.projectName.value = formValue("address") || "";
+    elements.projectName.removeAttribute("aria-invalid");
+  }
 }
 
 function handleProjectNameError(error) {
@@ -489,22 +489,23 @@ function handleProjectNameError(error) {
   };
   const message = messages[error.code];
   if (!message) return false;
-  elements.projectNameHelp.textContent = message;
-  elements.projectName.setAttribute("aria-invalid", "true");
+  if (elements.projectNameHelp) elements.projectNameHelp.textContent = message;
+  elements.projectName?.setAttribute("aria-invalid", "true");
   setStatus(message, error.code === "project_name_required" ? "info" : "error");
-  elements.projectName.focus();
+  elements.projectName?.focus();
   return true;
 }
 
 function renderInputSummary() {
+  if (!elements.assetType || !elements.source || !elements.files || !elements.photos) return;
   const assetType = elements.assetType.value;
   const source = elements.source.value.trim();
   const fileCount = elements.files.files.length;
   const photoCount = elements.photos.files.length;
   const submittedCount = fileCount + photoCount;
-  elements.sourceSummary.textContent = source || "未提供文字说明";
-  elements.assetTypeSummary.textContent = ASSET_TYPE_LABELS[assetType] || "未选择";
-  elements.inputSummary.textContent = submittedCount
+  if (elements.sourceSummary) elements.sourceSummary.textContent = source || "未提供文字说明";
+  if (elements.assetTypeSummary) elements.assetTypeSummary.textContent = ASSET_TYPE_LABELS[assetType] || "未选择";
+  if (elements.inputSummary) elements.inputSummary.textContent = submittedCount
     ? `${fileCount ? `${fileCount} 个资料文件` : ""}${fileCount && photoCount ? "、" : ""}${photoCount ? `${photoCount} 张物件照片` : ""}已提交，等待人工确认。`
     : "文字资料已提交，等待自动提取。";
   updateProgressRail();
@@ -535,6 +536,7 @@ function renderDimension(dimensionName, result) {
 }
 
 function renderPreview(preview) {
+  if (!elements.previewContent) return;
   elements.previewContent.replaceChildren();
   const completeness = createElement("section", undefined, "preview-section");
   completeness.append(createElement("h3", "资料完整度"));
@@ -621,6 +623,9 @@ function renderPreview(preview) {
 async function startIntake(event) {
   event.preventDefault();
   if (state.busy) return;
+  if (!elements.assetType || !elements.source || !elements.files || !elements.photos) {
+    return setStatus(t("intake.formUnavailable", "表单暂时无法使用，请刷新后重试。"), "error");
+  }
   const purpose = document.querySelector("input[name='purpose']:checked")?.value;
   const assetType = elements.assetType.value;
   const source = elements.source.value.trim();
@@ -659,24 +664,21 @@ async function startIntake(event) {
         await uploadFiles(session.session_id, session.session_token, [...files, ...photos]);
       }
     }
-    state.location = { ...EMPTY_LOCATION };
-    elements.locationCandidate.textContent = "尚未获取";
+    if (elements.locationCandidate) elements.locationCandidate.textContent = t("intake.notObtained", "尚未获取");
     renderInputSummary();
     setStatus(
       DEMO_MODE
         ? "演示资料已收好。下一步请确认关键字段。"
-        : "资料已收好。你可以请求照片位置生成地址建议，再核对关键字段。",
+        : "资料已收好。请核对自动填入的地址层级，或手动补全。",
       "success",
     );
     setStage("confirm");
-    updateLocationAvailability();
     document.querySelector("[data-field='asking_price_jpy']")?.focus();
   } catch (error) {
     setStatus(error.message || "资料提交失败，请稍后重试。", "error");
   } finally {
     state.busy = false;
     setBusy(elements.submitButton, false);
-    updateLocationAvailability();
   }
 }
 
@@ -688,6 +690,19 @@ async function createFreePreview(event) {
     setStage("submit");
     return;
   }
+  const locationError = validateLocationFields();
+  if (locationError) {
+    setStatus(locationError, "error");
+    const firstMissing = [elements.prefecture, elements.city, elements.ward].find((select) => select && !select.value);
+    firstMissing?.focus();
+    return;
+  }
+  const addressInput = document.querySelector("[data-field='address']");
+  if (addressInput && !addressInput.value.trim()) {
+    const values = locationValues();
+    addressInput.value = [values.prefecture, values.city, values.ward === NOT_SUBDIVIDED_VALUE ? "" : values.ward].filter(Boolean).join("");
+    updateProgressRail();
+  }
   const fields = ["asking_price_jpy", "area_sqm", "building_name", "address", "land_right"]
     .map((fieldName) => ({ fieldName, value: formValue(fieldName) }))
     .filter((field) => field.value !== null);
@@ -695,7 +710,6 @@ async function createFreePreview(event) {
 
   state.busy = true;
   setBusy(elements.previewButton, true, "正在生成…");
-  setBusy(elements.railPreviewButton, true, "正在生成…");
   setStatus("正在保存确认字段并计算资料完整度。", "info");
   try {
     if (DEMO_MODE) {
@@ -713,7 +727,7 @@ async function createFreePreview(event) {
         field.fieldName,
         field.value,
         "confirmed",
-        field.fieldName === "address" ? { locator: addressEvidenceLocator() } : {},
+        {},
       );
     }
     state.preview = await generatePreview(state.session.sessionId, state.session.rawToken);
@@ -726,12 +740,12 @@ async function createFreePreview(event) {
   } finally {
     state.busy = false;
     setBusy(elements.previewButton, false);
-    setBusy(elements.railPreviewButton, false);
   }
 }
 
 async function saveProject() {
   if (state.busy) return;
+  if (!elements.saveButton) return setStatus(t("intake.formUnavailable", "表单暂时无法使用，请刷新后重试。"), "error");
   if (DEMO_MODE) {
     state.busy = true;
     setBusy(elements.saveButton, true, "保存演示项目…");
@@ -756,12 +770,14 @@ async function saveProject() {
       state.session.sessionId,
       state.session.rawToken,
       accessToken,
-      elements.projectName.value,
+      elements.projectName?.value || "",
     );
     saveAnonymousSession(null);
     setStage("save");
-    elements.saveButton.textContent = "项目已保存";
-    elements.saveButton.disabled = true;
+    if (elements.saveButton) {
+      elements.saveButton.textContent = "项目已保存";
+      elements.saveButton.disabled = true;
+    }
     if (elements.savedProjectLink) {
       elements.savedProjectLink.classList.remove("hidden");
       elements.savedProjectLink.href = "project.html?demo=1&state=ready";
@@ -778,12 +794,14 @@ async function saveProject() {
 }
 
 function closeMenu() {
+  if (!elements.menu || !elements.menuToggle) return;
   elements.menu.hidden = true;
   elements.menuToggle.setAttribute("aria-expanded", "false");
   elements.menuToggle.setAttribute("aria-label", "打开菜单");
 }
 
 function toggleMenu() {
+  if (!elements.menu || !elements.menuToggle) return;
   const willOpen = elements.menu.hidden;
   elements.menu.hidden = !willOpen;
   elements.menuToggle.setAttribute("aria-expanded", String(willOpen));
@@ -791,60 +809,74 @@ function toggleMenu() {
   if (willOpen) elements.menu.querySelector("a")?.focus();
 }
 
-function initialize() {
-  elements.submitForm.addEventListener("submit", startIntake);
-  elements.confirmForm.addEventListener("submit", createFreePreview);
-  elements.saveButton.addEventListener("click", saveProject);
-  elements.takePhotoButton.addEventListener("click", () => elements.photos.click());
-  elements.source.addEventListener("input", () => {
+async function initialize() {
+  elements.submitForm?.addEventListener("submit", startIntake);
+  elements.confirmForm?.addEventListener("submit", createFreePreview);
+  elements.saveButton?.addEventListener("click", saveProject);
+  elements.takePhotoButton?.addEventListener("click", () => elements.photos?.click());
+  await loadLocationFields();
+  elements.source?.addEventListener("input", () => {
     updateSourceCount();
     updateProgressRail();
   });
-  elements.assetType.addEventListener("change", () => {
+  elements.assetType?.addEventListener("change", () => {
     state.assetType = elements.assetType.value;
     elements.assetType.removeAttribute("aria-invalid");
     updateProgressRail();
   });
-  elements.files.addEventListener("change", () => {
+  elements.files?.addEventListener("change", () => {
     updateFilePresentation();
     updateProgressRail();
   });
-  elements.photos.addEventListener("change", () => {
+  elements.photos?.addEventListener("change", () => {
     updatePhotoPresentation();
     updateProgressRail();
   });
-  elements.locationButton.addEventListener("click", captureLocation);
-  elements.fileDropzone.addEventListener("dragover", (event) => {
+  elements.prefecture?.addEventListener("change", () => {
+    if (!applyingLocationPrefill) elements.prefecture.dataset.userModified = "true";
+    populateCities(elements.prefecture.value);
+    if (elements.city) elements.city.dataset.userModified = "";
+    if (elements.ward) {
+      elements.ward.dataset.userModified = "";
+      resetLocationSelect(elements.ward, t("intake.selectWard", "请先选择区"));
+    }
+  });
+  elements.city?.addEventListener("change", () => {
+    if (!applyingLocationPrefill) elements.city.dataset.userModified = "true";
+    populateWards(elements.prefecture?.value || "", elements.city.value);
+    if (elements.ward) elements.ward.dataset.userModified = "";
+  });
+  elements.ward?.addEventListener("change", () => {
+    if (!applyingLocationPrefill) elements.ward.dataset.userModified = "true";
+  });
+  elements.fileDropzone?.addEventListener("dragover", (event) => {
     event.preventDefault();
-    elements.fileDropzone.classList.add("is-dragover");
+    elements.fileDropzone?.classList.add("is-dragover");
   });
-  elements.fileDropzone.addEventListener("dragleave", () => {
-    elements.fileDropzone.classList.remove("is-dragover");
+  elements.fileDropzone?.addEventListener("dragleave", () => {
+    elements.fileDropzone?.classList.remove("is-dragover");
   });
-  elements.fileDropzone.addEventListener("drop", handleFileDrop);
+  elements.fileDropzone?.addEventListener("drop", handleFileDrop);
   document.querySelectorAll("input[name='purpose']").forEach((input) => {
     input.addEventListener("change", updateProgressRail);
   });
   document.querySelectorAll("[data-field]").forEach((input) => {
     input.addEventListener("input", updateProgressRail);
   });
-  elements.projectName.addEventListener("input", () => {
+  elements.projectName?.addEventListener("input", () => {
     state.projectNameTouched = true;
-    elements.projectName.removeAttribute("aria-invalid");
-    elements.projectNameHelp.textContent = "保存时会使用这个名称；同一用户下名称不能重复。";
+    elements.projectName?.removeAttribute("aria-invalid");
+    if (elements.projectNameHelp) elements.projectNameHelp.textContent = "保存时会使用这个名称；同一用户下名称不能重复。";
   });
-  elements.railPreviewButton.addEventListener("click", () => {
-    if (!elements.railPreviewButton.disabled) elements.confirmForm.requestSubmit();
-  });
-  elements.menuToggle.addEventListener("click", toggleMenu);
+  elements.menuToggle?.addEventListener("click", toggleMenu);
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && !elements.menu.hidden) {
+    if (event.key === "Escape" && elements.menu && !elements.menu.hidden) {
       closeMenu();
-      elements.menuToggle.focus();
+      elements.menuToggle?.focus();
     }
   });
-  elements.status.classList.add("is-empty");
-  elements.status.textContent = "";
+  elements.status?.classList.add("is-empty");
+  if (elements.status) elements.status.textContent = "";
   if (DEMO_MODE) {
     document.querySelector("#demoBanner")?.removeAttribute("hidden");
     document.querySelector("#reviewLink")?.removeAttribute("hidden");
@@ -853,9 +885,9 @@ function initialize() {
   updateSourceCount();
   updateFilePresentation();
   updatePhotoPresentation();
-  elements.locationCandidate.textContent = state.location.addressCandidate || "尚未获取";
-  elements.assetType.value = state.assetType;
-  elements.assetTypeSummary.textContent = ASSET_TYPE_LABELS[state.assetType] || "未选择";
+  if (elements.locationCandidate) elements.locationCandidate.textContent = t("intake.notObtained", "尚未获取");
+  if (elements.assetType) elements.assetType.value = state.assetType;
+  if (elements.assetTypeSummary) elements.assetTypeSummary.textContent = ASSET_TYPE_LABELS[state.assetType] || "未选择";
   updateProgressRail();
   if (state.session?.sessionId && state.session?.rawToken && state.assetType) {
     setStage("confirm");
@@ -868,4 +900,5 @@ function initialize() {
   }
 }
 
+window.addEventListener("zou:recognition-prefill", (event) => applyLocationPrefill(event.detail || {}));
 initialize();

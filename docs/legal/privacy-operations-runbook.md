@@ -47,7 +47,7 @@ SLA 计时从完成必要身份验证开始。法律保留、争议、欺诈调�
 
 ## 5. 客服和资料主体请求
 
-客服入口为静态 [support.html](../../web/support.html)，当前保留邮箱 `support@zouseeking.example` 仅作占位，不会发送通知。收到请求后按 [DSAR 流程](data-subject-request-process.md)验证身份、拆分查阅/更正/删除/限制/反对/可携带副本，并使用 24 小时确认、30 天完成或说明延期的内部目标。
+客服入口为静态 [support.html](../../web/support.html)，当前保留邮箱 `support@zouseeking.example` 仅作占位，不会发送通知。收到请求后按 [DSAR 流程](data-subject-request-process.md)验证身份、拆分查阅/更正/删除/限制/反对/可携带副本；台湾请求以验证后 15 天处理为目标，必要时延长 15 天并通知，其他法域沿用 24 小时确认、30 天完成或说明延期的内部目标。
 
 客服不能索取完整密码、refresh token、银行卡、身份证件全文或无关家庭成员资料。导出前再次确认范围和接收渠道，下载链接应短期、受限且可撤销。
 

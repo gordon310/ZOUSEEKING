@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>隐私政策｜小象数据</title>
-    <link rel="icon" href="assets/logoELE-beacon.svg?v=20260831-privacy" />
-    <link rel="stylesheet" href="styles.css?v=20260831-privacy" />
-    <link rel="stylesheet" href="business.css?v=20260831-privacy" />
+    <title data-i18n-title="legal.pageTitle">隐私政策｜小象数据</title>
+    <link rel="icon" href="assets/logoELE-beacon.svg?v=20260912-privacy" />
+    <link rel="stylesheet" href="styles.css?v=20260912-privacy" />
+    <link rel="stylesheet" href="business.css?v=20260912-privacy" />
     <style>
       .legal-page { max-width: 900px; margin: 0 auto; padding: 32px 20px 72px; }
       .legal-page article { background: #fff; border: 1px solid #d9e1eb; border-radius: 18px; padding: 28px; box-shadow: 0 10px 28px rgba(16, 40, 77, .08); }
@@ -15,31 +15,56 @@
       .legal-page li { margin: 8px 0; }
       .legal-meta, .legal-notice { color: #46546a; font-size: 14px; }
       .legal-notice { background: #fff7e8; border-left: 4px solid #e28a24; padding: 12px 14px; border-radius: 8px; }
-      .legal-nav { display: flex; gap: 14px; flex-wrap: wrap; margin: 16px 0 22px; }
+      .legal-nav { display: flex; gap: 14px; flex-wrap: wrap; margin: 16px 0 22px; align-items: center; }
       .legal-nav a { color: #10284d; font-weight: 700; }
-      @media (max-width: 600px) { .legal-page { padding: 20px 12px 48px; } .legal-page article { padding: 20px 16px; } }
+      .legal-nav .locale-switcher { margin-left: auto; }
+      @media (max-width: 600px) { .legal-page { padding: 20px 12px 48px; } .legal-page article { padding: 20px 16px; } .legal-nav .locale-switcher { margin-left: 0; } }
     </style>
   </head>
   <body class="business-app">
     <main class="legal-page">
-      <nav class="legal-nav" aria-label="法律与支持导航"><a href="index.html">返回小象数据</a><a href="terms.html">服务条款</a><a href="support.html">客服入口</a></nav>
+      <nav class="legal-nav" aria-label="法律与支持导航" data-i18n-aria-label="nav.page">
+        <a href="index.html" data-i18n="legal.navHome">返回小象数据</a>
+        <a href="terms.html" data-i18n="legal.navTerms">服务条款</a>
+        <a href="support.html" data-i18n="legal.navSupport">客服入口</a>
+        <label class="locale-switcher">
+          <span class="visually-hidden" data-i18n="locale.label">界面语言</span>
+          <select data-locale-switcher data-i18n-aria-label="locale.label">
+            <option value="zh-CN">简体中文</option><option value="zh-Hant">繁體中文</option><option value="en">English</option><option value="ja">日本語</option>
+          </select>
+        </label>
+      </nav>
       <article>
-        <p class="eyebrow">PRIVACY POLICY · privacy-2026-08</p>
-        <h1>隐私政策</h1>
-        <p class="legal-meta">内部离线草案；运营主体身份、客服系统和删除执行器尚未确认。</p>
-        <p class="legal-notice">本页为静态离线草案，不含真实客户资料（no real customer data）。它不是已发布的法定隐私通知或法律意见。</p>
-        <h2>我们处理什么</h2>
-        <p>我们区分账户身份、账户资料、用户主动提交的项目资料、查询/报告、同意证据、公开数据和模型估算。模型估算与 synthetic_fixture 会明确标记，不冒充市场事实。</p>
-        <h2>用途和同意</h2>
-        <p>注册需要主动同意本政策和服务条款。当前页面在提交时生成 UTC <code>consent_at</code>，并保存 <code>consent_version=privacy-2026-08</code> 与 <code>terms_version=terms-2026-08</code>；浏览器时钟仍不受信任，正式上线需由服务端/Auth 事件核验。定位等独立用途需要独立同意。</p>
-        <h2>照片位置信息（待法务/负责人确认）</h2>
-        <p>照片中的位置信息（EXIF）会提交到本服务解析，用于预填查询条件。不使用此功能不会影响其他功能；照片不会被发送给第三方 AI 服务。</p>
-        <h2>保留、删除和权利</h2>
-        <p>内部目标是 24 小时确认请求、30 天内处理主数据删除、备份最多 90 天自然到期；法律保留可能例外。资料主体可以请求查阅、更正、删除、限制、反对或副本。</p>
-        <h2>联系</h2>
-        <p>请查看 <a href="support.html">客服入口</a>。<code>support@zouseeking.example</code> 是保留域名占位，当前不会发送通知。</p>
-        <p class="legal-meta">完整内部草案位于仓库 <code>docs/legal/privacy-policy.md</code>，不会随静态站点发布。</p>
+        <p class="eyebrow" data-i18n="legal.eyebrow">PRIVACY POLICY · privacy-2026-08</p>
+        <h1 data-i18n="legal.h1">隐私政策</h1>
+        <p class="legal-notice" data-i18n="legal.draftNotice">本文件为上线前草稿，待法务／负责人确认。生效日：〔生效日:待确认〕</p>
+        <h2 data-i18n="legal.s1Title">1. 蒐集者与联络方式</h2>
+        <p data-i18n="legal.s1Body">蒐集者为カナン株式会社（Kanan Co., Ltd.），法人番号 6120001261672，地址为大阪府大阪市生野区林寺２丁目５番２２号，代表取締役为姜興。联络窗口：canaanlife@goo.jp；资料主体请求也可经客服入口提出。</p>
+        <h2 data-i18n="legal.s2Title">2. 台湾 PDPA 第 8 条：六项告知</h2>
+        <p data-i18n="legal.s2Intro">我们按具体服务需要处理资料。</p>
+        <ol>
+          <li data-i18n="legal.pdpa1">蒐集者：カナン株式会社（Kanan Co., Ltd.）、法人番号 6120001261672、上述地址、canaanlife@goo.jp。</li>
+          <li data-i18n="legal.pdpa2">蒐集目的：账户、安全、查询／报告、EXIF 位置预填、付款／订阅、审计及资料主体请求。</li>
+          <li data-i18n="legal.pdpa3">资料类别：邮箱、用户 ID、用户名、密码凭据、查询／报告／用量、付款订单、当次 EXIF GPS、IP 与技术日志。</li>
+          <li data-i18n="legal.pdpa4">利用期间、地区、对象及方式：会员存续及法令所需期间；涉及新加坡、日本，付款可能涉及美国；由受托供应商和受权限人员处理。</li>
+          <li data-i18n="legal.pdpa5">权利及行使方式：查询、阅览、製给复制本、补充／更正、停止蒐集处理利用、删除，以及相关限制、撤回和可携权利；经 canaanlife@goo.jp 或客服入口提出。</li>
+          <li data-i18n="legal.pdpa6">不提供的影响：无法提供邮箱无法注册；不提供密码无法登录；不提供查询条件无法生成相应查询；不使用照片位置不影响其他功能；不提供付款资料无法完成收费功能。</li>
+        </ol>
+        <h2 data-i18n="legal.s3Title">3. 利用期间、地区、对象及跨境传输</h2>
+        <p data-i18n="legal.s3Body">账户、查询和报告原则上保存至会员存续期间。</p>
+        <h2 data-i18n="legal.s4Title">4. 资料类别、照片、Cookie 与本地储存</h2>
+        <p data-i18n="legal.s4Body">照片只为当次 EXIF 位置识别使用；AI 默认关闭。</p>
+        <h2 data-i18n="legal.s5Title">5. 同意、行销与第三方接收方</h2>
+        <p data-i18n="legal.s5Body">注册时分别勾选本政策与服务条款；目前不发送行销邮件。</p>
+        <h2 data-i18n="legal.s6Title">6. 资料主体权利与行使方式</h2>
+        <p data-i18n="legal.s6Body">资料主体可请求查询、阅览、复制、更正、停止处理、删除及其他法定权利。</p>
+        <h2 data-i18n="legal.s7Title">7. 各法域补充告知</h2>
+        <p data-i18n="legal.s7Body">香港、新加坡、日本及中国大陆的补充告知见本节。</p>
+        <h2 data-i18n="legal.s8Title">8. 安全、外泄与交叉文件</h2>
+        <p data-i18n="legal.s8Body">疑似外泄按事故响应流程处理。</p>
+        <p class="legal-meta" data-i18n="legal.footer">完整政策以本页为准。</p>
       </article>
     </main>
+    <script src="js/i18n.js"></script>
   </body>
 </html>

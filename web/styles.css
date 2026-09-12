@@ -138,6 +138,38 @@ body.auth-pending .account-panel {
   font-weight: 800;
 }
 
+@media (max-width: 900px) {
+  .topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    align-content: center;
+    column-gap: 12px;
+    row-gap: 9px;
+  }
+
+  .topbar-brand {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    flex-basis: auto;
+    width: 100%;
+  }
+
+  .topbar-links {
+    grid-column: 1;
+    grid-row: 2;
+    width: auto;
+    flex: none;
+    justify-content: flex-start;
+  }
+
+  .locale-switcher {
+    grid-column: 2;
+    grid-row: 2;
+    margin-left: 0;
+  }
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;

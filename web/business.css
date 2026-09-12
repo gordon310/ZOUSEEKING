@@ -603,9 +603,9 @@
   }
 
   .business-app .topbar-links {
-    flex: 1 1 100%;
-    order: 3;
-    width: 100%;
+    flex: none;
+    width: auto;
+    margin-left: 0;
     gap: 18px;
     justify-content: flex-start;
     overflow: visible;
@@ -614,7 +614,7 @@
   }
 
   .business-app .locale-switcher {
-    margin-left: auto;
+    margin-left: 0;
   }
 
   .business-app .topbar-links a {

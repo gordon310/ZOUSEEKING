@@ -101,6 +101,7 @@ begin
   values ('00000000-0000-0000-0000-000000000901', 'probe901@example.test');
   insert into public.user_profiles (user_id)
   values ('00000000-0000-0000-0000-000000000901')
+  on conflict (user_id) do update set email = public.user_profiles.email
   returning user_id into v_probe_id;
 
   -- 6a. Trigger: a non-service writer that somehow holds UPDATE on status

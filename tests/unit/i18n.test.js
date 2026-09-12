@@ -44,7 +44,10 @@ test("browser language mapping selects the expected locale", () => {
   assert.equal(loadI18n({ language: "zh-HK" }).detectedLocale, "zh-Hant");
   assert.equal(loadI18n({ language: "zh-CN" }).detectedLocale, "zh-CN");
   assert.equal(loadI18n({ language: "zh-SG" }).detectedLocale, "zh-CN");
+  assert.equal(loadI18n({ language: "zh-Hans-JP" }).detectedLocale, "zh-CN");
+  assert.equal(loadI18n({ language: "zh-Hant-HK" }).detectedLocale, "zh-Hant");
   assert.equal(loadI18n({ language: "ja-JP" }).detectedLocale, "ja");
+  assert.equal(loadI18n({ language: "en-US" }).detectedLocale, "en");
   assert.equal(loadI18n({ language: "fr-FR" }).detectedLocale, "en");
 });
 

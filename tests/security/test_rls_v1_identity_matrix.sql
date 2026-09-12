@@ -32,7 +32,11 @@ insert into public.properties (id, owner_user_id, project_type, building_name) v
   ('00000000-0000-0000-0000-000000000442', '00000000-0000-0000-0000-000000000402', 'residential', 'other fixture');
 insert into public.user_profiles (user_id, bio, membership_tier, daily_query_limit) values
   ('00000000-0000-0000-0000-000000000401', 'owner fixture', 'free', 3),
-  ('00000000-0000-0000-0000-000000000402', 'other fixture', 'free', 3);
+  ('00000000-0000-0000-0000-000000000402', 'other fixture', 'free', 3)
+on conflict (user_id) do update set
+  bio = excluded.bio,
+  membership_tier = excluded.membership_tier,
+  daily_query_limit = excluded.daily_query_limit;
 
 -- Anon may read active field options only; all private/member access fails.
 set local role anon;

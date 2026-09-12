@@ -5,6 +5,7 @@ module.exports = defineConfig({
   timeout: 15_000,
   use: {
     baseURL: "http://127.0.0.1:8787",
+    locale: "zh-CN",
     trace: "retain-on-failure",
   },
   webServer: {

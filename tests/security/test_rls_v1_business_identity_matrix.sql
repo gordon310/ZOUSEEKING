@@ -42,7 +42,11 @@ insert into auth.users (
 
 insert into public.user_profiles (user_id, bio, membership_tier, daily_query_limit) values
   ('00000000-0000-0000-0000-000000000401', 'owner fixture', 'free', 3),
-  ('00000000-0000-0000-0000-000000000402', 'other fixture', 'free', 3);
+  ('00000000-0000-0000-0000-000000000402', 'other fixture', 'free', 3)
+on conflict (user_id) do update set
+  bio = excluded.bio,
+  membership_tier = excluded.membership_tier,
+  daily_query_limit = excluded.daily_query_limit;
 
 insert into public.organizations (id, name, partner_status, created_by_user_id) values
   ('00000000-0000-0000-0000-000000000411', 'fixture org', 'none', '00000000-0000-0000-0000-000000000401');

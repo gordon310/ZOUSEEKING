@@ -24,6 +24,16 @@ async function seedSession(page, locale = "zh-CN") {
   }, { session: demoSession, locale });
 }
 
+async function seedBusinessReleaseScope(page) {
+  await page.addInitScript(() => {
+    window.ZOUSEEKING_RELEASE_SCOPE = Object.freeze({
+      phase: "consumer_intake_preview",
+      businessOperations: true,
+      adminOperations: false,
+    });
+  });
+}
+
 test("B 端主页保持精简并展示无图片的日元最近更新", async ({ page }) => {
   expect(latestCardCount).toBeGreaterThan(0);
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -140,6 +150,7 @@ test("小象数据六个补齐页面都提供可评审入口", async ({ page }) 
 });
 
 test("机构、账单和用量页提供本地演示操作", async ({ page }) => {
+  await seedBusinessReleaseScope(page);
   await page.goto("/organization.html");
   await page.locator("#inviteMemberButton").click();
   await expect(page.locator("#organizationNotice")).toContainText("邀请流程演示");
@@ -147,25 +158,63 @@ test("机构、账单和用量页提供本地演示操作", async ({ page }) => 
   await expect(page.locator("#organizationNotice")).toContainText("成员详情");
 
   await page.goto("/billing.html");
-  await page.locator("#billingCurrency").selectOption("JPY");
-  await expect(page.locator("#billingPrice")).toContainText("3,999");
-  await page.locator("#autoRenewButton").click();
-  await expect(page.locator("#autoRenewButton")).toContainText("开启");
-  await expect(page.locator("#billingNotice")).toContainText("演示");
+  await expect(page.locator("#billingCurrentPlan")).toHaveText("暂无真实数据");
+  await expect(page.locator("#billingPrice")).toHaveText("");
+  await expect(page.locator("#autoRenewButton")).toHaveText("打开账单门户");
+  await expect(page.locator("#autoRenewButton")).toBeDisabled();
+  await expect(page.locator("#billingNotice")).toContainText("尚未接通");
 
+  const billingSubscription = { plan: "B Data Pro", status: "active", current_period_end: "2026-10-01", cancel_at_period_end: false };
+  await page.route("**/api/billing/prices", (route) => route.fulfill({ json: [{ product_code: "B_DATA_PRO", currency: "JPY", amount_minor: 399900, mode: "subscription" }] }));
+  await page.route("**/api/me", (route) => route.fulfill({ json: { membership_tier: "B Data Pro" } }));
+  await page.route("**/api/billing/subscription", (route) => route.fulfill({ json: billingSubscription }));
+  await page.reload();
+  await expect(page.locator("#billingCurrentPlan")).toHaveText("B Data Pro");
+  await expect(page.locator("#billingPrice")).toContainText("正常");
+  await expect(page.locator("#billingPlans .business-card")).toHaveCount(1);
+  await expect(page.locator("#autoRenewButton")).toBeEnabled();
+  await expect(page.locator("#billingNotice")).toContainText("真实账单价格");
+
+  await page.route("**/api/usage/summary", (route) => route.fulfill({
+    json: {
+      available: true,
+      period: { start: "2026-09-01", end: "2026-09-30" },
+      entitlements: {
+        queries: { used: 2, limit: 10 },
+        reports: { used: 1, limit: null },
+        exports_rows: { used: 2, limit: 10 },
+      },
+    },
+  }));
   await page.goto("/usage.html");
-  await page.locator("#usageFilter").selectOption("query");
-  await expect(page.locator("#usageList [data-usage-kind='query']")).toHaveCount(2);
-  await expect(page.locator("#usageNotice")).toContainText("查询");
+  await expect(page.locator("#usageCards .business-card")).toHaveCount(3);
+  await expect(page.locator("#usageCards")).toContainText("数据查询");
+  await expect(page.locator("#usageCards")).toContainText("2 / 10");
+  await expect(page.locator("#usageCards")).toContainText("未配置上限");
+  await expect(page.locator("#usagePeriod")).toContainText("2026-09-01");
+  await expect(page.locator("#usageNotice")).toContainText("已读取当前用户真实用量");
+  await expect(page.locator("#usageList")).toContainText("汇总");
+
+  await page.unroute("**/api/usage/summary");
+  await page.route("**/api/usage/summary", (route) => route.fulfill({ status: 500, json: {} }));
+  await page.reload();
+  await expect(page.locator("#usageNotice")).toContainText("没有用量读取端点");
 });
 
 test("订阅和服务任务页提供本地演示操作，导出页连接真实接口", async ({ page }) => {
+  await seedBusinessReleaseScope(page);
+  let subscription = null;
+  await page.route("**/api/billing/subscription", (route) => route.fulfill({ json: subscription }));
   await page.goto("/subscriptions.html");
-  await page.locator("#subscriptionForm button[type='submit']").click();
-  await expect(page.locator("#subscriptionList [data-subscription-row]")).toHaveCount(4);
-  await expect(page.locator("#subscriptionNotice")).toContainText("添加");
-  await page.locator("[data-subscription-action='toggle']").first().click();
-  await expect(page.locator("#subscriptionNotice")).toContainText("本地");
+  await expect(page.locator("#subscriptionList")).toContainText("未订阅");
+  await expect(page.locator("#subscriptionNotice")).toContainText("没有可读取的订阅记录");
+
+  subscription = { plan: "B Free", status: "active", current_period_end: "2026-10-01", cancel_at_period_end: true };
+  await page.reload();
+  await expect(page.locator("#subscriptionList .business-list-row")).toHaveCount(1);
+  await expect(page.locator("#subscriptionList")).toContainText("B Free");
+  await expect(page.locator("#subscriptionList")).toContainText("周期末取消");
+  await expect(page.locator("#subscriptionNotice")).toContainText("真实订阅");
 
   let exportCreated = false;
   await page.route("**/api/usage/summary", (route) => route.fulfill({ json: { available: true, entitlements: { exports_rows: { used: 2, limit: 10 } } } }));
@@ -196,10 +245,10 @@ test("补齐的 B 端页面支持英文和日文切换", async ({ page }) => {
   await page.locator("[data-locale-switcher]").selectOption("en");
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.locator("h1")).toHaveText("Plans & billing");
-  await expect(page.locator("#autoRenewButton")).toContainText("auto-renew");
+  await expect(page.locator('[data-i18n="business.currency"]')).toHaveText("Display currency");
 
   await page.locator("[data-locale-switcher]").selectOption("ja");
   await expect(page.locator("html")).toHaveAttribute("lang", "ja");
   await expect(page.locator("h1")).toHaveText("プランと請求");
-  await expect(page.locator("#autoRenewButton")).toContainText("自動更新");
+  await expect(page.locator('[data-i18n="business.currency"]')).toHaveText("表示通貨");
 });

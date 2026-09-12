@@ -1669,7 +1669,7 @@
   function localeFromLanguage(language) {
     const normalized = String(language || "").toLowerCase();
     if (["zh-hant", "zh-tw", "zh-hk", "zh-mo"].some((prefix) => normalized === prefix || normalized.startsWith(`${prefix}-`))) return "zh-Hant";
-    if (["zh-cn", "zh-sg", "zh"].some((prefix) => normalized === prefix || normalized.startsWith(`${prefix}-`))) return "zh-CN";
+    if (["zh-hans", "zh-cn", "zh-sg", "zh"].some((prefix) => normalized === prefix || normalized.startsWith(`${prefix}-`))) return "zh-CN";
     if (normalized === "ja" || normalized.startsWith("ja-")) return "ja";
     return "en";
   }

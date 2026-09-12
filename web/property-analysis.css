@@ -775,8 +775,7 @@ input[type="number"]:focus {
   stroke-width: 1.7;
 }
 
-.primary-action,
-.rail-cta {
+.primary-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -791,13 +790,11 @@ input[type="number"]:focus {
   transition: background-color 160ms ease, transform 160ms ease;
 }
 
-.primary-action:hover,
-.rail-cta:hover {
+.primary-action:hover {
   background: var(--orange-dark);
 }
 
-.primary-action:active,
-.rail-cta:active {
+.primary-action:active {
   transform: translateY(1px);
 }
 
@@ -1248,28 +1245,8 @@ meter {
   font-size: 12px;
 }
 
-.rail-cta {
-  width: 100%;
-  min-height: 50px;
-  margin-top: 18px;
-  border: 2px solid var(--orange);
-  background: var(--white);
-  color: var(--orange-dark);
-  font-size: 18px;
-}
-
-.rail-cta:hover {
-  background: var(--surface-warm);
-}
-
 .mobile-flow-nav {
   display: none;
-}
-
-@media (min-width: 901px) {
-  #previewButton {
-    display: none;
-  }
 }
 
 @media (max-width: 900px) {
@@ -1623,8 +1600,7 @@ meter {
   .file-dropzone strong { font-size: 16px; }
   .file-dropzone small { font-size: 13px; }
   .privacy-note { min-height: 46px; margin-top: 18px; padding: 10px 13px; font-size: 13px; }
-  .primary-action,
-  .rail-cta { min-height: 50px; font-size: 16px; }
+  .primary-action { min-height: 50px; font-size: 16px; }
   .desktop-summary { padding-left: 32px; }
   .desktop-summary h2 { font-size: 19px; }
   .progress-overview { gap: 17px; margin-top: 17px; }
@@ -1638,5 +1614,4 @@ meter {
   .recognized-field-label,
   .rail-preview-detail p { font-size: 13px; }
   .recognized-field-value { font-size: 14px; }
-  .rail-cta { margin-top: 14px; }
 }

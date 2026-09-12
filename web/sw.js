@@ -1,7 +1,8 @@
 /* ZOUSEEKING PWA service worker - static app-shell caching only.
  *
- * Cache policy: stale-while-revalidate for same-origin static assets
- * (html/css/js/svg/png/webmanifest). API and cross-origin requests
+ * Cache policy: network-first for same-origin navigation requests so deployed
+ * HTML cannot be pinned to an old app shell; versioned static assets use
+ * cache-first. API and cross-origin requests
  * (backend /api/*, Supabase /rest/v1|/auth/v1, /functions/*) always go
  * to the network - never cache member data, reports or auth responses.
  * Bump SW_VERSION to force an app-shell refresh after deploys.
@@ -42,6 +43,18 @@ function isStaticAsset(url) {
   return /\.(css|js|json|webmanifest|svg|png|ico|woff2?)$/.test(path);
 }
 
+function isVersionedAsset(url) {
+  return ["v", "version", "rev", "hash"].some((key) => url.searchParams.has(key));
+}
+
+function cacheAppShellFallback(pathname) {
+  const versionedPath = `${pathname.replace(/\/$/, "") || "/index.html"}?v=${SW_VERSION}`;
+  return caches.match(new URL(versionedPath, self.location)).then((cached) => {
+    if (cached) return cached;
+    return caches.match(new URL(`./index.html?v=${SW_VERSION}`, self.location));
+  });
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -49,28 +62,44 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate") {
     event.respondWith(
-      caches
-        .match(request, { ignoreSearch: true })
-        .then((cached) => cached || fetch(request))
-        .catch(() => caches.match(new URL("./index.html", self.location).pathname, { ignoreSearch: true })),
+      fetch(request)
+        .then((response) => {
+          if (response && response.ok) {
+            event.waitUntil(
+              caches
+                .open(CACHE_NAME)
+                .then((cache) => cache.put(request, response.clone()))
+                .catch(() => {}),
+            );
+          }
+          return response;
+        })
+        .catch(() => caches.match(request).then((cached) => cached || cacheAppShellFallback(url.pathname))),
     );
     return;
   }
 
   if (!isStaticAsset(url)) return;
 
+  if (!isVersionedAsset(url)) {
+    event.respondWith(fetch(request).catch(() => caches.match(request)));
+    return;
+  }
+
   event.respondWith(
     caches.match(request).then((cached) => {
-      const network = fetch(request)
-        .then((response) => {
-          if (response && response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          }
-          return response;
-        })
-        .catch(() => cached);
-      return cached || network;
+      if (cached) return cached;
+      return fetch(request).then((response) => {
+        if (response && response.ok) {
+          event.waitUntil(
+            caches
+              .open(CACHE_NAME)
+              .then((cache) => cache.put(request, response.clone()))
+              .catch(() => {}),
+          );
+        }
+        return response;
+      });
     }),
   );
 });

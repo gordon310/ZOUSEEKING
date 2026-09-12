@@ -30,6 +30,7 @@ import asyncpg
 import httpx
 import pytest
 import pytest_asyncio
+from tests.support.pg_bootstrap import apply_migrations
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 
@@ -786,16 +787,6 @@ def test_member_ops_audit_prefixes_are_dotted_domains() -> None:
 # Real-Postgres integration (skipped unless a disposable local server is set)
 # ============================================================================
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-MIGRATIONS = [
-    REPO_ROOT / "supabase" / "migrations" / "20260905000100_v1_organizations.sql",
-    REPO_ROOT / "supabase" / "migrations" / "20260905000200_v1_products_subscriptions.sql",
-    REPO_ROOT / "supabase" / "migrations" / "20260905000300_v1_usage_ledger.sql",
-    REPO_ROOT / "supabase" / "migrations" / "20260905000500_v1_finance_admin_audit.sql",
-    REPO_ROOT / "supabase" / "migrations" / "20260905000600_member_status.sql",
-    REPO_ROOT / "supabase" / "migrations" / "20260905000601_collection_runs.sql",
-]
-
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 pytestmark_db = pytest.mark.asyncio
 
@@ -832,7 +823,8 @@ async def _bootstrap_and_migrate(url: str) -> None:
             create schema if not exists auth;
             create table if not exists auth.users (
               id uuid primary key,
-              email text
+              email text,
+              raw_user_meta_data jsonb not null default '{}'::jsonb
             );
             create or replace function auth.uid() returns uuid
             language sql stable as $$
@@ -873,8 +865,7 @@ async def _bootstrap_and_migrate(url: str) -> None:
             );
             """
         )
-        for path in MIGRATIONS:
-            await conn.execute(path.read_text(encoding="utf-8"))
+        await apply_migrations(conn)
     finally:
         await conn.close()
 
@@ -944,7 +935,12 @@ async def seeded_pool(_migrated_database: str):
                     "insert into public.user_profiles"
                     " (user_id, email, username, display_name, membership_tier, daily_query_limit)"
                     " values ($1, $2, $3, $4, $5, $6)"
-                    " on conflict (user_id) do nothing",
+                    " on conflict (user_id) do update set"
+                    " email = excluded.email,"
+                    " username = excluded.username,"
+                    " display_name = excluded.display_name,"
+                    " membership_tier = excluded.membership_tier,"
+                    " daily_query_limit = excluded.daily_query_limit",
                     user_id,
                     email,
                     email.split("@")[0],

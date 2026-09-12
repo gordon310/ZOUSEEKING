@@ -27,6 +27,7 @@ from uuid import UUID
 import asyncpg
 import pytest
 import pytest_asyncio
+from tests.support.pg_bootstrap import apply_migrations
 
 from backend.app.billing.ports import (
     AuditRecord,
@@ -44,26 +45,6 @@ USER_ID = UUID("00000000-0000-0000-0000-000000000030")  # personal buyer
 OTHER_USER_ID = UUID("00000000-0000-0000-0000-000000000031")  # no data
 ORG_USER_ID = UUID("00000000-0000-0000-0000-000000000032")  # org member
 ORG_ID = UUID("00000000-0000-0000-0000-000000000040")
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
-MIGRATIONS = [
-    REPO_ROOT
-    / "supabase"
-    / "migrations"
-    / "20260905000100_v1_organizations.sql",
-    REPO_ROOT
-    / "supabase"
-    / "migrations"
-    / "20260905000200_v1_products_subscriptions.sql",
-    REPO_ROOT
-    / "supabase"
-    / "migrations"
-    / "20260905000500_v1_finance_admin_audit.sql",
-    REPO_ROOT
-    / "supabase"
-    / "migrations"
-    / "20260911000100_report_purchase_subject.sql",
-]
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 
@@ -111,7 +92,8 @@ async def _bootstrap_and_migrate(url: str) -> None:
         create schema if not exists auth;
         create table if not exists auth.users (
           id uuid primary key,
-          email text
+          email text,
+          raw_user_meta_data jsonb not null default '{}'::jsonb
         );
         create or replace function auth.uid()
         returns uuid language sql stable as $$
@@ -126,8 +108,7 @@ async def _bootstrap_and_migrate(url: str) -> None:
         $$;
         """
         await conn.execute(bootstrap)
-        for path in MIGRATIONS:
-            await conn.execute(path.read_text(encoding="utf-8"))
+        await apply_migrations(conn)
     finally:
         await conn.close()
 

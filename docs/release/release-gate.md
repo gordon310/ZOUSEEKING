@@ -4,6 +4,9 @@
 
 ## 状态契约
 
+`release_tag = 〔发布标签:待确认〕` 必须在发布证据中替换为本次候选发布的真实标签或版本；未记录标签时不得作出发布决定。
+当前数据库基线状态为 `migration_baseline_status = canonical_staging_reconciled_production_pending`；在生产 reconciliation 完成前不得将该状态写成已发布或已迁移。
+
 每个检查的状态必须来自真实命令：
 
 - `PASS`：命令已运行且退出码为 0。
@@ -64,6 +67,7 @@ npx supabase db reset --local
 psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f tests/sql/test_foundation_schema.sql
 psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f tests/sql/test_property_intake_schema.sql
 psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f tests/sql/test_provenance_policy_metric_contract.sql
+psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f tests/sql/test_m1_reconciliation_contract.sql
 psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f tests/security/test_rls_private_projects.sql
 psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f tests/security/test_rls_v1_identity_matrix.sql
 npx supabase stop --no-backup

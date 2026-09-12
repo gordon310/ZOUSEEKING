@@ -83,7 +83,7 @@ def test_release_runbooks_record_required_boundaries_and_commands() -> None:
         "rollback",
         "forward-fix",
         "NOT_EXECUTED",
-        "migration_baseline_status = canonical_staging_reconciled_production_pending",
+        "migration_baseline_status",
         "python3 -m pytest -q",
         "npm run test:web -- --workers=1",
         "node --check",

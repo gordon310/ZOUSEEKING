@@ -4,15 +4,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="提交日本物件资料，先查看资料完整度和免费项目预览。" />
-    <link rel="manifest" href="manifest.webmanifest?v=20260912-r9" />
-    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=20260912-r9" />
+    <link rel="manifest" href="manifest.webmanifest?v=20260912-r10" />
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=20260912-r10" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="小象" />
     <meta name="theme-color" content="#0b1020" />
     <title data-i18n-title="intake.pageTitle">分析一个日本物件｜小象避坑 ZOUBEACON</title>
-    <link rel="icon" href="assets/logoELE-beacon.svg?v=20260912-r9" />
-    <link rel="stylesheet" href="property-analysis.css?v=20260912-r9" />
+    <link rel="icon" href="assets/logoELE-beacon.svg?v=20260912-r10" />
+    <link rel="stylesheet" href="property-analysis.css?v=20260912-r10" />
   </head>
   <body>
     <main class="beacon-app">
@@ -29,7 +29,7 @@
                 <feComposite in="logo-color" in2="logo-mask" operator="in" />
               </filter>
             </defs>
-            <image href="assets/logoELE.png?v=20260912-r9" width="1254" height="1254" preserveAspectRatio="none" filter="url(#beacon-logo-color)" />
+            <image href="assets/logoELE.png?v=20260912-r10" width="1254" height="1254" preserveAspectRatio="none" filter="url(#beacon-logo-color)" />
           </svg>
           <span class="beacon-brand-copy">
             <strong>小象避坑</strong>
@@ -126,6 +126,18 @@
                     </select>
                     <p id="assetTypeHelp" class="field-help" data-i18n="intake.assetTypeHelp">物件类型是判断费用、风险和可比资料的必要条件，请先选择。</p>
 
+                    <div class="field-grid location-fields" aria-describedby="locationFieldsHelp">
+                      <label class="field-label required-label" for="prefecture"><span data-i18n="intake.prefecture">都道府县</span> <span aria-hidden="true" data-i18n="intake.required">必填</span></label>
+                      <select id="prefecture" class="asset-type-select" data-location-level="prefecture" required aria-describedby="locationFieldsHelp"><option value="" data-i18n="intake.selectPrefecture">请选择都道府县</option></select>
+
+                      <label class="field-label required-label" for="city"><span data-i18n="intake.city">市</span> <span aria-hidden="true" data-i18n="intake.required">必填</span></label>
+                      <select id="city" class="asset-type-select" data-location-level="city" required disabled aria-describedby="locationFieldsHelp"><option value="" data-i18n="intake.selectCity">请先选择都道府县</option></select>
+
+                      <label class="field-label required-label" for="ward"><span data-i18n="intake.ward">区</span> <span aria-hidden="true" data-i18n="intake.required">必填</span></label>
+                      <select id="ward" class="asset-type-select" data-location-level="ward" required disabled aria-describedby="locationFieldsHelp"><option value="" data-i18n="intake.selectWard">请先选择市</option></select>
+                    </div>
+                    <p id="locationFieldsHelp" class="field-help" data-i18n="intake.locationFieldsHelp">请依次选择都道府县、市和区；没有区级资料的城市请选择「未细分」。</p>
+
                     <label class="field-label" for="propertySource" data-i18n="intake.propertySource">物件链接或说明</label>
                     <div class="textarea-wrap">
                       <textarea
@@ -209,6 +221,7 @@
                   <p class="section-description" data-i18n="intake.confirmCopy">请确认识别到的关键信息是否准确，可直接修改。</p>
                   <dl class="submission-summary">
                     <div><dt data-i18n="intake.assetTypeShort">物件类型</dt><dd id="assetTypeSummary" data-i18n="intake.notSelected">未选择</dd></div>
+                    <div data-testid="location-summary"><dt data-i18n="intake.locationTitle">地区</dt><dd><span id="prefectureSummary" data-i18n="intake.notSelected">未选择</span><span aria-hidden="true"> / </span><span id="citySummary" data-i18n="intake.notSelected">未选择</span><span aria-hidden="true"> / </span><span id="wardSummary" data-i18n="intake.notSelected">未选择</span></dd></div>
                     <div><dt data-i18n="intake.submittedMaterials">已提交资料</dt><dd id="sourceSummary"></dd></div>
                     <div><dt data-i18n="intake.processingStatus">处理状态</dt><dd id="inputSummary" data-i18n="intake.waitingSubmit">等待提交</dd></div>
                   </dl>
@@ -227,15 +240,6 @@
                   </section>
                   <form id="confirmForm" class="confirm-form" novalidate>
                     <div class="field-grid">
-                      <label class="field-label required-label" for="prefecture"><span data-i18n="intake.prefecture">都道府县</span> <span aria-hidden="true" data-i18n="intake.required">必填</span></label>
-                      <select id="prefecture" class="asset-type-select" data-location-level="prefecture" required aria-describedby="locationFieldsHelp"><option value="" data-i18n="intake.selectPrefecture">请选择都道府县</option></select>
-
-                      <label class="field-label required-label" for="city"><span data-i18n="intake.city">市</span> <span aria-hidden="true" data-i18n="intake.required">必填</span></label>
-                      <select id="city" class="asset-type-select" data-location-level="city" required disabled aria-describedby="locationFieldsHelp"><option value="" data-i18n="intake.selectCity">请先选择都道府县</option></select>
-
-                      <label class="field-label required-label" for="ward"><span data-i18n="intake.ward">区</span> <span aria-hidden="true" data-i18n="intake.required">必填</span></label>
-                      <select id="ward" class="asset-type-select" data-location-level="ward" required disabled aria-describedby="locationFieldsHelp"><option value="" data-i18n="intake.selectWard">请先选择市</option></select>
-
                       <label class="field-label" for="askingPrice" data-i18n="intake.askingPrice">售价（日元）</label>
                       <input id="askingPrice" data-field="asking_price_jpy" type="number" min="0" inputmode="numeric" placeholder="例如 35000000" data-i18n-placeholder="intake.askingPricePlaceholder" />
 
@@ -251,7 +255,7 @@
                       <label class="field-label" for="landRight" data-i18n="intake.landRight">土地权利</label>
                       <input id="landRight" data-field="land_right" type="text" placeholder="例如 所有权" data-i18n-placeholder="intake.landRightPlaceholder" />
                     </div>
-                    <p id="locationFieldsHelp" class="field-help" data-i18n="intake.locationFieldsHelp">请依次选择都道府县、市和区；没有区级资料的城市请选择「未细分」。</p>
+                    <p class="field-help" data-i18n="intake.locationSummaryHelp">地区已在上一步选择；如需修改请回到上一步。</p>
                     <p class="field-help" data-i18n="intake.confirmedFieldsHelp">已确认的字段才会进入预览；没有证据的字段会显示为资料不足。</p>
                     <div class="completion-strip">
                       <span data-i18n="intake.filled">已填写 <strong id="confirmedFieldCount">0/5 项</strong></span>
@@ -346,10 +350,10 @@
       </nav>
     </main>
 
-    <script src="config.js?v=20260912-r9"></script>
-    <script src="js/pwa.js?v=20260912-r9"></script>
-    <script src="js/i18n.js?v=20260912-r9"></script>
-    <script type="module" src="js/property-intake.js?v=20260912-r9"></script>
-    <script type="module" src="js/recognition.js?v=20260912-r9"></script>
+    <script src="config.js?v=20260912-r10"></script>
+    <script src="js/pwa.js?v=20260912-r10"></script>
+    <script src="js/i18n.js?v=20260912-r10"></script>
+    <script type="module" src="js/property-intake.js?v=20260912-r10"></script>
+    <script type="module" src="js/recognition.js?v=20260912-r10"></script>
   </body>
 </html>

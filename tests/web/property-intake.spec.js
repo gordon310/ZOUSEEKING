@@ -2,6 +2,12 @@ const { test, expect } = require("@playwright/test");
 
 const SESSION_ID = "00000000-0000-0000-0000-000000000040";
 
+async function fillLocation(page, { prefecture = "大阪府", city = "大阪市", ward = "北区" } = {}) {
+  await page.getByLabel("都道府县").selectOption(prefecture);
+  await page.getByLabel("市").selectOption(city);
+  await page.getByLabel("区").selectOption(ward);
+}
+
 test.beforeEach(async ({ page }) => {
   let convertAttempts = 0;
   await page.route("**/api/intake/**", async (route) => {
@@ -179,6 +185,7 @@ test("anonymous user reaches free preview on mobile", async ({ page }) => {
   await expect(page.locator(".intake-progress li")).toHaveCount(5);
   await page.getByLabel("投资出租").check();
   await page.getByLabel("物件类型 / 房型").selectOption("tower");
+  await fillLocation(page);
   await page.getByLabel("物件链接或说明").fill("大阪市北区，售价3500万日元，45.2平方米");
   await page.getByRole("button", { name: "开始整理资料" }).click();
   await page.getByLabel("售价（日元）").fill("35000000");
@@ -224,6 +231,7 @@ test("upload error keeps entered fields and focuses message", async ({ page }) =
   await page.goto("/property-analysis.html");
   await page.getByLabel("物件链接或说明").fill("这段资料应该保留");
   await page.getByLabel("物件类型 / 房型").selectOption("tower");
+  await fillLocation(page);
   await page.setInputFiles("#propertyFiles", {
     name: "bad.exe",
     mimeType: "application/octet-stream",
@@ -252,6 +260,7 @@ test("photo capture requests location and fills a candidate address", async ({ p
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/property-analysis.html");
   await page.getByLabel("物件类型 / 房型").selectOption("tower");
+  await fillLocation(page);
   await page.setInputFiles("#propertyPhotos", {
     name: "house.jpg",
     mimeType: "image/jpeg",
@@ -277,6 +286,7 @@ test("denied location keeps manual address fallback available", async ({ page })
   });
   await page.goto("/property-analysis.html");
   await page.getByLabel("物件类型 / 房型").selectOption("tower");
+  await fillLocation(page);
   await page.setInputFiles("#propertyPhotos", {
     name: "house.jpg",
     mimeType: "image/jpeg",
@@ -291,6 +301,7 @@ test("denied location keeps manual address fallback available", async ({ page })
 test("duplicate address focuses manual investigation name and can retry", async ({ page }) => {
   await page.goto("/property-analysis.html?duplicate=1");
   await page.getByLabel("物件类型 / 房型").selectOption("tower");
+  await fillLocation(page);
   await page.getByLabel("物件链接或说明").fill("大阪市北区，售价3500万日元");
   await page.getByRole("button", { name: "开始整理资料" }).click();
   await page.getByLabel("售价（日元）").fill("35000000");
@@ -313,6 +324,7 @@ test("duplicate address focuses manual investigation name and can retry", async 
 test("existing Supabase auth session can save the preview", async ({ page }) => {
   await page.goto("/property-analysis.html");
   await page.getByLabel("物件类型 / 房型").selectOption("tower");
+  await fillLocation(page);
   await page.getByLabel("物件链接或说明").fill("大阪市北区，售价3500万日元");
   await page.getByRole("button", { name: "开始整理资料" }).click();
   await page.getByLabel("售价（日元）").fill("35000000");
@@ -326,4 +338,23 @@ test("existing Supabase auth session can save the preview", async ({ page }) => 
   await page.getByRole("button", { name: "登录后保存项目" }).click();
   await expect(page.getByRole("button", { name: "项目已保存" })).toBeDisabled();
   await expect(page.locator(".desktop-stepper [data-stage='save']")).toHaveAttribute("aria-current", "step");
+});
+
+test("location validation reports the first missing required level", async ({ page }) => {
+  await page.goto("/property-analysis.html");
+  await page.getByLabel("物件类型 / 房型").selectOption("tower");
+  await page.getByLabel("物件链接或说明").fill("有资料");
+
+  await page.getByRole("button", { name: "开始整理资料" }).click();
+  await expect(page.getByRole("alert")).toContainText("请选择都道府县");
+  await fillLocation(page, { city: "大阪市", ward: "北区" });
+  await page.getByLabel("都道府县").selectOption("");
+  await page.getByLabel("都道府县").selectOption("大阪府");
+  await page.getByLabel("市").selectOption("");
+  await page.getByRole("button", { name: "开始整理资料" }).click();
+  await expect(page.getByRole("alert")).toContainText("请选择市");
+
+  await page.getByLabel("市").selectOption("大阪市");
+  await page.getByRole("button", { name: "开始整理资料" }).click();
+  await expect(page.getByRole("alert")).toContainText("请选择区");
 });

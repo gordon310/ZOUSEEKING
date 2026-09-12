@@ -135,6 +135,9 @@ const elements = {
   inputSummary: document.querySelector("#inputSummary"),
   locationStatus: document.querySelector("#locationStatus"),
   locationCandidate: document.querySelector("#locationCandidate"),
+  prefectureSummary: document.querySelector("#prefectureSummary"),
+  citySummary: document.querySelector("#citySummary"),
+  wardSummary: document.querySelector("#wardSummary"),
   projectName: document.querySelector("#projectName"),
   projectNameHelp: document.querySelector("#projectNameHelp"),
   previewContent: document.querySelector("#previewContent"),
@@ -522,6 +525,10 @@ function renderInputSummary() {
   const submittedCount = fileCount + photoCount;
   if (elements.sourceSummary) elements.sourceSummary.textContent = source || "未提供文字说明";
   if (elements.assetTypeSummary) elements.assetTypeSummary.textContent = previewLabel(ASSET_TYPE_LABELS[assetType], t("intake.notSelected", "未选择"));
+  const location = locationValues();
+  if (elements.prefectureSummary) elements.prefectureSummary.textContent = location.prefecture || t("intake.notSelected", "未选择");
+  if (elements.citySummary) elements.citySummary.textContent = location.city || t("intake.notSelected", "未选择");
+  if (elements.wardSummary) elements.wardSummary.textContent = location.ward === NOT_SUBDIVIDED_VALUE ? t("intake.wardNotSubdivided", "未细分") : location.ward || t("intake.notSelected", "未选择");
   if (elements.inputSummary) elements.inputSummary.textContent = submittedCount
     ? `${fileCount ? `${fileCount} 个资料文件` : ""}${fileCount && photoCount ? "、" : ""}${photoCount ? `${photoCount} 张物件照片` : ""}已提交，等待人工确认。`
     : "文字资料已提交，等待自动提取。";
@@ -689,6 +696,12 @@ async function startIntake(event) {
     elements.assetType.setAttribute("aria-invalid", "true");
     elements.assetType.focus();
     return setStatus(t("intake.assetTypeRequired", "请选择物件类型（公寓、塔楼、一户建等），否则无法判断。"), "error");
+  }
+  const locationError = validateLocationFields();
+  if (locationError) {
+    const firstMissing = [elements.prefecture, elements.city, elements.ward].find((select) => select && !select.value);
+    firstMissing?.focus();
+    return setStatus(locationError, "error");
   }
   elements.assetType.removeAttribute("aria-invalid");
   state.assetType = assetType;
@@ -891,14 +904,17 @@ async function initialize() {
       elements.ward.dataset.userModified = "";
       resetLocationSelect(elements.ward, t("intake.selectWard", "请先选择区"));
     }
+    updateProgressRail();
   });
   elements.city?.addEventListener("change", () => {
     if (!applyingLocationPrefill) elements.city.dataset.userModified = "true";
     populateWards(elements.prefecture?.value || "", elements.city.value);
     if (elements.ward) elements.ward.dataset.userModified = "";
+    updateProgressRail();
   });
   elements.ward?.addEventListener("change", () => {
     if (!applyingLocationPrefill) elements.ward.dataset.userModified = "true";
+    updateProgressRail();
   });
   elements.fileDropzone?.addEventListener("dragover", (event) => {
     event.preventDefault();

@@ -6,7 +6,7 @@
  * to the network - never cache member data, reports or auth responses.
  * Bump SW_VERSION to force an app-shell refresh after deploys.
  */
-const SW_VERSION = "2026-09-12-r2";
+const SW_VERSION = "20260912-r3";
 const APP_SHELL = [
   "./index.html",
   "./property-analysis.html",
@@ -14,7 +14,7 @@ const APP_SHELL = [
   "./project.html",
   "./projects.html",
   "./mypage.html",
-];
+].map((path) => `${path}?v=${SW_VERSION}`);
 const CACHE_NAME = `zouseeking-shell-${SW_VERSION}`;
 const APP_SHELL_PATHS = new Set(APP_SHELL.map((path) => new URL(path, self.location).pathname));
 
@@ -50,9 +50,9 @@ self.addEventListener("fetch", (event) => {
   if (request.mode === "navigate") {
     event.respondWith(
       caches
-        .match(request)
+        .match(request, { ignoreSearch: true })
         .then((cached) => cached || fetch(request))
-        .catch(() => caches.match(new URL("./index.html", self.location).pathname)),
+        .catch(() => caches.match(new URL("./index.html", self.location).pathname, { ignoreSearch: true })),
     );
     return;
   }

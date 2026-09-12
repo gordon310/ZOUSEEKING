@@ -100,6 +100,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  min-width: 0;
   margin: 14px 0 12px;
   padding: 8px;
   border: 1px solid var(--line);
@@ -111,6 +112,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+  min-width: 0;
 }
 
 .admin-tab,
@@ -611,8 +613,14 @@
   }
 
   .admin-tabs {
+    width: 100%;
+    max-width: 100%;
     overflow-x: auto;
     flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    padding-bottom: 2px;
   }
 
   .admin-tab {

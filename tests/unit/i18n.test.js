@@ -39,6 +39,38 @@ const INTAKE_RUNTIME_KEYS = [
   "intake.demoModeEnabled",
   "intake.sessionRestored",
   "intake.sessionMissingAssetType",
+  "intake.previewDimensionIdentity",
+  "intake.previewDimensionPriceCost",
+  "intake.previewDimensionYield",
+  "intake.previewDimensionBuildingManagement",
+  "intake.previewDimensionLegalTransaction",
+  "intake.previewDimensionSourceTrust",
+  "intake.previewStatusComplete",
+  "intake.previewStatusPartial",
+  "intake.previewStatusEmpty",
+  "intake.previewStatusInsufficientData",
+  "intake.previewAssetTypeApartment",
+  "intake.previewAssetTypeTower",
+  "intake.previewAssetTypeDetachedHouse",
+  "intake.previewAssetTypeOther",
+  "intake.previewMeterLabel",
+  "intake.previewDimensionSummary",
+  "intake.previewMissingCritical",
+  "intake.previewAssetType",
+  "intake.previewCostNoteInsufficientInput",
+  "intake.previewCostNoteEstimated",
+  "intake.previewCostNotePending",
+  "intake.previewEstimatedAmount",
+  "intake.previewPendingInput",
+  "intake.previewNeedsInput",
+  "intake.previewEstimatedTotal",
+  "intake.previewRiskSummary",
+  "intake.previewNoRisk",
+  "intake.previewRiskItem",
+  "intake.previewComparableAmount",
+  "intake.previewPeriodUnknown",
+  "intake.previewComparableRow",
+  "intake.previewComparableInsufficient",
 ];
 
 function loadI18n({ language = "en-US", search = "", savedLocale = null } = {}) {
@@ -111,6 +143,25 @@ test("Taiwan copy uses Taiwan terms for the affected login and intake text", () 
 test("traditional conversion covers known simplified characters", () => {
   const i18n = loadI18n({ language: "zh-TW" });
   assert.equal(i18n.toTraditional("选择照片后会自动尝试读取 EXIF 位置"), "選擇照片後會自動嘗試讀取 EXIF 位置");
+});
+
+test("traditional conversion keeps 系 as 系 except for explicit relationship wording", () => {
+  const i18n = loadI18n({ language: "zh-TW" });
+  assert.equal(i18n.toTraditional("系统只返回可用的区域级候选地址"), "系統只返回可用的區域級候選地址");
+  assert.equal(i18n.toTraditional("关系和后台"), "關係和後台");
+});
+
+test("preview data labels are localized for every supported locale", () => {
+  const expected = {
+    "zh-CN": "中介手续费",
+    "zh-Hant": "仲介手續費",
+    en: "Brokerage fee",
+    ja: "仲介手数料",
+  };
+  for (const locale of Object.keys(expected)) {
+    const i18n = loadI18n({ search: `?lang=${locale}` });
+    assert.equal(i18n.previewText("中介手续费"), expected[locale], locale);
+  }
 });
 
 test("all zh-CN dictionary copy converts known simplified characters", () => {

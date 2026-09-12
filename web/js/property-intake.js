@@ -18,18 +18,18 @@ const copy = (key, fallback, values = {}) => Object.entries(values).reduce(
 );
 const NOT_SUBDIVIDED_VALUE = "__not_subdivided__";
 const DIMENSION_LABELS = {
-  identity: "项目身份",
-  price_cost: "价格与费用",
-  yield: "收益测算",
-  building_management: "建筑与管理资料",
-  legal_transaction: "法律与交易资料",
-  source_trust: "数据来源可信度",
+  identity: "intake.previewDimensionIdentity",
+  price_cost: "intake.previewDimensionPriceCost",
+  yield: "intake.previewDimensionYield",
+  building_management: "intake.previewDimensionBuildingManagement",
+  legal_transaction: "intake.previewDimensionLegalTransaction",
+  source_trust: "intake.previewDimensionSourceTrust",
 };
 const STATUS_LABELS = {
-  complete: "已完成",
-  partial: "部分完成",
-  empty: "尚未填写",
-  insufficient_data: "关键资料不足",
+  complete: "intake.previewStatusComplete",
+  partial: "intake.previewStatusPartial",
+  empty: "intake.previewStatusEmpty",
+  insufficient_data: "intake.previewStatusInsufficientData",
 };
 const FIELD_META = [
   {
@@ -62,30 +62,43 @@ const DEMO_SESSION = {
 };
 
 const ASSET_TYPE_LABELS = {
-  apartment: "公寓",
-  tower: "塔楼",
-  detached_house: "一户建",
-  other: "其他物件",
+  apartment: "intake.previewAssetTypeApartment",
+  tower: "intake.previewAssetTypeTower",
+  detached_house: "intake.previewAssetTypeDetachedHouse",
+  other: "intake.previewAssetTypeOther",
 };
+
+function previewLabel(keyOrFallback, fallback = "") {
+  return keyOrFallback?.startsWith("intake.") ? t(keyOrFallback, fallback) : keyOrFallback || fallback;
+}
+
+function previewValue(value) {
+  if (value && typeof value === "object" && value.i18nKey) return t(value.i18nKey, value.fallback || "");
+  return window.ZouI18n?.previewText?.(value) || String(value ?? "");
+}
 
 const DEMO_PREVIEW = {
   data_class: "synthetic_fixture",
   completeness: {
-    identity: { confirmed: 4, total: 5, percent: 80, status: "partial", missing_critical: ["建筑年份"] },
-    price_cost: { confirmed: 2, total: 5, percent: 40, status: "partial", missing_critical: ["购入费用依据"] },
-    yield: { confirmed: 0, total: 4, percent: 0, status: "insufficient_data", missing_critical: ["租金与出租状态"] },
-    building_management: { confirmed: 1, total: 5, percent: 20, status: "insufficient_data", missing_critical: ["长期修缮计划"] },
-    legal_transaction: { confirmed: 0, total: 5, percent: 0, status: "insufficient_data", missing_critical: ["登记簿与合同资料"] },
-    source_trust: { confirmed: 1, total: 3, percent: 33, status: "partial", missing_critical: ["原始来源定位"] },
+    identity: { confirmed: 4, total: 5, percent: 80, status: "partial", missing_critical: [{ i18nKey: "intake.previewDemoBuildingYear" }] },
+    price_cost: { confirmed: 2, total: 5, percent: 40, status: "partial", missing_critical: [{ i18nKey: "intake.previewDemoAcquisitionBasis" }] },
+    yield: { confirmed: 0, total: 4, percent: 0, status: "insufficient_data", missing_critical: [{ i18nKey: "intake.previewDemoRentStatus" }] },
+    building_management: { confirmed: 1, total: 5, percent: 20, status: "insufficient_data", missing_critical: [{ i18nKey: "intake.previewDemoRepairPlan" }] },
+    legal_transaction: { confirmed: 0, total: 5, percent: 0, status: "insufficient_data", missing_critical: [{ i18nKey: "intake.previewDemoRegistryContract" }] },
+    source_trust: { confirmed: 1, total: 3, percent: 33, status: "partial", missing_critical: [{ i18nKey: "intake.previewDemoSourceLocation" }] },
   },
   acquisition_costs: {
-    items: ["中介手续费：待合同或费用说明确认", "不动产取得税：需要评估额与适用条件", "登记相关费用：需要登记资料和司法书士报价"],
+    items: [
+      { i18nKey: "intake.previewDemoBrokerage" },
+      { i18nKey: "intake.previewDemoAcquisitionTax" },
+      { i18nKey: "intake.previewDemoRegistration" },
+    ],
   },
   risk_summary: {
     items: [
-      { dimension: "building_management", fields: ["管理费、修缮积立金和长期修缮计划"] },
-      { dimension: "legal_transaction", fields: ["登记簿、重要事项说明书和合同草案"] },
-      { dimension: "source_trust", fields: ["原始物件来源和取得时间"] },
+      { dimension: "building_management", fields: [{ i18nKey: "intake.previewDemoManagementFields" }] },
+      { dimension: "legal_transaction", fields: [{ i18nKey: "intake.previewDemoLegalFields" }] },
+      { dimension: "source_trust", fields: [{ i18nKey: "intake.previewDemoSourceFields" }] },
     ],
   },
 };
@@ -508,7 +521,7 @@ function renderInputSummary() {
   const photoCount = elements.photos.files.length;
   const submittedCount = fileCount + photoCount;
   if (elements.sourceSummary) elements.sourceSummary.textContent = source || "未提供文字说明";
-  if (elements.assetTypeSummary) elements.assetTypeSummary.textContent = ASSET_TYPE_LABELS[assetType] || "未选择";
+  if (elements.assetTypeSummary) elements.assetTypeSummary.textContent = previewLabel(ASSET_TYPE_LABELS[assetType], t("intake.notSelected", "未选择"));
   if (elements.inputSummary) elements.inputSummary.textContent = submittedCount
     ? `${fileCount ? `${fileCount} 个资料文件` : ""}${fileCount && photoCount ? "、" : ""}${photoCount ? `${photoCount} 张物件照片` : ""}已提交，等待人工确认。`
     : "文字资料已提交，等待自动提取。";
@@ -518,23 +531,34 @@ function renderInputSummary() {
 function renderDimension(dimensionName, result) {
   const item = createElement("div", undefined, "dimension-row");
   const heading = createElement("div", undefined, "dimension-heading");
+  const dimensionLabel = previewLabel(DIMENSION_LABELS[dimensionName], dimensionName);
+  const statusLabel = previewLabel(STATUS_LABELS[result.status], result.status);
   heading.append(
-    createElement("strong", DIMENSION_LABELS[dimensionName] || dimensionName),
-    createElement("span", STATUS_LABELS[result.status] || result.status, "dimension-status"),
+    createElement("strong", dimensionLabel),
+    createElement("span", statusLabel, "dimension-status"),
   );
   const meter = document.createElement("meter");
   meter.min = 0;
   meter.max = 100;
   meter.value = Number(result.percent || 0);
-  meter.setAttribute("aria-label", `${DIMENSION_LABELS[dimensionName] || dimensionName}完整度`);
+  meter.setAttribute("aria-label", copy("intake.previewMeterLabel", "{label}完整度", { label: dimensionLabel }));
   const summary = createElement(
     "p",
-    `${result.confirmed}/${result.total} 项已确认 · ${result.percent}% · ${STATUS_LABELS[result.status] || result.status}`,
+    copy("intake.previewDimensionSummary", "{confirmed}/{total} 项已确认 · {percent}% · {status}", {
+      confirmed: result.confirmed,
+      total: result.total,
+      percent: result.percent,
+      status: statusLabel,
+    }),
     "dimension-summary",
   );
   item.append(heading, meter, summary);
   if (Array.isArray(result.missing_critical) && result.missing_critical.length) {
-    item.append(createElement("p", `关键资料不足：${result.missing_critical.join("、")}`, "dimension-warning"));
+    item.append(createElement(
+      "p",
+      copy("intake.previewMissingCritical", "关键资料不足：{fields}", { fields: result.missing_critical.map(previewValue).join("、") }),
+      "dimension-warning",
+    ));
   }
   return item;
 }
@@ -544,7 +568,13 @@ function renderPreview(preview) {
   elements.previewContent.replaceChildren();
   const completeness = createElement("section", undefined, "preview-section");
   completeness.append(createElement("h3", t("intake.previewCompleteness", "资料完整度")));
-  completeness.append(createElement("p", `物件类型：${ASSET_TYPE_LABELS[state.assetType] || "未选择"}`, "preview-note"));
+  completeness.append(createElement(
+    "p",
+    copy("intake.previewAssetType", "物件类型：{assetType}", {
+      assetType: previewLabel(ASSET_TYPE_LABELS[state.assetType], t("intake.notSelected", "未选择")),
+    }),
+    "preview-note",
+  ));
   if (preview.data_class === "synthetic_fixture") {
     completeness.append(createElement("p", t("intake.demoFixtureNote", "界面演示资料类别：synthetic_fixture。以下状态只用于确认操作流程，不代表真实结论。"), "preview-note"));
   }
@@ -557,29 +587,29 @@ function renderPreview(preview) {
   const costData = preview.acquisition_costs || {};
   const costNote =
     costData.status === "insufficient_input"
-      ? "缺少挂牌价/成交价，金额项暂无法估算；补充后可给出法定上限估算。"
+      ? t("intake.previewCostNoteInsufficientInput", "缺少挂牌价/成交价，金额项暂无法估算；补充后可给出法定上限估算。")
       : costData.estimated_total_jpy
-        ? "以下为按法定上限/官定表的确定性估算；标注待补充的项需要评估额、贷款或物件信息。"
-        : "本阶段只列出待核对项目，不计算税费金额。";
+        ? t("intake.previewCostNoteEstimated", "以下为按法定上限/官定表的确定性估算；标注待补充的项需要评估额、贷款或物件信息。")
+        : t("intake.previewCostNotePending", "本阶段只列出待核对项目，不计算税费金额。");
   costs.append(createElement("p", costNote, "preview-note"));
   const costList = createElement("ul", undefined, "plain-list");
   (costData.items || []).forEach((item) => {
-    if (typeof item === "string") {
-      costList.append(createElement("li", item));
+    if (typeof item === "string" || item?.i18nKey) {
+      costList.append(createElement("li", previewValue(item)));
       return;
     }
     const amount = item.estimated_jpy
-      ? `约 ${Math.round(item.estimated_jpy / 10000)}万日元`
-      : "待补充输入";
-    const statusText = item.status === "estimated" ? "" : item.status === "needs_input" ? "（需补充）" : "";
-    costList.append(createElement("li", `${item.item || ""}：${amount}${statusText}`));
+      ? copy("intake.previewEstimatedAmount", "约 {amount}万日元", { amount: Math.round(item.estimated_jpy / 10000) })
+      : t("intake.previewPendingInput", "待补充输入");
+    const statusText = item.status === "estimated" ? "" : item.status === "needs_input" ? t("intake.previewNeedsInput", "（需补充）") : "";
+    costList.append(createElement("li", `${previewValue(item.item)}：${amount}${statusText}`));
   });
   costs.append(costList);
   if (costData.estimated_total_jpy) {
     costs.append(
       createElement(
         "p",
-        `已估项合计：约 ${Math.round(costData.estimated_total_jpy / 10000)}万日元（不含待补充项；参考估价非报价）`,
+        copy("intake.previewEstimatedTotal", "已估项合计：约 {amount}万日元（不含待补充项；参考估价非报价）", { amount: Math.round(costData.estimated_total_jpy / 10000) }),
         "preview-total",
       ),
     );
@@ -591,13 +621,24 @@ function renderPreview(preview) {
   risks.append(
     createElement(
       "p",
-      riskItems.length ? `发现 ${riskItems.length} 项资料提醒，暂不代表法律结论。` : "暂未发现资料冲突。",
+      riskItems.length
+        ? copy("intake.previewRiskSummary", "发现 {count} 项资料提醒，暂不代表法律结论。", { count: riskItems.length })
+        : t("intake.previewNoRisk", "暂未发现资料冲突。"),
       "preview-note",
     ),
   );
   riskItems.forEach((risk) => {
-    const fields = Array.isArray(risk.fields) ? `：${risk.fields.join("、")}` : "";
-    risks.append(createElement("p", `${DIMENSION_LABELS[risk.dimension] || risk.dimension}${fields}`, "risk-item"));
+    if (typeof risk === "string") {
+      risks.append(createElement("p", previewValue(risk), "risk-item"));
+      return;
+    }
+    const dimension = previewLabel(DIMENSION_LABELS[risk.dimension], risk.dimension);
+    const fields = Array.isArray(risk.fields) ? risk.fields.map(previewValue).join("、") : "";
+    risks.append(createElement(
+      "p",
+      copy("intake.previewRiskItem", "{dimension}：{fields}", { dimension, fields }),
+      "risk-item",
+    ));
   });
 
   const comparison = createElement("section", undefined, "preview-section preview-limitations");
@@ -606,12 +647,18 @@ function renderPreview(preview) {
   if (preview.comparable_status === "sufficient" && Array.isArray(comparable.reference) && comparable.reference.length) {
     const refList = createElement("ul", undefined, "plain-list");
     comparable.reference.forEach((row) => {
-      const yen = row.amount_yen ? `约 ${Math.round(row.amount_yen / 10000)}万日元` : row.amount_jpy || "";
-      refList.append(createElement("li", `${row.layout || ""}：${yen}（${row.period || "期间未标注"}）`));
+      const yen = row.amount_yen
+        ? copy("intake.previewComparableAmount", "约 {amount}万日元", { amount: Math.round(row.amount_yen / 10000) })
+        : row.amount_jpy || "";
+      refList.append(createElement("li", copy("intake.previewComparableRow", "{layout}：{amount}（{period}）", {
+        layout: row.layout || "",
+        amount: yen,
+        period: row.period || t("intake.previewPeriodUnknown", "期间未标注"),
+      })));
     });
     comparison.append(createElement("p", t("intake.comparableReference", "同区中古マンション成交参考（国交省取引数据，出所明記）。"), "preview-note"), refList);
   } else if (preview.comparable_status === "insufficient") {
-    comparison.append(createElement("p", comparable.note || "该地址所在区暂无市场相场覆盖。", "preview-note"));
+    comparison.append(createElement("p", t("intake.previewComparableInsufficient", "该地址所在区暂无覆盖（覆盖：东京23区/大阪市23区/横滨市18区）。"), "preview-note"));
   } else {
     comparison.append(createElement("p", t("intake.comparableUnavailable", "市场可比数据：尚未检查。完整报告、税费金额、自动提取和法律判断将在后续阶段提供。")));
   }
@@ -891,7 +938,7 @@ async function initialize() {
   updatePhotoPresentation();
   if (elements.locationCandidate) elements.locationCandidate.textContent = t("intake.notObtained", "尚未获取");
   if (elements.assetType) elements.assetType.value = state.assetType;
-  if (elements.assetTypeSummary) elements.assetTypeSummary.textContent = ASSET_TYPE_LABELS[state.assetType] || "未选择";
+  if (elements.assetTypeSummary) elements.assetTypeSummary.textContent = previewLabel(ASSET_TYPE_LABELS[state.assetType], t("intake.notSelected", "未选择"));
   updateProgressRail();
   if (state.session?.sessionId && state.session?.rawToken && state.assetType) {
     setStage("confirm");

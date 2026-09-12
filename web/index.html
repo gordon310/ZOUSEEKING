@@ -4,6 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="小象" />
     <meta name="theme-color" content="#0b1020" />
     <title data-i18n-title="page.businessHomeTitle">小象数据｜ZOUSEEKING</title>
     <link rel="icon" href="assets/logoELE-beacon.svg?v=20260828-zo" />
@@ -152,14 +156,6 @@
     <script src="js/i18n.js?v=20260828-01"></script>
     <script src="app.js?v=20260828-03"></script>
     <script src="js/business.js?v=20260828-03"></script>
-    <script>
-      // PWA: register service worker (static shell only) when supported and on a
-      // secure context (localhost or https). Never blocks page load.
-      if ("serviceWorker" in navigator && window.isSecureContext) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker.register("sw.js", { scope: "./" }).catch(() => {});
-        });
-      }
-    </script>
+    <script src="js/pwa.js"></script>
   </body>
 </html>

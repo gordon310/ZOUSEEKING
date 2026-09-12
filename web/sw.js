@@ -6,13 +6,21 @@
  * to the network - never cache member data, reports or auth responses.
  * Bump SW_VERSION to force an app-shell refresh after deploys.
  */
-const SW_VERSION = "2026-09-09-r1";
-const APP_SHELL = "./index.html";
+const SW_VERSION = "2026-09-12-r2";
+const APP_SHELL = [
+  "./index.html",
+  "./property-analysis.html",
+  "./report.html",
+  "./project.html",
+  "./projects.html",
+  "./mypage.html",
+];
 const CACHE_NAME = `zouseeking-shell-${SW_VERSION}`;
+const APP_SHELL_PATHS = new Set(APP_SHELL.map((path) => new URL(path, self.location).pathname));
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll([APP_SHELL])).then(() => self.skipWaiting()),
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()),
   );
 });
 
@@ -28,15 +36,28 @@ self.addEventListener("activate", (event) => {
 function isStaticAsset(url) {
   if (url.origin !== self.location.origin) return false;
   const path = url.pathname;
-  if (path.includes("/api/")) return false;
-  if (path.endsWith(".html")) return path === "/index.html";
+  if (["/api/", "/rest/v1/", "/auth/v1/", "/functions/"].some((prefix) => path.startsWith(prefix))) return false;
+  if (path.endsWith(".html")) return APP_SHELL_PATHS.has(path);
   if (path.startsWith("/assets/")) return true;
   return /\.(css|js|json|webmanifest|svg|png|ico|woff2?)$/.test(path);
 }
 
 self.addEventListener("fetch", (event) => {
   const { request } = event;
-  if (request.method !== "GET" || !isStaticAsset(new URL(request.url))) return;
+  const url = new URL(request.url);
+  if (request.method !== "GET" || url.origin !== self.location.origin) return;
+
+  if (request.mode === "navigate") {
+    event.respondWith(
+      caches
+        .match(request)
+        .then((cached) => cached || fetch(request))
+        .catch(() => caches.match(new URL("./index.html", self.location).pathname)),
+    );
+    return;
+  }
+
+  if (!isStaticAsset(url)) return;
 
   event.respondWith(
     caches.match(request).then((cached) => {

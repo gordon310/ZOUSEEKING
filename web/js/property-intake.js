@@ -164,6 +164,7 @@ const elements = {
 
 const fieldOptions = { prefectures: [], cities: {}, wards: {} };
 let applyingLocationPrefill = false;
+let locationLoadState = "idle";
 
 function loadAnonymousSession() {
   if (DEMO_MODE) return null;
@@ -378,6 +379,39 @@ function setLocationStatus(message, tone = "info") {
   elements.locationStatus.dataset.tone = tone;
 }
 
+function setLocationSelectsDisabled(disabled) {
+  [elements.prefecture, elements.city, elements.ward].forEach((select) => {
+    if (select) select.disabled = disabled;
+  });
+}
+
+function renderLocationLoadState(stateName) {
+  locationLoadState = stateName;
+  if (!elements.locationStatus) return;
+  elements.locationStatus.replaceChildren();
+  elements.locationStatus.dataset.tone = stateName === "error" ? "error" : "info";
+
+  const messageKey = stateName === "loading"
+    ? "intake.locationOptionsLoading"
+    : stateName === "error"
+      ? "intake.locationOptionsFailed"
+      : "intake.locationWaiting";
+  elements.locationStatus.append(document.createTextNode(t(
+    messageKey,
+    stateName === "loading" ? "正在加载地区数据…" : "地区数据加载失败，请点击重试。",
+  )));
+
+  if (stateName === "error") {
+    const retryButton = document.createElement("button");
+    retryButton.type = "button";
+    retryButton.className = "inline-retry-button";
+    retryButton.dataset.locationRetry = "true";
+    retryButton.textContent = t("intake.locationOptionsRetry", "点击重试");
+    retryButton.addEventListener("click", () => loadLocationFields());
+    elements.locationStatus.append(document.createTextNode(" "), retryButton);
+  }
+}
+
 function selectOption(value, label) {
   const option = document.createElement("option");
   option.value = value;
@@ -469,21 +503,31 @@ function validateLocationFields() {
 }
 
 async function loadLocationFields() {
+  renderLocationLoadState("loading");
+  setLocationSelectsDisabled(true);
   try {
     const response = await fetch("field-options.json", { cache: "no-store" });
     if (!response.ok) throw new Error("field_options_unavailable");
     const payload = await response.json();
-    fieldOptions.prefectures = Array.isArray(payload.prefectures) ? payload.prefectures : [];
-    fieldOptions.cities = payload.cities || {};
-    fieldOptions.wards = payload.wards || {};
+    if (
+      !payload ||
+      !Array.isArray(payload.prefectures) ||
+      !payload.cities || typeof payload.cities !== "object" || Array.isArray(payload.cities) ||
+      !payload.wards || typeof payload.wards !== "object" || Array.isArray(payload.wards)
+    ) throw new Error("field_options_invalid");
+    fieldOptions.prefectures = payload.prefectures;
+    fieldOptions.cities = payload.cities;
+    fieldOptions.wards = payload.wards;
   } catch {
-    setStatus(t("intake.locationOptionsFailed", "地址选项暂时无法加载，请刷新后重试。"), "error");
+    renderLocationLoadState("error");
     return;
   }
+  locationLoadState = "ready";
   if (elements.prefecture) {
     resetLocationSelect(elements.prefecture, t("intake.selectPrefecture", "请选择都道府县"), fieldOptions.prefectures);
     elements.prefecture.disabled = false;
   }
+  renderLocationLoadState("ready");
   let savedPrefill = null;
   try {
     savedPrefill = JSON.parse(window.sessionStorage.getItem("zou_recognition_prefill") || "null");

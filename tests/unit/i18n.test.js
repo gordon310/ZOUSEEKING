@@ -39,6 +39,8 @@ const INTAKE_RUNTIME_KEYS = [
   "intake.demoModeEnabled",
   "intake.sessionRestored",
   "intake.sessionMissingAssetType",
+  "intake.locationOptionsLoading",
+  "intake.locationOptionsRetry",
   "intake.previewDimensionIdentity",
   "intake.previewDimensionPriceCost",
   "intake.previewDimensionYield",
@@ -91,7 +93,7 @@ function loadI18n({ language = "en-US", search = "", savedLocale = null } = {}) 
     URLSearchParams,
     navigator: { language },
     Intl: { DateTimeFormat: () => ({ resolvedOptions: () => ({ timeZone: "UTC" }) }) },
-    window: {},
+    window: { addEventListener() {} },
   };
   vm.runInNewContext(source, context, { filename: "web/js/i18n.js" });
   return context.window.ZouI18n;
@@ -205,4 +207,28 @@ test("runtime intake copy has four-locale keys and no direct Chinese status lite
     "正在创建临时分析项目，资料会在 24 小时后到期。",
     "临时项目已失效，请重新开始。",
   ]) assert.equal(source.includes(`setStatus("${literal}"`), false, literal);
+});
+
+test("location loading exposes loading, retry and validated payload behavior", () => {
+  const source = fs.readFileSync("web/js/property-intake.js", "utf8");
+  assert.match(source, /locationOptionsLoading/);
+  assert.match(source, /locationOptionsRetry/);
+  assert.match(source, /addEventListener\("click", \(\) => loadLocationFields\(\)\)/);
+  assert.match(source, /Array\.isArray\(payload\.prefectures\)/);
+  assert.match(source, /payload\.cities[\s\S]*typeof payload\.cities !== "object"/);
+  assert.match(source, /payload\.wards[\s\S]*typeof payload\.wards !== "object"/);
+});
+
+test("global runtime error notice is localized, dismissible and deduplicated", () => {
+  const i18n = loadI18n();
+  for (const locale of ["zh-CN", "zh-Hant", "en", "ja"]) {
+    for (const key of ["global.runtimeError", "global.dismissError"]) {
+      assert.ok(i18n.keys(locale).includes(key), `${locale}: ${key}`);
+    }
+  }
+  const source = fs.readFileSync("web/js/i18n.js", "utf8");
+  assert.match(source, /unhandledrejection/);
+  assert.match(source, /window\.addEventListener\("error"/);
+  assert.match(source, /dataset\.runtimeErrorKey/);
+  assert.match(source, /remove\(\)/);
 });

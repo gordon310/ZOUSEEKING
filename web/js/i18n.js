@@ -341,6 +341,8 @@
       "intake.cityRequired": "请选择市。",
       "intake.wardRequired": "请选择区；没有区级资料时请选择「未细分」。",
       "intake.locationOptionsFailed": "地址选项暂时无法加载，请刷新后重试。",
+      "intake.locationOptionsLoading": "正在加载地区数据……",
+      "intake.locationOptionsRetry": "点击重试",
       "intake.locationPrefillComplete": "已根据照片位置自动填入都道府县、市和区，请核对。",
       "intake.locationPrefillPartial": "照片位置已填入可匹配的层级，请手动补全剩余地址层级。",
       "intake.formUnavailable": "表单暂时无法使用，请刷新后重试。",
@@ -1153,6 +1155,8 @@
       "intake.cityRequired": "Choose a city.",
       "intake.wardRequired": "Choose a ward; choose “Not subdivided” when no ward-level data exists.",
       "intake.locationOptionsFailed": "Address options could not be loaded. Refresh and try again.",
+      "intake.locationOptionsLoading": "Loading area data…",
+      "intake.locationOptionsRetry": "Retry",
       "intake.locationPrefillComplete": "The prefecture, city and ward were filled from the photo location. Please check them.",
       "intake.locationPrefillPartial": "Matching address levels were filled from the photo; complete the remaining levels manually.",
       "intake.formUnavailable": "The form is temporarily unavailable. Refresh and try again.",
@@ -1965,6 +1969,8 @@
       "intake.cityRequired": "市を選択してください。",
       "intake.wardRequired": "区を選択してください。区データがない場合は「区分なし」を選択してください。",
       "intake.locationOptionsFailed": "住所候補を読み込めません。更新して再試行してください。",
+      "intake.locationOptionsLoading": "地域データを読み込んでいます…",
+      "intake.locationOptionsRetry": "再試行",
       "intake.locationPrefillComplete": "写真の位置情報から都道府県、市、区を自動入力しました。確認してください。",
       "intake.locationPrefillPartial": "一致した住所階層を写真から入力しました。残りを手入力してください。",
       "intake.formUnavailable": "フォームを一時的に利用できません。更新して再試行してください。",
@@ -2488,6 +2494,8 @@
   // Dynamic copy used by the report, workspace and operations views. Keep the
   // sentence whole so locale-specific word order is preserved.
   const ADDITIONAL_I18N = {
+    "global.runtimeError": { "zh-CN": "页面脚本出现异常（代码：{code}），请刷新或联系客服。", en: "A page script encountered an issue (code: {code}). Refresh or contact support.", ja: "ページスクリプトで問題が発生しました（コード：{code}）。更新するかサポートへ連絡してください。" },
+    "global.dismissError": { "zh-CN": "关闭提示", en: "Dismiss error notice", ja: "エラー通知を閉じる" },
     "report.unlockWithPrice": { "zh-CN": "解锁本报告（{price}）", en: "Unlock this report ({price})", ja: "このレポートを解除（{price}）" },
     "workspace.versionCount": { "zh-CN": "{count} 个版本", en: "{count} versions", ja: "{count} 件のバージョン" },
     "workspace.currentVersion": { "zh-CN": "当前版本", en: "Current version", ja: "現在のバージョン" },
@@ -2574,6 +2582,37 @@
   function t(key, fallback = "") {
     return DICTIONARY[currentLocale]?.[key] || DICTIONARY["zh-CN"]?.[key] || fallback;
   }
+
+  const runtimeErrorKeys = new Set();
+  function showRuntimeError(event) {
+    const filename = String(event?.filename || "");
+    const line = Number(event?.lineno || 0);
+    const column = Number(event?.colno || 0);
+    const message = String(event?.message || event?.reason?.name || "unknown");
+    const errorKey = `${filename}:${line}:${column}:${message}`;
+    if (runtimeErrorKeys.has(errorKey) || !document.body) return;
+    runtimeErrorKeys.add(errorKey);
+
+    const notice = document.createElement("div");
+    notice.className = "runtime-error-notice";
+    notice.dataset.runtimeErrorKey = errorKey;
+    notice.setAttribute("role", "alert");
+    const code = line ? String(line) : "runtime";
+    notice.append(document.createTextNode(t("global.runtimeError", `页面脚本出现异常（代码：${code}），请刷新或联系客服。`).replace("{code}", code)));
+    const closeButton = document.createElement("button");
+    closeButton.type = "button";
+    closeButton.textContent = "×";
+    closeButton.setAttribute("aria-label", t("global.dismissError", "关闭提示"));
+    closeButton.addEventListener("click", () => notice.remove());
+    notice.append(document.createTextNode(" "), closeButton);
+    document.body.append(notice);
+  }
+
+  window.addEventListener("error", showRuntimeError);
+  window.addEventListener("unhandledrejection", (event) => {
+    showRuntimeError(event);
+    event.preventDefault();
+  });
 
   function translateAttribute(root, attribute, outputAttribute) {
     root.querySelectorAll(`[${attribute}]`).forEach((element) => {

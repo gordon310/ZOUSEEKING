@@ -12,7 +12,9 @@
 .business-app .topbar-brand-copy {
   display: grid;
   gap: 3px;
+  min-width: 0;
   overflow: visible;
+  overflow-wrap: anywhere;
   line-height: 1;
   white-space: normal;
 }
@@ -23,6 +25,7 @@
 }
 
 .business-app .topbar-brand-copy small {
+  overflow-wrap: anywhere;
   color: var(--muted);
   font-size: 10px;
   font-weight: 800;
@@ -139,6 +142,11 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
+}
+
+.business-overview-head > :first-child,
+.business-section-heading > :first-child {
+  min-width: 0;
 }
 
 .business-overview-head h2,
@@ -293,6 +301,7 @@
 }
 
 .service-task-topline small {
+  min-width: 0;
   overflow: hidden;
   color: var(--muted);
   font-size: 10px;
@@ -303,6 +312,7 @@
 .service-task-status,
 .admin-role-tag {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   min-height: 22px;
   padding: 3px 8px;
@@ -597,9 +607,10 @@
     order: 3;
     width: 100%;
     gap: 18px;
-    overflow-x: auto;
+    justify-content: flex-start;
+    overflow: visible;
     padding-bottom: 2px;
-    white-space: nowrap;
+    white-space: normal;
   }
 
   .business-app .locale-switcher {
@@ -607,7 +618,7 @@
   }
 
   .business-app .topbar-links a {
-    flex: 0 0 auto;
+    flex: 0 1 auto;
     min-height: 32px;
     padding: 7px 0;
   }

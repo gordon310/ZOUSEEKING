@@ -48,7 +48,9 @@ body.auth-pending .account-panel {
 
 .topbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  align-content: center;
   justify-content: space-between;
   min-height: 84px;
   gap: 18px;
@@ -59,6 +61,7 @@ body.auth-pending .account-panel {
 
 .topbar-brand {
   display: inline-flex;
+  flex: 0 0 240px;
   align-items: center;
   gap: 12px;
   min-width: 0;
@@ -82,15 +85,27 @@ body.auth-pending .account-panel {
   white-space: nowrap;
 }
 
+.topbar-brand .topbar-brand-copy {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
 .topbar-links {
-  display: inline-flex;
+  display: flex;
+  flex: 1 1 420px;
+  flex-wrap: wrap;
+  min-width: 0;
   gap: 26px;
+  justify-content: flex-end;
   padding: 0;
   border: 0;
   background: transparent;
 }
 
 .topbar-links a {
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: 8px 0;
   color: var(--navy-soft);
   font-size: 13px;
@@ -148,6 +163,11 @@ body.auth-pending .account-panel {
   display: flex;
   gap: 14px;
   align-items: center;
+}
+
+.brand > :last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .brand .brand-mark {

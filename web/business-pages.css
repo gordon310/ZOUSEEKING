@@ -144,6 +144,10 @@
   gap: 14px;
 }
 
+.business-panel-heading > :first-child {
+  min-width: 0;
+}
+
 .business-panel-heading h2 {
   margin: 0;
   font-size: 20px;
@@ -156,6 +160,8 @@
 
 .business-fixture-note {
   flex: 0 0 auto;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   color: var(--muted);
   font-size: 10px;
   font-weight: 800;
@@ -737,13 +743,14 @@
     order: 3;
     width: 100%;
     gap: 18px;
-    overflow-x: auto;
+    justify-content: flex-start;
+    overflow: visible;
     padding-bottom: 2px;
-    white-space: nowrap;
+    white-space: normal;
   }
 
   .business-page .topbar-links a {
-    flex: 0 0 auto;
+    flex: 0 1 auto;
     min-height: 32px;
     padding: 7px 0;
   }

@@ -7,7 +7,7 @@
  * to the network - never cache member data, reports or auth responses.
  * Bump SW_VERSION to force an app-shell refresh after deploys.
  */
-const SW_VERSION = "20260912-r3";
+const SW_VERSION = "20260912-r6";
 const APP_SHELL = [
   "./index.html",
   "./property-analysis.html",
@@ -32,6 +32,13 @@ self.addEventListener("activate", (event) => {
       .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
       .then(() => self.clients.claim()),
   );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type !== "GET_VERSION") return;
+  const reply = { type: "VERSION", version: SW_VERSION };
+  if (event.ports?.[0]) event.ports[0].postMessage(reply);
+  else event.source?.postMessage(reply);
 });
 
 function isStaticAsset(url) {

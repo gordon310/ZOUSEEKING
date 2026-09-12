@@ -327,6 +327,21 @@
 - **红线**:零 migration 新增或修改、零数据库写、零部署、未触凭据/冻结字段、无删除操作。
 - **待用户决策(红线外)**:未跟踪文件 `docs/architecture/2026-09-11-system-architecture-and-logic.md`(165KB,5 路代码深读汇总,基线 5c71a26)——仓库为 **PUBLIC**,管家未擅自入库,等 Gordon 决定入库/裁剪/删除。
 
+## Release Gate 红链修复 #2(2026-09-12 晨班,管家定位根因 + 派工 Codex 四轮落地 + 管家验收)
+
+- **发现**:main 在 `37cdda7`/`4c541d3` 连续 Release Gate 红(run 34651879032):Python checks(2 例)、Playwright checks(23/47)、Disposable SQL and RLS(4 文件)。全部为夜间批次(09-12 00:43–05:58,entitlements/exports/analysis/C 端报告/i18n 等 13 推)引入的**测试与基线漂移**,唯一真实产品缺陷是 i18n 语言识别(见下)。
+- **根因与修复**:
+  1. Python `test_authoritative_backend_policy`:发布边界清单缺 5 条新接口 → `docs/architecture/phase-one-release-boundaries.json` 按 `release_scope.PHASE_ONE_API_CONTRACT` 顺序补入 exports/analysis/usage。
+  2. Python `test_schema_ownership_audit`:forward migration 期望 24 → 磁盘实测 29。
+  3. SQL 三文件(`test_rls_v1_identity_matrix.sql`、`test_rls_v1_business_identity_matrix.sql`、`test_member_status.sql`):`20260912000400_user_profile_on_signup` 触发器上线后,夹具再插 `user_profiles` 触发 `user_profiles_pkey` 重复 → 改为幂等 `on conflict (user_id) do update`(member_status 用 no-op 赋值保住 `RETURNING`)。
+  4. SQL `test_m1_reconciliation_contract.sql`:service_role public grant 基线 318 → **332**(取 CI 实测值,并在本地 `supabase start` 等价栈复现一致;手工 psql 容器的 336 属 bootstrap 差异,非 CI 口径)。
+  5. Playwright 23 例:`web/js/i18n.js` 新增按浏览器语言自动判定,而 `playwright.config.js` 未固定 locale → CI(en-US)渲染英文、用例断言中文。**修**:config 固定 `locale: "zh-CN"`;**并修真实缺陷**:`localeFromLanguage()` 不识别 `zh-Hans-*` 前缀(macOS「简中+日本区域」`zh-Hans-JP` 被判成 `en`,简体中文访客看到英文界面)→ 补 `zh-hans` 规则 + 单测(`zh-Hans-JP→zh-CN`、`zh-Hant-HK→zh-Hant`、`en-US→en`)。
+  6. Playwright 残留 3 例(`business-home-members-locale.spec.js`):B 端账单/订阅/用量页已由演示数据改为真实接口(`business-pages.js` + `release-boundary.js` 在 `businessOperations=false` 时替换 `window.fetch` 拒绝一切非静态请求,route mock 因此从不生效),用例仍在断言已移除的演示行为 → 按真实行为重写:补发布范围播种(`page.addInitScript`,同 `legacy-regional-routing` / `admin-live-degrade` 既有模式)、mock 真实端点(`/api/billing/prices`、`/api/me`、`/api/billing/subscription`、`/api/usage/summary`)、断言「诚实空态 + 有数据渲染态 + 接口失败降级态」,并保留语言切换断言(改用不被 JS 覆盖的 `data-i18n` 框架元素)。零断言删减/放宽。
+- **验证(全部本地实跑)**:`pytest -q` **467 passed / 83 skipped**;`npm run test:web -- --workers=1` **47 passed / 0 failed**;本地 `npx supabase start` 栈(29 migration、ledger 29)逐文件 `psql ON_ERROR_STOP=1` **16/16 PASS**;`check_release_policy.py` PASS、`secret_scan.py` PASS、`compileall`/`node --check`/`git diff --check` 全净。
+- **commit**:`4037105`(10 文件,+89/−22);**CI**:Release Gate run **34661151391** 七个 job **全绿**(Node / Playwright / Python / SQL-RLS / Supply-chain / Repository policy / Release evidence)。修复前 `37cdda7`、`4c541d3` 同 workflow 均红。
+- **环境副作用(本班)**:为跑 CI 等价 SQL 验收,启动了 Docker Desktop + 本地 `supabase start`(项目 `JPPropDIs`,端口 54321/54322),并临时停掉 09-02 遗留的 `supabase_*_gordonmac` 孤儿栈以释放端口;收尾已停掉本地栈,遗留孤儿栈未自动恢复(如需可 `docker start supabase_db_gordonmac ...`)。
+- **红线**:零 migration 新增或修改、零 staging/production 数据库写、未触凭据/冻结字段、无删除操作(仅删本地 CLI 临时目录 `supabase/.branches`)。
+
 ## Last updated
 
-2026-09-11
+2026-09-12

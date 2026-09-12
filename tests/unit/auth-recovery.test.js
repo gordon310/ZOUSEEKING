@@ -3,8 +3,8 @@ const assert = require("node:assert/strict");
 const recovery = require("../../web/js/auth-recovery.js");
 
 test("uses the same password rule as registration", () => {
-  assert.equal(recovery.isPasswordValid("a".repeat(11)), false);
-  assert.equal(recovery.isPasswordValid("a".repeat(12)), true);
+  assert.equal(recovery.isPasswordValid("a".repeat(7)), false);
+  assert.equal(recovery.isPasswordValid("a".repeat(8)), true);
   assert.equal(recovery.isPasswordValid("a".repeat(128)), true);
   assert.equal(recovery.isPasswordValid("a".repeat(129)), false);
   assert.equal(recovery.isPasswordValid(`valid\u0007password`), false);

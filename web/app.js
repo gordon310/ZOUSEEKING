@@ -1,6 +1,6 @@
 const SESSION_KEY = "zou_house_session";
 const QUERY_HISTORY_KEY = "zou_house_query_history";
-const PASSWORD_MIN_LENGTH = 12;
+const PASSWORD_MIN_LENGTH = 8;
 const PASSWORD_MAX_LENGTH = 128;
 const SESSION_PROVIDERS = new Set(["supabase", "demo"]);
 const API_BASE_URL = (window.ZOUSEEKING_API_BASE_URL || localStorage.getItem("zou_house_api_base") || "").replace(/\/$/, "");
@@ -910,7 +910,7 @@ async function updatePassword(event) {
   const password = $("#newPassword").value;
   const confirm = $("#confirmNewPassword").value;
   if (!passwordIsValid(password)) {
-    setMessage("新密码需为 12–128 位，且不能包含控制字符。", "error");
+    setMessage("新密码需为 8–128 位，且不能包含控制字符。", "error");
     return;
   }
   if (password !== confirm) {
@@ -1739,7 +1739,7 @@ async function register(event) {
     return;
   }
   if (!passwordIsValid(password)) {
-    setMessage("密码需为 12–128 位，且不能包含控制字符。", "error");
+    setMessage("密码需为 8–128 位，且不能包含控制字符。", "error");
     return;
   }
 

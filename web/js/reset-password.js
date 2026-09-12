@@ -47,7 +47,7 @@
     const confirmation = $("#resetConfirmPassword").value;
     const button = $("#resetPasswordForm button[type='submit']");
     if (!window.ZouAuthRecovery.isPasswordValid(password)) {
-      status(t("account.resetPasswordInvalid", "密码需为 12–128 位，且不能包含控制字符。"), "error");
+      status(t("account.resetPasswordInvalid", "密码需为 8–128 位，且不能包含控制字符。"), "error");
       return;
     }
     if (password !== confirmation) {

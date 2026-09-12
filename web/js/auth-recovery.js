@@ -3,7 +3,7 @@
   if (typeof module === "object" && module.exports) module.exports = api;
   if (root) root.ZouAuthRecovery = api;
 })(typeof window !== "undefined" ? window : globalThis, () => {
-  const PASSWORD_MIN_LENGTH = 12;
+  const PASSWORD_MIN_LENGTH = 8;
   const PASSWORD_MAX_LENGTH = 128;
 
   function isPasswordValid(password) {

@@ -119,6 +119,21 @@ test("zh-Hant keeps the same placeholders as zh-CN", () => {
   }
 });
 
+test("password guidance is eight characters in every supported locale", () => {
+  const expected = {
+    "zh-CN": "至少 8 位",
+    "zh-Hant": "至少 8 位",
+    en: "At least 8 characters",
+    ja: "8文字以上",
+  };
+  for (const [locale, placeholder] of Object.entries(expected)) {
+    const i18n = loadI18n({ search: `?lang=${locale}` });
+    assert.equal(i18n.t("account.passwordShortPlaceholder"), placeholder, locale);
+    assert.match(i18n.t("account.resetPasswordInvalid"), /8/);
+    assert.doesNotMatch(i18n.t("account.resetPasswordInvalid"), /12–128|12～128/);
+  }
+});
+
 test("report, workspace and admin dynamic copy is localized with matching placeholders", () => {
   const i18n = loadI18n();
   const keys = [

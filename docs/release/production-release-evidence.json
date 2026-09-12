@@ -1,42 +1,66 @@
 {
-  "schema_version": 1,
-  "reviewed_at": "2026-09-02",
-  "phase_one_scope": "consumer_intake_preview",
+  "schema_version": 2,
+  "reviewed_at": "2026-09-12",
+  "scope": "zoubeacon multi-site member, report-purchase, subscription release",
   "status": "NOT_EXECUTED",
   "release_ready": false,
   "deployment": {
+    "provider": "AWS Lightsail",
+    "services": ["api", "worker", "scheduler", "nginx"],
+    "website_origin": "https://zoubeacon.com",
+    "consumer_origin": "https://zoubeacon.app",
+    "business_origin": "https://platform.zoubeacon.com",
+    "api_origin": "https://api.zoubeacon.com",
     "commit": null,
     "artifact_sha256": null,
-    "render_api_service": null,
-    "web_service": null,
     "supabase_project_ref": null,
-    "storage_bucket": "property-intake",
-    "dns_change": false
+    "render_status": "suspended_retained_for_rollback_pending_final_disposition",
+    "live_observed": false
   },
-  "provider_evidence": {
-    "database_backup_id": null,
-    "storage_object_backup_id": null,
-    "isolated_clone_restore": false,
-    "forward_fix_id": null
+  "repository_evidence": {
+    "deployment_configured": true,
+    "pricing_catalog_configured": true,
+    "pwa_and_locales_present": true,
+    "privacy_sections_present_but_legal_review_pending": true,
+    "sandbox_paid_flow_reported": true,
+    "sources": [
+      "deploy/README.md:1-18,50-73",
+      "deploy/docker-compose.prod.yml:5-59",
+      "deploy/nginx/default.conf:1-86",
+      "backend/app/billing/catalog.py:16-32,77-96,156-169",
+      "web/manifest.webmanifest:1-15",
+      "web/sw.js:1-75",
+      "docs/superpowers/reports/2026-09-11-zouseeking-per-report-currency-task-report.md:12-18",
+      "docs/superpowers/reports/2026-09-12-paid-user-loop-task-report.md:64-75"
+    ]
   },
-  "checks": {
-    "live_health": false,
-    "ready_health": false,
-    "synthetic_smoke": false,
-    "browser_network_audit": false,
-    "console_clean": false,
-    "auth_storage_rls_matrix": false,
-    "retention_cleanup": false,
-    "rollback_smoke": false
+  "production_checks": {
+    "dns_tls_http": "BLOCKED",
+    "api_live_health": "NOT_EXECUTED",
+    "api_ready_health": "NOT_EXECUTED",
+    "browser_console_and_mobile_audit": "NOT_EXECUTED",
+    "production_auth_storage_rls_matrix": "NOT_EXECUTED",
+    "production_backup_restore": "NOT_EXECUTED",
+    "production_stripe_account_and_keys": "NOT_EXECUTED",
+    "production_webhook_signature": "NOT_EXECUTED",
+    "real_small_value_payment_and_unlock": "NOT_EXECUTED",
+    "privacy_legal_approval": "NOT_EXECUTED",
+    "render_final_disposition": "NOT_EXECUTED",
+    "rollback_smoke": "NOT_EXECUTED"
   },
   "blockers": [
-    "migration_baseline_status=canonical_staging_reconciled_production_pending",
-    "production backup/restore RPO and RTO not approved or verified",
-    "production targets, secrets, privacy/legal approval and deployment window not approved"
+    "public DNS could not be resolved in the verification environment",
+    "Stripe account has an overdue verification task and current configuration is sandbox/example-oriented",
+    "production Stripe keys and webhook signing secret are not evidenced",
+    "real payment, production webhook and automatic unlock are not evidenced",
+    "privacy/legal review is pending",
+    "production database/RLS/Storage/backup/restore evidence is not present",
+    "Render final retain-or-retire decision is pending"
   ],
   "prohibited_actions": [
     "do not populate this file with secrets or real tokens",
-    "do not mark a local/offline test as production evidence",
-    "do not execute an unapproved linked db push, migration repair, reset, deployment or DNS from this template"
+    "do not mark repository, sandbox or staging results as production evidence",
+    "do not execute an unapproved database push, migration repair, reset, deployment, DNS or billing action",
+    "do not use Render staging or an old Edge/local worker as an unapproved production fallback"
   ]
 }

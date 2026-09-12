@@ -1,49 +1,47 @@
 {
-  "schema_version": 1,
-  "reviewed_at": "2026-08-31",
-  "phase_one_scope": "consumer_intake_preview",
+  "schema_version": 2,
+  "reviewed_at": "2026-09-12",
+  "scope": "zoubeacon multi-site member, report-purchase, subscription release",
   "status": "BLOCK / NOT AUTHORIZED",
   "live_actions_allowed": false,
   "provider_changes_allowed": false,
-  "cost_cap_jpy": 0,
-  "retention_days": 7,
-  "cleanup_window_jst": "2026-09-01 02:00–03:00",
-  "owners": {
-    "database_owner": "数据库运维",
-    "backup_operator": "备份",
-    "recovery_lead": "任务派发",
-    "release_owner": "版本发布",
-    "forward_fix_owner": "后台审核",
-    "incident_commander": "超级管理员",
-    "security_reviewer": "系统安全",
-    "billing_owner": "财务"
-  },
   "targets": {
-    "supabase_project_ref": null,
-    "render_api_service": null,
-    "web_origin": null,
-    "api_origin": null,
-    "storage_bucket": "property-intake",
-    "auth_redirects": []
+    "deployment_provider": "AWS Lightsail",
+    "database_provider": "Supabase",
+    "website_origin": "https://zoubeacon.com",
+    "consumer_origin": "https://zoubeacon.app",
+    "business_origin": "https://platform.zoubeacon.com",
+    "api_origin": "https://api.zoubeacon.com",
+    "render_status": "suspended_retained_for_rollback_pending_final_disposition",
+    "source": "deploy/README.md:1-18,50-73; deploy/nginx/default.conf:1-86"
   },
-  "backup_plan": {
-    "database_provider_backup": "deferred_until_budget_and_approval",
-    "storage_object_backup": "deferred_until_budget_and_approval",
-    "isolated_clone": "deferred_until_budget_and_approval",
-    "local_recovery_artifact": "jpp-canonical-local-full-exec-20260831-v2.dump"
-  },
+  "verified_in_repository": [
+    "compose services api, worker, scheduler, nginx are configured",
+    "four production hostnames are configured in nginx",
+    "six currencies and three product codes exist in the server catalog",
+    "PWA manifest, icons, service worker and four locales exist",
+    "privacy page contains the required jurisdiction sections and is marked draft"
+  ],
+  "not_verified": [
+    "live DNS/TLS/HTTP and API health",
+    "production Supabase project, migrations, RLS, Storage and backup restore",
+    "production Stripe account verification, keys and webhook signature",
+    "one real small-value payment and automatic unlock",
+    "privacy/legal approval",
+    "final Render disposition"
+  ],
   "required_before_authorization": [
-    "exact staging/production provider targets",
-    "provider backup ID and restore verification",
-    "Storage object backup scope and checksum",
-    "later-ID forward-fix and rollback plan",
-    "approved deployment commit and artifact checksum",
-    "privacy/legal approval and support channel",
-    "C11 capacity thresholds and stop conditions"
+    "Stripe account verification completed after the overdue task is cleared",
+    "production Stripe secret and webhook signing secret installed outside Git",
+    "one real small-value payment reconciled through webhook to report unlock",
+    "privacy/legal approval including Taiwan 2025 cross-border transfer review",
+    "AWS Lightsail and Supabase production targets, backups, restore and RLS evidence",
+    "final Render retain-or-retire decision and rollback evidence",
+    "approved commit, artifact checksum, owners, observation window and stop conditions"
   ],
   "notes": [
-    "JPY 0 前期预算不允许启用可能收费的 provider backup、PITR 或 clone。",
-    "本文件是待审批模板，不构成生产变更授权；不得用 null 目标执行命令。",
-    "production release 只能在 C03–C13 证据闭合并获得逐项明确批准后推进。"
+    "Sandbox payment and repository tests are not production authorization evidence.",
+    "The current environment could not resolve the four public hostnames on 2026-09-12.",
+    "Do not populate this file with secrets, real tokens, customer data or invented IDs."
   ]
 }

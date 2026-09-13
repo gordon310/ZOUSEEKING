@@ -144,3 +144,9 @@ export function getExistingAccessToken() {
     return "";
   }
 }
+
+export async function getValidAccessToken() {
+  const sharedToken = await window.ZouAuthSession?.getValidAccessToken?.();
+  if (sharedToken) return sharedToken;
+  return getExistingAccessToken();
+}

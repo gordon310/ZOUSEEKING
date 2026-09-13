@@ -21,8 +21,20 @@
     return session;
   }
 
+  function expiresAt(session) {
+    const value = session?.expiresAt ?? session?.expires_at;
+    if (typeof value === "number") return value;
+    if (value) {
+      const parsed = Date.parse(value);
+      if (Number.isFinite(parsed)) return Math.floor(parsed / 1000);
+    }
+    return 0;
+  }
+
   function isLoggedIn(session = read()) {
-    return Boolean(session?.username && PROVIDERS.has(session?.provider));
+    if (!session?.username || !PROVIDERS.has(session?.provider)) return false;
+    if (session.provider === "demo") return true;
+    return Boolean(session.accessToken && expiresAt(session) > Math.floor(Date.now() / 1000) + 60);
   }
 
   function authConfig() {
@@ -55,30 +67,18 @@
       userId: user.id || fallback.userId || "",
       accessToken: data?.access_token || fallback.accessToken || "",
       refreshToken: data?.refresh_token || fallback.refreshToken || "",
+      expiresAt: data?.expires_at || (data?.expires_in ? Math.floor(Date.now() / 1000) + Number(data.expires_in) : fallback.expiresAt || fallback.expires_at || 0),
       provider: "supabase",
     };
   }
 
-  async function restore() {
-    const session = read();
-    if (!session || !isLoggedIn(session)) {
-      if (session) write(null);
-      return null;
-    }
-    if (session.provider !== "supabase") return session;
+  let refreshInFlight = null;
+
+  async function refresh(session) {
+    if (refreshInFlight) return refreshInFlight;
     const { url, anonKey } = authConfig();
-    if (!url || !anonKey || !session.accessToken) {
-      if (!session.accessToken) write(null);
-      return session.accessToken ? session : null;
-    }
-    try {
-      const user = await request("/user", { url }, anonKey, session.accessToken);
-      return write(fromAuth({ user }, session));
-    } catch {
-      if (!session.refreshToken) {
-        write(null);
-        return null;
-      }
+    if (!url || !anonKey || !session?.refreshToken) return null;
+    refreshInFlight = (async () => {
       try {
         const data = await request("/token?grant_type=refresh_token", {
           url,
@@ -89,8 +89,54 @@
       } catch {
         write(null);
         return null;
+      } finally {
+        refreshInFlight = null;
       }
+    })();
+    return refreshInFlight;
+  }
+
+  async function ensureValidSession(session = read()) {
+    if (!session || !PROVIDERS.has(session.provider)) {
+      if (session) write(null);
+      return null;
     }
+    if (isLoggedIn(session)) return session;
+    if (session.provider !== "supabase") {
+      write(null);
+      return null;
+    }
+    return refresh(session);
+  }
+
+  async function restore() {
+    const session = read();
+    if (!session || !PROVIDERS.has(session.provider)) {
+      if (session) write(null);
+      return null;
+    }
+    if (session.provider !== "supabase") return session;
+    if (!isLoggedIn(session)) return ensureValidSession(session);
+    const { url, anonKey } = authConfig();
+    if (!url || !anonKey || !session.accessToken) {
+      if (!session.accessToken) write(null);
+      return session.accessToken ? session : null;
+    }
+    try {
+      const user = await request("/user", { url }, anonKey, session.accessToken);
+      return write(fromAuth({ user }, session));
+    } catch {
+      return ensureValidSession(session);
+    }
+  }
+
+  function sessionExpiredMessage(locale = "zh-CN") {
+    return {
+      "zh-Hant": "登入狀態已過期，請重新登入。",
+      en: "Your session has expired. Please log in again.",
+      ja: "ログイン状態の有効期限が切れました。もう一度ログインしてください。",
+      "zh-CN": "登录状态已过期，请重新登录。",
+    }[locale] || "登录状态已过期，请重新登录。";
   }
 
   window.ZouAuthSession = Object.freeze({
@@ -98,9 +144,12 @@
     write,
     isLoggedIn,
     restore,
+    ensureValidSession,
+    sessionExpiredMessage,
     getAccessToken: () => {
       const session = read();
       return isLoggedIn(session) && session.provider === "supabase" ? session.accessToken || "" : "";
     },
+    getValidAccessToken: async () => (await ensureValidSession())?.accessToken || "",
   });
 })();

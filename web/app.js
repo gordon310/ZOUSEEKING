@@ -502,6 +502,7 @@ function sessionFromAuth(data, fallback = {}) {
     userId: user.id || fallback.userId || "",
     accessToken: data?.access_token || fallback.accessToken || "",
     refreshToken: data?.refresh_token || fallback.refreshToken || "",
+    expiresAt: data?.expires_at || (data?.expires_in ? Math.floor(Date.now() / 1000) + Number(data.expires_in) : fallback.expiresAt || 0),
     provider: "supabase",
   };
 }
@@ -544,11 +545,15 @@ async function refreshSupabaseSession() {
 }
 
 async function apiFetch(path, options = {}) {
+  const session = window.ZouAuthSession?.ensureValidSession
+    ? await window.ZouAuthSession.ensureValidSession(state.session)
+    : state.session;
+  state.session = session;
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...(state.session?.accessToken ? { Authorization: `Bearer ${state.session.accessToken}` } : {}),
+      ...(session?.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {}),
       ...(options.headers || {}),
     },
   });
@@ -650,12 +655,20 @@ async function supabaseFetch(path, options = {}) {
 }
 
 async function supabaseUserFetch(path, options = {}) {
-  if (!state.session?.accessToken) throw new Error("登录状态过期，请重新登录。");
+  const session = window.ZouAuthSession?.ensureValidSession
+    ? await window.ZouAuthSession.ensureValidSession(state.session)
+    : state.session;
+  state.session = session;
+  if (!session?.accessToken) {
+    const error = new Error("auth_session_expired");
+    error.code = "auth_session_expired";
+    throw error;
+  }
   const response = await fetch(`${SUPABASE_URL}/rest/v1${path}`, {
     ...options,
     headers: {
       apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${state.session.accessToken}`,
+      Authorization: `Bearer ${session.accessToken}`,
       "Content-Type": "application/json",
       Prefer: "return=representation",
       ...(options.headers || {}),

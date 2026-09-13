@@ -4,9 +4,9 @@ import {
   convertSession,
   createSession,
   generatePreview,
-  getExistingAccessToken,
+  getValidAccessToken,
   uploadFiles,
-} from "./api-client.js?v=20260913-r24";
+} from "./api-client.js?v=20260913-r25";
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const INTAKE_SESSION_KEY = "zou_house_property_intake_session";
@@ -892,9 +892,15 @@ async function saveProject() {
     state.busy = false;
     return;
   }
-  const accessToken = getExistingAccessToken();
+  const hadSupabaseSession = Boolean(window.ZouAuthSession?.read?.()?.provider === "supabase");
+  const accessToken = await getValidAccessToken();
   if (!accessToken) {
-    setStatus(t("intake.loginRequiredToSave", "请先在首页完成 Supabase 登录，再返回这里保存项目。匿名项目会保留到 24 小时到期。"), "info");
+    setStatus(
+      hadSupabaseSession
+        ? t("auth.sessionExpired", "登录状态已过期，请重新登录。")
+        : t("intake.loginRequiredToSave", "请先在首页完成 Supabase 登录，再返回这里保存项目。匿名项目会保留到 24 小时到期。"),
+      "info",
+    );
     return;
   }
   const session = state.session;
@@ -960,7 +966,12 @@ async function saveProject() {
   } catch (error) {
     console.error("Property intake project save failed", error);
     if (!handleProjectNameError(error)) {
-      setStatus(t("intake.projectSaveFailed", "项目保存失败，请先确认登录状态。"), "error");
+      const message = error?.status === 401 || error?.status === 403 || error?.code === "auth_session_expired"
+        ? t("auth.sessionExpired", "登录状态已过期，请重新登录。")
+        : error?.status === 422 || error?.code === "location_required"
+          ? t("intake.saveLocationRequired", "地区信息不完整，请回到第 1 步补全都道府县、市和区后再保存。")
+          : t("intake.projectSaveFailed", "项目保存失败，请稍后重试。");
+      setStatus(message, "error");
     }
   } finally {
     state.busy = false;

@@ -155,6 +155,14 @@ test("report, workspace and admin dynamic copy is localized with matching placeh
   }
 });
 
+test("session expiry copy exists in all supported locales", () => {
+  const i18n = loadI18n();
+  for (const locale of ["zh-CN", "zh-Hant", "en", "ja"]) {
+    assert.ok(i18n.keys(locale).includes("auth.sessionExpired"), `${locale}: auth.sessionExpired`);
+    assert.notEqual(i18n.t("auth.sessionExpired", ""), "", locale);
+  }
+});
+
 test("browser language mapping selects the expected locale", () => {
   assert.equal(loadI18n({ language: "zh-TW" }).detectedLocale, "zh-Hant");
   assert.equal(loadI18n({ language: "zh-HK" }).detectedLocale, "zh-Hant");

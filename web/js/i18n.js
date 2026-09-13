@@ -2531,6 +2531,8 @@
   // Dynamic copy used by the report, workspace and operations views. Keep the
   // sentence whole so locale-specific word order is preserved.
   const ADDITIONAL_I18N = {
+    "auth.sessionExpired": { "zh-CN": "登录状态已过期，请重新登录。", en: "Your session has expired. Please log in again.", ja: "ログイン状態の有効期限が切れました。もう一度ログインしてください。" },
+    "auth.loginAgain": { "zh-CN": "前往登录", en: "Log in again", ja: "もう一度ログイン" },
     "global.runtimeError": { "zh-CN": "页面脚本出现异常（代码：{code}），请刷新或联系客服。", en: "A page script encountered an issue (code: {code}). Refresh or contact support.", ja: "ページスクリプトで問題が発生しました（コード：{code}）。更新するかサポートへ連絡してください。" },
     "global.dismissError": { "zh-CN": "关闭提示", en: "Dismiss error notice", ja: "エラー通知を閉じる" },
     "report.unlockWithPrice": { "zh-CN": "解锁本报告（{price}）", en: "Unlock this report ({price})", ja: "このレポートを解除（{price}）" },

@@ -1,5 +1,5 @@
-import { getExistingAccessToken } from "./api-client.js?v=20260913-r24";
-import { currencyForRegion, inferRegion, reportAccessState, reportCoverageState, selectPrice } from "./report-page-core.js?v=20260913-r24";
+import { getValidAccessToken } from "./api-client.js?v=20260913-r25";
+import { currencyForRegion, inferRegion, reportAccessState, reportCoverageState, selectPrice } from "./report-page-core.js?v=20260913-r25";
 
 const PRODUCT_CODE = "risk_report_single";
 const params = new URL(window.location.href).searchParams;
@@ -97,7 +97,7 @@ function renderUnlockedDetails(report) {
 
 async function request(path, options = {}) {
   const headers = { Accept: "application/json", ...(options.headers || {}) };
-  const token = getExistingAccessToken();
+  const token = await getValidAccessToken();
   if (token) headers.Authorization = `Bearer ${token}`;
   const response = await fetch(`${apiBase}${path}`, { ...options, headers });
   const payload = await response.json().catch(() => null);
@@ -118,8 +118,11 @@ function priceLabel(price) {
 
 async function preparePaywall(report) {
   elements.paywall.hidden = false;
-  const token = getExistingAccessToken();
+  const token = await getValidAccessToken();
   if (!token) {
+    if (window.ZouAuthSession?.read?.()?.provider === "supabase") {
+      setStatus(t("auth.sessionExpired", "登录状态已过期，请重新登录。"), "error");
+    }
     elements.login.hidden = false;
     elements.unlock.hidden = true;
     elements.login.href = `mypage.html?return=${encodeURIComponent(`report.html?key=${queryKey}`)}`;
@@ -214,7 +217,12 @@ async function init() {
     renderReport(report);
     if (params.get("payment") === "success" || params.get("checkout") === "success") await pollAfterPayment();
   } catch (error) {
-    setStatus(error.message || t("report.loadFailed", "报告读取失败，请稍后重试"), "error");
+    setStatus(
+      error?.code === "auth_session_expired"
+        ? t("auth.sessionExpired", "登录状态已过期，请重新登录。")
+        : t("report.loadFailed", "报告读取失败，请稍后重试"),
+      "error",
+    );
   }
 }
 

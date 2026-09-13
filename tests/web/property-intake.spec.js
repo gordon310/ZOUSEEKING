@@ -199,6 +199,19 @@ test("anonymous user reaches free preview on mobile", async ({ page }) => {
   );
 });
 
+test("text intake extracts price, area, and address without borrowing unrelated numbers", async ({ page }) => {
+  await page.goto("/property-analysis.html");
+  await page.getByLabel("物件类型 / 房型").selectOption("tower");
+  await fillLocation(page);
+  await page.getByLabel("物件链接或说明").fill("林寺2-5-22 售价 5200万日元 面积110平方");
+  await page.getByRole("button", { name: "开始整理资料" }).click();
+
+  await expect(page.getByLabel("售价（日元）")).toHaveValue("52000000");
+  await expect(page.getByLabel("专有面积（平方米）")).toHaveValue("110");
+  await expect(page.getByLabel("完整地址")).toHaveValue("林寺2-5-22");
+  await expect(page.locator("#extractionHelp")).toContainText("已从文字资料识别");
+});
+
 test("ZOUBEACON shell switches between desktop rail and mobile flow navigation", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/property-analysis.html");

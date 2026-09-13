@@ -6,7 +6,8 @@ import {
   generatePreview,
   getValidAccessToken,
   uploadFiles,
-} from "./api-client.js?v=20260913-r28";
+} from "./api-client.js?v=20260913-r29";
+import { extractPropertyFields } from "./property-intake-extraction.js?v=20260913-r29";
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const INTAKE_SESSION_KEY = "zou_house_property_intake_session";
@@ -156,6 +157,7 @@ const elements = {
   confirmedFieldCount: document.querySelector("#confirmedFieldCount"),
   confirmedFieldPercent: document.querySelector("#confirmedFieldPercent"),
   confirmedFieldBar: document.querySelector("#confirmedFieldBar"),
+  extractionHelp: document.querySelector("#extractionHelp"),
   prefecture: document.querySelector("#prefecture"),
   city: document.querySelector("#city"),
   ward: document.querySelector("#ward"),
@@ -603,6 +605,25 @@ function renderInputSummary() {
   updateProgressRail();
 }
 
+function applyTextExtraction(source) {
+  const extracted = extractPropertyFields(source);
+  for (const [fieldName, value] of Object.entries(extracted)) {
+    const input = document.querySelector(`[data-field='${fieldName}']`);
+    if (input && !input.value.trim()) input.value = String(value);
+  }
+  const missingLabels = [
+    ["asking_price_jpy", "售价"],
+    ["area_sqm", "专有面积"],
+    ["address", "地址"],
+  ].filter(([fieldName]) => !Object.hasOwn(extracted, fieldName)).map(([, label]) => label);
+  if (elements.extractionHelp) {
+    elements.extractionHelp.textContent = missingLabels.length
+      ? copy("intake.extractionMissing", "未识别到，请手动填写：{fields}。", { fields: missingLabels.join("、") })
+      : t("intake.extractionComplete", "已从文字资料识别售价、面积和地址，请核对后继续。");
+  }
+  return extracted;
+}
+
 function renderDimension(dimensionName, result) {
   const item = createElement("div", undefined, "dimension-row");
   const heading = createElement("div", undefined, "dimension-heading");
@@ -791,7 +812,10 @@ async function startIntake(event) {
         expiresAt: session.expires_at,
         assetType,
       });
-      if (source) await addTextOrUrlInput(session.session_id, session.session_token, source);
+      if (source) {
+        await addTextOrUrlInput(session.session_id, session.session_token, source);
+        if (!/^https:\/\/\S+$/i.test(source)) applyTextExtraction(source);
+      }
       if (files.length || photos.length) {
         await uploadFiles(session.session_id, session.session_token, [...files, ...photos]);
       }

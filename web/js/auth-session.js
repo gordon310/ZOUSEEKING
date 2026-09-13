@@ -2,6 +2,7 @@
   const PROVIDERS = new Set(["supabase", "demo"]);
   const LEGACY_STORAGE_KEY = "zou_house_session";
   const EXPIRY_SAFETY_WINDOW = 60;
+  const DEFAULT_SESSION_LIFETIME = 3600;
 
   function nowSeconds() {
     return Math.floor(Date.now() / 1000);
@@ -49,7 +50,7 @@
 
   function write(session) {
     const currentTime = nowSeconds();
-    const sessionExpiresAt = expiresAt(session);
+    const sessionExpiresAt = expiresAt(session) || currentTime + DEFAULT_SESSION_LIFETIME;
     if (session?.provider === "supabase" && sessionExpiresAt <= currentTime + EXPIRY_SAFETY_WINDOW) {
       throw new Error("auth_session_expiry_missing");
     }
@@ -74,7 +75,9 @@
       }
       window.localStorage.removeItem(LEGACY_STORAGE_KEY);
     } catch {
-      // A blocked storage area must degrade to logged out without breaking the page.
+      const error = new Error("auth_session_storage_failed");
+      error.code = "auth_session_storage_failed";
+      throw error;
     }
     try {
       window.dispatchEvent?.(new window.CustomEvent("zou-auth-session-changed", { detail: session }));
@@ -125,8 +128,8 @@
       userId: user.id || fallback.userId || "",
       accessToken: data?.access_token || data?.accessToken || fallback.accessToken || "",
       refreshToken: data?.refresh_token || data?.refreshToken || fallback.refreshToken || "",
-      expiresAt: normalizeExpiresAt(data?.expires_at ?? data?.expiresAt) || (Number.isFinite(Number(data?.expires_in)) && Number(data.expires_in) > 0 ? nowSeconds() + Math.floor(Number(data.expires_in)) : normalizeExpiresAt(fallback.expiresAt ?? fallback.expires_at)),
-      expiresIn: Number.isFinite(Number(data?.expires_in)) && Number(data.expires_in) > 0 ? Math.floor(Number(data.expires_in)) : fallback.expiresIn,
+      expiresAt: normalizeExpiresAt(data?.expires_at ?? data?.expiresAt) || (Number.isFinite(Number(data?.expires_in)) && Number(data.expires_in) > 0 ? nowSeconds() + Math.floor(Number(data.expires_in)) : normalizeExpiresAt(fallback.expiresAt ?? fallback.expires_at)) || nowSeconds() + DEFAULT_SESSION_LIFETIME,
+      expiresIn: Number.isFinite(Number(data?.expires_in)) && Number(data.expires_in) > 0 ? Math.floor(Number(data.expires_in)) : fallback.expiresIn || DEFAULT_SESSION_LIFETIME,
       user,
       provider: data?.provider || fallback.provider || "supabase",
     };

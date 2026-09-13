@@ -5,7 +5,7 @@ const vm = require("node:vm");
 
 const source = fs.readFileSync("web/js/auth-session.js", "utf8");
 
-function createHarness({ session, refreshResponse, refreshReject = false, initialStorageKey = "sb-example-auth-token" }) {
+function createHarness({ session, refreshResponse, refreshReject = false, storageWriteReject = false, initialStorageKey = "sb-example-auth-token" }) {
   const values = new Map([[initialStorageKey, JSON.stringify(session)]]);
   let refreshCalls = 0;
   const events = [];
@@ -21,7 +21,10 @@ function createHarness({ session, refreshResponse, refreshReject = false, initia
     ZOUSEEKING_SUPABASE_ANON_KEY: "anon-key",
     localStorage: {
       getItem: (key) => values.get(key) || null,
-      setItem: (key, value) => values.set(key, value),
+      setItem: (key, value) => {
+        if (storageWriteReject) throw new Error("quota exceeded");
+        values.set(key, value);
+      },
       removeItem: (key) => values.delete(key),
     },
     CustomEvent: class CustomEvent {
@@ -107,13 +110,27 @@ test("derives a future expires_at from a password response and preserves expires
   assert.equal(harness.events.at(-1).detail.accessToken, "fresh-token");
 });
 
-test("rejects an auth response without a usable expiry instead of writing zero", () => {
+test("uses a safe default expiry when a successful auth response omits expiry", () => {
   const harness = createHarness({ session: null, initialStorageKey: "unused" });
+  const before = Math.floor(Date.now() / 1000);
+  const session = harness.auth.fromAuth({
+    access_token: "token",
+    refresh_token: "refresh-token",
+    user: { id: "user-1", email: "member@example.com", user_metadata: { username: "member" } },
+  });
+  harness.auth.write(session);
+  const stored = JSON.parse(harness.values.get("sb-example-auth-token"));
+  assert.ok(stored.expires_at > before + 60);
+  assert.equal(harness.auth.isLoggedIn(), true);
+});
+
+test("reports a storage write failure instead of silently accepting an unpersisted session", () => {
+  const harness = createHarness({ session: null, storageWriteReject: true, initialStorageKey: "unused" });
   assert.throws(
-    () => harness.auth.write(harness.auth.fromAuth({ access_token: "token", user: { email: "member@example.com", user_metadata: { username: "member" } } })),
-    /auth_session_expiry_missing/,
+    () => harness.auth.write(harness.auth.fromAuth({ access_token: "token", expires_in: 3600, user: { id: "user-1", email: "member@example.com" } })),
+    /auth_session_storage_failed/,
   );
-  assert.equal(harness.values.has("sb-example-auth-token"), false);
+  assert.equal(harness.events.length, 0);
 });
 
 test("cleans up a historical zero-expiry auth record during read", () => {

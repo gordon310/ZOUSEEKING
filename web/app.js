@@ -477,7 +477,10 @@ async function supabaseAuthFetch(path, options = {}) {
   }
   if (!response.ok) {
     const message = payload?.msg || payload?.message || payload?.error_description || payload?.error || text || `Supabase Auth ${response.status}`;
-    throw new Error(message);
+    const error = new Error(message);
+    error.status = response.status;
+    if (response.status === 400 && path.startsWith("/token?grant_type=password")) error.code = "auth_credentials_invalid";
+    throw error;
   }
   return payload;
 }
@@ -1792,6 +1795,7 @@ async function login(event) {
     return;
   }
 
+  let session;
   try {
     submitButton.disabled = true;
     setMessage("正在登录，小象在翻钥匙串……");
@@ -1805,21 +1809,41 @@ async function login(event) {
       hasExpiresAt: Object.prototype.hasOwnProperty.call(data || {}, "expires_at"),
       expiresAt: data?.expires_at ?? null,
     });
-    const session = sessionFromAuth(data, { email });
+    session = sessionFromAuth(data, { email });
+    if (!session.accessToken || !session.userId || !session.email) {
+      const error = new Error("auth_session_response_invalid");
+      error.code = "auth_session_response_invalid";
+      throw error;
+    }
     saveSession(session);
+  } catch (error) {
+    if (error?.code === "auth_credentials_invalid") {
+      setMessage("邮箱或密码不正确，或账户暂不可用。", "error");
+    } else if (error?.code === "auth_session_storage_failed") {
+      setMessage("登录成功，但会话保存失败；请检查浏览器储存空间后重试。", "error");
+    } else {
+      setMessage("登录服务暂时不可用，请稍后重试。", "error");
+    }
+    submitButton.disabled = false;
+    return;
+  }
+
+  try {
     await ensureUserProfile();
     await loadMyPage();
-    $("#loginForm").reset();
-    state.page = 1;
-    state.selectedId = "";
-    state.queryOptions = null;
-    setMessage("登录成功，可以搜了。", "success");
-    render();
   } catch {
-    setMessage("邮箱或密码不正确，或账户暂不可用。", "error");
+    setMessage("登录成功，但账户资料暂时不可用，可以先使用查询。", "success");
+    render();
+    return;
   } finally {
     submitButton.disabled = false;
   }
+  $("#loginForm").reset();
+  state.page = 1;
+  state.selectedId = "";
+  state.queryOptions = null;
+  setMessage("登录成功，可以搜了。", "success");
+  render();
 }
 
 async function logout() {

@@ -410,6 +410,37 @@ test("save converts the current Tokyo apartment selections", async ({ page }) =>
   expect(body.asset_type).toBe("公寓");
 });
 
+test("save sends current selections when an older unversioned api-client module is cached", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem("zou_house_session", JSON.stringify({ provider: "supabase", accessToken: "test-access-token" }));
+  });
+  await page.route("**/js/api-client.js**", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.search) return route.continue();
+    const response = await route.fetch();
+    const source = await response.text();
+    const staleSource = source.replace(
+      'export function convertSession(sessionId, sessionToken, accessToken, projectName = "", query = {}) {\n  return request(`/api/intake/sessions/${encodeURIComponent(sessionId)}/convert`, {\n    method: "POST",\n    sessionToken,\n    accessToken,\n    body: { ...(projectName.trim() ? { project_name: projectName.trim() } : {}), ...query },\n  });\n}',
+      'export function convertSession(sessionId, sessionToken, accessToken, projectName = "") {\n  return request(`/api/intake/sessions/${encodeURIComponent(sessionId)}/convert`, {\n    method: "POST",\n    sessionToken,\n    accessToken,\n    body: projectName.trim() ? { project_name: projectName.trim() } : {},\n  });\n}',
+    );
+    await route.fulfill({ response, body: staleSource });
+  });
+
+  const convertRequest = page.waitForRequest((request) => request.url().endsWith("/convert") && request.method() === "POST");
+  await page.goto("/property-analysis.html");
+  await page.getByLabel("物件类型 / 房型").selectOption("apartment");
+  await page.getByLabel("都道府县").selectOption("东京都");
+  await page.getByLabel("市").selectOption("东京23区");
+  await page.getByLabel("区").selectOption("渋谷区");
+  await page.getByLabel("物件链接或说明").fill("东京都渋谷区，售价8000万日元");
+  await page.getByRole("button", { name: "开始整理资料" }).click();
+  await page.getByLabel("售价（日元）").fill("80000000");
+  await page.getByRole("button", { name: "生成免费预览" }).click();
+  await page.locator("#saveProjectButton").click();
+  const body = JSON.parse((await convertRequest).postData());
+  expect(body).toMatchObject({ prefecture: "东京都", city: "东京23区", asset_type: "公寓" });
+});
+
 test("home auth tabs use switch wording distinct from the submit action", async ({ page }) => {
   await page.goto("/index.html");
   await expect(page.locator("#showLogin")).toContainText("切换到登录");

@@ -362,6 +362,17 @@
 - **附带观察(非本单元)**:① `#locationCandidate`("系统建议地址")自 `b252c1a` 起已无任何写入路径,恒显"尚未获取"= 死 UI,建议单独决策(去掉该面板或接回定位);② 夜间批次 22 连红期间无人确认 CI,建议恢复"每次 push 后 `gh run list` 确认"纪律。
 - 红线:零 migration 改动、零数据库写(仅本地 disposable/静态站点)、未触凭据与冻结字段、无删除操作;未 commit 任何产品/测试代码。
 
+## Release Gate 红链 #4 · Codex 通道恢复 → 派工后因并发单写者冲突冻结(2026-09-14 晨班,管家)
+
+- **实测(07:30)**:`main` 工作树干净、本地 = `origin/main` = `86afa5c`;Release Gate 仍红,**唯一失败 job = Playwright checks `23 failed / 51 passed`**(run `34770923232`;其余 Node/Python/SQL-RLS/Repository policy/Supply-chain/Release evidence 六 job 全绿)。失败面由 09-13 定位的 10 例扩大到 23 例,来自 09-13 夜间批次 18 推(asset r16–r31:auth-session 统一、i18n 判定、注册三态、密码重置、照片定位重写、静态资源版本化)。
+- **Codex 通道已恢复**:07:31 探针 exit 0(真写文件);代理出口 `colo=NRT`(东京),不再是 09-13 的香港 403。
+- **派工**:07:32 生成自包含任务书 `~/.hermes/tmp/dispatch-pw-drift-20260914.txt`(23 例 file:line + CI 原始错误摘录 + 红线「禁删/禁 skip/禁放宽断言」+ 分支交付不 push),按 09-13 分工派 Codex 执行(`--sandbox danger-full-access`)。
+- **⛔ 冻结(07:47)**:发现**同一工作树内有第二个 Codex 进程**(桌面会话 `20260909_174608_a367da` 07:41 派出的「实时认证配额计量」实施任务,pid 62983,cwd 同为本仓库)→ 违反单写者红线,且两个 `codex exec` 并发会因 refresh token 轮换互相作废。处置:**只终止本会话自己的 codex 进程树**(60224),未触碰对方进程;对方的未提交 backend/quota 改动原样保留(我的 codex 亦未把它们卷入提交)。
+- **冻结时的成果**:分支 `codex/pw-drift-20260914` 上 `98d1320`(specs 对齐 auth shell/intake 结构)+ `b2baadf`(浏览器 mock 改本地测试端点),仅动 `tests/web/**` + `playwright.config.js` + `web/property-analysis.html`,**未加 skip/only、未 push**;Codex 自报仍有 intake/认证 mock/报告入口失败,套件第二轮未跑完 → **属未验证的部分修复**。
+- **⚠ 混合状态(需人工决定)**:桌面会话 07:43 的 design commit `b88a573`(realtime quota 设计+计划)落在同一分支上;配额任务未提交改动仍在工作树。手把文档:`~/.hermes/tmp/reports/pw-drift-20260914-handoff.md`。
+- **待 Gordon**:①(推荐)先让桌面会话配额任务跑完(单写者优先),再由 Codex 续跑同一任务书至 `npm run test:web -- --workers=1` 0 failed 后 push main;② 决定该分支的部分修复保留(建议保留待续跑)/丢弃,并避免被当作配额任务成果一起推上 main;③ 恢复「每次 push 后 `gh run list -L 1` 确认 gate」纪律。
+- **红线**:零 push、零数据库/线上写、零部署、未动凭据与冻结字段、未删除仓库文件(未碰 migration);仅终止本会话自己的 codex 进程树。
+
 ## Last updated
 
-2026-09-13
+2026-09-14

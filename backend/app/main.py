@@ -128,6 +128,12 @@ LOCKED_REPORT_FIELDS = frozenset({
 })
 
 
+def report_status_for_report(*, has_snapshot: bool) -> str:
+    """Map generation coverage to the canonical terminal report status."""
+
+    return "full_report" if has_snapshot else "insufficient_data"
+
+
 def _row_get(row: Any, name: str, fallback: Any = None) -> Any:
     try:
         return row[name]
@@ -234,6 +240,8 @@ def row_to_report(row: Any) -> dict[str, Any]:
         "title": row["title"],
         "publish_month": row["publish_month"],
         "created_at": _row_get(row, "created_at"),
+        "generated_at": _row_get(row, "created_at"),
+        "report_status": _row_get(row, "report_status", "generating"),
         "markdown": row["markdown"],
         "xhs_content": row["xhs_content"],
         "rental": json_value("rental", []),
@@ -268,6 +276,8 @@ def public_report_from_row(row: Any, query_key: str) -> dict[str, Any]:
         "slug": row["slug"],
         "title": row["title"],
         "publish_month": row["publish_month"],
+        "generated_at": _row_get(row, "created_at"),
+        "report_status": _row_get(row, "report_status", "generating"),
         "summary": json_value("summary", {}),
         "data_sources": json_value("data_sources", []),
         "unlock_hint": "完整深度报告与导出为付费权益(risk_report_single)。购买后解锁本份深度报告。",
@@ -287,9 +297,11 @@ async def save_report(query_id: str, owner_user_id: str, report: dict[str, Any])
         await conn.execute(
             """
             insert into property_reports
-              (query_id, owner_user_id, query_key, slug, title, publish_month, markdown, xhs_content, rental, sale, summary, images, data_sources, raw_record)
+              (query_id, owner_user_id, query_key, slug, title, publish_month, markdown, xhs_content, rental, sale, summary, images, data_sources, raw_record,
+               report_status, data_class, source_period, observed_at, transformation_version, limitations)
             values
-              ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11::jsonb, $12::jsonb, $13::jsonb, $14::jsonb)
+              ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11::jsonb, $12::jsonb, $13::jsonb, $14::jsonb,
+               $15, $16::public.data_class, $17, $18, $19, $20)
             on conflict (query_id) do update set
               query_key = excluded.query_key,
               slug = excluded.slug,
@@ -303,6 +315,12 @@ async def save_report(query_id: str, owner_user_id: str, report: dict[str, Any])
               images = excluded.images,
               data_sources = excluded.data_sources,
               raw_record = excluded.raw_record,
+              report_status = excluded.report_status,
+              data_class = excluded.data_class,
+              source_period = excluded.source_period,
+              observed_at = excluded.observed_at,
+              transformation_version = excluded.transformation_version,
+              limitations = excluded.limitations,
               updated_at = now()
             """,
             query_id,
@@ -319,6 +337,12 @@ async def save_report(query_id: str, owner_user_id: str, report: dict[str, Any])
             json.dumps(report["images"], ensure_ascii=False),
             json.dumps(report["data_sources"], ensure_ascii=False),
             json.dumps(report["raw_record"], ensure_ascii=False),
+            report["report_status"],
+            report.get("data_class"),
+            report.get("source_period"),
+            report.get("observed_at"),
+            report.get("transformation_version"),
+            report.get("limitations"),
         )
 
 
@@ -338,6 +362,14 @@ async def run_generation_job(job_id: str, query_id: str, owner_user_id: str, req
         )
         if snapshot:
             report = build_sale_report(snapshot, request.model_dump())
+            report.update(
+                report_status=report_status_for_report(has_snapshot=True),
+                data_class="scraped_aggregate",
+                source_period=snapshot.sale_period or f"{request.year}-{request.month:02d}",
+                observed_at=datetime.now(timezone.utc),
+                transformation_version="market-engine-v1",
+                limitations="中古マンション成交均价的授权聚合口径；不包含挂牌价、租金或单套估价。",
+            )
         else:
             title = query_title(request.prefecture, request.city, request.ward, request.asset_type, request.year, request.month)
             report = {
@@ -359,6 +391,12 @@ async def run_generation_job(job_id: str, query_id: str, owner_user_id: str, req
                 "images": [],
                 "data_sources": fallback_sources(request.prefecture, request.city, request.ward),
                 "raw_record": {"status": "queued"},
+                "report_status": report_status_for_report(has_snapshot=False),
+                "data_class": None,
+                "source_period": f"{request.year}-{request.month:02d}",
+                "observed_at": datetime.now(timezone.utc),
+                "transformation_version": "market-engine-v1",
+                "limitations": "该地区或资产类型暂无已接入的授权覆盖，未编造市场数字。",
             }
         async with get_pool().acquire() as conn:
             query_key_value = await conn.fetchval(

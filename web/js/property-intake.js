@@ -912,7 +912,14 @@ async function saveProject() {
     }
     if (elements.savedProjectLink) {
       elements.savedProjectLink.classList.remove("hidden");
-      elements.savedProjectLink.href = elements.reportLink?.href || "report.html";
+      const reportKey = result.query_key || state.preview?.query_key || state.session?.query_key || state.session?.queryKey || "";
+      const reportParams = new URLSearchParams();
+      if (reportKey) reportParams.set("key", reportKey);
+      const language = new URL(window.location.href).searchParams.get("lang");
+      if (language) reportParams.set("lang", language);
+      elements.savedProjectLink.href = reportKey
+        ? `report.html?${reportParams.toString()}`
+        : elements.reportLink?.href || "report.html";
     }
     setStatus(copy("intake.projectSavedStatus", "项目已保存到你的账户（{propertyId}）。", { propertyId: result.property_id }), "success");
   } catch (error) {

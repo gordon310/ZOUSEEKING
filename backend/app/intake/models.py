@@ -10,10 +10,11 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from ..asset_types import AssetType, normalize_asset_type
+
 
 Purpose = Literal["self_use", "rental_investment"]
 InputType = Literal["text", "url"]
-AssetType = Literal["塔楼", "公寓", "一户建"]
 ConfirmationStatus = Literal["confirmed", "corrected", "unknown"]
 LocationSource = Literal["device_geolocation"]
 
@@ -151,6 +152,11 @@ class ConvertSessionRequest(IntakeModel):
             return None
         normalized = str(value).strip()
         return normalized or None
+
+    @field_validator("asset_type", mode="before")
+    @classmethod
+    def normalize_asset_type_value(cls, value: Optional[str]) -> Optional[str]:
+        return normalize_asset_type(value)
 
     @field_validator("prefecture", "city", "ward", mode="before")
     @classmethod

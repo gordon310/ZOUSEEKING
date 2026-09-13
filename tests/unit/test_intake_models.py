@@ -10,6 +10,7 @@ from backend.app.intake.models import (
     CreateSessionRequest,
     LocationRequest,
 )
+from backend.app.models import QueryRequest
 
 
 def test_session_accepts_only_two_purposes():
@@ -101,3 +102,14 @@ def test_convert_request_accepts_only_a_clean_project_name():
 
     with pytest.raises(ValidationError):
         ConvertSessionRequest(owner_user_id="attacker")
+
+
+@pytest.mark.parametrize("value", ["apartment", "condo", "公寓"])
+def test_convert_request_normalizes_apartment_aliases(value):
+    request = ConvertSessionRequest(prefecture="东京都", city="涩谷区", asset_type=value)
+    assert request.asset_type == "公寓"
+
+
+def test_query_request_normalizes_asset_type_before_pipeline():
+    request = QueryRequest(prefecture="东京都", city="涩谷区", asset_type="apartment", year=2026, month=9)
+    assert request.asset_type == "公寓"

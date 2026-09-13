@@ -5,6 +5,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from .asset_types import normalize_asset_type
+
 
 ROOT = Path(__file__).resolve().parents[2]
 WEB_LIBRARY = ROOT / "web" / "content-library.json"
@@ -23,7 +25,8 @@ def normalize_query_ward(ward: str | None) -> str:
 
 
 def query_key(prefecture: str, city: str, ward: str | None, asset_type: str, year: int, month: int) -> str:
-    return "::".join([prefecture, city, normalize_query_ward(ward), asset_type, str(year), str(month)])
+    canonical_asset_type = normalize_asset_type(asset_type)
+    return "::".join([prefecture, city, normalize_query_ward(ward), str(canonical_asset_type), str(year), str(month)])
 
 
 def query_title(prefecture: str, city: str, ward: str | None, asset_type: str, year: int, month: int) -> str:

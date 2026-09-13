@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Apply the single release version to static asset references in web/*.html."""
+"""Apply the single release version to static asset references in web/*.html and web/js/*.js."""
 
 import argparse
 import re
@@ -9,6 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 VERSION_FILE = ROOT / "deploy" / "frontend-version.txt"
 ASSET_RE = re.compile(r'((?:src|href)=["\'])([^"\']+)(["\'])')
+IMPORT_RE = re.compile(r'(["\'])(\./[^"\']+\.js)(?:\?v=[^"\']*)?\1')
 
 
 def read_version() -> str:
@@ -40,6 +41,10 @@ def rewrite(text: str, version: str) -> str:
     return ASSET_RE.sub(lambda match: f"{match.group(1)}{replace_url(match.group(2), version)}{match.group(3)}", text)
 
 
+def rewrite_module_imports(text: str, version: str) -> str:
+    return IMPORT_RE.sub(lambda match: f"{match.group(1)}{match.group(2)}?v={version}{match.group(1)}", text)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true", help="fail when HTML is not normalized")
@@ -55,12 +60,20 @@ def main() -> int:
             if not args.check:
                 path.write_text(updated, encoding="utf-8")
 
+    for path in sorted((ROOT / "web" / "js").glob("*.js")):
+        original = path.read_text(encoding="utf-8")
+        updated = rewrite_module_imports(original, version)
+        if updated != original:
+            changed.append(path)
+            if not args.check:
+                path.write_text(updated, encoding="utf-8")
+
     if args.check and changed:
         print("frontend asset references need normalization:")
         for path in changed:
             print(f"- {path.relative_to(ROOT)}")
         return 1
-    print(f"frontend asset version {version}: {len(changed)} HTML file(s) {'would change' if args.check else 'updated'}")
+    print(f"frontend asset version {version}: {len(changed)} asset file(s) {'would change' if args.check else 'updated'}")
     return 0
 
 

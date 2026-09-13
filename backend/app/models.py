@@ -1,9 +1,8 @@
-from typing import Any, Literal, Optional
+from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
-
-AssetType = Literal["塔楼", "公寓", "一户建"]
+from .asset_types import AssetType, normalize_asset_type
 
 
 class QueryRequest(BaseModel):
@@ -14,6 +13,11 @@ class QueryRequest(BaseModel):
     year: int
     month: int = Field(..., ge=1, le=12)
     username: Optional[str] = None
+
+    @field_validator("asset_type", mode="before")
+    @classmethod
+    def normalize_asset_type_value(cls, value: object) -> object:
+        return normalize_asset_type(value)
 
 
 class QueryResponse(BaseModel):

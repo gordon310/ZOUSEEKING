@@ -8,7 +8,13 @@ async function fillLocation(page, { prefecture = "大阪府", city = "大阪市"
   await page.getByLabel("区").selectOption(ward);
 }
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page }, testInfo) => {
+  if (!testInfo.title.startsWith("staging intake")) {
+    await page.addInitScript(() => {
+      window.ZOUSEEKING_API_BASE_URL = "http://127.0.0.1:8787";
+      window.ZOUSEEKING_RELEASE_SCOPE = { phase: "development", businessOperations: true, adminOperations: true };
+    });
+  }
   let convertAttempts = 0;
   await page.route("**/api/intake/**", async (route) => {
     const request = route.request();

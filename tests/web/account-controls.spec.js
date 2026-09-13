@@ -33,7 +33,7 @@ test("注册在认证服务不可达时不创建本地密码凭据", async ({ pa
 
 test("登录在认证服务不可达时不消费本地密码凭据", async ({ page }) => {
   await page.addInitScript(() => {
-    window.ZOUSEEKING_SUPABASE_URL = "https://supabase.test";
+    window.ZOUSEEKING_SUPABASE_URL = "http://127.0.0.1:8787/supabase";
     window.ZOUSEEKING_SUPABASE_ANON_KEY = "public-test-key";
     localStorage.setItem(
       "zou_house_users",
@@ -83,7 +83,7 @@ test("认证会话变更事件会立即刷新首页登录状态，登出后立�
 
 test("真实形状的 Supabase 登录响应会持久化会话并进入已登录状态", async ({ page }) => {
   await page.addInitScript(() => {
-    window.ZOUSEEKING_SUPABASE_URL = "https://supabase.test";
+    window.ZOUSEEKING_SUPABASE_URL = "http://127.0.0.1:8787/supabase";
     window.ZOUSEEKING_SUPABASE_ANON_KEY = "public-test-key";
     window.ZOUSEEKING_API_BASE_URL = "https://api.test";
     const nativeFetch = window.fetch.bind(window);
@@ -97,7 +97,7 @@ test("真实形状的 Supabase 登录响应会持久化会话并进入已登录�
         }), { status: 200, headers: { "Content-Type": "application/json" } }))
       : nativeFetch(input, init);
   });
-  await page.route(/https:\/\/supabase\.test\/auth\/v1\/token/, async (route) => {
+  await page.route(/127\.0\.0\.1:8787\/supabase\/auth\/v1\/token/, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -110,7 +110,7 @@ test("真实形状的 Supabase 登录响应会持久化会话并进入已登录�
       }),
     });
   });
-  await page.route("https://supabase.test/rest/v1/**", async (route) => {
+  await page.route("**/supabase/rest/v1/**", async (route) => {
     await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
   });
   await page.route("https://api.test/**", async (route) => {
@@ -132,7 +132,7 @@ test("真实形状的 Supabase 登录响应会持久化会话并进入已登录�
 
 test("只有密码登录 400 才显示凭证错误，服务错误显示其它文案", async ({ page }) => {
   await page.addInitScript(() => {
-    window.ZOUSEEKING_SUPABASE_URL = "https://supabase.test";
+    window.ZOUSEEKING_SUPABASE_URL = "http://127.0.0.1:8787/supabase";
     window.ZOUSEEKING_SUPABASE_ANON_KEY = "public-test-key";
     const nativeFetch = window.fetch.bind(window);
     window.__authStatus = 400;
@@ -140,7 +140,7 @@ test("只有密码登录 400 才显示凭证错误，服务错误显示其它文
       ? Promise.resolve(new Response(JSON.stringify({ error: window.__authStatus === 400 ? "invalid_grant" : "server_error" }), { status: window.__authStatus, headers: { "Content-Type": "application/json" } }))
       : nativeFetch(input, init);
   });
-  await page.route(/https:\/\/supabase\.test\/auth\/v1\/token/, async (route) => {
+  await page.route(/127\.0\.0\.1:8787\/supabase\/auth\/v1\/token/, async (route) => {
     await route.fulfill({ status: 400, contentType: "application/json", body: JSON.stringify({ error: "invalid_grant" }) });
   });
   await page.goto("/index.html");
@@ -149,9 +149,9 @@ test("只有密码登录 400 才显示凭证错误，服务错误显示其它文
   await page.getByRole("button", { name: "登录查询" }).click();
   await expect(page.locator("#formMessage")).toHaveText("邮箱或密码不正确，或账户暂不可用。");
 
-  await page.unroute(/https:\/\/supabase\.test\/auth\/v1\/token/);
+  await page.unroute(/127\.0\.0\.1:8787\/supabase\/auth\/v1\/token/);
   await page.evaluate(() => { window.__authStatus = 500; });
-  await page.route(/https:\/\/supabase\.test\/auth\/v1\/token/, async (route) => {
+  await page.route(/127\.0\.0\.1:8787\/supabase\/auth\/v1\/token/, async (route) => {
     await route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ error: "server_error" }) });
   });
   await page.locator("#loginUsername").fill("member@example.com");

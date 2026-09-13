@@ -1,6 +1,6 @@
 const { test, expect } = require("@playwright/test");
 
-const SUPABASE_URL = "https://supabase.test";
+const SUPABASE_URL = "http://127.0.0.1:8787/supabase";
 
 async function openRegistration(page) {
   await page.addInitScript(() => {

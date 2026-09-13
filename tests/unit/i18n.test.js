@@ -120,18 +120,18 @@ test("zh-Hant keeps the same placeholders as zh-CN", () => {
   }
 });
 
-test("password guidance is eight characters in every supported locale", () => {
+test("password guidance is six to 128 characters in every supported locale", () => {
   const expected = {
-    "zh-CN": "至少 8 位",
-    "zh-Hant": "至少 8 位",
-    en: "At least 8 characters",
-    ja: "8文字以上",
+    "zh-CN": "密码规则：6–128 位，不能包含控制字符",
+    "zh-Hant": "密碼規則：6–128 位，不能包含控制字元",
+    en: "Password rules: 6–128 characters; no control characters",
+    ja: "パスワード規則：6～128文字、制御文字は使用できません",
   };
   for (const [locale, placeholder] of Object.entries(expected)) {
     const i18n = loadI18n({ search: `?lang=${locale}` });
-    assert.equal(i18n.t("account.passwordShortPlaceholder"), placeholder, locale);
-    assert.match(i18n.t("account.resetPasswordInvalid"), /8/);
-    assert.doesNotMatch(i18n.t("account.resetPasswordInvalid"), /12–128|12～128/);
+    assert.equal(i18n.t("account.passwordRule"), placeholder, locale);
+    assert.doesNotMatch(i18n.t("account.passwordRule"), /至少\s*8|At least 8|(?<!\d)8文字/);
+    assert.doesNotMatch(i18n.t("account.resetPasswordInvalid"), /至少\s*8|At least 8|(?<!\d)8文字/);
   }
 });
 

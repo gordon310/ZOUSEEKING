@@ -1,5 +1,5 @@
 const QUERY_HISTORY_KEY = "zou_house_query_history";
-const PASSWORD_MIN_LENGTH = 8;
+const PASSWORD_MIN_LENGTH = 6;
 const PASSWORD_MAX_LENGTH = 128;
 const SESSION_PROVIDERS = new Set(["supabase", "demo"]);
 const API_BASE_URL = (window.ZOUSEEKING_API_BASE_URL || localStorage.getItem("zou_house_api_base") || "").replace(/\/$/, "");
@@ -890,7 +890,7 @@ async function updatePassword(event) {
   const password = $("#newPassword").value;
   const confirm = $("#confirmNewPassword").value;
   if (!passwordIsValid(password)) {
-    setMessage("新密码需为 8–128 位，且不能包含控制字符。", "error");
+    setMessage(uiText("account.resetPasswordInvalid", "密码需为 6–128 位，且不能包含控制字符。"), "error");
     return;
   }
   if (password !== confirm) {
@@ -1726,7 +1726,7 @@ async function register(event) {
     return;
   }
   if (!passwordIsValid(password)) {
-    setMessage("密码需为 8–128 位，且不能包含控制字符。", "error");
+    setMessage(uiText("account.resetPasswordInvalid", "密码需为 6–128 位，且不能包含控制字符。"), "error");
     return;
   }
 
@@ -1769,8 +1769,9 @@ async function register(event) {
       await loadMyPage();
       setMessage("注册成功，已登录。可以搜房了，钱包先深呼吸。", "success");
     } else {
-      setMessage("注册成功，但后台还开着邮箱确认。请完成邮箱确认后再登录。", "success");
+      setMessage(formatUiText("account.registerPending", "确认邮件已发送至 {email}，请点击邮件中的链接完成注册；未收到？可点击“忘记密码？”重发。", { email }), "success");
     }
+    if (data?.access_token) history.replaceState(null, "", appRedirectUrl());
     render();
   } catch {
     setMessage("注册未完成，请稍后再试。", "error");

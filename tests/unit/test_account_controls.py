@@ -55,14 +55,14 @@ def test_profile_patch_rejects_control_characters_and_oversized_values():
     assert oversized.value.code == "profile_value_too_long"
 
 
-def test_password_policy_requires_an_eight_to_128_character_non_control_value():
+def test_password_policy_requires_a_six_to_128_character_non_control_value():
     assert validate_password("Correct Horse Battery Staple") == "Correct Horse Battery Staple"
 
     with pytest.raises(AccountContractError) as short:
-        validate_password("a" * 7)
+        validate_password("a" * 5)
     assert short.value.code == "weak_password"
 
-    assert validate_password("a" * 8) == "a" * 8
+    assert validate_password("a" * 6) == "a" * 6
 
     with pytest.raises(AccountContractError) as oversized:
         validate_password("a" * 129)

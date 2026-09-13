@@ -6,8 +6,8 @@ import {
   generatePreview,
   getValidAccessToken,
   uploadFiles,
-} from "./api-client.js?v=20260913-r29";
-import { extractPropertyFields } from "./property-intake-extraction.js?v=20260913-r29";
+} from "./api-client.js?v=20260913-r30";
+import { extractPropertyFields } from "./property-intake-extraction.js?v=20260913-r30";
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const INTAKE_SESSION_KEY = "zou_house_property_intake_session";
@@ -36,18 +36,31 @@ const FIELD_META = [
   {
     key: "asking_price_jpy",
     check: "price",
-    label: "售价（日元）",
+    labelKey: "intake.askingPrice",
     icon: "¥",
     format: (value) => Number(value).toLocaleString("ja-JP"),
   },
   {
     key: "area_sqm",
     check: "area",
-    label: "专有面积（平方米）",
+    labelKey: "intake.area",
     icon: "㎡",
     format: (value) => String(value),
   },
 ];
+const FIELD_LABEL_KEYS = {
+  building_name: "intake.buildingName",
+  address: "intake.address",
+  building_year: "intake.buildingYear",
+  total_units: "intake.totalUnits",
+  area_sqm: "intake.area",
+  land_right: "intake.landRight",
+  land_share: "intake.landShare",
+  asking_price_jpy: "intake.askingPrice",
+  management_fee_jpy: "intake.managementFee",
+  repair_reserve_jpy: "intake.repairReserve",
+  monthly_rent_jpy: "intake.monthlyRent",
+};
 const CONFIRM_FIELDS = [
   "asking_price_jpy",
   "area_sqm",
@@ -75,7 +88,16 @@ function previewLabel(keyOrFallback, fallback = "") {
 
 function previewValue(value) {
   if (value && typeof value === "object" && value.i18nKey) return t(value.i18nKey, value.fallback || "");
+  const fieldLabelKey = FIELD_LABEL_KEYS[String(value || "")];
+  if (fieldLabelKey) return t(fieldLabelKey, String(value));
   return window.ZouI18n?.previewText?.(value) || String(value ?? "");
+}
+
+function reportHref(reportKey) {
+  const params = new URLSearchParams({ key: reportKey });
+  const language = new URL(window.location.href).searchParams.get("lang");
+  if (language) params.set("lang", language);
+  return `report.html?${params.toString()}`;
 }
 
 const DEMO_PREVIEW = {
@@ -111,6 +133,7 @@ const state = {
   busy: false,
   preview: null,
   projectNameTouched: false,
+  reportReady: false,
 };
 state.assetType = state.session?.assetType || "";
 
@@ -339,11 +362,11 @@ function renderRecognizedFields() {
     return;
   }
 
-  filledFields.forEach(({ key, label, icon, format }) => {
+  filledFields.forEach(({ key, labelKey, icon, format }) => {
     const row = createElement("div", undefined, "recognized-field");
     row.append(
       createElement("span", icon, "recognized-field-icon"),
-      createElement("span", label, "recognized-field-label"),
+      createElement("span", t(labelKey || FIELD_LABEL_KEYS[key], key), "recognized-field-label"),
       createElement("strong", format(formValue(key)), "recognized-field-value"),
     );
     elements.recognizedFields.append(row);
@@ -627,8 +650,8 @@ function applyTextExtraction(source) {
 function renderDimension(dimensionName, result) {
   const item = createElement("div", undefined, "dimension-row");
   const heading = createElement("div", undefined, "dimension-heading");
-  const dimensionLabel = previewLabel(DIMENSION_LABELS[dimensionName], dimensionName);
-  const statusLabel = previewLabel(STATUS_LABELS[result.status], result.status);
+  const dimensionLabel = previewLabel(DIMENSION_LABELS[dimensionName], t("intake.previewUnknownDimension", "资料项目"));
+  const statusLabel = previewLabel(STATUS_LABELS[result.status], t("intake.previewUnknownStatus", "待核对"));
   heading.append(
     createElement("strong", dimensionLabel),
     createElement("span", statusLabel, "dimension-status"),
@@ -672,7 +695,7 @@ function renderPreview(preview) {
     "preview-note",
   ));
   if (preview.data_class === "synthetic_fixture") {
-    completeness.append(createElement("p", t("intake.demoFixtureNote", "界面演示资料类别：synthetic_fixture。以下状态只用于确认操作流程，不代表真实结论。"), "preview-note"));
+    completeness.append(createElement("p", t("intake.demoFixtureNote", "这是界面演示资料，仅用于确认操作流程，不代表真实结论。"), "preview-note"));
   }
   Object.entries(preview.completeness || {}).forEach(([name, result]) => {
     completeness.append(renderDimension(name, result));
@@ -761,8 +784,13 @@ function renderPreview(preview) {
 
   elements.previewContent.append(completeness, costs, risks, comparison);
   const reportKey = preview?.query_key || state.session?.query_key || state.session?.queryKey || "";
-  if (elements.reportLink && reportKey) {
-    elements.reportLink.href = `report.html?key=${encodeURIComponent(reportKey)}`;
+  state.reportReady = preview?.report_status === "full_report";
+  if (elements.reportLink) {
+    elements.reportLink.classList.add("hidden");
+    elements.reportLink.removeAttribute("href");
+  }
+  if (elements.reportLink && reportKey && state.reportReady) {
+    elements.reportLink.href = reportHref(reportKey);
     elements.reportLink.classList.remove("hidden");
   }
 }
@@ -904,6 +932,10 @@ async function createFreePreview(event) {
 async function saveProject() {
   if (state.busy) return;
   if (!elements.saveButton) return setStatus(t("intake.formUnavailable", "表单暂时无法使用，请刷新后重试。"), "error");
+  if (state.stage === "save" && state.reportReady && elements.saveButton.dataset.reportHref) {
+    window.location.href = elements.saveButton.dataset.reportHref;
+    return;
+  }
   if (DEMO_MODE) {
     state.busy = true;
     setBusy(elements.saveButton, true, t("intake.demoProjectSaving", "保存演示项目…"));
@@ -911,7 +943,7 @@ async function saveProject() {
     setStage("save");
     elements.saveButton.textContent = t("intake.demoProjectSaved", "演示项目已保存");
     elements.saveButton.disabled = true;
-    elements.savedProjectLink?.classList.remove("hidden");
+    elements.savedProjectLink?.classList.add("hidden");
     setStatus(t("intake.demoProjectSavedStatus", "演示项目已进入工作台界面。真实版本会在登录后由后端绑定项目归属。"), "success");
     state.busy = false;
     return;
@@ -919,12 +951,10 @@ async function saveProject() {
   const hadSupabaseSession = Boolean(window.ZouAuthSession?.read?.()?.provider === "supabase");
   const accessToken = await getValidAccessToken();
   if (!accessToken) {
-    setStatus(
-      hadSupabaseSession
-        ? t("auth.sessionExpired", "登录状态已过期，请重新登录。")
-        : t("intake.loginRequiredToSave", "请先在首页完成 Supabase 登录，再返回这里保存项目。匿名项目会保留到 24 小时到期。"),
-      "info",
-    );
+    setStatus(hadSupabaseSession
+      ? t("auth.sessionExpired", "登录状态已过期，请重新登录。")
+      : t("intake.loginRequiredToSave", "请先登录或注册，再回来保存这个项目。匿名项目会保留到 24 小时到期。"), "info");
+    if (!hadSupabaseSession) window.location.href = "index.html#accountPanel";
     return;
   }
   const session = state.session;
@@ -971,20 +1001,18 @@ async function saveProject() {
     );
     saveAnonymousSession(null);
     setStage("save");
+    const reportKey = result.query_key || state.preview?.query_key || session.query_key || session.queryKey || "";
+    state.reportReady = result.report_status === "full_report" || state.preview?.report_status === "full_report";
     if (elements.saveButton) {
-      elements.saveButton.textContent = t("intake.projectSaved", "项目已保存");
-      elements.saveButton.disabled = true;
+      elements.saveButton.dataset.reportHref = reportKey && state.reportReady ? reportHref(reportKey) : "";
+      elements.saveButton.textContent = state.reportReady
+        ? t("report.viewReport", "查看报告")
+        : t("intake.projectSaved", "项目已保存");
+      elements.saveButton.disabled = !state.reportReady;
     }
     if (elements.savedProjectLink) {
-      elements.savedProjectLink.classList.remove("hidden");
-      const reportKey = result.query_key || state.preview?.query_key || session.query_key || session.queryKey || "";
-      const reportParams = new URLSearchParams();
-      if (reportKey) reportParams.set("key", reportKey);
-      const language = new URL(window.location.href).searchParams.get("lang");
-      if (language) reportParams.set("lang", language);
-      elements.savedProjectLink.href = reportKey
-        ? `report.html?${reportParams.toString()}`
-        : elements.reportLink?.href || "report.html";
+      elements.savedProjectLink.classList.add("hidden");
+      elements.savedProjectLink.removeAttribute("href");
     }
     setStatus(copy("intake.projectSavedStatus", "项目已保存到你的账户（{propertyId}）。", { propertyId: result.property_id }), "success");
   } catch (error) {

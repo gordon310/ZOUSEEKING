@@ -36,4 +36,10 @@ export function reportAccessState(report) {
   return "locked";
 }
 
+export function reportCoverageState(report) {
+  const status = String(report?.report_status || "").trim();
+  if (status === "full_report" || status === "insufficient_data") return status;
+  return "unknown";
+}
+
 export { REGION_CURRENCY };

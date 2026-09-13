@@ -45,6 +45,12 @@ class BillingConflict(BillingError):
     public_message = "billing operation cannot be completed"
 
 
+class InsufficientReportData(BillingError):
+    status_code = 409
+    public_code = "insufficient_data"
+    public_message = "this report has insufficient data and cannot be purchased"
+
+
 class ForbiddenBillingOperation(BillingError):
     status_code = 403
     public_message = "billing operation is not permitted"
@@ -198,6 +204,10 @@ class BillingService:
         price = self.catalog.resolve(product_code, billing_region)
         if price.mode == "payment" and not str(report_key or "").strip():
             raise BillingConflict()
+        if price.product_code == "risk_report_single":
+            report_status = await self.store.get_report_status(user_id, str(report_key).strip())
+            if report_status == "insufficient_data":
+                raise InsufficientReportData()
         try:
             subject = await self.store.get_subject(user_id, product_code)
         except (KeyError, LookupError) as exc:

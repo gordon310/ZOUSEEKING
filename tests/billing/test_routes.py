@@ -132,6 +132,30 @@ def test_single_report_checkout_uses_c_report_return_urls(route_context) -> None
     )
 
 
+def test_insufficient_data_report_checkout_is_rejected_with_stable_error_code(route_context) -> None:
+    client, _service, gateway, store = route_context
+    report_key = "tokyo::no-coverage"
+    store.report_statuses[report_key] = "insufficient_data"
+
+    response = client.post(
+        "/api/billing/checkout",
+        json={
+            "product_code": "risk_report_single",
+            "billing_region": "CN",
+            "subject_id": report_key,
+        },
+    )
+
+    assert response.status_code == 409
+    assert response.json() == {
+        "detail": {
+            "code": "insufficient_data",
+            "message": "this report has insufficient data and cannot be purchased",
+        }
+    }
+    assert gateway.checkout_calls == []
+
+
 @pytest.mark.parametrize("product_code", ["c_plus_monthly", "b_data_pro_monthly"])
 def test_subscription_checkout_uses_b_subscription_return_urls(route_context, product_code) -> None:
     client, _service, gateway, _store = route_context

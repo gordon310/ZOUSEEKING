@@ -63,6 +63,7 @@ test("locked report shows unlock card and never renders content", async ({ page 
         contentType: "application/json",
         body: JSON.stringify({
           locked: true,
+          report_status: "full_report",
           query_key: QUERY_KEY,
           slug: "jphouse_23ku_shibuya_tower",
           title: "东京都渋谷区塔楼成交参考",
@@ -73,7 +74,8 @@ test("locked report shows unlock card and never renders content", async ({ page 
     }
     if (url.pathname === "/api/billing/checkout" && route.request().method() === "POST") {
       checkoutCalls += 1;
-      unlockRequestedKey = JSON.parse(route.request().postData() || "{}").query_key ?? null;
+      const body = JSON.parse(route.request().postData() || "{}");
+      unlockRequestedKey = body.subject_id ?? body.query_key ?? null;
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ session_id: "cs_test_1", url: "https://checkout.stripe.test/cs_test_1", product_code: "risk_report_single" }) });
     }
     return route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ detail: "not found" }) });
@@ -142,4 +144,31 @@ test("unlocked report renders full content (no paywall)", async ({ page }) => {
   await page.getByRole("button", { name: "查看结果" }).first().click();
   await expect(page.getByText("解锁深度报告")).not.toBeVisible();
   await expect(page.getByText("成交均价参考")).toBeVisible();
+});
+
+test("insufficient-data report has no payment entry point", async ({ page }) => {
+  await page.addInitScript(sessionInit());
+  await page.route("http://api.test/**", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname.endsWith(encodeURIComponent(QUERY_KEY))) {
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          query_key: QUERY_KEY,
+          report_status: "insufficient_data",
+          title: "东京都渋谷区塔楼成交参考",
+          summary: { title: "数据不足" },
+          data_sources: [],
+        }),
+      });
+    }
+    return route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ detail: "not found" }) });
+  });
+
+  await page.goto(`/report.html?key=${encodeURIComponent(QUERY_KEY)}`);
+  await expect(page.locator("#reportInsufficientData")).toBeVisible();
+  await expect(page.locator("#reportPaywall")).toBeHidden();
+  await expect(page.getByRole("button", { name: /解锁|Unlock|解除/ })).toHaveCount(0);
+  await expect(page.getByText(/该地区暂无资料覆盖|There is currently no data coverage|この地域は現在データの対象外/)).toBeVisible();
 });

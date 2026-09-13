@@ -87,6 +87,10 @@ class FakeStore:
         self.refund_candidates: Dict[str, RefundCandidate] = {}
         self.refund_requests: Dict[str, RefundRequest] = {}
         self.refund_retries: List[Dict[str, Any]] = []
+        self.report_statuses: Dict[str, str] = {}
+
+    async def get_report_status(self, user_id: UUID, report_key: str) -> Optional[str]:
+        return self.report_statuses.get(report_key)
 
     async def get_subject(self, user_id: UUID, product_code: str) -> BillingSubject:
         subject = self.subjects[product_code]

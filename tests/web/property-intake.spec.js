@@ -387,6 +387,29 @@ test("existing auth session is reflected in the save step before preview", async
   await expect(page.locator("#saveProjectButton")).toHaveText("保存这个项目");
 });
 
+test("save converts the current Tokyo apartment selections", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem("zou_house_session", JSON.stringify({ provider: "supabase", accessToken: "test-access-token" }));
+  });
+  const convertRequest = page.waitForRequest((request) => request.url().endsWith("/convert") && request.method() === "POST");
+  await page.goto("/property-analysis.html");
+  await page.getByLabel("投资出租").check();
+  await page.getByLabel("物件类型 / 房型").selectOption("apartment");
+  await page.getByLabel("都道府县").selectOption("东京都");
+  await page.getByLabel("市").selectOption("东京23区");
+  await page.getByLabel("区").selectOption("渋谷区");
+  await page.getByLabel("物件链接或说明").fill("东京都渋谷区，售价8000万日元");
+  await page.getByRole("button", { name: "开始整理资料" }).click();
+  await page.getByLabel("售价（日元）").fill("80000000");
+  await page.getByRole("button", { name: "生成免费预览" }).click();
+  await page.locator("#saveProjectButton").click();
+  const body = JSON.parse((await convertRequest).postData());
+  expect(body.prefecture).toBe("东京都");
+  expect(body.city).toBe("东京23区");
+  expect(body.ward).toBe("渋谷区");
+  expect(body.asset_type).toBe("公寓");
+});
+
 test("home auth tabs use switch wording distinct from the submit action", async ({ page }) => {
   await page.goto("/index.html");
   await expect(page.locator("#showLogin")).toContainText("切换到登录");

@@ -139,6 +139,9 @@ test("report, workspace and admin dynamic copy is localized with matching placeh
   const i18n = loadI18n();
   const keys = [
     "report.unlockWithPrice",
+    "report.insufficientDataTitle",
+    "report.insufficientDataCopy",
+    "report.backToHome",
     "workspace.versionCount",
     "workspace.readonlyVersion",
     "admin.orderTotals",

@@ -136,6 +136,9 @@ class BillingStore(Protocol):
     async def get_subject(self, user_id: UUID, product_code: str) -> BillingSubject:
         ...
 
+    async def get_report_status(self, user_id: UUID, report_key: str) -> Optional[str]:
+        ...
+
     async def get_portal_subject(self, user_id: UUID) -> BillingSubject:
         ...
 

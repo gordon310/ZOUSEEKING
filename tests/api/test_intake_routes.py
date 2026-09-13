@@ -198,7 +198,7 @@ def test_managed_environment_without_release_phase_fails_closed(client, monkeypa
     assert create.json() == {"detail": "operation unavailable in current release phase"}
 
 
-def test_convert_uses_authenticated_user_not_request_body(client, session, auth_header, fake_repository):
+def test_convert_rejects_missing_report_parameters_before_conversion(client, session, auth_header, fake_repository):
     client.post(
         f"/api/intake/sessions/{session['session_id']}/preview",
         headers={"X-Analysis-Session": session["session_token"]},
@@ -209,8 +209,9 @@ def test_convert_uses_authenticated_user_not_request_body(client, session, auth_
         json={"project_name": "用户房产记录"},
     )
 
-    assert response.status_code == 200
-    assert response.json()["owner_user_id"] == str(fake_repository.created_properties[0]["owner_user_id"])
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "convert_parameters_required"
+    assert fake_repository.created_properties == []
 
 
 def test_convert_starts_shared_report_pipeline_and_returns_query_key(
@@ -273,7 +274,7 @@ def test_duplicate_address_requires_manual_project_name(client, session, auth_he
     response = client.post(
         f"/api/intake/sessions/{session['session_id']}/convert",
         headers={**auth_header, "X-Analysis-Session": session["session_token"]},
-        json={},
+        json={"prefecture": "大阪府", "city": "大阪市", "ward": "北区", "asset_type": "塔楼", "year": 2026, "month": 9},
     )
 
     assert response.status_code == 409
@@ -289,7 +290,7 @@ def test_duplicate_address_can_be_saved_with_manual_name(client, session, auth_h
     response = client.post(
         f"/api/intake/sessions/{session['session_id']}/convert",
         headers={**auth_header, "X-Analysis-Session": session["session_token"]},
-        json={"project_name": "大阪市北区梅田｜二次调查"},
+        json={"project_name": "大阪市北区梅田｜二次调查", "prefecture": "大阪府", "city": "大阪市", "ward": "北区", "asset_type": "塔楼", "year": 2026, "month": 9},
     )
 
     assert response.status_code == 200
@@ -306,11 +307,13 @@ def test_other_authenticated_user_cannot_convert_existing_session(
     client.post(
         f"/api/intake/sessions/{session['session_id']}/convert",
         headers={**auth_header, "X-Analysis-Session": session["session_token"]},
+        json={"prefecture": "大阪府", "city": "大阪市", "ward": "北区", "asset_type": "塔楼", "year": 2026, "month": 9},
     )
     use_other_auth_user()
     response = client.post(
         f"/api/intake/sessions/{session['session_id']}/convert",
         headers={**other_auth_header, "X-Analysis-Session": session["session_token"]},
+        json={"prefecture": "大阪府", "city": "大阪市", "ward": "北区", "asset_type": "塔楼", "year": 2026, "month": 9},
     )
 
     assert response.status_code == 404
@@ -324,6 +327,7 @@ def test_converted_session_cannot_be_modified_with_anonymous_token(client, sessi
     converted = client.post(
         f"/api/intake/sessions/{session['session_id']}/convert",
         headers={**auth_header, "X-Analysis-Session": session["session_token"]},
+        json={"prefecture": "大阪府", "city": "大阪市", "ward": "北区", "asset_type": "塔楼", "year": 2026, "month": 9},
     )
     assert converted.status_code == 200
 

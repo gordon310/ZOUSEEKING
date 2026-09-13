@@ -370,6 +370,14 @@ async def convert_session(
     repository: IntakeRepository = Depends(get_intake_repository),
     report_pipeline: Any = Depends(get_report_pipeline),
 ) -> Dict[str, str]:
+    if not payload or not payload.prefecture or not payload.city or not payload.ward or not payload.asset_type:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "convert_parameters_required",
+                "message": "prefecture, city, ward and asset_type are required before conversion",
+            },
+        )
     try:
         converted = await repository.convert_to_user(
             session_id,
@@ -396,10 +404,10 @@ async def convert_session(
         ) from exc
     now = datetime.now(timezone.utc)
     query_request = QueryRequest(
-        prefecture=(payload.prefecture if payload and payload.prefecture else "大阪府"),
-        city=(payload.city if payload and payload.city else "大阪市"),
-        ward=(payload.ward if payload and payload.ward else ""),
-        asset_type=(payload.asset_type if payload and payload.asset_type else "塔楼"),
+        prefecture=payload.prefecture,
+        city=payload.city,
+        ward=payload.ward,
+        asset_type=payload.asset_type,
         year=(payload.year if payload and payload.year else now.year),
         month=(payload.month if payload and payload.month else now.month),
         username=user.username,

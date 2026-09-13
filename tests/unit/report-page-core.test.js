@@ -39,3 +39,9 @@ test("trusts only the server report shape for access state", () => {
   assert.equal(core.reportAccessState({ metadata: { unlocked: true } }), "unlocked");
   assert.equal(core.reportAccessState({ metadata: { unlocked: false }, locked: true }), "locked");
 });
+
+test("classifies report coverage for paywall decisions", () => {
+  assert.equal(core.reportCoverageState({ report_status: "full_report" }), "full_report");
+  assert.equal(core.reportCoverageState({ report_status: "insufficient_data" }), "insufficient_data");
+  assert.equal(core.reportCoverageState({}), "unknown");
+});

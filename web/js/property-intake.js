@@ -905,6 +905,23 @@ async function saveProject() {
     setStatus(t("intake.sessionMissingOnSave", "页面已重新加载，请重新完成前面的步骤后再保存。"), "info");
     return;
   }
+  const assetType = elements.assetType?.value?.trim() || "";
+  if (!assetType) {
+    elements.assetType?.setAttribute("aria-invalid", "true");
+    setStage("submit");
+    elements.assetType?.focus();
+    setStatus(t("intake.saveParametersRequired", "物件类型缺失，请回到第 1 步重新选择后再保存。"), "error");
+    return;
+  }
+  const locationError = validateLocationFields();
+  if (locationError) {
+    setStage("submit");
+    const firstMissing = [elements.prefecture, elements.city, elements.ward].find((select) => select && !select.value);
+    firstMissing?.focus();
+    setStatus(t("intake.saveLocationRequired", "地区信息不完整，请回到第 1 步补全都道府县、市和区后再保存。"), "error");
+    return;
+  }
+  const location = locationValues();
   state.busy = true;
   setBusy(elements.saveButton, true, t("intake.saving", "正在保存…"));
   try {
@@ -914,10 +931,10 @@ async function saveProject() {
       accessToken,
       elements.projectName?.value || "",
       {
-        prefecture: elements.prefecture?.value || "",
-        city: elements.city?.value || "",
-        ward: elements.ward?.value || "",
-        asset_type: state.assetType || "塔楼",
+        prefecture: location.prefecture,
+        city: location.city,
+        ward: location.ward,
+        asset_type: assetType,
         year: new Date().getFullYear(),
         month: new Date().getMonth() + 1,
       },

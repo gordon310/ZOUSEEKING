@@ -4,22 +4,22 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="查看小象避坑日本物件报告。" />
-    <link rel="manifest" href="manifest.webmanifest?v=20260913-r19" />
-    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=20260913-r19" />
+    <link rel="manifest" href="manifest.webmanifest?v=20260913-r20" />
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=20260913-r20" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="小象" />
     <meta name="theme-color" content="#0b1020" />
     <title data-i18n-title="report.pageTitle">物件报告｜小象避坑 ZOUBEACON</title>
-    <link rel="icon" href="assets/logoELE-beacon.svg?v=20260913-r19" />
-    <link rel="stylesheet" href="property-analysis.css?v=20260913-r19" />
-    <link rel="stylesheet" href="report-page.css?v=20260913-r19" />
+    <link rel="icon" href="assets/logoELE-beacon.svg?v=20260913-r20" />
+    <link rel="stylesheet" href="property-analysis.css?v=20260913-r20" />
+    <link rel="stylesheet" href="report-page.css?v=20260913-r20" />
   </head>
   <body>
     <main class="beacon-app">
       <header class="beacon-header">
         <a class="beacon-brand" href="property-analysis.html" aria-label="小象避坑 ZOUBEACON">
-          <img class="beacon-mark" src="assets/logoELE-beacon.svg?v=20260913-r19" alt="" />
+          <img class="beacon-mark" src="assets/logoELE-beacon.svg?v=20260913-r20" alt="" />
           <span class="beacon-brand-copy"><strong>小象避坑</strong><span>ZOUBEACON</span></span>
         </a>
         <label class="locale-switcher">
@@ -53,6 +53,11 @@
             <a id="reportLoginButton" class="primary-product-link" href="mypage.html" data-i18n="report.loginUnlock">注册/登录后解锁</a>
             <button id="reportUnlockButton" class="primary-product-link" type="button" data-i18n="report.unlockWithPrice" hidden>解锁本报告</button>
           </section>
+          <section id="reportInsufficientData" class="report-paywall" hidden aria-live="polite">
+            <h2 data-i18n="report.insufficientDataTitle">该地区暂无数据覆盖</h2>
+            <p data-i18n="report.insufficientDataCopy">该地区暂无资料覆盖，暂时无法提供完整报告。你可以留下你要查看的地区，我们会优先补齐。</p>
+            <a class="primary-product-link" href="property-analysis.html" data-i18n="report.backToHome">回到首页</a>
+          </section>
           <section id="reportDetails" class="report-details" hidden aria-labelledby="detailsTitle">
             <h2 id="detailsTitle" data-i18n="report.details">完整报告</h2>
             <div id="reportDetailsContent"></div>
@@ -60,9 +65,9 @@
         </section>
       </div>
     </main>
-    <script src="config.js?v=20260913-r19"></script>
-    <script src="js/pwa.js?v=20260913-r19"></script>
-    <script src="js/i18n.js?v=20260913-r19"></script>
-    <script type="module" src="js/report-page.js?v=20260913-r19"></script>
+    <script src="config.js?v=20260913-r20"></script>
+    <script src="js/pwa.js?v=20260913-r20"></script>
+    <script src="js/i18n.js?v=20260913-r20"></script>
+    <script type="module" src="js/report-page.js?v=20260913-r20"></script>
   </body>
 </html>

@@ -1,5 +1,5 @@
 import { getExistingAccessToken } from "./api-client.js";
-import { currencyForRegion, inferRegion, reportAccessState, selectPrice } from "./report-page-core.js";
+import { currencyForRegion, inferRegion, reportAccessState, reportCoverageState, selectPrice } from "./report-page-core.js";
 
 const PRODUCT_CODE = "risk_report_single";
 const params = new URL(window.location.href).searchParams;
@@ -19,6 +19,7 @@ const elements = {
   unlock: document.querySelector("#reportUnlockButton"),
   details: document.querySelector("#reportDetails"),
   detailsContent: document.querySelector("#reportDetailsContent"),
+  insufficientData: document.querySelector("#reportInsufficientData"),
 };
 
 function t(key, fallback) {
@@ -185,6 +186,13 @@ async function pollAfterPayment() {
 function renderReport(report) {
   elements.content.hidden = false;
   renderFreeReport(report);
+  const coverage = reportCoverageState(report);
+  if (elements.insufficientData) elements.insufficientData.hidden = coverage !== "insufficient_data";
+  if (coverage === "insufficient_data") {
+    elements.paywall.hidden = true;
+    elements.details.hidden = true;
+    return;
+  }
   const unlocked = reportAccessState(report) === "unlocked";
   elements.paywall.hidden = unlocked;
   elements.details.hidden = !unlocked;

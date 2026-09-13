@@ -334,6 +334,15 @@ class PostgresBillingStore:
     def _acquire(self) -> asyncpg.Pool:
         return self._pool if self._pool is not None else get_pool()
 
+    async def get_report_status(self, user_id: UUID, report_key: str) -> Optional[str]:
+        async with self._acquire().acquire() as conn:
+            return await conn.fetchval(
+                "select report_status from public.property_reports"
+                " where owner_user_id = $1 and query_key = $2",
+                user_id,
+                report_key,
+            )
+
     # -- subjects -------------------------------------------------------------
 
     async def get_subject(self, user_id: UUID, product_code: str) -> BillingSubject:

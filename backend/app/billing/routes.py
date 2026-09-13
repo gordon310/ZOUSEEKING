@@ -76,7 +76,12 @@ def _http_error(error: Exception) -> HTTPException:
     if isinstance(error, PriceUnavailable):
         return HTTPException(status_code=409, detail="requested price is unavailable")
     if isinstance(error, BillingError):
-        return HTTPException(status_code=error.status_code, detail=error.public_message)
+        detail = (
+            {"code": error.public_code, "message": error.public_message}
+            if hasattr(error, "public_code")
+            else error.public_message
+        )
+        return HTTPException(status_code=error.status_code, detail=detail)
     return HTTPException(status_code=500, detail="billing operation failed")
 
 

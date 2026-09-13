@@ -1,6 +1,8 @@
 from uuid import UUID
 
+from backend.app import main
 from backend.app.intake.geocoding import ReverseGeocoderError
+from backend.app.routes.intake import get_report_pipeline
 
 
 def test_create_session_returns_raw_token_once(client):
@@ -209,6 +211,47 @@ def test_convert_uses_authenticated_user_not_request_body(client, session, auth_
 
     assert response.status_code == 200
     assert response.json()["owner_user_id"] == str(fake_repository.created_properties[0]["owner_user_id"])
+
+
+def test_convert_starts_shared_report_pipeline_and_returns_query_key(
+    client, session, auth_header, monkeypatch
+):
+    client.post(
+        f"/api/intake/sessions/{session['session_id']}/preview",
+        headers={"X-Analysis-Session": session["session_token"]},
+    )
+    scheduled = []
+
+    async def fake_create_or_get_query_job(request, user_id, background_tasks):
+        scheduled.append((request, user_id, background_tasks))
+        return {"query_key": f"{user_id}::大阪府::大阪市::北区::塔楼::2026::9", "job_id": "job-1"}
+
+    client.app.dependency_overrides[get_report_pipeline] = lambda: fake_create_or_get_query_job
+    response = client.post(
+        f"/api/intake/sessions/{session['session_id']}/convert",
+        headers={**auth_header, "X-Analysis-Session": session["session_token"]},
+        json={
+            "project_name": "用户房产记录",
+            "prefecture": "大阪府",
+            "city": "大阪市",
+            "ward": "北区",
+            "asset_type": "塔楼",
+            "year": 2026,
+            "month": 9,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["query_key"].endswith("::塔楼::2026::9")
+    assert scheduled[0][0].model_dump() == {
+        "prefecture": "大阪府",
+        "city": "大阪市",
+        "ward": "北区",
+        "asset_type": "塔楼",
+        "year": 2026,
+        "month": 9,
+        "username": "测试用户",
+    }
 
 
 def test_convert_rejects_client_owned_identity_field(client, session, auth_header):

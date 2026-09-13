@@ -37,6 +37,7 @@ from ..intake.repository import (
     SessionNotFound,
 )
 from ..intake.tokens import hash_session_token, new_session_token
+from ..models import QueryRequest
 from ..intake.storage import (
     MAX_UPLOAD_BYTES,
     StorageUnavailable,
@@ -68,6 +69,15 @@ def get_storage() -> Any:
 
 def get_reverse_geocoder() -> GsiReverseGeocoder:
     return GsiReverseGeocoder()
+
+
+def get_report_pipeline() -> Any:
+    async def start(request: QueryRequest, user_id: str, background_tasks: BackgroundTasks) -> dict[str, Any]:
+        from ..main import create_or_get_query_job
+
+        return await create_or_get_query_job(request, user_id, background_tasks)
+
+    return start
 
 
 def _row_value(row: Any, name: str, default: Any = None) -> Any:
@@ -353,10 +363,12 @@ async def create_preview(
 @router.post("/sessions/{session_id}/convert")
 async def convert_session(
     session_id: UUID,
+    background_tasks: BackgroundTasks,
     payload: Optional[ConvertSessionRequest] = Body(default=None),
     x_analysis_session: Optional[str] = Header(default=None, alias="X-Analysis-Session"),
     user: AuthUser = Depends(require_user),
     repository: IntakeRepository = Depends(get_intake_repository),
+    report_pipeline: Any = Depends(get_report_pipeline),
 ) -> Dict[str, str]:
     try:
         converted = await repository.convert_to_user(
@@ -382,9 +394,21 @@ async def convert_session(
             status_code=409,
             detail={"code": "project_name_taken", "message": PROJECT_NAME_TAKEN_MESSAGE},
         ) from exc
+    now = datetime.now(timezone.utc)
+    query_request = QueryRequest(
+        prefecture=(payload.prefecture if payload and payload.prefecture else "大阪府"),
+        city=(payload.city if payload and payload.city else "大阪市"),
+        ward=(payload.ward if payload and payload.ward else ""),
+        asset_type=(payload.asset_type if payload and payload.asset_type else "塔楼"),
+        year=(payload.year if payload and payload.year else now.year),
+        month=(payload.month if payload and payload.month else now.month),
+        username=user.username,
+    )
+    pipeline = await report_pipeline(query_request, str(user.user_id), background_tasks)
     return {
         "owner_user_id": str(converted.owner_user_id),
         "property_id": str(converted.property_id),
+        "query_key": pipeline["query_key"],
     }
 
 

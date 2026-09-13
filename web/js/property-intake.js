@@ -913,6 +913,14 @@ async function saveProject() {
       session.rawToken,
       accessToken,
       elements.projectName?.value || "",
+      {
+        prefecture: elements.prefecture?.value || "",
+        city: elements.city?.value || "",
+        ward: elements.ward?.value || "",
+        asset_type: state.assetType || "塔楼",
+        year: new Date().getFullYear(),
+        month: new Date().getMonth() + 1,
+      },
     );
     saveAnonymousSession(null);
     setStage("save");

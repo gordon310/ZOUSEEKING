@@ -12,7 +12,7 @@ from backend.app.intake.models import ConfirmFieldRequest, CreateInputRequest, F
 from backend.app.intake.repository import ConvertedProject, DuplicateAddress, ProjectNameTaken, SessionNotFound
 from backend.app.intake.storage import StorageObject
 from backend.app.main import app
-from backend.app.routes.intake import get_intake_repository, get_reverse_geocoder, get_storage
+from backend.app.routes.intake import get_intake_repository, get_report_pipeline, get_reverse_geocoder, get_storage
 
 
 TEST_USER_ID = UUID("00000000-0000-0000-0000-000000000030")
@@ -237,6 +237,9 @@ def fake_geocoder():
 def client(fake_repository, fake_storage):
     app.dependency_overrides[get_intake_repository] = lambda: fake_repository
     app.dependency_overrides[get_storage] = lambda: fake_storage
+    async def fake_report_pipeline(request, user_id, background_tasks):
+        return {"query_key": f"{user_id}::{request.prefecture}::{request.city}::{request.ward}::{request.asset_type}::{request.year}::{request.month}", "job_id": "test-job", "status": "pending", "cached": False, "title": "测试报告", "report": None}
+    app.dependency_overrides[get_report_pipeline] = lambda: fake_report_pipeline
     yield TestClient(app)
     app.dependency_overrides.clear()
 

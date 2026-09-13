@@ -431,6 +431,74 @@ async def run_generation_job(job_id: str, query_id: str, owner_user_id: str, req
                 job_id,
                 str(exc),
             )
+            await conn.execute(
+                """
+                update property_reports
+                set report_status='insufficient_data',
+                    title=case when title='' then '报告生成失败' else title end,
+                    markdown=case when markdown='' then '报告生成失败，暂无可验证数据。' else markdown end,
+                    summary=case when summary='{}'::jsonb then '{"title":"数据不足","line":"报告生成失败，暂无可验证数据。"}'::jsonb else summary end,
+                    updated_at=now()
+                where query_id=$1 and report_status='generating'
+                """,
+                query_id,
+            )
+
+
+async def create_or_get_query_job(
+    request: QueryRequest,
+    user_id: str,
+    background_tasks: BackgroundTasks,
+) -> dict[str, Any]:
+    """Create or reuse the single report pipeline entry for one owner's query."""
+
+    base_key = query_key(request.prefecture, request.city, request.ward, request.asset_type, request.year, request.month)
+    key = f"{user_id}::{base_key}"
+    title = query_title(request.prefecture, request.city, request.ward, request.asset_type, request.year, request.month)
+    async with get_pool().acquire() as conn:
+        async with conn.transaction():
+            # Serialize retries for the same key because generation_jobs has
+            # historically allowed more than one row per query_id.
+            await conn.execute("select pg_advisory_xact_lock(hashtext($1))", key)
+            existing = await conn.fetchrow(
+                "select pr.* from queries q join property_reports pr on pr.query_id=q.id where q.query_key=$1",
+                key,
+            )
+            if existing:
+                return {"query_key": key, "status": "completed", "cached": True, "title": title, "job_id": None, "report": row_to_report(existing)}
+
+            query_id = await conn.fetchval(
+                """
+                insert into queries(query_key, owner_user_id, prefecture, city, ward, asset_type, year, month, status)
+                values($1, $2, $3, $4, $5, $6, $7, $8, 'pending')
+                on conflict(query_key) do update set updated_at=now()
+                returning id
+                """,
+                key, user_id, request.prefecture, request.city, request.ward or "", request.asset_type, request.year, request.month,
+            )
+            job = await conn.fetchrow(
+                "select id, status from generation_jobs where query_id=$1 order by created_at desc limit 1",
+                query_id,
+            )
+            if job and job["status"] == "running":
+                job_id = job["id"]
+            elif job and job["status"] == "pending":
+                job_id = job["id"]
+            elif job:
+                await conn.execute(
+                    "update generation_jobs set status='pending', progress=5, current_step='任务已重新排队', error_message=null, updated_at=now() where id=$1",
+                    job["id"],
+                )
+                job_id = job["id"]
+            else:
+                job_id = await conn.fetchval(
+                    "insert into generation_jobs(query_id, status, progress, current_step) values($1, 'pending', 5, '任务已创建') returning id",
+                    query_id,
+                )
+            should_schedule = not job or job["status"] != "running"
+    if should_schedule:
+        background_tasks.add_task(run_generation_job, str(job_id), str(query_id), str(user_id), request)
+    return {"query_key": key, "status": "pending", "cached": False, "title": title, "job_id": str(job_id), "report": None}
 
 
 @app.post("/api/query", response_model=QueryResponse)
@@ -439,48 +507,8 @@ async def query_report(
     background_tasks: BackgroundTasks,
     user: AuthUser = Depends(require_user),
 ) -> QueryResponse:
-    base_key = query_key(request.prefecture, request.city, request.ward, request.asset_type, request.year, request.month)
-    key = f"{user.user_id}::{base_key}"
-    title = query_title(request.prefecture, request.city, request.ward, request.asset_type, request.year, request.month)
-    async with get_pool().acquire() as conn:
-        existing = await conn.fetchrow(
-            """
-            select pr.*
-            from queries q
-            join property_reports pr on pr.query_id = q.id
-            where q.query_key = $1
-            """,
-            key,
-        )
-        if existing:
-            return QueryResponse(query_key=key, status="completed", cached=True, title=title, report=row_to_report(existing), message="命中历史数据")
-
-        query_id = await conn.fetchval(
-            """
-            insert into queries(query_key, owner_user_id, prefecture, city, ward, asset_type, year, month, status)
-            values($1, $2, $3, $4, $5, $6, $7, $8, 'pending')
-            on conflict(query_key) do update set updated_at=now()
-            returning id
-            """,
-            key,
-            user.user_id,
-            request.prefecture,
-            request.city,
-            request.ward or "",
-            request.asset_type,
-            request.year,
-            request.month,
-        )
-        job_id = await conn.fetchval(
-            """
-            insert into generation_jobs(query_id, status, progress, current_step)
-            values($1, 'pending', 5, '任务已创建')
-            returning id
-            """,
-            query_id,
-        )
-    background_tasks.add_task(run_generation_job, str(job_id), str(query_id), user.user_id, request)
-    return QueryResponse(query_key=key, status="pending", cached=False, title=title, job_id=str(job_id), message="已创建生成任务")
+    result = await create_or_get_query_job(request, str(user.user_id), background_tasks)
+    return QueryResponse(query_key=result["query_key"], status=result["status"], cached=result["cached"], title=result["title"], job_id=result["job_id"], report=result["report"], message="命中历史数据" if result["cached"] else "已创建生成任务")
 
 
 @app.post("/api/jobs/{query_id}/run", response_model=JobResponse, status_code=202)

@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 Purpose = Literal["self_use", "rental_investment"]
 InputType = Literal["text", "url"]
+AssetType = Literal["塔楼", "公寓", "一户建"]
 ConfirmationStatus = Literal["confirmed", "corrected", "unknown"]
 LocationSource = Literal["device_geolocation"]
 
@@ -136,10 +137,24 @@ class LocationRequest(IntakeModel):
 
 class ConvertSessionRequest(IntakeModel):
     project_name: Optional[str] = Field(default=None, max_length=200)
+    prefecture: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    city: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    ward: Optional[str] = Field(default=None, max_length=100)
+    asset_type: Optional[AssetType] = None
+    year: Optional[int] = Field(default=None, ge=2000, le=2100)
+    month: Optional[int] = Field(default=None, ge=1, le=12)
 
     @field_validator("project_name", mode="before")
     @classmethod
     def normalize_project_name(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        normalized = str(value).strip()
+        return normalized or None
+
+    @field_validator("prefecture", "city", "ward", mode="before")
+    @classmethod
+    def normalize_query_text(cls, value: Optional[str]) -> Optional[str]:
         if value is None:
             return None
         normalized = str(value).strip()

@@ -111,12 +111,12 @@ export function generatePreview(sessionId, sessionToken) {
   });
 }
 
-export function convertSession(sessionId, sessionToken, accessToken, projectName = "") {
+export function convertSession(sessionId, sessionToken, accessToken, projectName = "", query = {}) {
   return request(`/api/intake/sessions/${encodeURIComponent(sessionId)}/convert`, {
     method: "POST",
     sessionToken,
     accessToken,
-    body: projectName.trim() ? { project_name: projectName.trim() } : {},
+    body: { ...(projectName.trim() ? { project_name: projectName.trim() } : {}), ...query },
   });
 }
 

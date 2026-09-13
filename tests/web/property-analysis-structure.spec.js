@@ -24,5 +24,7 @@ test("location selects live in submit step and confirm step shows a read-only su
   await expect(page.locator("#submitStep #ward")).toHaveCount(1);
   await expect(page.locator("#confirmStep #prefecture, #confirmStep #city, #confirmStep #ward")).toHaveCount(0);
   await expect(page.locator("#confirmStep [data-testid='location-summary']")).toHaveCount(1);
-  await expect(page.locator("#submitStep #prefecture, #submitStep #city, #submitStep #ward")).toHaveAttribute("required", "");
+  for (const id of ["prefecture", "city", "ward"]) {
+    await expect(page.locator(`#submitStep #${id}`)).toHaveAttribute("required", "");
+  }
 });

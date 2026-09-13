@@ -7,6 +7,7 @@ module.exports = defineConfig({
     baseURL: "http://127.0.0.1:8787",
     locale: "zh-CN",
     trace: "retain-on-failure",
+    serviceWorkers: "block",
   },
   webServer: {
     command: "python3 -m http.server 8787 -d web",

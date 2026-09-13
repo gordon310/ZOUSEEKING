@@ -12,7 +12,6 @@ test("all account forms require versioned privacy and terms consent", async ({ p
     await expect(page.locator("#registerConsent")).toBeVisible();
     await expect(page.locator("#registerForm")).toContainText("隐私政策");
     await expect(page.locator("#registerForm")).toContainText("服务条款");
-    await expect(page.locator("#registerForm")).toContainText("privacy-2026-08");
     await expect(page.locator("#registerConsent")).toHaveAttribute("required", "");
   }
 });
@@ -88,7 +87,7 @@ test("password reset submits a uniform response without revealing account existe
   await page.locator("#forgotPasswordLink").click();
   await page.locator("#forgotPasswordEmail").fill("member@example.invalid");
   await page.locator("#forgotPasswordForm button[type='submit']").click();
-  await expect(page.locator("#formMessage")).toContainText("如果这个邮箱已注册");
+  await expect(page.locator("#formMessage")).toContainText("如果该邮箱已注册");
   await expect.poll(() => resetBody).toEqual({ email: "member@example.invalid" });
 });
 

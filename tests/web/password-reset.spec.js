@@ -3,6 +3,12 @@ const { test, expect } = require("@playwright/test");
 const UNREACHABLE_SUPABASE = () => {
   window.ZOUSEEKING_SUPABASE_URL = "https://supabase.test";
   window.ZOUSEEKING_SUPABASE_ANON_KEY = "public-test-key";
+  const nativeFetch = window.fetch.bind(window);
+  window.fetch = (input, init) => String(input).includes("/auth/v1/recover")
+    ? Promise.resolve(new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } }))
+    : String(input).includes("/auth/v1/user")
+      ? Promise.resolve(new Response(JSON.stringify({ user: { id: "user-1" } }), { status: 200, headers: { "Content-Type": "application/json" } }))
+      : nativeFetch(input, init);
 };
 
 test("all five account pages turn forgot password into an inline form", async ({ page }) => {
@@ -17,7 +23,7 @@ test("all five account pages turn forgot password into an inline form", async ({
 test("reset request uses current-origin destination and one neutral success copy", async ({ page }) => {
   await page.addInitScript(UNREACHABLE_SUPABASE);
   let requestedRedirect = "";
-  await page.route("https://supabase.test/auth/v1/recover**", async (route) => {
+  await page.route(/https:\/\/supabase\.test\/auth\/v1\/recover/, async (route) => {
     requestedRedirect = new URL(route.request().url()).searchParams.get("redirect_to");
     await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
   });
@@ -32,7 +38,7 @@ test("reset request uses current-origin destination and one neutral success copy
 
 test("reset page only shows the form for a valid recovery session", async ({ page }) => {
   await page.addInitScript(UNREACHABLE_SUPABASE);
-  await page.route("https://supabase.test/auth/v1/user", async (route) => {
+  await page.route(/https:\/\/supabase\.test\/auth\/v1\/user/, async (route) => {
     if (route.request().method() === "GET") {
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ user: { id: "user-1" } }) });
       return;

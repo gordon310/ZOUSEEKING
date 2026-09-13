@@ -6,6 +6,12 @@ async function openRegistration(page) {
   await page.addInitScript(() => {
     window.ZOUSEEKING_SUPABASE_URL = "https://supabase.test";
     window.ZOUSEEKING_SUPABASE_ANON_KEY = "public-test-key";
+    const nativeFetch = window.fetch.bind(window);
+    window.fetch = (input, init) => {
+      if (!String(input).includes("/auth/v1/signup")) return nativeFetch(input, init);
+      const payload = window.__signupResponse || {};
+      return Promise.resolve(new Response(JSON.stringify(payload), { status: 200, headers: { "Content-Type": "application/json" } }));
+    };
   });
   await page.goto("/index.html");
   await page.getByRole("button", { name: "切换到注册" }).click();
@@ -17,7 +23,7 @@ async function openRegistration(page) {
 
 test("注册待确认时显示邮箱地址和可操作的重发入口", async ({ page }) => {
   await openRegistration(page);
-  await page.route(`${SUPABASE_URL}/auth/v1/signup**`, async (route) => {
+  await page.route(/https:\/\/supabase\.test\/auth\/v1\/signup/, async (route) => {
     await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
   });
   await page.getByRole("button", { name: "注册并登录" }).click();
@@ -28,8 +34,16 @@ test("注册待确认时显示邮箱地址和可操作的重发入口", async ({
 });
 
 test("注册返回会话时进入已登录状态并清理注册地址", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__signupResponse = {
+      access_token: "signup-access-token",
+      refresh_token: "signup-refresh-token",
+      expires_in: 3600,
+      user: { id: "signup-user-id", email: "signup@example.com", user_metadata: { username: "signup-user" } },
+    };
+  });
   await openRegistration(page);
-  await page.route(`${SUPABASE_URL}/auth/v1/signup**`, async (route) => {
+  await page.route(/https:\/\/supabase\.test\/auth\/v1\/signup/, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",

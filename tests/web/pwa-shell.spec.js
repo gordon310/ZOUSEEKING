@@ -6,7 +6,7 @@ test("PWA shell assets are served and wired", async ({ page }) => {
 
   // manifest link + theme color present
   const manifestHref = await page.getAttribute('link[rel="manifest"]', "href");
-  expect(manifestHref).toBe("manifest.webmanifest");
+  expect(manifestHref).toMatch(/^manifest\.webmanifest(?:\?v=\d{8}-r\d+)?$/);
 
   // manifest is valid JSON with app identity and icons
   const manifestResponse = await page.request.get(`/${manifestHref}`);

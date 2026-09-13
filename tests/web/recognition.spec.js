@@ -32,7 +32,7 @@ test("photo EXIF location request prefills the query form and has no AI entry", 
   await expect(page.locator("#recognitionButton")).toHaveCount(0);
   await expect(page.getByText("识别挂牌候选")).toHaveCount(0);
   await expect(page.getByText("OpenAI")).toHaveCount(0);
-  await page.setInputFiles("#recognitionImage", { name: "property.png", mimeType: "image/png", buffer: ONE_PIXEL_PNG });
+  await page.setInputFiles("#propertyPhotos", { name: "property.png", mimeType: "image/png", buffer: ONE_PIXEL_PNG });
   await expect.poll(() => requests).toBe(1);
   await expect(page.locator("#recognitionLocationStatus")).toContainText("大阪市");
   await expect(page.locator("#recognitionLocationStatus")).toContainText("北区");

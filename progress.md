@@ -342,6 +342,26 @@
 - **环境副作用(本班)**:为跑 CI 等价 SQL 验收,启动了 Docker Desktop + 本地 `supabase start`(项目 `JPPropDIs`,端口 54321/54322),并临时停掉 09-02 遗留的 `supabase_*_gordonmac` 孤儿栈以释放端口;收尾已停掉本地栈,遗留孤儿栈未自动恢复(如需可 `docker start supabase_db_gordonmac ...`)。
 - **红线**:零 migration 新增或修改、零 staging/production 数据库写、未触凭据/冻结字段、无删除操作(仅删本地 CLI 临时目录 `supabase/.branches`)。
 
+## Release Gate 红链 #3 · 根因定位完成,派工被 Codex 通道阻塞(2026-09-13 晨班,管家)
+
+- **现状**:`main` 工作树干净、本地 = `origin/main` = `f95fd74`(09-13 07:01),但 Release Gate 自 09-12 00:26 起**连续 22 推全红**(最后一个绿 run `34661360711`);当前 HEAD 红因收窄到唯一一个 job:**Playwright checks 10 failed / 45 passed**(Python / SQL-RLS / Repository policy / Supply-chain / Node / Release evidence 六 job 全绿)。
+- **10 例 100% 本地复现**(`npx playwright test <5 个 spec> --workers=1`,两轮共 10 例,与 CI 清单逐条对上):夜间批次三处前端重构 + 一处测试基线过期,产品代码本身未发现新增缺陷。
+- **逐条根因(全部实测,含证据)**:
+  1. `password-reset.spec.js:17` 访问 `/data-query.html` 却未播种发布范围 → `release-boundary.js` 整体替换 `window.fetch` 并 reject 一切非白名单请求 → `page.route` 的 recover mock 从不生效(实测:播种后同一脚本通过,redirect_to 正确)。**测试侧修**。
+  2. `password-reset.spec.js:33` mock 的 `GET /auth/v1/user` 返回 `{user:{id}}`,而生产 GoTrue 返回 user 对象本身、`classifyRecoverySession` 取 `session.user.id` → 实测 verdict=`invalid`。**测试 mock 形状修**(`tests/unit/auth-recovery.test.js:34` 同口径)。
+  3. `privacy-operations.spec.js:91` 期望文案"如果**这个**邮箱已注册",产品文案为"如果**该**邮箱已注册"(实测成功文案已正确渲染,仅断言文案过期)。
+  4. `property-analysis-structure.spec.js:14` 断言父元素 id=`flow-content`,实测三个 step 的父元素**无 id、只有 class="flow-content"`** → 断言口径修。
+  5. 同文件 `:27` 一个 locator 同时命中 3 个 select → strict mode violation → 逐 id 断言。
+  6. `property-intake.spec.js:195` 生成预览后 `#previewStep` 内"法律与交易资料"命中 2 个元素 → strict mode violation → 无歧义定位。
+  7/8. `property-intake.spec.js:246/:276` 断言的 `#recognitionImage`、按钮"获取照片位置并生成地址"、`navigator.geolocation` 逆地理流程**已于 `b252c1a` 整体删除**(grep 全仓 0 命中),改为 `#propertyPhotos` → `POST /api/recognition {resolve_location_only:true}` → `#locationStatus` + `zou:recognition-prefill` 回填三级 select(`property-intake.js:1014`)→ 两条用例按当前真实行为重写。
+  9. `recognition.spec.js:8` 同上(`#recognitionLocationStatus` → `#locationStatus`)。
+  10. `pwa-shell.spec.js:9` manifest href 现已带版本参数(`manifest.webmanifest?v=20260912-r15`,来自 `d3f5882` 静态资源版本化)→ 断言允许可选查询串。
+- **完整派工任务书已备好**:`~/.hermes/tmp/dispatch-pw-drift-20260913.txt`(逐文件、逐行号、含"禁止改产品代码/禁 commit"红线与静态自检要求),Codex 通道恢复后即可一键喂入。
+- **⛔ 阻塞(未开工,非本班能力可解)**:Codex CLI 通道不可用——`chatgpt.com/backend-api/codex/responses` 返回 403(VPN/地区拦截页,`Unable to load site`,出口 IP `219.76.135.134` = 香港),直连 `000`;`verge-mihomo` 的 `🔥ChatGPT` 分组切换到美国/日本/新加坡 4 个节点后**出口 IP 不变**(仍香港),切换无效。按 09-09 分工(代码开发全归 Codex、启不动即暂停通知),本班**未代写代码**,仅完成定位与文档。已把分组选择恢复原值(`🌏自动最优线路(hy2)`)。
+- **待 Gordon 决策**:a) 修好 ChatGPT 通道(或指定可用节点)→ 管家立即派工并实跑验收(推荐);b) 明确授权管家直接改这 5 个 spec;c) 暂缓到周一晚班。
+- **附带观察(非本单元)**:① `#locationCandidate`("系统建议地址")自 `b252c1a` 起已无任何写入路径,恒显"尚未获取"= 死 UI,建议单独决策(去掉该面板或接回定位);② 夜间批次 22 连红期间无人确认 CI,建议恢复"每次 push 后 `gh run list` 确认"纪律。
+- 红线:零 migration 改动、零数据库写(仅本地 disposable/静态站点)、未触凭据与冻结字段、无删除操作;未 commit 任何产品/测试代码。
+
 ## Last updated
 
-2026-09-12
+2026-09-13

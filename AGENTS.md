@@ -207,10 +207,29 @@ The repository currently has no automated test, lint, type-check, or CI command.
 
 ## Known release blockers
 
-Treat these as existing risks to resolve, not patterns to copy:
+The following two historical blockers are resolved in the authorized staging
+environment, with the ownership boundary kept explicit and regression-tested:
 
-- Anonymous Supabase policies can read and mutate query rows containing member identity fields.
-- Query ownership is based on a client-writable email field instead of `auth.uid()`.
+- Resolved: anonymous Supabase access to member/query rows. Evidence:
+  `tests/security/test_rls_four_identity_http.py` and the reusable HTTP checks
+  in `scripts/staging_m1_acceptance.py`; run with
+  `RLS_TEST_BASE_URL=... RLS_TEST_ANON_KEY=... RLS_TEST_SERVICE_ROLE_KEY=...`
+  using `python -m pytest tests/security/test_rls_four_identity_http.py -q -s`.
+  The staging acceptance evidence records anonymous private-table reads as
+  HTTP `401/403` (or explicit HTTP `200 rows=0`) and INSERT/UPDATE/DELETE as
+  denied; owner, another authenticated user, and worker are asserted
+  independently with actual status/row counts. The current checkout cannot
+  reproduce the live result without those environment-only credentials.
+- Resolved: query authorization no longer uses client-writable email. Evidence:
+  the same four-identity test asserts owner isolation by `owner_user_id` and
+  the forward migration
+  `supabase/migrations/20260914000100_owner_boundary_comments.sql` documents
+  `queries.owner_user_id` as the sole authorization boundary while preserving
+  both legacy `requested_by_*` columns and their data. Verify with
+  `python -m pytest tests/security/test_rls_four_identity_http.py -q -s`
+  plus `git diff --check`; no existing column is altered or removed.
+
+Treat the remaining items as risks to resolve, not patterns to copy:
 - Member tier and daily limits are displayed but not reliably enforced by a trusted backend.
 - Verified, scraped, modeled, and synthetic data lack a mandatory shared provenance contract.
 - The analysis page derives numbers from display strings and the current content library does not contain a multi-month trend dataset.

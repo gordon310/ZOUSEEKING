@@ -1,61 +1,71 @@
 from __future__ import annotations
 
-import pytest
+import httpx
 
-from scripts.staging_m1_acceptance import (
-    STAGING_PROJECT_REF,
-    redact_evidence,
-    select_legacy_keys,
-    validate_live_target,
-)
+from scripts.staging_m1_acceptance import StagingM1Acceptance
 
 
-def test_live_target_requires_exact_staging_ref_url_and_explicit_flag() -> None:
-    expected_url = f"https://{STAGING_PROJECT_REF}.supabase.co"
-
-    assert validate_live_target(STAGING_PROJECT_REF, expected_url, True) == expected_url
-
-    with pytest.raises(ValueError, match="explicit live staging flag"):
-        validate_live_target(STAGING_PROJECT_REF, expected_url, False)
-    with pytest.raises(ValueError, match="exact staging project"):
-        validate_live_target("not-the-staging-project", expected_url, True)
-    with pytest.raises(ValueError, match="exact staging URL"):
-        validate_live_target(STAGING_PROJECT_REF, "https://example.invalid", True)
+def _acceptance(handler):
+    transport = httpx.MockTransport(handler)
+    acceptance = StagingM1Acceptance("https://staging.example", "anon", "service")
+    acceptance.client = httpx.Client(
+        base_url="https://staging.example", transport=transport
+    )
+    return acceptance
 
 
-def test_select_legacy_keys_never_falls_back_to_publishable_or_secret_keys() -> None:
-    payload = [
-        {"name": "anon", "api_key": "anon-jwt"},
-        {"name": "service_role", "api_key": "service-jwt"},
-        {"name": "publishable", "api_key": "sb_publishable_test"},
-        {"name": "secret", "api_key": "sb_secret_test"},
-    ]
+def test_seed_profiles_reuses_trigger_created_profile_without_insert() -> None:
+    calls: list[tuple[str, str]] = []
 
-    assert select_legacy_keys(payload) == ("anon-jwt", "service-jwt")
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append((request.method, request.url.path))
+        if request.method == "GET":
+            return httpx.Response(
+                200,
+                json=[{"user_id": "owner", "email": ""}],
+                request=request,
+            )
+        raise AssertionError("trigger-created profile must not be inserted")
 
-    with pytest.raises(ValueError, match="legacy anon/service_role"):
-        select_legacy_keys(payload[2:])
+    acceptance = _acceptance(handler)
+    try:
+        acceptance._seed_profiles(
+            [
+                {"user_id": "owner", "email": "", "bio": "synthetic"},
+            ]
+        )
+    finally:
+        acceptance.close()
+
+    assert calls == [("GET", "/rest/v1/user_profiles")]
+    assert acceptance.fixture_ids["user_profiles"] == ["owner"]
 
 
-def test_redact_evidence_masks_auth_and_service_secrets_recursively() -> None:
-    evidence = {
-        "access_token": "access",
-        "nested": {
-            "refresh_token": "refresh",
-            "password": "password",
-            "safe_count": 3,
-        },
-        "action_link": "https://secret.example",
-        "checks": [{"api_key": "key"}, {"status": "pass"}],
-    }
+def test_cleanup_continues_after_item_failure_and_runs_zero_self_check(capsys) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/storage/v1/object/property-intake"):
+            raise httpx.ConnectError("synthetic failure", request=request)
+        if request.url.path.startswith("/auth/v1/admin/users"):
+            return httpx.Response(200, json={"users": []}, request=request)
+        if request.url.path.startswith("/rest/v1/"):
+            return httpx.Response(200, json=[], request=request)
+        raise AssertionError(f"unexpected request: {request.method} {request.url}")
 
-    assert redact_evidence(evidence) == {
-        "access_token": "<redacted>",
-        "nested": {
-            "refresh_token": "<redacted>",
-            "password": "<redacted>",
-            "safe_count": 3,
-        },
-        "action_link": "<redacted>",
-        "checks": [{"api_key": "<redacted>"}, {"status": "pass"}],
-    }
+    acceptance = _acceptance(handler)
+    acceptance.storage_paths.add("m1-synthetic/run/fixture.png")
+    acceptance.fixture_ids["queries"] = ["query-id"]
+    acceptance.created_user_ids.add("user-id")
+    acceptance._created_user_ids = {"user-id"}
+    acceptance._created_user_emails = {"user@example.invalid"}
+    try:
+        acceptance.cleanup()
+    finally:
+        acceptance.close()
+
+    output = capsys.readouterr().out
+    assert "cleanup storage" in output
+    assert "cleanup table queries" in output
+    assert "cleanup auth user user-id" in output
+    assert "self-check example.invalid users=0" in output
+    assert "self-check related rows=0" in output
+    assert acceptance.cleanup_errors == ["storage_object"]

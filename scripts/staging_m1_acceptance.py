@@ -153,6 +153,7 @@ def _expect(
     statuses: Iterable[int],
     label: str,
 ) -> httpx.Response:
+    print(f"[HTTP] {label}: status={response.status_code} rows=not-returned")
     if response.status_code not in set(statuses):
         raise AcceptanceError(
             f"{label} returned HTTP {response.status_code} "
@@ -188,6 +189,8 @@ class StagingM1Acceptance:
             + secrets.token_hex(4)
         )
         self.created_user_ids: set[str] = set()
+        self._created_user_ids: set[str] = set()
+        self._created_user_emails: set[str] = set()
         self.fixture_ids: MutableMapping[str, list[str]] = {}
         self.storage_paths: set[str] = set()
         self.cleanup_errors: list[str] = []
@@ -284,6 +287,8 @@ class StagingM1Acceptance:
         if not isinstance(user_id, str) or not user_id:
             raise AcceptanceError("admin create user response omitted user id")
         self.created_user_ids.add(user_id)
+        self._created_user_ids.add(user_id)
+        self._created_user_emails.add(email)
         return user
 
     def _sign_in(self, email: str, password: str) -> Mapping[str, Any]:
@@ -371,6 +376,8 @@ class StagingM1Acceptance:
         if not isinstance(signup_id, str) or not signup_id:
             raise AcceptanceError("signup-link response omitted user id")
         self.created_user_ids.add(signup_id)
+        self._created_user_ids.add(signup_id)
+        self._created_user_emails.add(signup_email)
         if signup_user.get("email_confirmed_at") or signup_user.get("confirmed_at"):
             raise AcceptanceError(
                 "signup-link creation unexpectedly confirmed email"
@@ -587,6 +594,44 @@ class StagingM1Acceptance:
             + value[20:32]
         )
 
+    def _seed_profiles(self, profiles: Sequence[Mapping[str, Any]]) -> None:
+        missing: list[Mapping[str, Any]] = []
+        for profile in profiles:
+            user_id = str(profile["user_id"])
+            response = self._rest(
+                "GET",
+                "user_profiles",
+                identity="service",
+                params={"user_id": f"eq.{user_id}", "select": "user_id"},
+            )
+            _expect(response, {200}, f"worker check profile {user_id}")
+            rows = _response_json(response)
+            if not isinstance(rows, list):
+                raise AcceptanceError("profile lookup returned invalid JSON")
+            if any(
+                isinstance(row, Mapping) and row.get("user_id") == user_id
+                for row in rows
+            ):
+                self._record_fixture("user_profiles", user_id)
+            else:
+                missing.append(profile)
+
+        if missing:
+            _expect(
+                self._rest(
+                    "POST",
+                    "user_profiles",
+                    identity="service",
+                    body=missing,
+                    prefer="resolution=merge-duplicates,return=minimal",
+                ),
+                {200, 201},
+                "worker seed missing profiles",
+            )
+            self._record_fixture(
+                "user_profiles", *(str(profile["user_id"]) for profile in missing)
+            )
+
     def seed_rls_fixtures(
         self, owner_id: str, other_id: str
     ) -> dict[str, str]:
@@ -630,7 +675,7 @@ class StagingM1Acceptance:
                 "query_field_options",
                 identity="service",
                 body=options,
-                prefer="return=minimal",
+                prefer="resolution=merge-duplicates,return=minimal",
             ),
             {201},
             "worker seed field options",
@@ -669,7 +714,7 @@ class StagingM1Acceptance:
                 "queries",
                 identity="service",
                 body=queries,
-                prefer="return=minimal",
+                prefer="resolution=merge-duplicates,return=minimal",
             ),
             {201},
             "worker seed queries",
@@ -698,7 +743,7 @@ class StagingM1Acceptance:
                 "generation_jobs",
                 identity="service",
                 body=jobs,
-                prefer="return=minimal",
+                prefer="resolution=merge-duplicates,return=minimal",
             ),
             {201},
             "worker seed jobs",
@@ -733,7 +778,7 @@ class StagingM1Acceptance:
                 "property_reports",
                 identity="service",
                 body=reports,
-                prefer="return=minimal",
+                prefer="resolution=merge-duplicates,return=minimal",
             ),
             {201},
             "worker seed reports",
@@ -747,14 +792,14 @@ class StagingM1Acceptance:
                 "id": ids["owner_property"],
                 "owner_user_id": owner_id,
                 "project_type": "residential",
-                "building_name": "M1 synthetic owner property",
+                "building_name": f"M1 synthetic owner property {self.run_id}",
                 "data_class": "synthetic_fixture",
             },
             {
                 "id": ids["other_property"],
                 "owner_user_id": other_id,
                 "project_type": "residential",
-                "building_name": "M1 synthetic other property",
+                "building_name": f"M1 synthetic other property {self.run_id}",
                 "data_class": "synthetic_fixture",
             },
         ]
@@ -789,18 +834,7 @@ class StagingM1Acceptance:
                 "daily_query_limit": 3,
             },
         ]
-        _expect(
-            self._rest(
-                "POST",
-                "user_profiles",
-                identity="service",
-                body=profiles,
-                prefer="return=minimal",
-            ),
-            {201},
-            "worker seed profiles",
-        )
-        self._record_fixture("user_profiles", owner_id, other_id)
+        self._seed_profiles(profiles)
         return ids
 
     @staticmethod
@@ -811,7 +845,9 @@ class StagingM1Acceptance:
         payload = _response_json(response)
         if not isinstance(payload, list):
             raise AcceptanceError(f"{label} did not return a row list")
-        return [row for row in payload if isinstance(row, Mapping)]
+        rows = [row for row in payload if isinstance(row, Mapping)]
+        print(f"[HTTP] {label}: status={response.status_code} rows={len(rows)}")
+        return rows
 
     def check_four_identity_rls(
         self,
@@ -852,6 +888,40 @@ class StagingM1Acceptance:
             {401, 403},
             "anonymous private query denial",
         )
+
+        # Keep the four-identity gate explicit: a 200 with zero rows is a
+        # safe RLS result, but it must not be confused with an HTTP denial.
+        for table, key, label in (
+            ("property_reports", "owner_report", "anonymous private report read"),
+            ("user_profiles", "owner_id", "anonymous private profile read"),
+            ("payment_orders", "owner_id", "anonymous private payment read"),
+        ):
+            params = {
+                "select": "user_id" if table == "user_profiles" else "id"
+            }
+            if table == "user_profiles":
+                params["user_id"] = f"eq.{owner_id}"
+            elif table == "payment_orders":
+                params["owner_user_id"] = f"eq.{owner_id}"
+            else:
+                params["id"] = f"eq.{ids[key]}"
+            response = self._rest("GET", table, identity="anon", params=params)
+            if response.status_code in {401, 403}:
+                print(f"[HTTP] {label}: status={response.status_code} rows=denied")
+            elif response.status_code == 200:
+                rows = _response_json(response)
+                if not isinstance(rows, list) or rows:
+                    raise AcceptanceError(f"{label} returned non-empty rows")
+                print(f"[HTTP] {label}: status=200 rows=0 (RLS-empty)")
+            else:
+                raise AcceptanceError(f"{label} returned HTTP {response.status_code}")
+
+        for method, table, params, body, label in (
+            ("POST", "queries", {}, {"query_key": f"m1-anon-{self.run_id}", "prefecture": "x", "city": "x", "asset_type": "x", "year": 2026, "month": 9}, "anonymous query insert denial"),
+            ("PATCH", "queries", {"id": f"eq.{ids['owner_query']}"}, {"city": "anonymous mutation"}, "anonymous query update denial"),
+            ("DELETE", "queries", {"id": f"eq.{ids['owner_query']}"}, None, "anonymous query delete denial"),
+        ):
+            _expect(self._rest(method, table, identity="anon", params=params, body=body, prefer="return=representation"), {401, 403}, label)
 
         owner_queries = self._rows(
             self._rest(
@@ -897,6 +967,31 @@ class StagingM1Acceptance:
                 raise AcceptanceError(
                     f"owner {table} visibility is not owner-scoped"
                 )
+
+        for table, own_key, other_key in (
+            ("queries", "owner_query", "other_query"),
+            ("property_reports", "owner_report", "other_report"),
+            ("properties", "owner_property", "other_property"),
+        ):
+            rows = self._rows(
+                self._rest("GET", table, identity="user", access_token=other_token,
+                           params={"id": f"in.({ids[own_key]},{ids[other_key]})", "select": "id"}),
+                f"other authenticated {table} isolation",
+            )
+            if [row.get("id") for row in rows] != [ids[other_key]]:
+                raise AcceptanceError(
+                    f"other authenticated {table} visibility is not owner-scoped"
+                )
+
+        _expect(
+            self._rest("PATCH", "queries", identity="user", access_token=other_token,
+                       params={"id": f"eq.{ids['owner_query']}"},
+                       body={"city": "other mutation"}, prefer="return=representation"),
+            {401, 403},
+            "other authenticated query ownership mutation",
+        )
+        # The authenticated role has no direct query-write grant; ownership
+        # mutation therefore must be rejected at the HTTP privilege boundary.
 
         own_profile = self._rows(
             self._rest(
@@ -945,7 +1040,7 @@ class StagingM1Acceptance:
         )
         _expect(
             membership_update,
-            {400},
+            {400, 403},
             "owner membership escalation denial",
         )
 
@@ -1024,6 +1119,16 @@ class StagingM1Acceptance:
             "worker trusted write",
         )
         self._record_fixture("queries", ids["worker_query"])
+
+        for table, keys in (("queries", ("owner_query", "other_query", "worker_query")),
+                            ("property_reports", ("owner_report", "other_report"))):
+            rows = self._rows(
+                self._rest("GET", table, identity="service",
+                           params={"id": f"in.({','.join(ids[key] for key in keys)})", "select": "id"}),
+                f"privileged worker {table} full read",
+            )
+            if len(rows) != len(keys):
+                raise AcceptanceError(f"privileged worker read {table} returned {len(rows)} rows")
         invalid_job = self._rest(
             "POST",
             "generation_jobs",
@@ -1329,14 +1434,18 @@ class StagingM1Acceptance:
         for path in list(self.storage_paths):
             try:
                 response = self._storage_delete(path)
-                if (
-                    response.status_code not in {200, 400, 404}
-                    or self._storage_list_contains(path)
-                ):
+                remaining = self._storage_list_contains(path)
+                print(
+                    f"[CLEANUP] cleanup storage {path}: "
+                    f"status={response.status_code} returned="
+                    f"{redact_evidence(_response_json(response))} remaining={remaining}"
+                )
+                if response.status_code not in {200, 400, 404} or remaining:
                     self.cleanup_errors.append("storage_object")
                 else:
                     self.storage_paths.discard(path)
-            except Exception:
+            except Exception as exc:
+                print(f"[CLEANUP] cleanup storage {path}: error={type(exc).__name__}")
                 self.cleanup_errors.append("storage_object")
 
         delete_order = (
@@ -1359,11 +1468,18 @@ class StagingM1Acceptance:
                     table,
                     identity="service",
                     params={column: f"in.({','.join(ids)})"},
-                    prefer="return=minimal",
+                    prefer="return=representation",
+                )
+                returned = _response_json(response)
+                returned_rows = len(returned) if isinstance(returned, list) else 0
+                print(
+                    f"[CLEANUP] cleanup table {table}: status={response.status_code} "
+                    f"returned_rows={returned_rows}"
                 )
                 if response.status_code not in {200, 204}:
                     self.cleanup_errors.append(f"table:{table}")
-            except Exception:
+            except Exception as exc:
+                print(f"[CLEANUP] cleanup table {table}: error={type(exc).__name__}")
                 self.cleanup_errors.append(f"table:{table}")
 
         for user_id in list(self.created_user_ids):
@@ -1373,12 +1489,80 @@ class StagingM1Acceptance:
                     f"/auth/v1/admin/users/{user_id}",
                     identity="service",
                 )
+                print(
+                    f"[CLEANUP] cleanup auth user {user_id}: "
+                    f"status={response.status_code} returned={redact_evidence(_response_json(response))}"
+                )
                 if response.status_code not in {200, 404}:
                     self.cleanup_errors.append("auth_user")
-            except Exception:
+            except Exception as exc:
+                print(f"[CLEANUP] cleanup auth user {user_id}: error={type(exc).__name__}")
                 self.cleanup_errors.append("auth_user")
             finally:
                 self.created_user_ids.discard(user_id)
+
+        try:
+            users_response = self._request(
+                "GET",
+                "/auth/v1/admin/users",
+                identity="service",
+                params={"page": "1", "per_page": "1000"},
+            )
+            users_payload = _response_json(users_response)
+            users = (
+                users_payload.get("users", [])
+                if isinstance(users_payload, Mapping)
+                else users_payload
+            )
+            invalid_users = [
+                user
+                for user in users
+                if isinstance(user, Mapping)
+                and str(user.get("email", "")).lower().endswith("@example.invalid")
+            ] if isinstance(users, list) else []
+            print(
+                f"[CLEANUP] self-check example.invalid users={len(invalid_users)} "
+                f"status={users_response.status_code}"
+            )
+            if users_response.status_code != 200 or invalid_users:
+                self.cleanup_errors.append("self_check:auth_users")
+        except Exception as exc:
+            print(f"[CLEANUP] self-check example.invalid users: error={type(exc).__name__}")
+            self.cleanup_errors.append("self_check:auth_users")
+
+        related_rows = 0
+        for table in delete_order:
+            ids = self.fixture_ids.get(table, [])
+            if table == "user_profiles":
+                ids = sorted(self._created_user_ids)
+                column = "user_id"
+            else:
+                column = "id"
+            if not ids:
+                continue
+            try:
+                response = self._rest(
+                    "GET",
+                    table,
+                    identity="service",
+                    params={
+                        column: f"in.({','.join(ids)})",
+                        "select": column,
+                    },
+                )
+                rows = _response_json(response)
+                count = len(rows) if isinstance(rows, list) else -1
+                related_rows += max(count, 0)
+                print(
+                    f"[CLEANUP] self-check table {table}: status={response.status_code} "
+                    f"rows={count}"
+                )
+                if response.status_code != 200 or count != 0:
+                    self.cleanup_errors.append(f"self_check:table:{table}")
+            except Exception as exc:
+                print(f"[CLEANUP] self-check table {table}: error={type(exc).__name__}")
+                self.cleanup_errors.append(f"self_check:table:{table}")
+        print(f"[CLEANUP] self-check related rows={related_rows}")
 
         self.evidence["cleanup"] = {
             "status": "pass" if not self.cleanup_errors else "fail",

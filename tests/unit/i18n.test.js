@@ -23,6 +23,7 @@ const INTAKE_RUNTIME_KEYS = [
   "intake.demoMaterialsSubmitted",
   "intake.materialSubmitFailed",
   "intake.sessionExpired",
+  "intake.sessionMissingOnSave",
   "intake.confirmFieldRequired",
   "intake.savingFields",
   "intake.demoPreviewGenerated",

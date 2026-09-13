@@ -341,6 +341,25 @@ test("existing Supabase auth session can save the preview", async ({ page }) => 
   await expect(page.locator(".desktop-stepper [data-stage='save']")).toHaveAttribute("aria-current", "step");
 });
 
+test("missing intake session during save shows recovery guidance instead of a technical error", async ({ page }) => {
+  await page.goto("/property-analysis.html");
+  await page.evaluate(() => {
+    window.localStorage.setItem(
+      "zou_house_session",
+      JSON.stringify({ provider: "supabase", accessToken: "test-access-token" }),
+    );
+  });
+  await page.evaluate(() => window.sessionStorage.removeItem("zou_house_property_intake_session"));
+  await page.reload();
+
+  await page.locator("#saveProjectButton").click({ force: true });
+
+  await expect(page.getByRole("alert")).toContainText("页面已重新加载，请重新完成前面的步骤后再保存");
+  await expect(page.getByRole("alert")).not.toContainText("Cannot read properties of null");
+  await expect(page.locator(".desktop-stepper [data-stage='submit']")).toHaveAttribute("aria-current", "step");
+  await expect(page.locator("#savedProjectLink")).toBeHidden();
+});
+
 test("anonymous save step keeps the temporary-project login guidance", async ({ page }) => {
   await page.goto("/property-analysis.html");
   await expect(page.locator("#saveHeading")).toHaveText("注册后保存这个项目");

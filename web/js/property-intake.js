@@ -817,7 +817,8 @@ async function startIntake(event) {
 async function createFreePreview(event) {
   event.preventDefault();
   if (state.busy) return;
-  if (!state.session?.sessionId || !state.session?.rawToken) {
+  const session = state.session;
+  if (!session?.sessionId || !session?.rawToken) {
     setStatus(t("intake.sessionExpired", "临时项目已失效，请重新开始。"), "error");
     setStage("submit");
     return;
@@ -854,21 +855,22 @@ async function createFreePreview(event) {
     }
     for (const field of fields) {
       await confirmField(
-        state.session.sessionId,
-        state.session.rawToken,
+        session.sessionId,
+        session.rawToken,
         field.fieldName,
         field.value,
         "confirmed",
         {},
       );
     }
-    state.preview = await generatePreview(state.session.sessionId, state.session.rawToken);
+    state.preview = await generatePreview(session.sessionId, session.rawToken);
     renderPreview(state.preview);
     updateProjectNameDefault();
     setStage("preview");
     setStatus(t("intake.previewGenerated", "免费预览已生成。它只反映当前资料完整度，不替代专业交易核查。"), "success");
   } catch (error) {
-    setStatus(error.message || t("intake.previewFailed", "预览生成失败，请稍后重试。"), "error");
+    console.error("Property intake preview failed", error);
+    setStatus(t("intake.previewFailed", "预览生成失败，请稍后重试。"), "error");
   } finally {
     state.busy = false;
     setBusy(elements.previewButton, false);
@@ -895,12 +897,20 @@ async function saveProject() {
     setStatus(t("intake.loginRequiredToSave", "请先在首页完成 Supabase 登录，再返回这里保存项目。匿名项目会保留到 24 小时到期。"), "info");
     return;
   }
+  const session = state.session;
+  if (!session?.sessionId || !session?.rawToken) {
+    console.error("Property intake save skipped because the anonymous intake session is missing");
+    saveAnonymousSession(null);
+    setStage("submit");
+    setStatus(t("intake.sessionMissingOnSave", "页面已重新加载，请重新完成前面的步骤后再保存。"), "info");
+    return;
+  }
   state.busy = true;
   setBusy(elements.saveButton, true, t("intake.saving", "正在保存…"));
   try {
     const result = await convertSession(
-      state.session.sessionId,
-      state.session.rawToken,
+      session.sessionId,
+      session.rawToken,
       accessToken,
       elements.projectName?.value || "",
     );
@@ -912,7 +922,7 @@ async function saveProject() {
     }
     if (elements.savedProjectLink) {
       elements.savedProjectLink.classList.remove("hidden");
-      const reportKey = result.query_key || state.preview?.query_key || state.session?.query_key || state.session?.queryKey || "";
+      const reportKey = result.query_key || state.preview?.query_key || session.query_key || session.queryKey || "";
       const reportParams = new URLSearchParams();
       if (reportKey) reportParams.set("key", reportKey);
       const language = new URL(window.location.href).searchParams.get("lang");
@@ -923,8 +933,9 @@ async function saveProject() {
     }
     setStatus(copy("intake.projectSavedStatus", "项目已保存到你的账户（{propertyId}）。", { propertyId: result.property_id }), "success");
   } catch (error) {
+    console.error("Property intake project save failed", error);
     if (!handleProjectNameError(error)) {
-      setStatus(error.message || t("intake.projectSaveFailed", "项目保存失败，请先确认登录状态。"), "error");
+      setStatus(t("intake.projectSaveFailed", "项目保存失败，请先确认登录状态。"), "error");
     }
   } finally {
     state.busy = false;

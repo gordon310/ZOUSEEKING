@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from dataclasses import replace
 
 import pytest
 
@@ -83,6 +84,20 @@ def test_match_tokyo_23ku_via_city_layer(snapshots):
     assert row is not None and row.ward == "渋谷区"
     row2 = match_snapshot(snapshots, "东京都", None, "塔楼", city="中央区")
     assert row2 is not None and row2.ward == "中央区"
+
+
+def test_match_unsubdivided_city_uses_only_the_selected_ward(snapshots):
+    row = match_snapshot(snapshots, "东京都", "未細分", "公寓", city="涩谷区")
+    assert row is not None and row.ward == "渋谷区"
+    assert match_snapshot(snapshots, "大阪府", "未細分", "塔楼", city="大阪市") is None
+
+
+def test_match_unsubdivided_city_does_not_choose_an_arbitrary_ward(snapshots):
+    # Multiple rows for the same selected city are ambiguous. The matcher must
+    # not silently return the first row or substitute another ward.
+    shibuya = next(row for row in snapshots if row.ward == "渋谷区")
+    ambiguous = [*snapshots, replace(shibuya, source_file="duplicate.json")]
+    assert match_snapshot(ambiguous, "东京都", "未細分", "公寓", city="涩谷区") is None
 
 
 def test_report_is_sale_only_and_numeric(snapshots):

@@ -6,7 +6,7 @@ import {
   generatePreview,
   getExistingAccessToken,
   uploadFiles,
-} from "./api-client.js?v=20260913-r23";
+} from "./api-client.js?v=20260913-r24";
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const INTAKE_SESSION_KEY = "zou_house_property_intake_session";

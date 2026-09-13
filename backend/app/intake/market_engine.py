@@ -156,9 +156,11 @@ def match_snapshot(
 
     Detached-house and out-of-coverage queries return None (caller keeps honest
     empty-state). Ward name is normalized (front-end simplified Chinese -> the
-    Japanese names used by the snapshots; "全部区" -> None). For queries whose
-    ward is empty/"全部区" the city layer is tried (Tokyo 23-ku are city-level
-    in the front-end options).
+    Japanese names used by the snapshots; "全部区" -> None). When the query
+    uses the ``未細分`` sentinel, ``city`` may identify one concrete covered
+    ward (the C-end intake uses this shape). Only a unique candidate is
+    accepted; an umbrella city or duplicate candidates remain unmatched
+    rather than selecting or aggregating an arbitrary ward.
     """
     if asset_type in ("一户建", "一戸建て"):
         return None
@@ -167,15 +169,16 @@ def match_snapshot(
         return None
     ward_key = _normalize_ward(ward)
     city_key = _normalize_ward(city) if city else None
-    for row in snapshots:
-        if row.prefecture != prefecture:
-            continue
-        if ward_key:
-            if row.ward == ward_key:
-                return row
-        elif city_key and row.ward == city_key:
-            return row
-    return None
+    candidates = [row for row in snapshots if row.prefecture == prefecture]
+    if ward_key:
+        candidates = [row for row in candidates if row.ward == ward_key]
+    elif city_key:
+        # ``city`` is used as a concrete ward only when it normalizes to an
+        # actual snapshot ward. It never means "use the first ward in a city".
+        candidates = [row for row in candidates if row.ward == city_key]
+    else:
+        candidates = []
+    return candidates[0] if len(candidates) == 1 else None
 
 
 def match_snapshot_from_address(address: str, snapshots: list[WardSnapshot]) -> WardSnapshot | None:

@@ -189,6 +189,24 @@ test("traditional conversion keeps 系 as 系 except for explicit relationship w
   assert.equal(i18n.toTraditional("关系和后台"), "關係和後台");
 });
 
+test("report insufficient-data copy uses phrase-level traditional mappings", () => {
+  const i18n = loadI18n({ language: "zh-TW" });
+  const copy = i18n.t("report.insufficientDataCopy");
+  assert.equal(copy, "該地區暫無資料覆蓋，暫時無法提供完整報告。你可以留下你要查看的地區，我們會優先補齊。");
+  for (const character of ["暂", "优", "齐"]) assert.equal(copy.includes(character), false, character);
+});
+
+test("new report and dynamic copy has all four locales", () => {
+  const i18n = loadI18n();
+  for (const key of ["report.insufficientDataTitle", "report.insufficientDataCopy", "report.unlockWithPrice", "workspace.versionCount", "workspace.readonlyVersion"]) {
+    for (const locale of ["zh-CN", "zh-Hant", "en", "ja"]) {
+      assert.ok(i18n.keys(locale).includes(key), `${locale}: ${key}`);
+      assert.deepEqual(i18n.placeholders(locale, key), i18n.placeholders("zh-CN", key), `${locale}: ${key}`);
+      assert.notEqual(i18n.t(key), key, `${locale}: ${key} is missing`);
+    }
+  }
+});
+
 test("preview data labels are localized for every supported locale", () => {
   const expected = {
     "zh-CN": "中介手续费",

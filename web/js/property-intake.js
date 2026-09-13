@@ -142,6 +142,8 @@ const elements = {
   projectNameHelp: document.querySelector("#projectNameHelp"),
   previewContent: document.querySelector("#previewContent"),
   reportLink: document.querySelector("#reportLink"),
+  saveHeading: document.querySelector("#saveHeading"),
+  saveCopy: document.querySelector("#saveCopy"),
   progressItems: Array.from(document.querySelectorAll("[data-stage]")),
   characterCount: document.querySelector("#sourceCharacterCount"),
   progressRing: document.querySelector("#progressRing"),
@@ -230,6 +232,28 @@ function setStage(stage) {
     else item.removeAttribute("aria-current");
   });
   updateProgressRail();
+}
+
+function renderSaveState() {
+  const loggedIn = window.ZouAuthSession?.isLoggedIn?.() || false;
+  if (elements.saveHeading) {
+    elements.saveHeading.textContent = t(
+      loggedIn ? "intake.saveTitleLoggedIn" : "intake.saveTitle",
+      loggedIn ? "保存这个项目" : "注册后保存这个项目",
+    );
+  }
+  if (elements.saveCopy) {
+    elements.saveCopy.textContent = t(
+      loggedIn ? "intake.saveCopyLoggedIn" : "intake.saveCopy",
+      loggedIn ? "项目会保存到你当前登录的账户。" : "登录账户后，小象会把临时资料绑定到你的账户；匿名项目会在 24 小时后到期。",
+    );
+  }
+  if (elements.saveButton && state.stage !== "save") {
+    elements.saveButton.textContent = t(
+      loggedIn ? "intake.saveButtonLoggedIn" : "intake.saveButton",
+      loggedIn ? "保存这个项目" : "登录后保存项目",
+    );
+  }
 }
 
 function validateFiles(files) {
@@ -888,7 +912,7 @@ async function saveProject() {
     }
     if (elements.savedProjectLink) {
       elements.savedProjectLink.classList.remove("hidden");
-      elements.savedProjectLink.href = "project.html?demo=1&state=ready";
+      elements.savedProjectLink.href = elements.reportLink?.href || "report.html";
     }
     setStatus(copy("intake.projectSavedStatus", "项目已保存到你的账户（{propertyId}）。", { propertyId: result.property_id }), "success");
   } catch (error) {
@@ -932,6 +956,8 @@ async function initialize() {
     elements.assetType.removeAttribute("aria-invalid");
     updateProgressRail();
   });
+  await window.ZouAuthSession?.restore?.();
+  renderSaveState();
   elements.files?.addEventListener("change", () => {
     updateFilePresentation();
     updateProgressRail();

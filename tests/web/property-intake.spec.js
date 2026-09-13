@@ -313,11 +313,11 @@ test("duplicate address focuses manual investigation name and can retry", async 
       JSON.stringify({ provider: "supabase", accessToken: "test-access-token" }),
     );
   });
-  await page.getByRole("button", { name: "登录后保存项目" }).click();
+  await page.locator("#saveProjectButton").click();
   await expect(page.getByLabel("调查记录名称")).toBeFocused();
   await expect(page.getByRole("alert")).toContainText("同一地址已有调查记录，请手工修改记录名称");
   await page.getByLabel("调查记录名称").fill("大阪府大阪市北区梅田｜二次调查");
-  await page.getByRole("button", { name: "登录后保存项目" }).click();
+  await page.locator("#saveProjectButton").click();
   await expect(page.getByRole("button", { name: "项目已保存" })).toBeDisabled();
 });
 
@@ -335,9 +335,44 @@ test("existing Supabase auth session can save the preview", async ({ page }) => 
       JSON.stringify({ provider: "supabase", accessToken: "test-access-token" }),
     );
   });
-  await page.getByRole("button", { name: "登录后保存项目" }).click();
+  await page.locator("#saveProjectButton").click();
   await expect(page.getByRole("button", { name: "项目已保存" })).toBeDisabled();
+  await expect(page.locator("#savedProjectLink")).toHaveAttribute("href", /report\.html\?key=/);
   await expect(page.locator(".desktop-stepper [data-stage='save']")).toHaveAttribute("aria-current", "step");
+});
+
+test("anonymous save step keeps the temporary-project login guidance", async ({ page }) => {
+  await page.goto("/property-analysis.html");
+  await expect(page.locator("#saveHeading")).toHaveText("注册后保存这个项目");
+  await expect(page.locator("#saveProjectButton")).toHaveText("登录后保存项目");
+  await expect(page.locator("#saveHeading").locator(".."))
+    .toContainText("匿名项目会在 24 小时后到期");
+});
+
+test("existing auth session is reflected in the save step before preview", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      "zou_house_session",
+      JSON.stringify({
+        provider: "supabase",
+        username: "Gordon",
+        email: "gordon@example.com",
+        userId: "00000000-0000-0000-0000-000000000030",
+        accessToken: "test-access-token",
+      }),
+    );
+  });
+  await page.goto("/property-analysis.html");
+  await expect(page.locator("#saveHeading")).toHaveText("保存这个项目");
+  await expect(page.locator("#saveHeading")).not.toContainText("注册后保存");
+  await expect(page.locator("#saveProjectButton")).toHaveText("保存这个项目");
+});
+
+test("home auth tabs use switch wording distinct from the submit action", async ({ page }) => {
+  await page.goto("/index.html");
+  await expect(page.locator("#showLogin")).toContainText("切换到登录");
+  await expect(page.locator("#showRegister")).toContainText("切换到注册");
+  await expect(page.locator("#loginForm button[type='submit']")).toHaveText("登录查询");
 });
 
 test("location validation reports the first missing required level", async ({ page }) => {

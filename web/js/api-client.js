@@ -121,6 +121,8 @@ export function convertSession(sessionId, sessionToken, accessToken, projectName
 }
 
 export function getExistingAccessToken() {
+  const sharedToken = window.ZouAuthSession?.getAccessToken?.();
+  if (sharedToken) return sharedToken;
   const directSession = window.ZOUSEEKING_AUTH_SESSION || window.__ZOUSEEKING_AUTH_SESSION__;
   if (directSession && typeof directSession.accessToken === "string") return directSession.accessToken;
 

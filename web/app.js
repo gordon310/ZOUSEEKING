@@ -278,7 +278,7 @@ function hasSupabaseSession() {
 }
 
 function isLoggedIn() {
-  return Boolean(state.session?.username && SESSION_PROVIDERS.has(state.session?.provider));
+  return window.ZouAuthSession.isLoggedIn(state.session);
 }
 
 function setMessage(text, tone = "") {
@@ -484,10 +484,10 @@ async function supabaseAuthFetch(path, options = {}) {
 
 function saveSession(session) {
   state.session = session;
-  if (session) {
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  } else {
-    localStorage.removeItem(SESSION_KEY);
+  window.ZouAuthSession?.write(session);
+  if (!window.ZouAuthSession) {
+    if (session) localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    else localStorage.removeItem(SESSION_KEY);
   }
 }
 
@@ -539,28 +539,8 @@ async function handleAuthRedirect() {
 }
 
 async function refreshSupabaseSession() {
-  if (!hasSupabase() || state.session?.provider !== "supabase") return;
-  if (state.session.accessToken) {
-    try {
-      await supabaseAuthFetch("/user", { authToken: state.session.accessToken });
-      return;
-    } catch {
-      // Try refresh token below.
-    }
-  }
-  if (!state.session.refreshToken) {
-    saveSession(null);
-    return;
-  }
-  try {
-    const data = await supabaseAuthFetch("/token?grant_type=refresh_token", {
-      method: "POST",
-      body: JSON.stringify({ refresh_token: state.session.refreshToken }),
-    });
-    saveSession(sessionFromAuth(data, state.session));
-  } catch {
-    saveSession(null);
-  }
+  if (!window.ZouAuthSession) return;
+  state.session = await window.ZouAuthSession.restore();
 }
 
 async function apiFetch(path, options = {}) {

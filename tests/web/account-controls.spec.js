@@ -55,3 +55,28 @@ test("登录在认证服务不可达时不消费本地密码凭据", async ({ pa
   await expect(page.locator("#formMessage")).toContainText("邮箱或密码不正确，或账户暂不可用");
   expect(await page.evaluate(() => localStorage.getItem("zou_house_session"))).toBeNull();
 });
+
+test("认证会话变更事件会立即刷新首页登录状态，登出后立即清空", async ({ page }) => {
+  await page.route("**/auth/v1/**", (route) => route.abort());
+  await page.goto("/index.html");
+  await expect(page.locator("body.auth-ready")).toBeVisible();
+
+  await page.evaluate(() => {
+    window.ZouAuthSession.write({
+      provider: "supabase",
+      username: "Gordon",
+      email: "gordon@example.com",
+      userId: "user-1",
+      accessToken: "fresh-token",
+      refreshToken: "refresh-token",
+      expiresAt: Math.floor(Date.now() / 1000) + 3600,
+    });
+  });
+  await expect(page.locator("#accountTitle")).toHaveText("你好，Gordon");
+  await expect(page.locator("#logoutButton")).toBeVisible();
+  await expect(page.locator("#accountCopy")).toContainText("gordon@example.com");
+
+  await page.evaluate(() => window.ZouAuthSession.write(null));
+  await expect(page.locator("#accountTitle")).toHaveText("登录后可以查询");
+  await expect(page.locator("#logoutButton")).toBeHidden();
+});

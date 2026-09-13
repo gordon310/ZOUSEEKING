@@ -1,6 +1,11 @@
 (() => {
   const PROVIDERS = new Set(["supabase", "demo"]);
   const LEGACY_STORAGE_KEY = "zou_house_session";
+  const EXPIRY_SAFETY_WINDOW = 60;
+
+  function nowSeconds() {
+    return Math.floor(Date.now() / 1000);
+  }
 
   function storageKey() {
     const host = String(window.ZOUSEEKING_SUPABASE_URL || "").replace(/\/$/, "").replace(/^https?:\/\//, "");
@@ -29,20 +34,32 @@
   function read() {
     try {
       const value = window.localStorage.getItem(storageKey()) || window.localStorage.getItem(LEGACY_STORAGE_KEY);
-      return value ? fromStored(JSON.parse(value)) : null;
+      if (!value) return null;
+      const raw = JSON.parse(value);
+      if (raw?.provider !== "demo" && Number(raw?.expires_at) === 0) {
+        window.localStorage.removeItem(storageKey());
+        window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+        return null;
+      }
+      return fromStored(raw);
     } catch {
       return null;
     }
   }
 
   function write(session) {
+    const currentTime = nowSeconds();
+    const sessionExpiresAt = expiresAt(session);
+    if (session?.provider === "supabase" && sessionExpiresAt <= currentTime + EXPIRY_SAFETY_WINDOW) {
+      throw new Error("auth_session_expiry_missing");
+    }
     try {
       if (session?.provider === "supabase") {
         window.localStorage.setItem(storageKey(), JSON.stringify({
           access_token: session.accessToken || "",
           refresh_token: session.refreshToken || "",
-          expires_in: Math.max(0, expiresAt(session) - Math.floor(Date.now() / 1000)),
-          expires_at: expiresAt(session),
+          expires_in: Number.isFinite(Number(session.expiresIn)) ? Math.max(0, Math.floor(Number(session.expiresIn))) : Math.max(0, sessionExpiresAt - currentTime),
+          expires_at: sessionExpiresAt,
           token_type: "bearer",
           user: session.user || {
             id: session.userId || "",
@@ -108,7 +125,8 @@
       userId: user.id || fallback.userId || "",
       accessToken: data?.access_token || data?.accessToken || fallback.accessToken || "",
       refreshToken: data?.refresh_token || data?.refreshToken || fallback.refreshToken || "",
-      expiresAt: normalizeExpiresAt(data?.expires_at || data?.expiresAt) || (data?.expires_in ? Math.floor(Date.now() / 1000) + Number(data.expires_in) : normalizeExpiresAt(fallback.expiresAt || fallback.expires_at)),
+      expiresAt: normalizeExpiresAt(data?.expires_at ?? data?.expiresAt) || (Number.isFinite(Number(data?.expires_in)) && Number(data.expires_in) > 0 ? nowSeconds() + Math.floor(Number(data.expires_in)) : normalizeExpiresAt(fallback.expiresAt ?? fallback.expires_at)),
+      expiresIn: Number.isFinite(Number(data?.expires_in)) && Number(data.expires_in) > 0 ? Math.floor(Number(data.expires_in)) : fallback.expiresIn,
       user,
       provider: data?.provider || fallback.provider || "supabase",
     };
@@ -127,6 +145,12 @@
           method: "POST",
           body: JSON.stringify({ refresh_token: session.refreshToken }),
         }, anonKey);
+        console.debug("[auth] refresh response expiry", {
+          hasExpiresIn: Object.prototype.hasOwnProperty.call(data || {}, "expires_in"),
+          expiresIn: data?.expires_in ?? null,
+          hasExpiresAt: Object.prototype.hasOwnProperty.call(data || {}, "expires_at"),
+          expiresAt: data?.expires_at ?? null,
+        });
         return write(fromAuth(data, session));
       } catch {
         write(null);
@@ -194,5 +218,6 @@
     },
     getValidAccessToken: async () => (await ensureValidSession())?.accessToken || "",
     storageKey,
+    fromAuth,
   });
 })();

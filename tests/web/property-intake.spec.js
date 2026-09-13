@@ -387,6 +387,26 @@ test("existing auth session is reflected in the save step before preview", async
   await expect(page.locator("#saveProjectButton")).toHaveText("保存这个项目");
 });
 
+test("认证会话变更事件会即时更新第 5 步保存文案", async ({ page }) => {
+  await page.goto("/property-analysis.html");
+  await expect(page.locator("#saveHeading")).toHaveText("注册后保存这个项目");
+
+  await page.evaluate(() => window.ZouAuthSession.write({
+    provider: "supabase",
+    username: "Gordon",
+    email: "gordon@example.com",
+    accessToken: "fresh-token",
+    refreshToken: "refresh-token",
+    expiresAt: Math.floor(Date.now() / 1000) + 3600,
+  }));
+  await expect(page.locator("#saveHeading")).toHaveText("保存这个项目");
+  await expect(page.locator("#saveProjectButton")).toHaveText("保存这个项目");
+
+  await page.evaluate(() => window.ZouAuthSession.write(null));
+  await expect(page.locator("#saveHeading")).toHaveText("注册后保存这个项目");
+  await expect(page.locator("#saveProjectButton")).toHaveText("登录后保存项目");
+});
+
 test("save converts the current Tokyo apartment selections", async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.setItem("zou_house_session", JSON.stringify({ provider: "supabase", accessToken: "test-access-token" }));

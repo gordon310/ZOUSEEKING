@@ -211,6 +211,7 @@ const state = {
   authMode: "login",
   messageTimer: null,
   compareIds: [],
+  entitlementSessionToken: null,
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -482,24 +483,12 @@ async function supabaseAuthFetch(path, options = {}) {
 }
 
 function saveSession(session) {
-  state.session = session;
   window.ZouAuthSession?.write(session);
+  state.session = session;
 }
 
 function sessionFromAuth(data, fallback = {}) {
-  const user = data?.user || fallback.user || {};
-  const metadata = user.user_metadata || {};
-  const email = user.email || fallback.email || "";
-  const username = metadata.username || fallback.username || email.split("@")[0] || "小象用户";
-  return {
-    username,
-    email,
-    userId: user.id || fallback.userId || "",
-    accessToken: data?.access_token || fallback.accessToken || "",
-    refreshToken: data?.refresh_token || fallback.refreshToken || "",
-    expiresAt: data?.expires_at || (data?.expires_in ? Math.floor(Date.now() / 1000) + Number(data.expires_in) : fallback.expiresAt || 0),
-    provider: "supabase",
-  };
+  return window.ZouAuthSession.fromAuth(data, fallback);
 }
 
 async function handleAuthRedirect() {
@@ -1316,6 +1305,13 @@ function renderAccount() {
     : forgotMode
       ? uiText("account.resetCopy", "输入注册邮箱后，我们会发送找回密码邮件。如果没有收到，也不会暴露账户是否存在。")
       : loggedOutCopy;
+  const entitlementSummary = $("#memberEntitlementSummary");
+  entitlementSummary?.classList.toggle("hidden", !loggedIn);
+  if (loggedIn && state.entitlementSessionToken !== state.session?.accessToken) {
+    state.entitlementSessionToken = state.session?.accessToken || null;
+    renderMemberEntitlements();
+  }
+  if (!loggedIn) state.entitlementSessionToken = null;
   $("#accountTabs")?.classList.toggle("hidden", loggedIn || forgotMode);
   $("#forgotPasswordLink")?.classList.toggle("hidden", loggedIn || forgotMode);
   $("#loginForm")?.classList.toggle("hidden", loggedIn || registerMode || forgotMode);
@@ -1803,6 +1799,12 @@ async function login(event) {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
+    console.debug("[auth] password response expiry", {
+      hasExpiresIn: Object.prototype.hasOwnProperty.call(data || {}, "expires_in"),
+      expiresIn: data?.expires_in ?? null,
+      hasExpiresAt: Object.prototype.hasOwnProperty.call(data || {}, "expires_at"),
+      expiresAt: data?.expires_at ?? null,
+    });
     const session = sessionFromAuth(data, { email });
     saveSession(session);
     await ensureUserProfile();
@@ -1941,6 +1943,7 @@ function closeImage() {
 async function init() {
   window.addEventListener("zou-auth-session-changed", (event) => {
     state.session = event.detail || window.ZouAuthSession?.read?.() || null;
+    console.debug("[auth] session change received", { loggedIn: isLoggedIn() });
     render();
   });
   const isAnalysisPage = Boolean($("#analysisPanel"));

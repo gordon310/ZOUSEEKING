@@ -2,19 +2,13 @@
   const base = (window.ZOUSEEKING_API_BASE_URL || window.localStorage.getItem("zou_house_api_base") || "").replace(/\/$/, "");
 
   function accessToken() {
-    try {
-      const raw = window.localStorage.getItem("zou_house_session");
-      const session = raw ? JSON.parse(raw) : null;
-      return session?.provider === "supabase" ? session.accessToken || "" : "";
-    } catch {
-      return "";
-    }
+    return window.ZouAuthSession?.getAccessToken?.() || "";
   }
 
   async function request(path, options = {}) {
     if (!base) throw new Error("API base URL is not configured");
     const headers = { Accept: "application/json", ...(options.headers || {}) };
-    const token = accessToken();
+    const token = await window.ZouAuthSession?.getValidAccessToken?.() || accessToken();
     if (token) headers.Authorization = `Bearer ${token}`;
     const response = await fetch(`${base}${path}`, { ...options, headers });
     const text = await response.text();
@@ -38,7 +32,7 @@
     createExport: () => request("/api/exports", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) }),
     downloadExport: async (exportId) => {
       const headers = {};
-      const token = accessToken();
+      const token = await window.ZouAuthSession?.getValidAccessToken?.() || accessToken();
       if (token) headers.Authorization = `Bearer ${token}`;
       const response = await fetch(`${base}/api/exports/${encodeURIComponent(exportId)}`, { headers });
       if (!response.ok) throw new Error(`API ${response.status}`);

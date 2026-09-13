@@ -1,4 +1,3 @@
-const SESSION_KEY = "zou_house_session";
 const QUERY_HISTORY_KEY = "zou_house_query_history";
 const PASSWORD_MIN_LENGTH = 8;
 const PASSWORD_MAX_LENGTH = 128;
@@ -202,7 +201,7 @@ const state = {
   queryOptions: null,
   page: 1,
   selectedId: "",
-  session: readJson(SESSION_KEY, null),
+  session: window.ZouAuthSession?.read?.() || null,
   fieldOptions: DEFAULT_FIELD_OPTIONS,
   myTasks: [],
   myPageLoaded: false,
@@ -485,10 +484,6 @@ async function supabaseAuthFetch(path, options = {}) {
 function saveSession(session) {
   state.session = session;
   window.ZouAuthSession?.write(session);
-  if (!window.ZouAuthSession) {
-    if (session) localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    else localStorage.removeItem(SESSION_KEY);
-  }
 }
 
 function sessionFromAuth(data, fallback = {}) {
@@ -1944,6 +1939,10 @@ function closeImage() {
 }
 
 async function init() {
+  window.addEventListener("zou-auth-session-changed", (event) => {
+    state.session = event.detail || window.ZouAuthSession?.read?.() || null;
+    render();
+  });
   const isAnalysisPage = Boolean($("#analysisPanel"));
   if (!isAnalysisPage) {
     try {

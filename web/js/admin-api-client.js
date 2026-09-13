@@ -10,6 +10,8 @@
   // rather than forcing a module loader into admin.html.
 
   function getAccessToken() {
+    const sharedToken = window.ZouAuthSession?.getAccessToken?.();
+    if (sharedToken) return sharedToken;
     const directSession = window.ZOUSEEKING_AUTH_SESSION || window.__ZOUSEEKING_AUTH_SESSION__;
     if (directSession && typeof directSession.accessToken === "string") return directSession.accessToken;
     try {
@@ -19,13 +21,7 @@
     } catch {
       // A blocked storage area should not break the page.
     }
-    try {
-      const legacyValue = window.localStorage.getItem("zou_house_session");
-      const legacySession = legacyValue ? JSON.parse(legacyValue) : null;
-      return legacySession?.provider === "supabase" ? legacySession.accessToken || "" : "";
-    } catch {
-      return "";
-    }
+    return "";
   }
 
   class AdminApiError extends Error {

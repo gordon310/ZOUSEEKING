@@ -5,8 +5,8 @@ const vm = require("node:vm");
 
 const source = fs.readFileSync("web/js/auth-session.js", "utf8");
 
-function createHarness({ session, refreshResponse, refreshReject = false }) {
-  const values = new Map([["zou_house_session", JSON.stringify(session)]]);
+function createHarness({ session, refreshResponse, refreshReject = false, initialStorageKey = "sb-example-auth-token" }) {
+  const values = new Map([[initialStorageKey, JSON.stringify(session)]]);
   let refreshCalls = 0;
   const fetch = async (url) => {
     refreshCalls += 1;
@@ -53,7 +53,31 @@ test("expired sessions are not logged in before refresh and refresh to a usable 
   assert.equal(refreshed.accessToken, "new-token");
   assert.equal(harness.auth.isLoggedIn(), true);
   assert.equal(harness.auth.getAccessToken(), "new-token");
+  const stored = JSON.parse(harness.values.get("sb-example-auth-token"));
+  assert.equal(stored.access_token, "new-token");
+  assert.ok(stored.expires_at > Math.floor(Date.now() / 1000));
   assert.equal(harness.getRefreshCalls(), 1);
+});
+
+test("writes a fresh auth response to the Supabase storage key and restores it", async () => {
+  const harness = createHarness({ session: null, initialStorageKey: "unused" });
+  const newSession = harness.auth.write({
+    username: "member",
+    email: "member@example.com",
+    userId: "user-1",
+    accessToken: "fresh-token",
+    refreshToken: "fresh-refresh-token",
+    expiresAt: Math.floor(Date.now() / 1000) + 3600,
+    provider: "supabase",
+  });
+
+  const stored = JSON.parse(harness.values.get("sb-example-auth-token"));
+  assert.equal(stored.access_token, "fresh-token");
+  assert.equal(stored.refresh_token, "fresh-refresh-token");
+  assert.ok(stored.expires_at > Math.floor(Date.now() / 1000));
+  assert.equal(newSession.accessToken, "fresh-token");
+  assert.equal(harness.auth.isLoggedIn(), true);
+  assert.equal(await harness.auth.getValidAccessToken(), "fresh-token");
 });
 
 test("concurrent refresh requests share one in-flight refresh", async () => {
@@ -82,7 +106,7 @@ test("failed refresh clears the session and exposes an actionable expiry message
   const result = await harness.auth.ensureValidSession();
   assert.equal(result, null);
   assert.equal(harness.auth.isLoggedIn(), false);
-  assert.equal(harness.values.has("zou_house_session"), false);
+  assert.equal(harness.values.has("sb-example-auth-token"), false);
   assert.match(harness.auth.sessionExpiredMessage("zh-Hant"), /登入狀態已過期/);
   assert.match(harness.auth.sessionExpiredMessage("en"), /session has expired/i);
   assert.match(harness.auth.sessionExpiredMessage("ja"), /ログイン状態の有効期限/);

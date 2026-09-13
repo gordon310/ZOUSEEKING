@@ -6,7 +6,7 @@ import {
   generatePreview,
   getValidAccessToken,
   uploadFiles,
-} from "./api-client.js?v=20260913-r25";
+} from "./api-client.js?v=20260913-r26";
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const INTAKE_SESSION_KEY = "zou_house_property_intake_session";
@@ -996,6 +996,7 @@ function toggleMenu() {
 }
 
 async function initialize() {
+  window.addEventListener("zou-auth-session-changed", renderSaveState);
   elements.submitForm?.addEventListener("submit", startIntake);
   elements.confirmForm?.addEventListener("submit", createFreePreview);
   elements.saveButton?.addEventListener("click", saveProject);

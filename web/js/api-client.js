@@ -134,15 +134,7 @@ export function getExistingAccessToken() {
     // A blocked storage area should not break the anonymous intake page.
   }
 
-  // The existing website stores its already-established auth session here. This page only reads it;
-  // anonymous intake data is always stored in sessionStorage by property-intake.js.
-  try {
-    const legacyValue = window.localStorage.getItem("zou_house_session");
-    const legacySession = legacyValue ? JSON.parse(legacyValue) : null;
-    return legacySession?.provider === "supabase" ? legacySession.accessToken || "" : "";
-  } catch {
-    return "";
-  }
+  return "";
 }
 
 export async function getValidAccessToken() {

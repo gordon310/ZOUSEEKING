@@ -1,11 +1,35 @@
 (() => {
-  const STORAGE_KEY = "zou_house_session";
   const PROVIDERS = new Set(["supabase", "demo"]);
+  const LEGACY_STORAGE_KEY = "zou_house_session";
+
+  function storageKey() {
+    const host = String(window.ZOUSEEKING_SUPABASE_URL || "").replace(/\/$/, "").replace(/^https?:\/\//, "");
+    const ref = host.split(".")[0];
+    return ref ? `sb-${ref}-auth-token` : "sb-zou-house-auth-token";
+  }
+
+  function normalizeExpiresAt(value) {
+    const number = Number(value);
+    if (Number.isFinite(number) && number > 0) {
+      return Math.floor(number > 1e12 ? number / 1000 : number);
+    }
+    if (value) {
+      const parsed = Date.parse(value);
+      if (Number.isFinite(parsed)) return Math.floor(parsed / 1000);
+    }
+    return 0;
+  }
+
+  function fromStored(data) {
+    if (!data) return null;
+    if (data.provider === "demo") return data;
+    return fromAuth(data);
+  }
 
   function read() {
     try {
-      const value = window.localStorage.getItem(STORAGE_KEY);
-      return value ? JSON.parse(value) : null;
+      const value = window.localStorage.getItem(storageKey()) || window.localStorage.getItem(LEGACY_STORAGE_KEY);
+      return value ? fromStored(JSON.parse(value)) : null;
     } catch {
       return null;
     }
@@ -13,22 +37,39 @@
 
   function write(session) {
     try {
-      if (session) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-      else window.localStorage.removeItem(STORAGE_KEY);
+      if (session?.provider === "supabase") {
+        window.localStorage.setItem(storageKey(), JSON.stringify({
+          access_token: session.accessToken || "",
+          refresh_token: session.refreshToken || "",
+          expires_in: Math.max(0, expiresAt(session) - Math.floor(Date.now() / 1000)),
+          expires_at: expiresAt(session),
+          token_type: "bearer",
+          user: session.user || {
+            id: session.userId || "",
+            email: session.email || "",
+            user_metadata: { username: session.username || "" },
+          },
+        }));
+      } else if (session) {
+        window.localStorage.setItem(storageKey(), JSON.stringify(session));
+      } else {
+        window.localStorage.removeItem(storageKey());
+      }
+      window.localStorage.removeItem(LEGACY_STORAGE_KEY);
     } catch {
       // A blocked storage area must degrade to logged out without breaking the page.
+    }
+    try {
+      window.dispatchEvent?.(new window.CustomEvent("zou-auth-session-changed", { detail: session }));
+    } catch {
+      // Event dispatch is optional in minimal test and embedded contexts.
     }
     return session;
   }
 
   function expiresAt(session) {
     const value = session?.expiresAt ?? session?.expires_at;
-    if (typeof value === "number") return value;
-    if (value) {
-      const parsed = Date.parse(value);
-      if (Number.isFinite(parsed)) return Math.floor(parsed / 1000);
-    }
-    return 0;
+    return normalizeExpiresAt(value);
   }
 
   function isLoggedIn(session = read()) {
@@ -65,10 +106,11 @@
       username: metadata.username || fallback.username || email.split("@")[0] || "小象用户",
       email,
       userId: user.id || fallback.userId || "",
-      accessToken: data?.access_token || fallback.accessToken || "",
-      refreshToken: data?.refresh_token || fallback.refreshToken || "",
-      expiresAt: data?.expires_at || (data?.expires_in ? Math.floor(Date.now() / 1000) + Number(data.expires_in) : fallback.expiresAt || fallback.expires_at || 0),
-      provider: "supabase",
+      accessToken: data?.access_token || data?.accessToken || fallback.accessToken || "",
+      refreshToken: data?.refresh_token || data?.refreshToken || fallback.refreshToken || "",
+      expiresAt: normalizeExpiresAt(data?.expires_at || data?.expiresAt) || (data?.expires_in ? Math.floor(Date.now() / 1000) + Number(data.expires_in) : normalizeExpiresAt(fallback.expiresAt || fallback.expires_at)),
+      user,
+      provider: data?.provider || fallback.provider || "supabase",
     };
   }
 
@@ -151,5 +193,6 @@
       return isLoggedIn(session) && session.provider === "supabase" ? session.accessToken || "" : "";
     },
     getValidAccessToken: async () => (await ensureValidSession())?.accessToken || "",
+    storageKey,
   });
 })();

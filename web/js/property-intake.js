@@ -468,7 +468,8 @@ function populateWards(prefecture, city, selected = "") {
     selectOption("", t("intake.selectWard", "请先选择区")),
     ...options.map((value) => selectOption(value, value === NOT_SUBDIVIDED_VALUE ? t("intake.wardNotSubdivided", "未细分") : value)),
   );
-  elements.ward.value = selected && options.includes(selected) ? selected : "";
+  const defaultWard = wards.length ? "" : NOT_SUBDIVIDED_VALUE;
+  elements.ward.value = selected && options.includes(selected) ? selected : defaultWard;
   elements.ward.disabled = false;
   return Boolean(elements.ward.value);
 }
@@ -522,7 +523,6 @@ function validateLocationFields() {
   const values = locationValues();
   if (!values.prefecture) return t("intake.prefectureRequired", "请选择都道府县。");
   if (!values.city) return t("intake.cityRequired", "请选择市。");
-  if (!values.ward) return t("intake.wardRequired", "请选择区；没有区级资料时请选择「未细分」。");
   return "";
 }
 
@@ -767,7 +767,7 @@ async function startIntake(event) {
   }
   const locationError = validateLocationFields();
   if (locationError) {
-    const firstMissing = [elements.prefecture, elements.city, elements.ward].find((select) => select && !select.value);
+    const firstMissing = [elements.prefecture, elements.city].find((select) => select && !select.value);
     firstMissing?.focus();
     return setStatus(locationError, "error");
   }
@@ -826,7 +826,7 @@ async function createFreePreview(event) {
   const locationError = validateLocationFields();
   if (locationError) {
     setStatus(locationError, "error");
-    const firstMissing = [elements.prefecture, elements.city, elements.ward].find((select) => select && !select.value);
+    const firstMissing = [elements.prefecture, elements.city].find((select) => select && !select.value);
     firstMissing?.focus();
     return;
   }
@@ -916,9 +916,9 @@ async function saveProject() {
   const locationError = validateLocationFields();
   if (locationError) {
     setStage("submit");
-    const firstMissing = [elements.prefecture, elements.city, elements.ward].find((select) => select && !select.value);
+    const firstMissing = [elements.prefecture, elements.city].find((select) => select && !select.value);
     firstMissing?.focus();
-    setStatus(t("intake.saveLocationRequired", "地区信息不完整，请回到第 1 步补全都道府县、市和区后再保存。"), "error");
+    setStatus(t("intake.saveLocationRequired", "地区信息不完整，请回到第 1 步补全都道府县和市后再保存。"), "error");
     return;
   }
   const location = locationValues();

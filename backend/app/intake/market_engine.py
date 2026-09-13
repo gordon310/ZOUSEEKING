@@ -81,7 +81,7 @@ def _normalize_ward(name: str | None) -> str | None:
     if not name:
         return name
     name = name.strip()
-    if name == "全部区":
+    if name in {"全部区", "未细分", "未細分", "__not_subdivided__"}:
         return None
     return WARD_ALIASES.get(name, name)
 

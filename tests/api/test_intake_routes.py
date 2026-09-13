@@ -255,6 +255,57 @@ def test_convert_starts_shared_report_pipeline_and_returns_query_key(
     }
 
 
+def test_convert_accepts_missing_ward_and_normalizes_it_for_the_pipeline(
+    client, session, auth_header
+):
+    client.post(
+        f"/api/intake/sessions/{session['session_id']}/preview",
+        headers={"X-Analysis-Session": session["session_token"]},
+    )
+    scheduled = []
+
+    async def fake_create_or_get_query_job(request, user_id, background_tasks):
+        scheduled.append(request)
+        return {"query_key": f"{user_id}::东京都::涩谷区::未細分::公寓::2026::9", "job_id": "job-1"}
+
+    client.app.dependency_overrides[get_report_pipeline] = lambda: fake_create_or_get_query_job
+    response = client.post(
+        f"/api/intake/sessions/{session['session_id']}/convert",
+        headers={**auth_header, "X-Analysis-Session": session["session_token"]},
+        json={
+            "project_name": "涩谷区公寓",
+            "prefecture": "东京都",
+            "city": "涩谷区",
+            "asset_type": "公寓",
+            "year": 2026,
+            "month": 9,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["query_key"].endswith("::东京都::涩谷区::未細分::公寓::2026::9")
+    assert scheduled[0].ward == "未細分"
+
+
+def test_convert_missing_prefecture_city_or_asset_type_remains_actionable_422(
+    client, session, auth_header, fake_repository
+):
+    for missing in ("prefecture", "city", "asset_type"):
+        payload = {"prefecture": "东京都", "city": "涩谷区", "asset_type": "公寓"}
+        payload.pop(missing)
+        response = client.post(
+            f"/api/intake/sessions/{session['session_id']}/convert",
+            headers={**auth_header, "X-Analysis-Session": session["session_token"]},
+            json=payload,
+        )
+        assert response.status_code == 422
+        assert response.json()["detail"] == {
+            "code": "convert_parameters_required",
+            "message": "prefecture, city and asset_type are required before conversion",
+        }
+    assert fake_repository.created_properties == []
+
+
 def test_convert_rejects_client_owned_identity_field(client, session, auth_header):
     response = client.post(
         f"/api/intake/sessions/{session['session_id']}/convert",

@@ -8,14 +8,22 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 WEB_LIBRARY = ROOT / "web" / "content-library.json"
+NOT_SUBDIVIDED_WARD = "未細分"
 
 
 def compact(text: str) -> str:
     return re.sub(r"\s+", "", text or "").lower()
 
 
+def normalize_query_ward(ward: str | None) -> str:
+    value = str(ward or "").strip()
+    if value in {"", "全部区", "__not_subdivided__", "未细分", "未細分"}:
+        return NOT_SUBDIVIDED_WARD
+    return value
+
+
 def query_key(prefecture: str, city: str, ward: str | None, asset_type: str, year: int, month: int) -> str:
-    return "::".join([prefecture, city, ward or "全部区", asset_type, str(year), str(month)])
+    return "::".join([prefecture, city, normalize_query_ward(ward), asset_type, str(year), str(month)])
 
 
 def query_title(prefecture: str, city: str, ward: str | None, asset_type: str, year: int, month: int) -> str:

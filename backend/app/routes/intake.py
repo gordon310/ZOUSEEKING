@@ -38,6 +38,7 @@ from ..intake.repository import (
 )
 from ..intake.tokens import hash_session_token, new_session_token
 from ..models import QueryRequest
+from ..jphouse_service import normalize_query_ward
 from ..intake.storage import (
     MAX_UPLOAD_BYTES,
     StorageUnavailable,
@@ -370,12 +371,12 @@ async def convert_session(
     repository: IntakeRepository = Depends(get_intake_repository),
     report_pipeline: Any = Depends(get_report_pipeline),
 ) -> Dict[str, str]:
-    if not payload or not payload.prefecture or not payload.city or not payload.ward or not payload.asset_type:
+    if not payload or not payload.prefecture or not payload.city or not payload.asset_type:
         raise HTTPException(
             status_code=422,
             detail={
                 "code": "convert_parameters_required",
-                "message": "prefecture, city, ward and asset_type are required before conversion",
+                "message": "prefecture, city and asset_type are required before conversion",
             },
         )
     try:
@@ -406,7 +407,7 @@ async def convert_session(
     query_request = QueryRequest(
         prefecture=payload.prefecture,
         city=payload.city,
-        ward=payload.ward,
+        ward=normalize_query_ward(payload.ward),
         asset_type=payload.asset_type,
         year=(payload.year if payload and payload.year else now.year),
         month=(payload.month if payload and payload.month else now.month),

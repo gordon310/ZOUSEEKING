@@ -19,7 +19,7 @@
     ["property-analysis.html", "分析物件"],
     ["projects.html?demo=1", "我的项目"],
     ["profile.html?role=consumer", "账户资料"],
-    ["index.html", "小象数据"],
+    ["consumer-home.html", "小象避坑"],
   ];
   links.forEach((link, index) => {
     const item = consumerNav[index];
@@ -33,7 +33,7 @@
   const consumerAccountNav = [
     ["property-analysis.html", "分析"],
     ["projects.html?demo=1", "项目"],
-    ["index.html", "数据"],
+    ["consumer-home.html", "首页"],
   ];
   accountLinks.forEach((link, index) => {
     const item = consumerAccountNav[index];

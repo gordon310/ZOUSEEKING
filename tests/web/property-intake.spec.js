@@ -210,6 +210,22 @@ test("anonymous user reaches free preview on mobile", async ({ page }) => {
   await expect(page.locator("#saveProjectButton")).toHaveText("登录后保存项目");
 });
 
+test("anonymous save keeps the C-end login flow on the consumer account page", async ({ page }) => {
+  await page.goto("/property-analysis.html");
+  await page.getByLabel("物件类型 / 房型").selectOption("tower");
+  await fillLocation(page);
+  await page.getByLabel("物件链接或说明").fill("大阪市北区，售价3500万日元");
+  await page.getByRole("button", { name: "开始整理资料" }).click();
+  await page.getByLabel("售价（日元）").fill("35000000");
+  await page.getByLabel("专有面积（平方米）").fill("45.2");
+  await page.getByRole("button", { name: "生成免费预览" }).click();
+  await expect(page.locator("#saveProjectButton")).toHaveText("登录后保存项目");
+  await page.locator("#saveProjectButton").click();
+
+  await expect(page).toHaveURL(/\/profile\.html\?role=consumer#accountPanel$/);
+  await expect(page).toHaveTitle("账户资料｜小象避坑 ZOUBEACON");
+});
+
 test("ready report is the only next action after saving", async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.setItem("zou_house_session", JSON.stringify({

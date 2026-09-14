@@ -6,8 +6,8 @@ import {
   generatePreview,
   getValidAccessToken,
   uploadFiles,
-} from "./api-client.js?v=20260914-r32";
-import { extractPropertyFields } from "./property-intake-extraction.js?v=20260914-r32";
+} from "./api-client.js?v=20260914-r33";
+import { extractPropertyFields } from "./property-intake-extraction.js?v=20260914-r33";
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const INTAKE_SESSION_KEY = "zou_house_property_intake_session";
@@ -822,7 +822,6 @@ async function startIntake(event) {
   }
   elements.assetType.removeAttribute("aria-invalid");
   state.assetType = assetType;
-  if (!source && !files.length && !photos.length) return setStatus(t("intake.sourceRequired", "请先填写物件链接或说明，或上传资料/物件照片。"), "error");
   if (fileError) return setStatus(fileError, "error");
   if (photoError) return setStatus(photoError, "error");
 
@@ -954,7 +953,7 @@ async function saveProject() {
     setStatus(hadSupabaseSession
       ? t("auth.sessionExpired", "登录状态已过期，请重新登录。")
       : t("intake.loginRequiredToSave", "请先登录或注册，再回来保存这个项目。匿名项目会保留到 24 小时到期。"), "info");
-    if (!hadSupabaseSession) window.location.href = "index.html#accountPanel";
+    if (!hadSupabaseSession) window.location.href = "profile.html?role=consumer#accountPanel";
     return;
   }
   const session = state.session;
@@ -1020,6 +1019,10 @@ async function saveProject() {
     if (!handleProjectNameError(error)) {
       const message = error?.status === 401 || error?.status === 403 || error?.code === "auth_session_expired"
         ? t("auth.sessionExpired", "登录状态已过期，请重新登录。")
+        : error?.code === "quota_unavailable"
+          ? t("intake.quotaUnavailable", "当前会员额度尚未配置，暂时无法完成项目转换，请稍后再试。")
+          : error?.code === "quota_exceeded"
+            ? t("intake.quotaExceeded", "本周期可用额度已用尽，暂时无法完成项目转换。")
         : error?.status === 422 || error?.code === "location_required"
           ? t("intake.saveLocationRequired", "地区信息不完整，请回到第 1 步补全都道府县、市和区后再保存。")
           : t("intake.projectSaveFailed", "项目保存失败，请稍后重试。");

@@ -59,6 +59,10 @@ LOCATION_FAILURE_MESSAGE = "位置资料保存失败，请稍后重试。"
 DUPLICATE_ADDRESS_MESSAGE = "同一地址已有调查记录，请手工修改记录名称。"
 PROJECT_NAME_TAKEN_MESSAGE = "这个调查记录名称已存在，请换一个名称。"
 PROJECT_NAME_REQUIRED_MESSAGE = "请先确认地址，或手工填写调查记录名称。"
+PREVIEW_QUOTA_UNAVAILABLE_MESSAGE = "当前会员额度尚未配置，暂时无法生成免费预览，请稍后再试。"
+PREVIEW_QUOTA_EXCEEDED_MESSAGE = "本周期免费预览额度已用尽，暂时无法生成免费预览。"
+CONVERT_QUOTA_UNAVAILABLE_MESSAGE = "当前会员额度尚未配置，暂时无法完成项目转换，请稍后再试。"
+CONVERT_QUOTA_EXCEEDED_MESSAGE = "本周期可用额度已用尽，暂时无法完成项目转换。"
 SESSION_TTL = timedelta(hours=24)
 
 
@@ -111,6 +115,24 @@ def _row_value(row: Any, name: str, default: Any = None) -> Any:
 
 def _not_found() -> HTTPException:
     return HTTPException(status_code=404, detail=SESSION_NOT_FOUND_MESSAGE)
+
+
+def _quota_http_exception(error: QuotaExceeded, *, action: str) -> HTTPException:
+    """Translate internal quota outcomes into stable, user-readable API errors."""
+    unavailable = str(error) == "usage quota is not configured"
+    if action == "preview":
+        unavailable_message = PREVIEW_QUOTA_UNAVAILABLE_MESSAGE
+        exceeded_message = PREVIEW_QUOTA_EXCEEDED_MESSAGE
+    else:
+        unavailable_message = CONVERT_QUOTA_UNAVAILABLE_MESSAGE
+        exceeded_message = CONVERT_QUOTA_EXCEEDED_MESSAGE
+    return HTTPException(
+        status_code=429,
+        detail={
+            "code": "quota_unavailable" if unavailable else "quota_exceeded",
+            "message": unavailable_message if unavailable else exceeded_message,
+        },
+    )
 
 
 def _token_digest(raw_token: Optional[str]) -> str:
@@ -379,10 +401,7 @@ async def create_preview(
     try:
         await consume_preview(user, session_id)
     except QuotaExceeded as exc:
-        raise HTTPException(
-            status_code=429,
-            detail={"code": "quota_exceeded", "message": "free preview quota exceeded"},
-        ) from exc
+        raise _quota_http_exception(exc, action="preview") from exc
     fields = await repository.get_fields(session_id)
     preview = build_free_preview(fields)
     await repository.save_preview(session_id, preview)
@@ -441,7 +460,10 @@ async def convert_session(
         month=(payload.month if payload and payload.month else now.month),
         username=user.username,
     )
-    pipeline = await report_pipeline(query_request, str(user.user_id), background_tasks)
+    try:
+        pipeline = await report_pipeline(query_request, str(user.user_id), background_tasks)
+    except QuotaExceeded as exc:
+        raise _quota_http_exception(exc, action="convert") from exc
     return {
         "owner_user_id": str(converted.owner_user_id),
         "property_id": str(converted.property_id),

@@ -216,7 +216,11 @@ def _fmt_unit(v: float) -> str:
     return f"约{v / MAN_YEN_TO_YEN:,.2f}万日元/㎡"
 
 
-def build_sale_report(snapshot: WardSnapshot, query: Mapping[str, Any]) -> dict[str, Any]:
+def build_sale_report(
+    snapshot: WardSnapshot,
+    query: Mapping[str, Any],
+    owner_user_id: str | None = None,
+) -> dict[str, Any]:
     """Numeric sale-side report. rental rows are omitted (D6a: rents not licensed).
 
     Returns report shape compatible with property_reports JSONB columns:
@@ -272,8 +276,9 @@ def build_sale_report(snapshot: WardSnapshot, query: Mapping[str, Any]) -> dict[
                 f"汇率参考({fx.get('as_of')},来源:{fx.get('source')}):人民币/美元换算仅作显示参考。",
             ]
         )
+    base_slug = f"jphouse_{snapshot.family}_{snapshot.ward}_{query.get('asset_type') or 'tower'}"
     return {
-        "slug": f"jphouse_{snapshot.family}_{snapshot.ward}_{query.get('asset_type') or 'tower'}",
+        "slug": f"{owner_user_id}_{base_slug}" if owner_user_id else base_slug,
         "title": title,
         "publish_month": snapshot.sale_period,
         "markdown": "\n".join(markdown_lines),

@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import os
 import json
+import asyncio
+import logging
+import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
@@ -48,10 +51,11 @@ ALLOWED_ORIGINS = [
     if origin.strip()
 ]
 SCHEMA_INIT_ENVIRONMENTS = {"local", "development", "test"}
-JPHOUSE_MARKET_SOURCE_ID = os.getenv(
-    "JPHOUSE_MARKET_SOURCE_ID",
-    "bf4b6d56-f7ed-4e66-b599-3900e22001d6",
-).strip()
+MARKET_SOURCE_URL = "https://www.mlit.go.jp/"
+MARKET_SOURCE_CACHE_TTL_SECONDS = 60.0
+_market_source_cache: tuple[str, float] | None = None
+_market_source_cache_lock: asyncio.Lock | None = None
+logger = logging.getLogger(__name__)
 
 
 def should_init_schema() -> bool:
@@ -141,12 +145,72 @@ def report_status_for_report(*, has_snapshot: bool) -> str:
     return "full_report" if has_snapshot else "insufficient_data"
 
 
-def source_id_for_report(*, report_status: str, data_class: str | None) -> str | None:
-    """Bind published market reports to the registered authorised source."""
+class ReportSourceResolutionError(RuntimeError):
+    """A publishable report cannot resolve its authorized source registry row."""
 
-    if report_status in {"free_preview", "full_report"} and data_class == "scraped_aggregate":
-        return JPHOUSE_MARKET_SOURCE_ID
-    return None
+
+def namespaced_report_slug(owner_user_id: str, base_slug: str) -> str:
+    """Keep the human-readable slug while making it unique per owner."""
+
+    return f"{str(owner_user_id).strip()}_{str(base_slug).strip()}"
+
+
+def cached_report_action(job_status: str | None, report_status: str | None) -> str:
+    """Classify an existing report/job pair while holding the query lock."""
+
+    if report_status == "full_report":
+        return "cache"
+    if report_status == "insufficient_data" and job_status in {"completed", "succeeded"}:
+        return "cache"
+    if job_status in {"pending", "running"}:
+        return "wait"
+    if job_status == "failed":
+        return "requeue"
+    if job_status in {"completed", "succeeded"}:
+        return "requeue"
+    return "wait"
+
+
+async def resolve_market_source_id(conn: Any) -> str:
+    """Resolve the authorized market source by its stable business key.
+
+    The cache only stores a successful, authorized lookup. Any lookup failure is
+    converted to a safe structured error for the generation job.
+    """
+
+    global _market_source_cache, _market_source_cache_lock
+    now = time.monotonic()
+    if _market_source_cache and now - _market_source_cache[1] < MARKET_SOURCE_CACHE_TTL_SECONDS:
+        return _market_source_cache[0]
+    if _market_source_cache_lock is None:
+        _market_source_cache_lock = asyncio.Lock()
+    async with _market_source_cache_lock:
+        now = time.monotonic()
+        if _market_source_cache and now - _market_source_cache[1] < MARKET_SOURCE_CACHE_TTL_SECONDS:
+            return _market_source_cache[0]
+        try:
+            row = await conn.fetchrow(
+                """
+                select id
+                from public.sources
+                where url=$1 and permission_status='rights_confirmed'
+                order by updated_at desc, created_at desc
+                limit 1
+                """,
+                MARKET_SOURCE_URL,
+            )
+        except Exception as exc:
+            logger.warning("market source lookup failed: %s", type(exc).__name__)
+            raise ReportSourceResolutionError(
+                "market_source_unavailable: authorized market source lookup failed"
+            ) from None
+        if not row or row["id"] is None:
+            raise ReportSourceResolutionError(
+                "market_source_unavailable: no rights_confirmed market source is registered"
+            )
+        source_id = str(row["id"])
+        _market_source_cache = (source_id, time.monotonic())
+        return source_id
 
 
 def _row_get(row: Any, name: str, fallback: Any = None) -> Any:
@@ -356,11 +420,13 @@ async def run_generation_job(job_id: str, query_id: str, owner_user_id: str, req
             request.city,
         )
         if snapshot:
-            report = build_sale_report(snapshot, request.model_dump())
+            report = build_sale_report(snapshot, request.model_dump(), owner_user_id=owner_user_id)
+            async with get_pool().acquire() as conn:
+                source_id = await resolve_market_source_id(conn)
             report.update(
                 report_status=report_status_for_report(has_snapshot=True),
                 data_class="scraped_aggregate",
-                source_id=source_id_for_report(report_status="full_report", data_class="scraped_aggregate"),
+                source_id=source_id,
                 source_period=snapshot.sale_period or f"{request.year}-{request.month:02d}",
                 observed_at=datetime.now(timezone.utc),
                 transformation_version="market-engine-v1",
@@ -370,7 +436,10 @@ async def run_generation_job(job_id: str, query_id: str, owner_user_id: str, req
         else:
             title = query_title(request.prefecture, request.city, request.ward, request.asset_type, request.year, request.month)
             report = {
-                "slug": query_key(request.prefecture, request.city, request.ward, request.asset_type, request.year, request.month).replace("::", "_"),
+                "slug": namespaced_report_slug(
+                    owner_user_id,
+                    query_key(request.prefecture, request.city, request.ward, request.asset_type, request.year, request.month).replace("::", "_"),
+                ),
                 "title": title,
                 "publish_month": f"{request.year}年{request.month}月",
                 "markdown": f"# {title}\n\n数据生成任务已创建，等待采集器补全。",
@@ -458,52 +527,106 @@ async def create_or_get_query_job(
             # historically allowed more than one row per query_id.
             await conn.execute("select pg_advisory_xact_lock(hashtext($1))", key)
             existing = await conn.fetchrow(
-                "select pr.* from queries q join property_reports pr on pr.query_id=q.id where q.query_key=$1",
+                """
+                select pr.*, q.id as existing_query_id,
+                       gj.id as existing_job_id, gj.status as existing_job_status
+                from queries q
+                join property_reports pr on pr.query_id=q.id
+                left join lateral (
+                    select id, status
+                    from generation_jobs
+                    where query_id=q.id
+                    order by created_at desc
+                    limit 1
+                ) gj on true
+                where q.query_key=$1
+                """,
                 key,
             )
             if existing:
-                return {"query_key": key, "status": "completed", "cached": True, "title": title, "job_id": None, "report": row_to_report(existing)}
-
-            existing_query = await conn.fetchrow("select id from queries where query_key=$1", key)
-            if existing_query is None:
-                await consume_current_entitlement(
-                    conn,
-                    user=AuthUser(UUID(str(user_id)), "", ""),
-                    metric="query",
-                    units=1,
-                    idempotency_key=f"query:{key}",
-                    fingerprint=f"query:{key}",
-                )
-
-            query_id = await conn.fetchval(
-                """
-                insert into queries(query_key, owner_user_id, prefecture, city, ward, asset_type, year, month, status)
-                values($1, $2, $3, $4, $5, $6, $7, $8, 'pending')
-                on conflict(query_key) do update set updated_at=now()
-                returning id
-                """,
-                key, user_id, request.prefecture, request.city, request.ward or "", request.asset_type, request.year, request.month,
-            )
-            job = await conn.fetchrow(
-                "select id, status from generation_jobs where query_id=$1 order by created_at desc limit 1",
-                query_id,
-            )
-            if job and job["status"] == "running":
-                job_id = job["id"]
-            elif job and job["status"] == "pending":
-                job_id = job["id"]
-            elif job:
-                await conn.execute(
-                    "update generation_jobs set status='pending', progress=5, current_step='任务已重新排队', error_message=null, updated_at=now() where id=$1",
-                    job["id"],
-                )
-                job_id = job["id"]
+                report_status = _row_get(existing, "report_status", "generating")
+                job_status = _row_get(existing, "existing_job_status")
+                action = cached_report_action(job_status, report_status)
+                if action == "cache":
+                    return {"query_key": key, "status": "completed", "cached": True, "title": title, "job_id": None, "report": row_to_report(existing)}
+                if action == "wait":
+                    return {
+                        "query_key": key,
+                        "status": "pending",
+                        "cached": False,
+                        "title": title,
+                        "job_id": str(existing["existing_job_id"]),
+                        "report": None,
+                    }
+                if action == "requeue":
+                    await conn.execute(
+                        """
+                        update generation_jobs
+                        set status='pending', progress=5, current_step='任务已重新排队',
+                            error_message=null, updated_at=now()
+                        where id=$1 and status in ('failed', 'completed', 'succeeded')
+                        """,
+                        existing["existing_job_id"],
+                    )
+                    await conn.execute(
+                        "update queries set status='pending', updated_at=now() where id=$1",
+                        existing["existing_query_id"],
+                    )
+                    job_id = existing["existing_job_id"]
+                    query_id = existing["existing_query_id"]
+                    should_schedule = True
+                else:
+                    return {
+                        "query_key": key,
+                        "status": "pending",
+                        "cached": False,
+                        "title": title,
+                        "job_id": str(existing["existing_job_id"]) if existing["existing_job_id"] else None,
+                        "report": None,
+                    }
             else:
-                job_id = await conn.fetchval(
-                    "insert into generation_jobs(query_id, status, progress, current_step) values($1, 'pending', 5, '任务已创建') returning id",
+                should_schedule = False
+
+                existing_query = await conn.fetchrow("select id from queries where query_key=$1", key)
+                if existing_query is None:
+                    await consume_current_entitlement(
+                        conn,
+                        user=AuthUser(UUID(str(user_id)), "", ""),
+                        metric="query",
+                        units=1,
+                        idempotency_key=f"query:{key}",
+                        fingerprint=f"query:{key}",
+                    )
+
+                query_id = await conn.fetchval(
+                    """
+                    insert into queries(query_key, owner_user_id, prefecture, city, ward, asset_type, year, month, status)
+                    values($1, $2, $3, $4, $5, $6, $7, $8, 'pending')
+                    on conflict(query_key) do update set updated_at=now()
+                    returning id
+                    """,
+                    key, user_id, request.prefecture, request.city, request.ward or "", request.asset_type, request.year, request.month,
+                )
+                job = await conn.fetchrow(
+                    "select id, status from generation_jobs where query_id=$1 order by created_at desc limit 1",
                     query_id,
                 )
-            should_schedule = not job or job["status"] != "running"
+                if job and job["status"] == "running":
+                    job_id = job["id"]
+                elif job and job["status"] == "pending":
+                    job_id = job["id"]
+                elif job:
+                    await conn.execute(
+                        "update generation_jobs set status='pending', progress=5, current_step='任务已重新排队', error_message=null, updated_at=now() where id=$1",
+                        job["id"],
+                    )
+                    job_id = job["id"]
+                else:
+                    job_id = await conn.fetchval(
+                        "insert into generation_jobs(query_id, status, progress, current_step) values($1, 'pending', 5, '任务已创建') returning id",
+                        query_id,
+                    )
+                should_schedule = not job or job["status"] != "running"
     if should_schedule:
         background_tasks.add_task(run_generation_job, str(job_id), str(query_id), str(user_id), request)
     return {"query_key": key, "status": "pending", "cached": False, "title": title, "job_id": str(job_id), "report": None}

@@ -34,7 +34,9 @@
     "20260912000500_user_profile_audience.sql",
     "20260912000600_exports.sql",
     "20260914000100_owner_boundary_comments.sql",
-    "20260914000200_realtime_authenticated_quota.sql"
+    "20260914000200_realtime_authenticated_quota.sql",
+    "20260915000100_register_mlit_transaction_source.sql",
+    "20260915000200_owner_scoped_report_slugs.sql"
   ],
   "legacy_sql_files": [
     "backend/sql/001_foundation_data_contract.sql",

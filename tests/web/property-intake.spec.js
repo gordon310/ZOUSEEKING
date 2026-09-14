@@ -210,6 +210,61 @@ test("anonymous user reaches free preview on mobile", async ({ page }) => {
   await expect(page.locator("#saveProjectButton")).toHaveText("登录后保存项目");
 });
 
+test("authenticated preview sends the Supabase access token", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.ZOUSEEKING_AUTH_SESSION = {
+      provider: "supabase",
+      username: "temporary-preview-test",
+      accessToken: "preview-access-token",
+    };
+    window.localStorage.setItem("sb-zou-house-auth-token", JSON.stringify({
+      access_token: "preview-access-token",
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+      user: { id: "temporary-preview-test" },
+    }));
+  });
+  await page.goto("/property-analysis.html");
+  await page.getByLabel("物件类型 / 房型").selectOption("tower");
+  await fillLocation(page);
+  await page.getByLabel("物件链接或说明").fill("大阪市北区，售价3500万日元");
+  await page.getByRole("button", { name: "开始整理资料" }).click();
+  await page.getByLabel("售价（日元）").fill("35000000");
+  const previewRequest = page.waitForRequest((request) => request.url().includes(`/api/intake/sessions/${SESSION_ID}/preview`));
+  await page.getByRole("button", { name: "生成免费预览" }).click();
+  const request = await previewRequest;
+  await expect(page.getByRole("heading", { name: "免费项目预览" })).toBeVisible();
+  expect(request.headers().authorization).toBe("Bearer preview-access-token");
+});
+
+test("traditional Chinese extraction copy replaces every fields placeholder", async ({ page }) => {
+  await page.goto("/property-analysis.html?lang=zh-Hant");
+  await page.getByLabel("物件類型 / 房型").selectOption("tower");
+  await page.getByLabel("都道府縣").selectOption("大阪府");
+  await page.getByLabel("市").selectOption("大阪市");
+  await page.locator("#ward").selectOption("北区");
+  await page.locator("#propertySource").fill("售價3500萬日圓");
+  await page.getByRole("button", { name: "開始整理資料" }).click();
+  await expect(page.locator("#extractionHelp")).toContainText("專有面積");
+  await expect(page.locator("#extractionHelp")).toContainText("售價");
+  await expect(page.locator("#extractionHelp")).not.toContainText("{fields}");
+});
+
+test("extraction placeholders are replaced in every supported locale", async ({ page }) => {
+  for (const locale of ["zh-CN", "zh-Hant", "en", "ja"]) {
+    await page.goto(`/property-analysis.html?lang=${locale}`);
+    await page.evaluate(() => sessionStorage.clear());
+    await page.reload();
+    await page.locator("#assetType").selectOption("tower");
+    await page.locator("#prefecture").selectOption("大阪府");
+    await page.locator("#city").selectOption("大阪市");
+    await page.locator("#ward").selectOption("北区");
+    await page.locator("#propertySource").fill("售价3500万日元");
+    await page.locator("#submitButton").click();
+    await expect(page.locator("#confirmStep")).toBeVisible();
+    await expect(page.locator("#extractionHelp")).not.toContainText("{fields}");
+  }
+});
+
 test("anonymous save keeps the C-end login flow on the consumer account page", async ({ page }) => {
   await page.goto("/property-analysis.html");
   await page.getByLabel("物件类型 / 房型").selectOption("tower");

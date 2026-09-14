@@ -6,8 +6,8 @@ import {
   generatePreview,
   getValidAccessToken,
   uploadFiles,
-} from "./api-client.js?v=20260914-r33";
-import { extractPropertyFields } from "./property-intake-extraction.js?v=20260914-r33";
+} from "./api-client.js?v=20260914-r34";
+import { extractPropertyFields } from "./property-intake-extraction.js?v=20260914-r34";
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const INTAKE_SESSION_KEY = "zou_house_property_intake_session";
@@ -635,11 +635,12 @@ function applyTextExtraction(source) {
     if (input && !input.value.trim()) input.value = String(value);
   }
   const missingLabels = [
-    ["asking_price_jpy", "售价"],
-    ["area_sqm", "专有面积"],
-    ["address", "地址"],
-  ].filter(([fieldName]) => !Object.hasOwn(extracted, fieldName)).map(([, label]) => label);
+    ["asking_price_jpy", "intake.askingPrice", "售价"],
+    ["area_sqm", "intake.area", "专有面积"],
+    ["address", "intake.address", "地址"],
+  ].filter(([fieldName]) => !Object.hasOwn(extracted, fieldName)).map(([, labelKey, fallback]) => t(labelKey, fallback));
   if (elements.extractionHelp) {
+    elements.extractionHelp.removeAttribute("data-i18n");
     elements.extractionHelp.textContent = missingLabels.length
       ? copy("intake.extractionMissing", "未识别到，请手动填写：{fields}。", { fields: missingLabels.join("、") })
       : t("intake.extractionComplete", "已从文字资料识别售价、面积和地址，请核对后继续。");
@@ -914,14 +915,18 @@ async function createFreePreview(event) {
         {},
       );
     }
-    state.preview = await generatePreview(session.sessionId, session.rawToken);
+    const accessToken = await getValidAccessToken();
+    state.preview = await generatePreview(session.sessionId, session.rawToken, accessToken);
     renderPreview(state.preview);
     updateProjectNameDefault();
     setStage("preview");
     setStatus(t("intake.previewGenerated", "免费预览已生成。它只反映当前资料完整度，不替代专业交易核查。"), "success");
   } catch (error) {
     console.error("Property intake preview failed", error);
-    setStatus(t("intake.previewFailed", "预览生成失败，请稍后重试。"), "error");
+    const message = error?.status === 401 || error?.status === 403 || error?.code === "auth_session_expired"
+      ? t("auth.sessionExpired", "登录状态已过期，请重新登录。")
+      : t("intake.previewFailed", "预览生成失败，请稍后重试。");
+    setStatus(message, "error");
   } finally {
     state.busy = false;
     setBusy(elements.previewButton, false);

@@ -104,10 +104,11 @@ export function saveLocation(sessionId, sessionToken, payload) {
   });
 }
 
-export function generatePreview(sessionId, sessionToken) {
+export function generatePreview(sessionId, sessionToken, accessToken) {
   return request(`/api/intake/sessions/${encodeURIComponent(sessionId)}/preview`, {
     method: "POST",
     sessionToken,
+    accessToken,
   });
 }
 

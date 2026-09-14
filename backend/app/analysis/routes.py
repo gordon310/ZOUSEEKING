@@ -17,6 +17,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from ..auth import AuthUser, require_user
 from ..billing.entitlements import plan_for_tier
 from ..db import get_pool
+from ..usage.quota import consume_current_entitlement
+from ..usage.ledger import QuotaExceeded
 
 
 UTC_PLUS_8 = timezone(timedelta(hours=8), name="UTC+08:00")
@@ -207,48 +209,19 @@ class DbAnalysisStore:
         """
         return [dict(row) for row in await conn.fetch(query, *args)]
 
-    async def _meter(self, conn: asyncpg.Connection, scope_key: str, limit: int, user_id: UUID) -> dict[str, Any]:
-        period_key = datetime.now(timezone.utc).astimezone(UTC_PLUS_8).strftime("%Y-%m")
-        await conn.execute(
-            """
-            insert into public.usage_quotas(scope_key, usage_kind, period_key, limit_units)
-            values($1, 'stats_query', $2, $3)
-            on conflict(scope_key, usage_kind, period_key) do nothing
-            """,
-            scope_key, period_key, limit,
+    async def _meter(self, conn: asyncpg.Connection, user: AuthUser, request: AnalysisRequest) -> dict[str, Any]:
+        fingerprint = "stats:" + hashlib.sha256(
+            json.dumps(request.model_dump(), ensure_ascii=False, sort_keys=True).encode()
+        ).hexdigest()
+        result = await consume_current_entitlement(
+            conn,
+            user=user,
+            metric="stats_query",
+            units=1,
+            idempotency_key=fingerprint,
+            fingerprint=fingerprint,
         )
-        quota = await conn.fetchrow(
-            """
-            select consumed_units, reserved_units, limit_units
-            from public.usage_quotas
-            where scope_key=$1 and usage_kind='stats_query' and period_key=$2 for update
-            """,
-            scope_key, period_key,
-        )
-        if quota is None or int(quota["limit_units"]) < int(quota["consumed_units"]) + int(quota["reserved_units"]) + 1:
-            raise AnalysisQuotaExceeded()
-        event_id = uuid4()
-        fingerprint = "stats:" + hashlib.sha256(f"{scope_key}:{user_id}:{event_id}".encode()).hexdigest()
-        await conn.execute(
-            """
-            insert into public.usage_events(id, scope_key, usage_kind, operation, units, period_key, idempotency_key, fingerprint, actor_user_id)
-            values($1,$2,'stats_query','consume',1,$3,$4,$5,$6)
-            """,
-            event_id, scope_key, period_key, str(event_id), fingerprint, user_id,
-        )
-        await conn.execute(
-            """
-            insert into public.usage_idempotency(scope_key, usage_kind, operation, idempotency_key, fingerprint)
-            values($1, 'stats_query', 'consume', $2, $3)
-            """,
-            scope_key, str(event_id), fingerprint,
-        )
-        await conn.execute(
-            "update public.usage_quotas set consumed_units=consumed_units+1 where scope_key=$1 and usage_kind='stats_query' and period_key=$2",
-            scope_key, period_key,
-        )
-        used = int(quota["consumed_units"]) + 1
-        return {"used": used, "limit": int(quota["limit_units"]), "remaining": int(quota["limit_units"]) - used, "period": period_key}
+        return {"used": result.used, "limit": result.limit, "remaining": result.remaining, "period": result.period_key}
 
     async def _quota_snapshot(self, conn: asyncpg.Connection, scope_key: str, limit: int) -> dict[str, Any]:
         period_key = datetime.now(timezone.utc).astimezone(UTC_PLUS_8).strftime("%Y-%m")
@@ -272,7 +245,7 @@ class DbAnalysisStore:
                 if result["status"] != "ok":
                     result["quota"] = await self._quota_snapshot(conn, scope_key, limit)
                     return result
-                result["quota"] = await self._meter(conn, scope_key, limit, user.user_id)
+                result["quota"] = await self._meter(conn, user, request)
                 return result
 
 
@@ -291,7 +264,7 @@ async def create_analysis(
 ) -> dict[str, Any]:
     try:
         return await store.analyze(user, request)
-    except AnalysisQuotaExceeded:
+    except (AnalysisQuotaExceeded, QuotaExceeded):
         return JSONResponse(status_code=429, content={"error": {"code": "quota_exceeded", "message": "analysis quota exceeded"}})
     except (asyncpg.UndefinedTableError, asyncpg.UndefinedColumnError, AnalysisServiceUnavailable):
         raise HTTPException(status_code=503, detail="analysis service is not configured")

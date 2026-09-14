@@ -12,7 +12,7 @@ from backend.app.intake.models import ConfirmFieldRequest, CreateInputRequest, F
 from backend.app.intake.repository import ConvertedProject, DuplicateAddress, ProjectNameTaken, SessionNotFound
 from backend.app.intake.storage import StorageObject
 from backend.app.main import app
-from backend.app.routes.intake import get_intake_repository, get_report_pipeline, get_reverse_geocoder, get_storage
+from backend.app.routes.intake import get_intake_repository, get_preview_quota, get_report_pipeline, get_reverse_geocoder, get_storage
 
 
 TEST_USER_ID = UUID("00000000-0000-0000-0000-000000000030")
@@ -237,6 +237,10 @@ def fake_geocoder():
 def client(fake_repository, fake_storage):
     app.dependency_overrides[get_intake_repository] = lambda: fake_repository
     app.dependency_overrides[get_storage] = lambda: fake_storage
+    app.dependency_overrides[require_user] = lambda: AuthUser(TEST_USER_ID, "test@example.com", "测试用户")
+    async def fake_preview_quota(user, session_id):
+        return {"status": "consumed", "period_key": "2026-08-25", "used": 1, "limit": 3, "remaining": 2}
+    app.dependency_overrides[get_preview_quota] = lambda: fake_preview_quota
     async def fake_report_pipeline(request, user_id, background_tasks):
         return {"query_key": f"{user_id}::{request.prefecture}::{request.city}::{request.ward}::{request.asset_type}::{request.year}::{request.month}", "job_id": "test-job", "status": "pending", "cached": False, "title": "测试报告", "report": None}
     app.dependency_overrides[get_report_pipeline] = lambda: fake_report_pipeline

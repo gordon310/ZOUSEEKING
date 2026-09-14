@@ -7,7 +7,7 @@ import hashlib
 import hmac
 import os
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Awaitable, Callable, Dict, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, File, Header, HTTPException, Request, UploadFile
@@ -45,6 +45,8 @@ from ..intake.storage import (
     UnsupportedUpload,
     validate_upload,
 )
+from ..usage.ledger import QuotaExceeded
+from ..usage.quota import consume_current_entitlement
 
 
 router = APIRouter(prefix="/api/intake", tags=["intake"])
@@ -79,6 +81,23 @@ def get_report_pipeline() -> Any:
         return await create_or_get_query_job(request, user_id, background_tasks)
 
     return start
+
+
+def get_preview_quota() -> Callable[[AuthUser, UUID], Awaitable[Any]]:
+    async def consume(user: AuthUser, session_id: UUID) -> Any:
+        fingerprint = f"free-preview:{session_id}:{user.user_id}"
+        async with get_pool().acquire() as conn:
+            async with conn.transaction():
+                return await consume_current_entitlement(
+                    conn,
+                    user=user,
+                    metric="free_preview",
+                    units=1,
+                    idempotency_key=fingerprint,
+                    fingerprint=fingerprint,
+                )
+
+    return consume
 
 
 def _row_value(row: Any, name: str, default: Any = None) -> Any:
@@ -351,10 +370,19 @@ async def create_preview(
     session_id: UUID,
     request: Request,
     x_analysis_session: Optional[str] = Header(default=None, alias="X-Analysis-Session"),
+    user: AuthUser = Depends(require_user),
     repository: IntakeRepository = Depends(get_intake_repository),
+    consume_preview: Callable[[AuthUser, UUID], Awaitable[Any]] = Depends(get_preview_quota),
 ) -> FreePreviewResponse:
     await _require_editable_session(repository, session_id, x_analysis_session)
     await _enforce_rate_limit(repository, request, "preview_create", 20, scope=f"session:{session_id}")
+    try:
+        await consume_preview(user, session_id)
+    except QuotaExceeded as exc:
+        raise HTTPException(
+            status_code=429,
+            detail={"code": "quota_exceeded", "message": "free preview quota exceeded"},
+        ) from exc
     fields = await repository.get_fields(session_id)
     preview = build_free_preview(fields)
     await repository.save_preview(session_id, preview)

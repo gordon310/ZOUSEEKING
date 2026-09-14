@@ -5,6 +5,7 @@ from uuid import UUID
 import pytest
 
 from backend.app.analysis.routes import AnalysisRequest, DbAnalysisStore, aggregate_rows
+from backend.app.auth import AuthUser
 
 
 class MeterConnection:
@@ -15,8 +16,20 @@ class MeterConnection:
         self.statements.append(query)
 
     async def fetchrow(self, query, *args):
+        if "user_profiles" in query:
+            return {"membership_tier": "free_b", "audience": "b"}
+        if "organization_members" in query:
+            return None
+        if "plan_entitlements" in query:
+            return {"limit_units": 5}
+        if "usage_idempotency" in query:
+            return None
         if "from public.usage_quotas" in query:
             return {"consumed_units": 1, "reserved_units": 0, "limit_units": 5}
+        if "update public.usage_quotas" in query:
+            if "set limit_units" in query:
+                return {"consumed_units": 1, "reserved_units": 0, "limit_units": 5}
+            return {"consumed_units": 2, "reserved_units": 0, "limit_units": 5}
         raise AssertionError(f"unexpected fetchrow: {query}")
 
 
@@ -26,14 +39,13 @@ async def test_meter_writes_stats_usage_event_and_idempotency() -> None:
 
     result = await DbAnalysisStore()._meter(
         conn,
-        "user:00000000-0000-0000-0000-000000000030",
-        5,
-        UUID("00000000-0000-0000-0000-000000000030"),
+        AuthUser(UUID("00000000-0000-0000-0000-000000000030"), "member@example.com", "Member"),
+        AnalysisRequest(metric="sale", layout="1LDK"),
     )
 
     assert result["remaining"] == 3
-    assert any("usage_events" in statement and "stats_query" in statement for statement in conn.statements)
-    assert any("usage_idempotency" in statement and "stats_query" in statement for statement in conn.statements)
+    assert any("usage_events" in statement for statement in conn.statements)
+    assert any("usage_idempotency" in statement for statement in conn.statements)
 
 
 def test_aggregate_rows_uses_numeric_fields_and_keeps_sample_counts() -> None:

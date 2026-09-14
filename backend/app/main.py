@@ -5,6 +5,7 @@ import json
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
+from uuid import UUID
 
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -34,6 +35,8 @@ from .usage.routes import router as usage_router
 from .member.routes import router as member_router
 from .exports.routes import router as exports_router
 from .analysis.routes import router as analysis_router
+from .usage.ledger import QuotaExceeded
+from .usage.quota import consume_current_entitlement
 
 
 ALLOWED_ORIGINS = [
@@ -181,47 +184,23 @@ async def _has_report_unlock(conn: Any, user_id: Any, report_key: str) -> bool:
 
 
 async def _consume_c_plus_report_quota(user_id: Any, report_key: str) -> bool:
-    """Consume one C Plus report slot once, keyed by the generated report."""
-    period_key = _current_month_key()
-    scope_key = f"user:{user_id}"
+    """Consume the configured report entitlement once per generated report."""
+    user = AuthUser(UUID(str(user_id)), "", "")
     async with get_pool().acquire() as conn:
         async with conn.transaction():
-            sub = await conn.fetchrow(
-                "select 1 from public.subscriptions"
-                " where user_id=$1 and product_code='c_plus_monthly'"
-                "   and status in ('active', 'trialing')"
-                "   and (current_period_end is null or current_period_end > now())"
-                " limit 1",
-                user_id,
+            profile = await conn.fetchrow(
+                "select membership_tier from public.user_profiles where user_id=$1", user.user_id
             )
-            if sub is None:
+            if not profile or profile["membership_tier"] != "c_plus":
                 return False
-            await conn.execute(
-                "insert into public.usage_quotas"
-                " (scope_key, usage_kind, period_key, limit_units)"
-                " values ($1, 'report', $2, 12)"
-                " on conflict (scope_key, usage_kind, period_key) do nothing",
-                scope_key, period_key,
+            await consume_current_entitlement(
+                conn,
+                user=user,
+                metric="report",
+                units=1,
+                idempotency_key=f"report:{report_key}",
+                fingerprint=f"report:{report_key}",
             )
-            fingerprint = f"c-plus-report:{report_key}"
-            event = await conn.fetchrow(
-                "insert into public.usage_events"
-                " (scope_key, usage_kind, operation, units, period_key, idempotency_key, fingerprint, actor_user_id)"
-                " values ($1, 'report', 'consume', 1, $2, $3, $3, $4)"
-                " on conflict (scope_key, usage_kind, operation, fingerprint) do nothing"
-                " returning id",
-                scope_key, period_key, fingerprint, user_id,
-            )
-            if event is None:
-                return True
-            updated = await conn.execute(
-                "update public.usage_quotas set consumed_units=consumed_units+1"
-                " where scope_key=$1 and usage_kind='report' and period_key=$2"
-                " and consumed_units + reserved_units < limit_units",
-                scope_key, period_key,
-            )
-            if not updated or int(updated.split()[-1]) != 1:
-                raise RuntimeError("subscription report quota exhausted")
             return True
 
 
@@ -467,6 +446,17 @@ async def create_or_get_query_job(
             if existing:
                 return {"query_key": key, "status": "completed", "cached": True, "title": title, "job_id": None, "report": row_to_report(existing)}
 
+            existing_query = await conn.fetchrow("select id from queries where query_key=$1", key)
+            if existing_query is None:
+                await consume_current_entitlement(
+                    conn,
+                    user=AuthUser(UUID(str(user_id)), "", ""),
+                    metric="query",
+                    units=1,
+                    idempotency_key=f"query:{key}",
+                    fingerprint=f"query:{key}",
+                )
+
             query_id = await conn.fetchval(
                 """
                 insert into queries(query_key, owner_user_id, prefecture, city, ward, asset_type, year, month, status)
@@ -507,7 +497,10 @@ async def query_report(
     background_tasks: BackgroundTasks,
     user: AuthUser = Depends(require_user),
 ) -> QueryResponse:
-    result = await create_or_get_query_job(request, str(user.user_id), background_tasks)
+    try:
+        result = await create_or_get_query_job(request, str(user.user_id), background_tasks)
+    except QuotaExceeded:
+        return JSONResponse(status_code=429, content={"error": {"code": "quota_exceeded", "message": "query quota exceeded"}})
     return QueryResponse(query_key=result["query_key"], status=result["status"], cached=result["cached"], title=result["title"], job_id=result["job_id"], report=result["report"], message="命中历史数据" if result["cached"] else "已创建生成任务")
 
 

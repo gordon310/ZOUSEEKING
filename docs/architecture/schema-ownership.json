@@ -33,7 +33,8 @@
     "20260912000400_user_profile_on_signup.sql",
     "20260912000500_user_profile_audience.sql",
     "20260912000600_exports.sql",
-    "20260914000100_owner_boundary_comments.sql"
+    "20260914000100_owner_boundary_comments.sql",
+    "20260914000200_realtime_authenticated_quota.sql"
   ],
   "legacy_sql_files": [
     "backend/sql/001_foundation_data_contract.sql",

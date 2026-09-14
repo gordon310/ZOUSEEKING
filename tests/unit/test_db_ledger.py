@@ -34,6 +34,8 @@ import pytest_asyncio
 from tests.support.pg_bootstrap import apply_migrations
 
 from backend.app.usage.db_ledger import PostgresLedger
+from backend.app.auth import AuthUser
+from backend.app.usage.quota import consume_current_entitlement
 from backend.app.usage.ledger import (
     IdempotencyConflict,
     LedgerSummary,
@@ -220,6 +222,60 @@ async def count_events(pool: asyncpg.Pool) -> int:
 async def count_idempotency(pool: asyncpg.Pool) -> int:
     async with pool.acquire() as conn:
         return await conn.fetchval("select count(*) from public.usage_idempotency")
+
+
+async def provision_live_entitlement(pool: asyncpg.Pool, limit: int) -> None:
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "insert into public.pricing_plans(plan_code,name,audience,monthly_query_limit,monthly_report_quota,subscription_slots,export_rows_monthly) "
+            "values('free_b','test','b',0,0,0,0) on conflict(plan_code) do nothing"
+        )
+        await conn.execute("update public.user_profiles set membership_tier='free_b', audience='b' where user_id=$1", OWNER_ID)
+        await conn.execute("delete from public.plan_entitlements where plan_code='free_b' and metric='query' and period='month'")
+        await conn.execute(
+            "insert into public.plan_entitlements(plan_code,metric,period,limit_units,active,effective_from,created_by) values('free_b','query','month',$1,true,now(),$2)",
+            limit, OWNER_ID,
+        )
+
+
+async def test_realtime_entitlement_update_is_used_on_next_request(test_pool) -> None:
+    await provision_live_entitlement(test_pool, 1)
+    user = AuthUser(OWNER_ID, "owner@example.com", "Owner")
+    async with test_pool.acquire() as conn:
+        async with conn.transaction():
+            first = await consume_current_entitlement(
+                conn, user=user, metric="query", units=1,
+                idempotency_key="live-1", fingerprint="live-1",
+            )
+    assert (first.used, first.limit, first.remaining) == (1, 1, 0)
+    await provision_live_entitlement(test_pool, 2)
+    async with test_pool.acquire() as conn:
+        async with conn.transaction():
+            second = await consume_current_entitlement(
+                conn, user=user, metric="query", units=1,
+                idempotency_key="live-2", fingerprint="live-2",
+            )
+    assert (second.used, second.limit, second.remaining) == (2, 2, 0)
+
+
+async def test_realtime_concurrent_consumption_does_not_oversell(test_pool) -> None:
+    await provision_live_entitlement(test_pool, 1)
+    user = AuthUser(OWNER_ID, "owner@example.com", "Owner")
+
+    async def consume(key: str) -> object:
+        async with test_pool.acquire() as conn:
+            async with conn.transaction():
+                try:
+                    return await consume_current_entitlement(
+                        conn, user=user, metric="query", units=1,
+                        idempotency_key=key, fingerprint=key,
+                    )
+                except QuotaExceeded:
+                    return "quota_exceeded"
+
+    results = await asyncio.gather(consume("race-1"), consume("race-2"))
+    assert sum(item != "quota_exceeded" for item in results) == 1
+    assert sum(item == "quota_exceeded" for item in results) == 1
 
 
 # --------------------------------------------------------------------------

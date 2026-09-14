@@ -17,6 +17,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from ..auth import AuthUser, require_user
 from ..billing.entitlements import plan_for_tier
 from ..db import get_pool
+from ..usage.quota import consume_current_entitlement
+from ..usage.ledger import QuotaExceeded
 
 
 UTC_PLUS_8 = timezone(timedelta(hours=8), name="UTC+08:00")
@@ -161,56 +163,26 @@ class DbExportStore:
         async with pool.acquire() as conn:
             async with conn.transaction():
                 limit = await self._export_limit(conn, user.user_id)
-                rows = await self._owned_rows(conn, user.user_id, query_ids, limit)
+                rows = await self._owned_rows(conn, user.user_id, query_ids, max(limit, 1000))
                 if not rows:
                     raise EmptyExport("no owned reports are available for export")
                 csv_content = build_csv(self._csv_rows(rows))
                 row_count = len(rows)
-                if row_count > limit:
-                    raise ExportQuotaExceeded("export row quota exceeded")
                 export_id = uuid4()
-                period_key = datetime.now(timezone.utc).astimezone(UTC_PLUS_8).strftime("%Y-%m")
-                scope_key = f"user:{user.user_id}"
-                await conn.execute(
-                    """
-                    insert into public.usage_quotas(scope_key, usage_kind, period_key, limit_units)
-                    values($1, 'export_row', $2, $3)
-                    on conflict(scope_key, usage_kind, period_key) do nothing
-                    """, scope_key, period_key, limit,
-                )
-                quota = await conn.fetchrow(
-                    """
-                    select consumed_units, reserved_units, limit_units
-                    from public.usage_quotas
-                    where scope_key=$1 and usage_kind='export_row' and period_key=$2 for update
-                    """, scope_key, period_key,
-                )
-                if quota is None or int(quota["limit_units"]) < limit or int(quota["consumed_units"]) + int(quota["reserved_units"]) + row_count > int(quota["limit_units"]):
-                    raise ExportQuotaExceeded("export row quota exceeded")
                 fingerprint = f"export:{export_id}:{row_count}"
+                await consume_current_entitlement(
+                    conn,
+                    user=user,
+                    metric="export_row",
+                    units=row_count,
+                    idempotency_key=fingerprint,
+                    fingerprint=fingerprint,
+                )
                 await conn.execute(
                     """
                     insert into public.exports(id, owner_user_id, status, row_count, csv_content)
                     values($1, $2, 'completed', $3, $4)
                     """, export_id, user.user_id, row_count, csv_content,
-                )
-                await conn.execute(
-                    """
-                    insert into public.usage_events(scope_key, usage_kind, operation, units, period_key, idempotency_key, fingerprint, actor_user_id)
-                    values($1, 'export_row', 'consume', $2, $3, $4, $5, $6)
-                    """, scope_key, row_count, period_key, f"export:{export_id}", fingerprint, user.user_id,
-                )
-                await conn.execute(
-                    """
-                    insert into public.usage_idempotency(scope_key, usage_kind, operation, idempotency_key, fingerprint)
-                    values($1, 'export_row', 'consume', $2, $3)
-                    """, scope_key, f"export:{export_id}", fingerprint,
-                )
-                await conn.execute(
-                    """
-                    update public.usage_quotas set consumed_units=consumed_units+$1
-                    where scope_key=$2 and usage_kind='export_row' and period_key=$3
-                    """, row_count, scope_key, period_key,
                 )
                 created = await conn.fetchrow(
                     "select id, status, row_count, created_at from public.exports where id=$1", export_id
@@ -254,7 +226,7 @@ async def create_export(
         raise HTTPException(status_code=403, detail="requested report is not available to this user") from exc
     except EmptyExport as exc:
         raise HTTPException(status_code=422, detail="no owned reports are available for export") from exc
-    except ExportQuotaExceeded:
+    except (ExportQuotaExceeded, QuotaExceeded):
         return _quota_error()
     except (asyncpg.UndefinedTableError, asyncpg.UndefinedColumnError) as exc:
         raise HTTPException(status_code=503, detail="export service is not configured") from exc

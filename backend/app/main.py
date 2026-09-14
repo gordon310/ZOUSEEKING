@@ -48,6 +48,10 @@ ALLOWED_ORIGINS = [
     if origin.strip()
 ]
 SCHEMA_INIT_ENVIRONMENTS = {"local", "development", "test"}
+JPHOUSE_MARKET_SOURCE_ID = os.getenv(
+    "JPHOUSE_MARKET_SOURCE_ID",
+    "bf4b6d56-f7ed-4e66-b599-3900e22001d6",
+).strip()
 
 
 def should_init_schema() -> bool:
@@ -135,6 +139,14 @@ def report_status_for_report(*, has_snapshot: bool) -> str:
     """Map generation coverage to the canonical terminal report status."""
 
     return "full_report" if has_snapshot else "insufficient_data"
+
+
+def source_id_for_report(*, report_status: str, data_class: str | None) -> str | None:
+    """Bind published market reports to the registered authorised source."""
+
+    if report_status in {"free_preview", "full_report"} and data_class == "scraped_aggregate":
+        return JPHOUSE_MARKET_SOURCE_ID
+    return None
 
 
 def _row_get(row: Any, name: str, fallback: Any = None) -> Any:
@@ -277,10 +289,10 @@ async def save_report(query_id: str, owner_user_id: str, report: dict[str, Any])
             """
             insert into property_reports
               (query_id, owner_user_id, query_key, slug, title, publish_month, markdown, xhs_content, rental, sale, summary, images, data_sources, raw_record,
-               report_status, data_class, source_period, observed_at, transformation_version, limitations)
+               report_status, data_class, source_id, source_period, observed_at, transformation_version, report_version, limitations)
             values
               ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11::jsonb, $12::jsonb, $13::jsonb, $14::jsonb,
-               $15, $16::public.data_class, $17, $18, $19, $20)
+               $15, $16::public.data_class, $17, $18, $19, $20, $21, $22)
             on conflict (query_id) do update set
               query_key = excluded.query_key,
               slug = excluded.slug,
@@ -296,9 +308,11 @@ async def save_report(query_id: str, owner_user_id: str, report: dict[str, Any])
               raw_record = excluded.raw_record,
               report_status = excluded.report_status,
               data_class = excluded.data_class,
+              source_id = excluded.source_id,
               source_period = excluded.source_period,
               observed_at = excluded.observed_at,
               transformation_version = excluded.transformation_version,
+              report_version = excluded.report_version,
               limitations = excluded.limitations,
               updated_at = now()
             """,
@@ -318,9 +332,11 @@ async def save_report(query_id: str, owner_user_id: str, report: dict[str, Any])
             json.dumps(report["raw_record"], ensure_ascii=False),
             report["report_status"],
             report.get("data_class"),
+            report.get("source_id"),
             report.get("source_period"),
             report.get("observed_at"),
             report.get("transformation_version"),
+            report.get("report_version"),
             report.get("limitations"),
         )
 
@@ -344,9 +360,11 @@ async def run_generation_job(job_id: str, query_id: str, owner_user_id: str, req
             report.update(
                 report_status=report_status_for_report(has_snapshot=True),
                 data_class="scraped_aggregate",
+                source_id=source_id_for_report(report_status="full_report", data_class="scraped_aggregate"),
                 source_period=snapshot.sale_period or f"{request.year}-{request.month:02d}",
                 observed_at=datetime.now(timezone.utc),
                 transformation_version="market-engine-v1",
+                report_version="market-engine-v1",
                 limitations="中古マンション成交均价的授权聚合口径；不包含挂牌价、租金或单套估价。",
             )
         else:

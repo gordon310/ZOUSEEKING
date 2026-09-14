@@ -6,8 +6,8 @@ import {
   generatePreview,
   getValidAccessToken,
   uploadFiles,
-} from "./api-client.js?v=20260914-r34";
-import { extractPropertyFields } from "./property-intake-extraction.js?v=20260914-r34";
+} from "./api-client.js?v=20260914-r35";
+import { extractPropertyFields } from "./property-intake-extraction.js?v=20260914-r35";
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const INTAKE_SESSION_KEY = "zou_house_property_intake_session";
@@ -222,6 +222,15 @@ function setStatus(message, tone = "error") {
   if (message) {
     elements.status.focus?.();
   }
+}
+
+function setStatusWithLoginLink(message) {
+  setStatus(message, "info");
+  if (!elements.status) return;
+  const link = document.createElement("a");
+  link.href = "profile.html?role=consumer#accountPanel";
+  link.textContent = ` ${t("auth.loginAgain", "前往登录")}`;
+  elements.status.append(link);
 }
 
 function setBusy(button, busy, busyLabel) {
@@ -955,10 +964,16 @@ async function saveProject() {
   const hadSupabaseSession = Boolean(window.ZouAuthSession?.read?.()?.provider === "supabase");
   const accessToken = await getValidAccessToken();
   if (!accessToken) {
-    setStatus(hadSupabaseSession
-      ? t("auth.sessionExpired", "登录状态已过期，请重新登录。")
-      : t("intake.loginRequiredToSave", "请先登录或注册，再回来保存这个项目。匿名项目会保留到 24 小时到期。"), "info");
-    if (!hadSupabaseSession) window.location.href = "profile.html?role=consumer#accountPanel";
+    const sessionStillPresent = Boolean(window.ZouAuthSession?.read?.()?.provider === "supabase");
+    const refreshRejected = Boolean(window.ZouAuthSession?.wasRefreshRejected?.());
+    if ((hadSupabaseSession || refreshRejected) && !sessionStillPresent) {
+      setStatusWithLoginLink(t("auth.sessionExpired", "登录状态已过期，请重新登录。"));
+    } else {
+      setStatus(hadSupabaseSession
+        ? t("auth.sessionRefreshFailed", "暂时无法续期登录状态，请稍后重试。")
+        : t("intake.loginRequiredToSave", "请先登录或注册，再回来保存这个项目。匿名项目会保留到 24 小时到期。"), "info");
+      if (!hadSupabaseSession) window.location.href = "profile.html?role=consumer#accountPanel";
+    }
     return;
   }
   const session = state.session;

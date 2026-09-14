@@ -5,14 +5,14 @@ const vm = require("node:vm");
 
 const source = fs.readFileSync("web/js/auth-session.js", "utf8");
 
-function createHarness({ session, refreshResponse, refreshReject = false, storageWriteReject = false, initialStorageKey = "sb-example-auth-token" }) {
+function createHarness({ session, refreshResponse, refreshReject = false, refreshStatus = 400, storageWriteReject = false, initialStorageKey = "sb-example-auth-token" }) {
   const values = new Map([[initialStorageKey, JSON.stringify(session)]]);
   let refreshCalls = 0;
   const events = [];
   const fetch = async (url) => {
     refreshCalls += 1;
     if (refreshReject) {
-      return { ok: false, json: async () => ({ error: "invalid_grant" }) };
+      return { ok: false, status: refreshStatus, json: async () => ({ error: refreshStatus === 400 ? "invalid_grant" : "server_error" }) };
     }
     return { ok: true, json: async () => refreshResponse };
   };
@@ -48,7 +48,7 @@ const expiredSession = {
   expiresAt: Math.floor(Date.now() / 1000) - 3600,
 };
 
-test("expired sessions are not logged in before refresh and refresh to a usable token", async () => {
+test("expired access tokens remain logged in while a refresh token can renew the session", async () => {
   const harness = createHarness({
     session: expiredSession,
     refreshResponse: {
@@ -59,10 +59,12 @@ test("expired sessions are not logged in before refresh and refresh to a usable 
     },
   });
 
-  assert.equal(harness.auth.isLoggedIn(), false);
+  assert.equal(harness.auth.isLoggedIn(), true);
+  assert.equal(harness.auth.hasFreshAccessToken(), false);
   const refreshed = await harness.auth.ensureValidSession();
   assert.equal(refreshed.accessToken, "new-token");
   assert.equal(harness.auth.isLoggedIn(), true);
+  assert.equal(harness.auth.hasFreshAccessToken(), true);
   assert.equal(harness.auth.getAccessToken(), "new-token");
   const stored = JSON.parse(harness.values.get("sb-example-auth-token"));
   assert.equal(stored.access_token, "new-token");
@@ -166,7 +168,7 @@ test("concurrent refresh requests share one in-flight refresh", async () => {
   assert.equal(harness.getRefreshCalls(), 1);
 });
 
-test("failed refresh clears the session and exposes an actionable expiry message", async () => {
+test("explicitly rejected refresh clears the session and exposes an actionable expiry message", async () => {
   const harness = createHarness({ session: expiredSession, refreshReject: true });
 
   const result = await harness.auth.ensureValidSession();
@@ -177,4 +179,13 @@ test("failed refresh clears the session and exposes an actionable expiry message
   assert.match(harness.auth.sessionExpiredMessage("en"), /session has expired/i);
   assert.match(harness.auth.sessionExpiredMessage("ja"), /ログイン状態の有効期限/);
   assert.match(harness.auth.sessionExpiredMessage("zh-CN"), /登录状态已过期/);
+});
+
+test("transient refresh failure preserves the renewable session", async () => {
+  const harness = createHarness({ session: expiredSession, refreshReject: true, refreshStatus: 503 });
+
+  const result = await harness.auth.ensureValidSession();
+  assert.equal(result, null);
+  assert.equal(harness.auth.isLoggedIn(), true);
+  assert.equal(harness.values.has("sb-example-auth-token"), true);
 });

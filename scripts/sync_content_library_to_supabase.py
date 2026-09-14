@@ -5,6 +5,8 @@ from getpass import getpass
 from pathlib import Path
 from urllib.request import Request, urlopen
 
+from backend.app.jphouse_service import normalize_query_ward
+
 
 ROOT = Path(__file__).resolve().parents[1]
 WEB_LIBRARY = ROOT / "web" / "content-library.json"
@@ -40,21 +42,21 @@ def compact(text: str) -> str:
 
 
 def record_location(record):
-    title = record.get("title", "")
-    if title.startswith("东京"):
-        return {"prefecture": "东京都", "city": "东京23区", "ward": title.removeprefix("东京").split("塔楼")[0]}
-    if title.startswith("大阪"):
-        return {"prefecture": "大阪府", "city": "大阪市", "ward": title.removeprefix("大阪").split("塔楼")[0]}
-    if title.startswith("横滨"):
-        return {"prefecture": "神奈川县", "city": "横滨市", "ward": title.removeprefix("横滨").split("塔楼")[0]}
-    return {"prefecture": "", "city": "", "ward": ""}
+    """Read the canonical C-end location fields; never infer them from title text."""
+
+    prefecture = str(record.get("prefecture") or "").strip()
+    city = str(record.get("city") or "").strip()
+    ward = normalize_query_ward(record.get("ward"))
+    if not prefecture or not city:
+        return {"prefecture": "", "city": "", "ward": ""}
+    return {"prefecture": prefecture, "city": city, "ward": ward}
 
 
 def query_key(loc, asset_type, publish_month):
     match = re.match(r"([0-9]{4})年([0-9]{1,2})月", publish_month or "")
     year = match.group(1) if match else "2026"
     month = str(int(match.group(2))) if match else "8"
-    return "::".join([loc["prefecture"], loc["city"], loc["ward"] or "全部区", asset_type, year, month])
+    return "::".join([loc["prefecture"], loc["city"], normalize_query_ward(loc.get("ward")), asset_type, year, month])
 
 
 def request_json(url, method="GET", payload=None):
@@ -108,28 +110,8 @@ def main():
                 "xhs_draft": record.get("markdown", ""),
             },
         )
-        query_id = query_rows[0]["id"] if query_rows else None
-        request_json(
-            "/property_reports?on_conflict=query_key",
-            "POST",
-            {
-                "query_id": query_id,
-                "query_key": key,
-                "slug": record["slug"],
-                "title": record["title"],
-                "publish_month": record["publish_month"],
-                "markdown": record.get("markdown", ""),
-                "xhs_content": record.get("xhs_content") or record.get("markdown", ""),
-                "rental": record.get("rental", []),
-                "sale": record.get("sale", []),
-                "summary": record.get("summary", {}),
-                "images": record.get("images", []),
-                "data_sources": record.get("data_sources", []),
-                "raw_record": record,
-            },
-        )
         synced += 1
-    print(json.dumps({"synced": synced}, ensure_ascii=False, indent=2))
+    print(json.dumps({"synced_queries": synced, "reports_written": 0, "report_generation": "authenticated_regular_path_required"}, ensure_ascii=False, indent=2))
 
 
 REQUEST_CONTEXT = {"supabase_url": "", "service_role_key": ""}

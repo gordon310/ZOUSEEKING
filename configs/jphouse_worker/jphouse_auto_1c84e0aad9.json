@@ -2,8 +2,9 @@
   "template_name": "jphouse",
   "slug": "jphouse_auto_1c84e0aad9",
   "title": "大阪府大阪市生野区一户建，租还是买？",
-  "publish_month": "2026年8月",
-  "generated_at": "2026-08-24",
+  "publish_month": "2026年9月",
+  "generated_at": "2026-09-14",
+  "location": {"prefecture": "大阪府", "city": "大阪市", "ward": "生野区"},
   "status": "generated",
   "cover": {
     "line1": "大阪府大阪市生野区",
@@ -25,7 +26,7 @@
   "sections": {
     "rental": {
       "title": "租房子",
-      "subtitle": "大阪府大阪市生野区公开相场估算 · 2026年8月",
+      "subtitle": "大阪府大阪市生野区公开相场估算 · 2026年9月",
       "note": "汇率约算：100日元≈4.23RMB。当前为模型估算，等真实采集器补强。",
       "rows": [
         {
@@ -56,7 +57,7 @@
     },
     "sale": {
       "title": "买房子",
-      "subtitle": "大阪府大阪市生野区中古房价估算 · 2026年8月",
+      "subtitle": "大阪府大阪市生野区中古房价估算 · 2026年9月",
       "note": "价格按区域等级、房型面积和资产类型估算。",
       "rows": [
         {

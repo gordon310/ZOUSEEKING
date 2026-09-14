@@ -216,9 +216,11 @@ test("authenticated preview sends the Supabase access token", async ({ page }) =
       provider: "supabase",
       username: "temporary-preview-test",
       accessToken: "preview-access-token",
+      refreshToken: "preview-refresh-token",
     };
     window.localStorage.setItem("sb-zou-house-auth-token", JSON.stringify({
       access_token: "preview-access-token",
+      refresh_token: "preview-refresh-token",
       expires_at: Math.floor(Date.now() / 1000) + 3600,
       user: { id: "temporary-preview-test" },
     }));
@@ -284,7 +286,7 @@ test("anonymous save keeps the C-end login flow on the consumer account page", a
 test("ready report is the only next action after saving", async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.setItem("zou_house_session", JSON.stringify({
-      provider: "supabase", username: "Gordon", accessToken: "test-access-token",
+      provider: "supabase", username: "Gordon", accessToken: "test-access-token", refreshToken: "test-refresh-token",
     }));
   });
   await page.goto("/property-analysis.html?ready=1&lang=zh-CN");
@@ -426,7 +428,7 @@ test("duplicate address focuses manual investigation name and can retry", async 
   await page.evaluate(() => {
     window.localStorage.setItem(
       "zou_house_session",
-      JSON.stringify({ provider: "supabase", accessToken: "test-access-token" }),
+      JSON.stringify({ provider: "supabase", username: "test-user", refreshToken: "test-refresh-token", accessToken: "test-access-token" }),
     );
   });
   await page.locator("#saveProjectButton").click();
@@ -448,7 +450,7 @@ test("existing Supabase auth session can save the preview", async ({ page }) => 
   await page.evaluate(() => {
     window.localStorage.setItem(
       "zou_house_session",
-      JSON.stringify({ provider: "supabase", accessToken: "test-access-token" }),
+      JSON.stringify({ provider: "supabase", username: "test-user", refreshToken: "test-refresh-token", accessToken: "test-access-token" }),
     );
   });
   await page.locator("#saveProjectButton").click();
@@ -494,6 +496,7 @@ test("existing auth session is reflected in the save step before preview", async
         email: "gordon@example.com",
         userId: "00000000-0000-0000-0000-000000000030",
         accessToken: "test-access-token",
+        refreshToken: "test-refresh-token",
       }),
     );
   });
@@ -523,9 +526,83 @@ test("认证会话变更事件会即时更新第 5 步保存文案", async ({ pa
   await expect(page.locator("#saveProjectButton")).toHaveText("登录后保存项目");
 });
 
+test("过期 access token with valid refresh token stays logged in and saves without login redirect", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.ZOUSEEKING_SUPABASE_URL = "http://supabase.test";
+    window.ZOUSEEKING_SUPABASE_ANON_KEY = "public-test-key";
+  });
+  await page.route("**/auth/v1/token*", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        access_token: "renewed-access-token",
+        refresh_token: "renewed-refresh-token",
+        expires_in: 3600,
+        user: { id: "test-user", email: "test@example.com", user_metadata: { username: "test-user" } },
+      }),
+    });
+  });
+  await page.goto("/property-analysis.html");
+  await page.getByLabel("物件类型 / 房型").selectOption("tower");
+  await fillLocation(page);
+  await page.getByLabel("物件链接或说明").fill("大阪市北区，售价3500万日元");
+  await page.getByRole("button", { name: "开始整理资料" }).click();
+  await page.getByLabel("售价（日元）").fill("35000000");
+  await page.getByRole("button", { name: "生成免费预览" }).click();
+
+  await page.evaluate(() => {
+    localStorage.setItem("sb-supabase-auth-token", JSON.stringify({
+      access_token: "expired-access-token",
+      refresh_token: "valid-refresh-token",
+      expires_at: Math.floor(Date.now() / 1000) - 60,
+      user: { id: "test-user", email: "test@example.com", user_metadata: { username: "test-user" } },
+    }));
+    window.dispatchEvent(new CustomEvent("zou-auth-session-changed"));
+  });
+  await expect.poll(() => page.evaluate(() => window.ZouAuthSession.isLoggedIn())).toBe(true);
+  await expect(page.locator("#saveProjectButton")).toHaveText("保存这个项目");
+  const convertRequest = page.waitForRequest((request) => request.url().endsWith("/convert") && request.method() === "POST");
+  await page.locator("#saveProjectButton").click();
+  const request = await convertRequest;
+  expect(request.headers().authorization).toBe("Bearer renewed-access-token");
+  await expect(page).toHaveURL(/property-analysis\.html/);
+  await expect(page.getByRole("alert")).toContainText("项目已保存到你的账户");
+});
+
+test("明确无效 refresh token shows a clickable login recovery entry", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.ZOUSEEKING_SUPABASE_URL = "http://supabase.test";
+    window.ZOUSEEKING_SUPABASE_ANON_KEY = "public-test-key";
+  });
+  await page.route("**/auth/v1/token*", async (route) => {
+    await route.fulfill({ status: 400, contentType: "application/json", body: JSON.stringify({ error: "invalid_grant" }) });
+  });
+  await page.goto("/property-analysis.html");
+  await page.getByLabel("物件类型 / 房型").selectOption("tower");
+  await fillLocation(page);
+  await page.getByLabel("物件链接或说明").fill("大阪市北区，售价3500万日元");
+  await page.getByRole("button", { name: "开始整理资料" }).click();
+  await page.getByLabel("售价（日元）").fill("35000000");
+  await page.getByRole("button", { name: "生成免费预览" }).click();
+  await page.evaluate(() => {
+    localStorage.setItem("sb-supabase-auth-token", JSON.stringify({
+      access_token: "expired-access-token",
+      refresh_token: "invalid-refresh-token",
+      expires_at: Math.floor(Date.now() / 1000) - 60,
+      user: { id: "test-user", email: "test@example.com", user_metadata: { username: "test-user" } },
+    }));
+    window.dispatchEvent(new CustomEvent("zou-auth-session-changed"));
+  });
+  await expect.poll(() => page.evaluate(() => window.ZouAuthSession.isLoggedIn())).toBe(true);
+  await page.locator("#saveProjectButton").click();
+  await expect(page.getByRole("alert")).toContainText("登录状态已过期，请重新登录");
+  await expect(page.getByRole("alert").getByRole("link", { name: "前往登录" })).toHaveAttribute("href", "profile.html?role=consumer#accountPanel");
+});
+
 test("save converts the current Tokyo apartment selections", async ({ page }) => {
   await page.addInitScript(() => {
-    window.localStorage.setItem("zou_house_session", JSON.stringify({ provider: "supabase", accessToken: "test-access-token" }));
+    window.localStorage.setItem("zou_house_session", JSON.stringify({ provider: "supabase", username: "test-user", refreshToken: "test-refresh-token", accessToken: "test-access-token" }));
   });
   const convertRequest = page.waitForRequest((request) => request.url().endsWith("/convert") && request.method() === "POST");
   await page.goto("/property-analysis.html");
@@ -548,7 +625,7 @@ test("save converts the current Tokyo apartment selections", async ({ page }) =>
 
 test("save sends current selections when an older unversioned api-client module is cached", async ({ page }) => {
   await page.addInitScript(() => {
-    window.localStorage.setItem("zou_house_session", JSON.stringify({ provider: "supabase", accessToken: "test-access-token" }));
+    window.localStorage.setItem("zou_house_session", JSON.stringify({ provider: "supabase", username: "test-user", refreshToken: "test-refresh-token", accessToken: "test-access-token" }));
   });
   await page.route("**/js/api-client.js**", async (route) => {
     const url = new URL(route.request().url());

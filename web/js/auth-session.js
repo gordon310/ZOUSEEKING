@@ -95,7 +95,13 @@
   function isLoggedIn(session = read()) {
     if (!session?.username || !PROVIDERS.has(session?.provider)) return false;
     if (session.provider === "demo") return true;
-    return Boolean(session.accessToken && expiresAt(session) > Math.floor(Date.now() / 1000) + 60);
+    return Boolean(session.refreshToken);
+  }
+
+  function hasFreshAccessToken(session = read()) {
+    if (!session?.username || !PROVIDERS.has(session?.provider)) return false;
+    if (session.provider === "demo") return true;
+    return Boolean(session.accessToken && expiresAt(session) > nowSeconds() + EXPIRY_SAFETY_WINDOW);
   }
 
   function authConfig() {
@@ -114,7 +120,18 @@
         "Content-Type": "application/json",
       },
     });
-    if (!response.ok) throw new Error("auth_session_invalid");
+    if (!response.ok) {
+      let payload = {};
+      try {
+        payload = await response.json();
+      } catch {
+        // The status code remains sufficient to classify the failure.
+      }
+      const error = new Error("auth_session_invalid");
+      error.status = response.status;
+      error.code = payload.error_code || payload.code || payload.error || "";
+      throw error;
+    }
     return response.json();
   }
 
@@ -136,11 +153,13 @@
   }
 
   let refreshInFlight = null;
+  let refreshRejected = false;
 
   async function refresh(session) {
     if (refreshInFlight) return refreshInFlight;
     const { url, anonKey } = authConfig();
     if (!url || !anonKey || !session?.refreshToken) return null;
+    refreshRejected = false;
     refreshInFlight = (async () => {
       try {
         const data = await request("/token?grant_type=refresh_token", {
@@ -154,9 +173,13 @@
           hasExpiresAt: Object.prototype.hasOwnProperty.call(data || {}, "expires_at"),
           expiresAt: data?.expires_at ?? null,
         });
+        refreshRejected = false;
         return write(fromAuth(data, session));
-      } catch {
-        write(null);
+      } catch (error) {
+        if (errorIsInvalidRefreshToken(error)) {
+          refreshRejected = true;
+          write(null);
+        }
         return null;
       } finally {
         refreshInFlight = null;
@@ -165,12 +188,18 @@
     return refreshInFlight;
   }
 
+  function errorIsInvalidRefreshToken(error) {
+    return error?.code === "invalid_grant"
+      || error?.code === "refresh_token_not_found"
+      || (error?.status === 401 && error?.code === "invalid_token");
+  }
+
   async function ensureValidSession(session = read()) {
     if (!session || !PROVIDERS.has(session.provider)) {
       if (session) write(null);
       return null;
     }
-    if (isLoggedIn(session)) return session;
+    if (hasFreshAccessToken(session)) return session;
     if (session.provider !== "supabase") {
       write(null);
       return null;
@@ -185,7 +214,7 @@
       return null;
     }
     if (session.provider !== "supabase") return session;
-    if (!isLoggedIn(session)) return ensureValidSession(session);
+    if (!hasFreshAccessToken(session)) return ensureValidSession(session);
     const { url, anonKey } = authConfig();
     if (!url || !anonKey || !session.accessToken) {
       if (!session.accessToken) write(null);
@@ -212,12 +241,14 @@
     read,
     write,
     isLoggedIn,
+    hasFreshAccessToken,
+    wasRefreshRejected: () => refreshRejected,
     restore,
     ensureValidSession,
     sessionExpiredMessage,
     getAccessToken: () => {
       const session = read();
-      return isLoggedIn(session) && session.provider === "supabase" ? session.accessToken || "" : "";
+      return hasFreshAccessToken(session) && session.provider === "supabase" ? session.accessToken || "" : "";
     },
     getValidAccessToken: async () => (await ensureValidSession())?.accessToken || "",
     storageKey,

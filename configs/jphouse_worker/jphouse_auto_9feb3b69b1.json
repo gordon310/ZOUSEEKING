@@ -1,18 +1,19 @@
 {
   "template_name": "jphouse",
   "slug": "jphouse_auto_9feb3b69b1",
-  "title": "东京都东京23区港区塔楼，租还是买？",
-  "publish_month": "2026年8月",
-  "generated_at": "2026-08-24",
+  "title": "东京都港区塔楼，租还是买？",
+  "publish_month": "2026年9月",
+  "generated_at": "2026-09-14",
+  "location": {"prefecture": "东京都", "city": "港区", "ward": "未細分"},
   "status": "generated",
   "cover": {
-    "line1": "东京都东京23区港区",
+    "line1": "东京都港区",
     "line2": "塔楼租还是买？",
     "tagline": "我替钱包瞄了一眼",
     "note": "公开相场估算快照"
   },
   "intro": [
-    "东京都东京23区港区，这次先按 JPHOUSE 估算模型生成一份查询快照。",
+    "东京都港区，这次先按 JPHOUSE 估算模型生成一份查询快照。",
     "后续接入实时采集源后，同条件查询会自动更新成真实采集数据。"
   ],
   "explain": [
@@ -25,7 +26,7 @@
   "sections": {
     "rental": {
       "title": "租房子",
-      "subtitle": "东京都东京23区港区公开相场估算 · 2026年8月",
+      "subtitle": "东京都港区公开相场估算 · 2026年9月",
       "note": "汇率约算：100日元≈4.23RMB。当前为模型估算，等真实采集器补强。",
       "rows": [
         {
@@ -56,7 +57,7 @@
     },
     "sale": {
       "title": "买房子",
-      "subtitle": "东京都东京23区港区中古房价估算 · 2026年8月",
+      "subtitle": "东京都港区中古房价估算 · 2026年9月",
       "note": "价格按区域等级、房型面积和资产类型估算。",
       "rows": [
         {

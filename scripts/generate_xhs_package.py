@@ -192,11 +192,10 @@ def library_record(config, markdown):
     rental_rows = config["sections"]["rental"]["rows"]
     sale_rows = config["sections"]["sale"]["rows"]
     layouts = sorted({row["layout"] for row in rental_rows + sale_rows})
-    regions = []
-    for word in ["东京港区", "港区", "中央区", "涩谷区", "新宿区", "大阪", "京都"]:
-        haystack = config["title"] + " " + " ".join(config.get("intro", []))
-        if word in haystack:
-            regions.append(word)
+    location = config.get("location") or {}
+    regions = list(config.get("regions") or [])
+    if not regions and location.get("city"):
+        regions = [location["city"]]
     asset_type = "塔楼" if "塔楼" in config["title"] or "塔楼" in " ".join(config.get("explain", [])) else "房产"
     record = {
         "id": f"{config['slug']}::{config['publish_month']}",
@@ -206,6 +205,9 @@ def library_record(config, markdown):
         "publish_month": config["publish_month"],
         "generated_at": config.get("generated_at", ""),
         "regions": regions or [config["cover"]["line1"]],
+        "prefecture": location.get("prefecture", ""),
+        "city": location.get("city", ""),
+        "ward": location.get("ward", ""),
         "asset_type": asset_type,
         "layouts": layouts,
         "status": config.get("status", "generated"),

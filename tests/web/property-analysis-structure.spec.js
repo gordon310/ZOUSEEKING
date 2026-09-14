@@ -28,3 +28,38 @@ test("location selects live in submit step and confirm step shows a read-only su
     await expect(page.locator(`#submitStep #${id}`)).toHaveAttribute("required", "");
   }
 });
+
+test("confirm step has visible fields after materials are organized", async ({ page }) => {
+  await page.goto("/property-analysis.html?demo=1");
+
+  await page.getByLabel("物件类型 / 房型").selectOption("apartment");
+  await page.getByLabel("都道府县").selectOption("东京都");
+  await page.getByLabel("市").selectOption("港区");
+  await page.getByLabel("区").selectOption("__not_subdivided__");
+  await page.getByLabel("物件链接或说明").fill("港区的物件");
+  await page.getByRole("button", { name: "开始整理资料" }).click();
+
+  const state = await page.locator("#confirmStep").evaluate((section) => ({
+    hidden: section.hidden,
+    offsetHeight: section.offsetHeight,
+    visibleControls: [...section.querySelectorAll("input, select, button")].filter((control) => {
+      const style = getComputedStyle(control);
+      const rect = control.getBoundingClientRect();
+      return style.visibility !== "hidden" && style.display !== "none" && rect.width > 0 && rect.height > 0;
+    }).length,
+    previewButton: (() => {
+      const button = section.querySelector("#previewButton");
+      const rect = button.getBoundingClientRect();
+      const style = getComputedStyle(button);
+      return {
+        visible: !button.hidden && style.visibility !== "hidden" && style.display !== "none" && rect.width > 0 && rect.height > 0,
+        enabled: !button.disabled,
+      };
+    })(),
+  }));
+
+  expect(state.hidden).toBe(false);
+  expect(state.offsetHeight).toBeGreaterThan(0);
+  expect(state.visibleControls).toBeGreaterThan(0);
+  expect(state.previewButton).toEqual({ visible: true, enabled: true });
+});

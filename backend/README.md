@@ -44,15 +44,17 @@ curl http://127.0.0.1:8000/health/ready
 ## 隐私与账户运营边界（离线契约）
 
 - `GET /api/privacy` 公开返回 `privacy-2026-08`、`terms-2026-08`、同意字段、资料保留目标和客服占位入口；它不返回用户资料。
-- `POST /api/account/deletion-request` 只接受已验证 Supabase bearer、当前政策/条款版本和固定确认值 `DELETE_ACCOUNT`。默认删除执行器为 fail-closed：返回 `503` 和 `no account data was changed`，不连接 Auth Admin、数据库或 Storage，也不模拟已删除。
+- `POST /api/account/deletion-request` 只接受已验证 Supabase bearer、当前政策/条款版本和固定确认值 `DELETE_ACCOUNT`。已接通受控删除执行器：先登记台账，提交事务后执行 Auth Admin global logout、长期封禁与软删除/匿名化；缺少 `SUPABASE_SERVICE_ROLE_KEY` 或其他必需配置时仍 fail-closed 返回 `503` 和 `no account data was changed`。
 - 注册同意由前端在提交边界写入 Supabase Auth metadata（版本与 UTC ISO 时间）；当前 legacy localStorage 回退仅供演示，不能作为 production 认证或同意证据。
 - `/recover`、`/logout` 和密码更新仍由 Supabase Auth 负责；FastAPI 不接收密码、refresh token 或客服正文。登录、注册和找回密码文案必须保持账户枚举安全。
 
 `migration_baseline_status = canonical_staging_reconciled_production_pending`；M1 已用
 合成 staging 账号验证 Auth Admin 删除、RLS/Storage 与清理，但没有接通本应用的
 删除执行器、发送通知或执行生产部署。运营主体、客服邮箱、近期重新认证、持续清理器和删除
-执行器仍需单独授权与演练；详见 `docs/legal/privacy-operations-runbook.md`。
-本验收不发送通知，也不使用真实账号或资料。
+执行器不硬删 `auth.users`，因为 `usage_events.actor_user_id` 通过外键保留审计关联，且
+`usage_events` 的 append-only 保护禁止为级联删除而改写/删除事件。用户自有查询/工作区会清除，
+生成的非个人化报告解除属主关联，`user_profiles` 的 PII 匿名化，usage 额度删除；不发送
+通知、不记录 token/PII。持续清理器、备份到期作业和生产演练仍需单独验证。
 
 ## Render environment variables
 

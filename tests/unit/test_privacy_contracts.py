@@ -50,13 +50,13 @@ def test_deletion_plan_has_explicit_internal_sla_deadlines():
     }
 
 
-def test_privacy_metadata_is_public_and_marks_unconfigured_deletion_executor():
+def test_privacy_metadata_is_public_and_describes_controlled_deletion_executor():
     metadata = privacy_metadata()
 
     assert metadata["privacy_policy_version"] == PRIVACY_POLICY_VERSION
     assert metadata["terms_version"] == TERMS_VERSION
     assert metadata["consent"]["accepted_at"] == "client_generated_utc_submission"
     assert metadata["consent"]["timestamp_authority"] == "untrusted_until_server_capture"
-    assert metadata["authentication"]["all_session_revocation"] == "not_verified"
-    assert metadata["account_deletion"]["status"] == "unavailable_without_trusted_executor"
+    assert metadata["authentication"]["all_session_revocation"] == "verified_by_controlled_executor"
+    assert metadata["account_deletion"]["status"] == "controlled_executor"
     assert metadata["support"]["url"] == "/support.html"

@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 from uuid import UUID
 from urllib.error import HTTPError, URLError
@@ -19,6 +19,8 @@ class AuthUser:
     user_id: UUID
     email: str
     username: str
+    # Request-context only; never serialized or logged.
+    access_token: str | None = field(default=None, repr=False)
 
 
 def _fetch_supabase_user(access_token: str) -> dict:
@@ -65,6 +67,7 @@ async def require_user(authorization: Optional[str] = Header(default=None)) -> A
         user_id=user_id,
         email=str(payload.get("email") or ""),
         username=str(metadata.get("username") or metadata.get("name") or payload.get("email") or "用户"),
+        access_token=access_token,
     )
 
 

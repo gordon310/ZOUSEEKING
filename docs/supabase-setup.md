@@ -137,7 +137,9 @@ sink 为 `NOT_EXECUTED`。正式上线前重点检查：
 
 当前契约版本为 `privacy-2026-08` / `terms-2026-08`。注册表单必须主动勾选隐私政策和服务条款；提交边界生成 UTC `consent_at`，并将版本写入 Auth metadata。浏览器时钟和 metadata 仍属于不可信输入，正式上线前需要受信任服务端/Auth 事件补充时间戳核验，不能把当前静态前端结果当作 production 证据。
 
-账户页的删除入口只会在有 FastAPI 地址、Supabase 会话和 bearer token 时调用 `POST /api/account/deletion-request`，请求包含当前版本及固定值 `DELETE_ACCOUNT`。当前 FastAPI 删除执行器未配置时明确返回 `503`（`no account data was changed`），页面显示未删除，不连接 Auth Admin、数据库、RLS、Storage 或备份，也不会发送客服通知。客服与数据主体请求使用静态 [support.html](../web/support.html) 和 `.example` 占位地址，不能视为已接通邮箱。
+账户页的删除入口只会在有 FastAPI 地址、Supabase 会话和 bearer token 时调用 `POST /api/account/deletion-request`，请求包含当前版本及固定值 `DELETE_ACCOUNT`。FastAPI 已接通受控删除执行器：台账先提交，再通过 Auth Admin global logout/长期封禁限制访问，并软删除/匿名化应用数据。缺少必需配置时明确返回 `503`（`no account data was changed`），不会部分执行，也不会发送客服通知。客服与数据主体请求使用静态 [support.html](../web/support.html) 和 `.example` 占位地址，不能视为已接通邮箱。
+
+执行器不硬删 `auth.users`：`public.usage_events.actor_user_id` 依赖该行且 usage events 是 append-only，硬删会触发外键/不可变审计冲突。账户邮箱和 profile PII 会改成不可反查的占位/空值；查询和工作区清除，非个人化生成报告解除属主关联，usage 额度清除，事件行原样保留。
 
 密码找回使用 Supabase Auth 并保持账户枚举安全。M1 已在 staging 验证 token
 确认、密码恢复、refresh rotation、global logout/revocation、Admin hard delete 与

@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import Literal
 
 from ..auth import AuthUser, require_user
+from ..services.account_deletion import ControlledDeletionExecutor
 from ..services.privacy import (
     DeletionServiceUnavailable,
     PRIVACY_POLICY_VERSION,
@@ -35,7 +36,7 @@ class UnavailableDeletionExecutor:
         raise DeletionServiceUnavailable()
 
 
-_deletion_executor = UnavailableDeletionExecutor()
+_deletion_executor = ControlledDeletionExecutor()
 _PUBLIC_DELETION_RECEIPT_FIELDS = {
     "status",
     "request_id",
@@ -49,8 +50,8 @@ _PUBLIC_DELETION_RECEIPT_FIELDS = {
 }
 
 
-def get_deletion_executor() -> UnavailableDeletionExecutor:
-    """Dependency seam for a reviewed, trusted executor in a later release."""
+def get_deletion_executor() -> Any:
+    """Dependency seam for the trusted controlled deletion executor."""
 
     return _deletion_executor
 

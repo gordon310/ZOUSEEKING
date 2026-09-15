@@ -94,6 +94,9 @@ psql "$TEST_DATABASE_URL" -X -v ON_ERROR_STOP=1 -f tests/sql/test_m1_reconciliat
 - 新增 membership、billing、task、contact-consent 或 administrator schema 仍需
   独立设计、迁移审查、备份/恢复和明确批准。
 - 新 schema 变更只能新增到本目录；不在应用启动时初始化 schema。
+- 2026-09-15 新增账户注销台账 `20260915000300_account_deletion_requests.sql`：受控
+  删除只做软删除/匿名化，保留 `auth.users` 与 append-only `usage_events`；发布前需备份，
+  发布后运行 `tests/sql/test_account_deletion_requests.sql`，失败采用 forward-fix。
 - `backend/sql/`、旧 restore 包和 schema dump 只作为历史证据，不是 migration
   history。
 - 每个 migration 必须配套 constraints、focused assertions、backup/restore、

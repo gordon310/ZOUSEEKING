@@ -84,6 +84,15 @@ canonical history 与 staging 的 later-ID reconciliation、provenance constrain
 
 完整文件级盘点见 [`docs/architecture/schema-ownership-audit.md`](architecture/schema-ownership-audit.md)。金额、面积和位置继续以带单位/币种的数值列保存，展示文本不得反向作为分析输入。
 
+## 账户注销台账
+
+| 字段/表 | 含义与约束 |
+| --- | --- |
+| `account_deletion_requests.user_id` | 服务端从已验证 Auth 用户推导；每个用户保留一条可重入台账记录，不能由客户端写入。 |
+| `account_deletion_requests.status` | `pending` / `executing` / `completed` / `failed`；失败记录只保存可读、无堆栈和无 PII 的原因。 |
+| `account_deletion_requests.*_due` | 由服务端 `requested_at` 按 24 小时、24 小时、30 天、90 天 SLA 计算。 |
+| `account_deletion_requests.executed_at` | 受控删除完成时间；`auth.users` 行不硬删，`usage_events` 原样保留以维护 append-only 审计链。 |
+
 ## 报告购买与会员额度
 
 | 字段/计量 | 示例 | 说明 |

@@ -99,7 +99,7 @@ def privacy_metadata() -> dict[str, Any]:
             "provider": "supabase_auth",
             "password_reset_endpoint": "/recover",
             "logout_endpoint": "/logout",
-            "all_session_revocation": "not_verified",
+            "all_session_revocation": "verified_by_controlled_executor",
         },
         "retention_sla": {
             "acknowledgement_hours": 24,
@@ -109,7 +109,7 @@ def privacy_metadata() -> dict[str, Any]:
         },
         "account_deletion": {
             "endpoint": "/api/account/deletion-request",
-            "status": "unavailable_without_trusted_executor",
+            "status": "controlled_executor",
             "no_side_effect_on_unavailable": True,
         },
         "support": {

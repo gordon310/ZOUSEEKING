@@ -77,7 +77,8 @@ N1 首次发版引入**线上 500 回归**:`backend/app/auth.py` 的 `require_us
 | **C2** | `location` 接口要求 `accuracy_m`,直接调 API 会 422(前端流程不受影响) | 待确认前端是否总是传全 |
 | **C3** | `pip check` 报缺 `packaging`(环境项,非产品缺陷) | 已记录 |
 | **C4** | 迁移未录入 `supabase_migrations.schema_migrations`(2026091x 起的历史实践即如此) | 卫生项,建议后续统一 |
-| **C5** | 4 个 SQL 测试文件**从未进 CI**(`test_analysis_query` / `test_exports_query` / `test_member_query` / `test_realtime_quota_migration_additive`)—— 该仓库每个 `tests/sql/*.sql` 都要显式登记 step + 两处 `REQUIRED_CHECKS`,漏登记即零拦截(本轮新增的 `test_account_deletion_requests` 已按规范接入) | 待派工补齐(注意:这些文件从未在 CI 跑过,可能已过期) |
+| **C5** | 4 个 SQL 测试文件从未进 CI | ✅ **已修复**:`sql-analysis` / `sql-exports` / `sql-member` / `sql-realtime-quota` 四个 step + 两处 `REQUIRED_CHECKS` 已接入;其中 `test_realtime_quota_migration_additive.sql` 的 `pg_read_file`(需超级用户+绝对路径)改为临时表 `\copy`,已实跑通过。**CI run `34920080958` 七 job 全绿** |
+| **C5b** | 接入过程中被 CI 抓到的两个 CI-only 缺陷 | ✅ 已修:①四个新 step 的 psql URL 复制了**掩码显示**,密码变成字面 `***` → psql exit 2(已还原真实 URL);②`property-intake:589` 在会话种子写入前就断言 `isLoggedIn()`,只在 CI 现造的 example 前端配置下暴露(已改为先等种子落盘;两种配置下均 0 failed) |
 | **C6** | 注册邮件的**备份到期(90 天)作业**是否存在,未验证 | 待确认 |
 
 ## 四、部署与回滚

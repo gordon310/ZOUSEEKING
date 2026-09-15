@@ -397,6 +397,14 @@
 - **待 Gordon(均超本班自主边界,未动)**:① SES 生产权限被驳 + `PutAccountDetails` ConflictException → 需给 IAM `zoubeacon-ses-ops` 加 `support:*` 或本人开案;② 4 行历史僵尸报告清理(需批准;不批也会在对应用户下次查询时自愈);③ SES 获批后把 `mailer_autoconfirm` 改 `false` 并验一轮注册确认链路;④ C4 迁移 ledger 卫生(2026091x 起迁移未录入 `supabase_migrations.schema_migrations`)。
 - **红线**:零代码改动、零数据库/线上写、零部署、未触凭据与冻结字段、无删除操作;本班仅文档。
 
+## P2 M1 出口核对 · P1 班次已无单元(2026-09-16 晨班,本 BOT)
+
+- **班前实测**:工作树干净、`main == origin/main == 77fd2cc`;Release Gate `77fd2cc` **success**;线上 `/health/ready` ready、`zoubeacon.app` / `platform.zoubeacon.com/admin.html` 200;本地静态资源 `v=20260914-r35`(无部署漂移);两侧内容库 SHA-256 一致(`86be5284…`);`compileall` + `node --check` 通过;`pytest tests/unit tests/architecture` **380 passed / 85 skipped**;仓库内无 `codex exec`、近 3 小时零写入。**P1 清单已无剩余单元**(09-07 已闭环)→ 本班按任务书转「说明并建议下阶段」。
+- **M1 出口核对(新产出,落档 `docs/superpowers/reports/2026-09-16-p2-m1-exit-audit.md`)**:P2-0 设计 ✅;P2-1 前端 Edge 通道 ✅(前端零 `functions.invoke`,**管理 API 实测 staging 项目 `functions = []`**,线上事实单通道);P2-3b 引擎 ✅(`main.py:415-435` 数值化 + 国交省来源 + `market-engine-v1`,09-15 live 验证 `full_report`)。
+- **M1 仍缺两个有界单元**:① `backend/app/main.py:in_process_regional_report_executor` **仍在生产路径**:`main.py:631/732` 经 `BackgroundTasks.add_task(run_generation_job)` 在 api 进程内跑报告,而 compose 的 `worker` 只跑 `collection_worker.py` → 与 D4/ADR-0001「单一 durable worker 消费 `generation_jobs`」冲突(api 重启即丢在跑任务,靠 09-15 requeue 自愈兜底);② `web/app.js:direct_private_supabase_reads_legacy_view` 未退役(`supabaseUserFetch` 644/750/768/867/1220、`supabaseReportToRecord` 581/1243,五页仍在用)。四项 `frozen_legacy_components` 全数仍在。
+- **建议(待 Gordon 选,推荐置顶)**:D1 派 Codex 做「报告生成入 durable worker」;D2 退役 `app.js` legacy 直读;D3 未部署冻结件(Edge 函数 / `run_jphouse_worker.py`)删除或长期冻结二选一;D4 环境与合规项(SES IAM `support:*`、僵尸报告清理、`mailer_autoconfirm`、迁移台账 C4、`20260904000100` staging 门禁);D5 建议把本班次(job `ab373f6bd99d`)改绑 P2 或停用——已无 P1 单元,与夜班只读核查重复。
+- **红线**:零代码改动、零 DB/线上写、零部署、未触凭据与冻结字段、无删除操作、未改 migration;本班仅文档。
+
 ## Last updated
 
-2026-09-15
+2026-09-16

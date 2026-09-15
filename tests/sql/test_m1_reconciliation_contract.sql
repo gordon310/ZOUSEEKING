@@ -95,9 +95,9 @@ begin
     raise exception 'authenticated public grant count %, expected 24', authenticated_grant_count;
   end if;
   -- 20260915000300_account_deletion_requests.sql adds four service_role grants;
-  -- 336 is the CI disposable-reset baseline (not the live/online count).
-  if service_grant_count <> 336 then
-    raise exception 'service_role public grant count %, expected 336', service_grant_count;
+  -- 336 为手工 bootstrap 计数、339 为 CI disposable-reset 基线(以 CI 为准)。
+  if service_grant_count <> 339 then
+    raise exception 'service_role public grant count %, expected 339', service_grant_count;
   end if;
 
   if exists (

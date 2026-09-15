@@ -90,11 +90,14 @@ begin
   if anon_grant_count <> 1 then
     raise exception 'anon public grant count %, expected 1', anon_grant_count;
   end if;
-  if authenticated_grant_count <> 23 then
-    raise exception 'authenticated public grant count %, expected 23', authenticated_grant_count;
+  -- 20260915000300_account_deletion_requests.sql adds one authenticated SELECT grant.
+  if authenticated_grant_count <> 24 then
+    raise exception 'authenticated public grant count %, expected 24', authenticated_grant_count;
   end if;
-  if service_grant_count <> 332 then
-    raise exception 'service_role public grant count %, expected 332', service_grant_count;
+  -- 20260915000300_account_deletion_requests.sql adds four service_role grants;
+  -- 336 is the CI disposable-reset baseline (not the live/online count).
+  if service_grant_count <> 336 then
+    raise exception 'service_role public grant count %, expected 336', service_grant_count;
   end if;
 
   if exists (

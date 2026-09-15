@@ -35,11 +35,36 @@
 **规矩:验证 C 端接口的请求形状必须取自 `web/field-options.json` + `web/js/property-intake.js`,不得凭直觉拼字段。**
 （同时确认线上环境数据侧正常:容器内 `load_snapshots()` = **64 条**。)
 
-## 二、待你决策 / 待处理
+## 二、账号注销(N1)已实施并 live 验证通过
+
+**问题**:`usage_events` append-only + 外键 `ON DELETE SET NULL` → `DELETE FROM auth.users` 被触发器挡下(实测 `usage_events is append-only; update is forbidden`),用户点注销会失败。
+
+**方案(已批准)**:受控删除 = 软删除 + 匿名化;不拆 append-only 保护、不硬删 `auth.users`。
+
+| 项 | 结果 |
+|---|---|
+| 台账 `account_deletion_requests` | 新建(forward migration `20260915000300`),RLS 仅属主可读、`ON DELETE RESTRICT` |
+| `POST /api/account/deletion-request` | **HTTP 202**;回执**只含白名单 9 个字段**;SLA 24h/24h/30d/90d 全部正确 |
+| 会话吊销 | 提交后旧 access token 调用受保护接口 → **401**(账号 `banned_until` 置为远期) |
+| PII 清除 | `auth.users.email` → `deleted+<uuid>@invalid`;`user_profiles` 邮箱/显示名等清空、配额置 0 |
+| 账本保留 | `auth.users` 行**仍存在**;`usage_events` 行数与内容**未变** |
+| 清理 | 8 类残留计数全 0;过程中未删除任何既有线上数据 |
+| **B5 幂等** | ⚠️ 无法通过公开接口断言:第一次请求即执行全局登出,旧 token 再提交必然 401(`request_id` 一致性无法用公开路径验证)。**不是缺陷**,已在报告标注 |
+
+### ⚠️ 本轮事故(必读)
+N1 首次发版引入**线上 500 回归**:`backend/app/auth.py` 的 `require_user()` 把 token 传给了不存在的变量名 →
+`NameError: name 'access_token' is not defined` → **所有带登录态的接口 500**(匿名页面不受影响),持续约 **19 分钟**,已回滚到 `6fbb528` 恢复。
+**为什么没测出来**:520 个 Python 测试全绿——测试普遍**覆盖了 `require_user` 依赖**,这条路径从未真正执行;前几轮 live 验证也只打了未鉴权路径。
+**修复**:变量名统一 + 新增「**不覆盖依赖、真实跑 `require_user`**」的回归测试(修复前 2 failed 已复现)+ `/api/me` 的 TestClient 冒烟测试;修复后 `525 passed, 86 skipped`。
+**已重新部署并复验**:`GET /api/me` 200、`POST /api/query` 200 → job `completed` → **`full_report`**(真实成交数据,港区塔楼,来源=国交省)。
+
+**教训(已写入技能)**:「测试全绿」不等于「路径被执行」——发版前必须对**真实请求**做一次冒烟,尤其是被依赖覆盖 (dependency override) 包裹的鉴权/中间件路径。
+
+## 三、待你决策 / 待处理
 
 | # | 项 | 状态 |
 |---|---|---|
-| **N1** | 用户注销会报错:`usage_events` append-only + 外键 `ON DELETE SET NULL` → `DELETE FROM auth.users` 被触发器挡下(实测 `usage_events is append-only; update is forbidden`;本轮 2 个临时账号因此删不掉,最后用 `session_replication_role = replica` 的 escape hatch 清理) | **方案已批准(软删除 + 事件行匿名化),已派工实施中** |
+| **N1** | 用户注销(上线前合规项) | ✅ **已完成**:受控删除执行器已上线并 live 验证通过(见第二节) |
 | **N2** | AWS SES 退沙盒审核 | 待用户告知结果(注册邮件仍 2 封/时,是上线硬依赖) |
 | **N3** | 4 行历史僵尸报告(`generating`,分属 `1114513@qq.com` 与测试账号 p2test) | 修复后会在对应账号下次查询时自愈;**本批次未删任何数据**,如需清理先给清单待批 |
 | **N4** | 早班/夜班自主班次与人工会话并发写同一仓库 | 本轮发生过(早班 07:40 起两次派 codex,与 live 验证并发) → 已临时暂停早班、终止并发派工,验证完成后已恢复;后续人工会话期间建议先暂停班次 |
@@ -52,6 +77,8 @@
 | **C2** | `location` 接口要求 `accuracy_m`,直接调 API 会 422(前端流程不受影响) | 待确认前端是否总是传全 |
 | **C3** | `pip check` 报缺 `packaging`(环境项,非产品缺陷) | 已记录 |
 | **C4** | 迁移未录入 `supabase_migrations.schema_migrations`(2026091x 起的历史实践即如此) | 卫生项,建议后续统一 |
+| **C5** | 4 个 SQL 测试文件**从未进 CI**(`test_analysis_query` / `test_exports_query` / `test_member_query` / `test_realtime_quota_migration_additive`)—— 该仓库每个 `tests/sql/*.sql` 都要显式登记 step + 两处 `REQUIRED_CHECKS`,漏登记即零拦截(本轮新增的 `test_account_deletion_requests` 已按规范接入) | 待派工补齐 |
+| **C6** | 注册邮件的**备份到期(90 天)作业**是否存在,未验证 | 待确认 |
 
 ## 四、部署与回滚
 

@@ -28,7 +28,7 @@ begin
   ) then
     raise exception 'owner read policy is missing';
   end if;
-  select pol.using into policy_using
+  select pol.qual into policy_using
   from pg_policies pol
   where pol.schemaname = 'public'
     and pol.tablename = 'account_deletion_requests'

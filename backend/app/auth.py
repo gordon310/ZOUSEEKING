@@ -46,11 +46,11 @@ def _fetch_supabase_user(access_token: str) -> dict:
 async def require_user(authorization: Optional[str] = Header(default=None)) -> AuthUser:
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(status_code=401, detail="登录状态已失效，请重新登录。")
-    token = authorization.split(" ", 1)[1].strip()
-    if not token:
+    access_token = authorization.split(" ", 1)[1].strip()
+    if not access_token:
         raise HTTPException(status_code=401, detail="登录状态已失效，请重新登录。")
     try:
-        payload = await asyncio.to_thread(_fetch_supabase_user, token)
+        payload = await asyncio.to_thread(_fetch_supabase_user, access_token)
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail="认证服务尚未配置") from exc
     except ValueError as exc:

@@ -591,7 +591,17 @@ test("明确无效 refresh token shows a clickable login recovery entry", async 
     window.ZOUSEEKING_SUPABASE_URL = "http://supabase.test";
     window.ZOUSEEKING_SUPABASE_ANON_KEY = "public-test-key";
   });
+  let releaseRefresh;
+  let refreshStarted;
+  const refreshResponseReleased = new Promise((resolve) => {
+    releaseRefresh = resolve;
+  });
+  const refreshRequestStarted = new Promise((resolve) => {
+    refreshStarted = resolve;
+  });
   await page.route("**/auth/v1/token*", async (route) => {
+    refreshStarted();
+    await refreshResponseReleased;
     await route.fulfill({ status: 400, contentType: "application/json", body: JSON.stringify({ error: "invalid_grant" }) });
   });
   await page.goto("/property-analysis.html");
@@ -610,8 +620,11 @@ test("明确无效 refresh token shows a clickable login recovery entry", async 
     }));
     window.dispatchEvent(new CustomEvent("zou-auth-session-changed"));
   });
+  // 刷新失败会清除会话；必须先挂起 token 响应，避免它在登录态断言前完成。
+  await refreshRequestStarted;
   await expect.poll(() => page.evaluate(() => window.ZouAuthSession.read()?.refreshToken)).toBe("invalid-refresh-token");
   await expect.poll(() => page.evaluate(() => window.ZouAuthSession.isLoggedIn())).toBe(true);
+  releaseRefresh();
   await page.locator("#saveProjectButton").click();
   await expect(page.getByRole("alert")).toContainText("登录状态已过期，请重新登录");
   await expect(page.getByRole("alert").getByRole("link", { name: "前往登录" })).toHaveAttribute("href", "profile.html?role=consumer#accountPanel");

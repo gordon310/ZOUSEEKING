@@ -83,6 +83,7 @@ test("认证会话变更事件会立即刷新首页登录状态，登出后立�
 
 test("真实形状的 Supabase 登录响应会持久化会话并进入已登录状态", async ({ page }) => {
   await page.addInitScript(() => {
+    window.ZOUSEEKING_RELEASE_SCOPE = { phase: "development", businessOperations: true, adminOperations: true };
     window.ZOUSEEKING_SUPABASE_URL = "http://127.0.0.1:8787/supabase";
     window.ZOUSEEKING_SUPABASE_ANON_KEY = "public-test-key";
     window.ZOUSEEKING_API_BASE_URL = "https://api.test";
@@ -123,7 +124,7 @@ test("真实形状的 Supabase 登录响应会持久化会话并进入已登录�
 
   await expect(page.locator("#formMessage")).toHaveText("登录成功，可以搜了。");
   await expect(page.locator("#accountTitle")).toHaveText("你好，member");
-  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("sb-supabase-auth-token")));
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("sb-127-auth-token")));
   expect(stored.access_token).toBeTruthy();
   expect(stored.expires_at).toBeGreaterThan(Math.floor(Date.now() / 1000) + 60);
   expect(await page.evaluate(() => window.ZouAuthSession.isLoggedIn())).toBe(true);
@@ -132,6 +133,7 @@ test("真实形状的 Supabase 登录响应会持久化会话并进入已登录�
 
 test("只有密码登录 400 才显示凭证错误，服务错误显示其它文案", async ({ page }) => {
   await page.addInitScript(() => {
+    window.ZOUSEEKING_RELEASE_SCOPE = { phase: "development", businessOperations: true, adminOperations: true };
     window.ZOUSEEKING_SUPABASE_URL = "http://127.0.0.1:8787/supabase";
     window.ZOUSEEKING_SUPABASE_ANON_KEY = "public-test-key";
     const nativeFetch = window.fetch.bind(window);

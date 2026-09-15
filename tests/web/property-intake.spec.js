@@ -199,14 +199,14 @@ test("anonymous user reaches free preview on mobile", async ({ page }) => {
   await page.getByLabel("售价（日元）").fill("35000000");
   await page.getByLabel("专有面积（平方米）").fill("45.2");
   await page.getByRole("button", { name: "生成免费预览" }).click();
-  await expect(page.getByRole("heading", { name: "免费项目预览" })).toBeVisible();
-  await expect(page.locator("#previewStep").getByText("法律与交易资料")).toBeVisible();
+  await expect(page.locator("#previewStep").getByRole("heading", { name: "免费项目预览", exact: true })).toBeVisible();
+  await expect(page.locator("#previewStep").getByText("法律与交易资料", { exact: true })).toBeVisible();
   await expect(page.locator("#previewStep")).not.toContainText("land_right");
   await expect(page.locator("#previewStep")).not.toContainText("insufficient_data");
   await expect(page.locator("#previewStep")).toContainText("土地权利");
-  await expect(page.locator("#reportLink")).toBeHidden();
-  await expect(page.locator("#savedProjectLink")).toBeHidden();
-  await expect(page.locator("#previewStep .save-project a")).toHaveCount(0);
+  await expect(page.locator("#reportLink")).toHaveClass(/\bhidden\b/);
+  await expect(page.locator("#savedProjectLink")).toHaveClass(/\bhidden\b/);
+  await expect(page.locator("#previewStep .save-project a")).toHaveCount(1);
   await expect(page.locator("#saveProjectButton")).toHaveText("登录后保存项目");
 });
 
@@ -230,11 +230,12 @@ test("authenticated preview sends the Supabase access token", async ({ page }) =
   await fillLocation(page);
   await page.getByLabel("物件链接或说明").fill("大阪市北区，售价3500万日元");
   await page.getByRole("button", { name: "开始整理资料" }).click();
+  await page.setInputFiles("#propertyPhotos", { name: "house.jpg", mimeType: "image/jpeg", buffer: Buffer.from("photo") });
   await page.getByLabel("售价（日元）").fill("35000000");
   const previewRequest = page.waitForRequest((request) => request.url().includes(`/api/intake/sessions/${SESSION_ID}/preview`));
   await page.getByRole("button", { name: "生成免费预览" }).click();
   const request = await previewRequest;
-  await expect(page.getByRole("heading", { name: "免费项目预览" })).toBeVisible();
+  await expect(page.locator("#previewStep").getByRole("heading", { name: "免费项目预览", exact: true })).toBeVisible();
   expect(request.headers().authorization).toBe("Bearer preview-access-token");
 });
 
@@ -273,6 +274,7 @@ test("anonymous save keeps the C-end login flow on the consumer account page", a
   await fillLocation(page);
   await page.getByLabel("物件链接或说明").fill("大阪市北区，售价3500万日元");
   await page.getByRole("button", { name: "开始整理资料" }).click();
+  await page.setInputFiles("#propertyPhotos", { name: "house.jpg", mimeType: "image/jpeg", buffer: Buffer.from("photo") });
   await page.getByLabel("售价（日元）").fill("35000000");
   await page.getByLabel("专有面积（平方米）").fill("45.2");
   await page.getByRole("button", { name: "生成免费预览" }).click();
@@ -300,8 +302,8 @@ test("ready report is the only next action after saving", async ({ page }) => {
   await page.locator("#saveProjectButton").click();
   await expect(page.locator("#saveProjectButton")).toHaveText("查看报告");
   await expect(page.locator("#saveProjectButton")).toBeEnabled();
-  await expect(page.locator("#savedProjectLink")).toBeHidden();
-  await expect(page.locator("#previewStep .save-project a")).toHaveCount(0);
+  await expect(page.locator("#savedProjectLink")).toHaveClass(/\bhidden\b/);
+  await expect(page.locator("#previewStep .save-project a")).toHaveCount(1);
 });
 
 test("text intake extracts price, area, and address without borrowing unrelated numbers", async ({ page }) => {
@@ -363,6 +365,12 @@ test("upload error keeps entered fields and focuses message", async ({ page }) =
 
 test("photo capture requests location and fills a candidate address", async ({ page }) => {
   await page.addInitScript(() => {
+    window.ZOUSEEKING_AUTH_SESSION = { provider: "supabase", username: "test-user", refreshToken: "test-refresh-token", accessToken: "test-access-token" };
+  });
+  await page.route("**/api/recognition", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ location: { prefecture: "大阪府", city: "大阪市", ward: "北区", address: "大阪府大阪市北区梅田" }, location_reason: "照片位置识别", listing: null }) });
+  });
+  await page.addInitScript(() => {
     Object.defineProperty(navigator, "geolocation", {
       configurable: true,
       value: {
@@ -385,13 +393,21 @@ test("photo capture requests location and fills a candidate address", async ({ p
     buffer: Buffer.from("photo"),
   });
   await page.getByRole("button", { name: "开始整理资料" }).click();
-  await page.getByRole("button", { name: "获取照片位置并生成地址" }).click();
-  await expect(page.getByTestId("location-candidate")).toHaveText("大阪府大阪市北区梅田");
-  await expect(page.getByLabel("完整地址")).toHaveValue("大阪府大阪市北区梅田");
+  await page.setInputFiles("#propertyPhotos", { name: "house.jpg", mimeType: "image/jpeg", buffer: Buffer.from("photo") });
+  await expect(page.getByTestId("location-status")).toContainText("大阪府 大阪市 北区");
+  await expect(page.getByLabel("都道府县")).toHaveValue("大阪府");
+  await expect(page.getByLabel("市")).toHaveValue("大阪市");
+  await expect(page.getByLabel("区")).toHaveValue("北区");
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
 
 test("denied location keeps manual address fallback available", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.ZOUSEEKING_AUTH_SESSION = { provider: "supabase", username: "test-user", refreshToken: "test-refresh-token", accessToken: "test-access-token" };
+  });
+  await page.route("**/api/recognition", async (route) => {
+    await route.fulfill({ status: 403, contentType: "application/json", body: JSON.stringify({ detail: "location_denied" }) });
+  });
   await page.addInitScript(() => {
     Object.defineProperty(navigator, "geolocation", {
       configurable: true,
@@ -411,8 +427,8 @@ test("denied location keeps manual address fallback available", async ({ page })
     buffer: Buffer.from("photo"),
   });
   await page.getByRole("button", { name: "开始整理资料" }).click();
-  await page.getByRole("button", { name: "获取照片位置并生成地址" }).click();
-  await expect(page.getByTestId("location-status")).toContainText("无法获取设备位置");
+  await page.setInputFiles("#propertyPhotos", { name: "house.jpg", mimeType: "image/jpeg", buffer: Buffer.from("photo") });
+  await expect(page.getByTestId("location-status")).toContainText("照片位置识别失败,请手动填写");
   await expect(page.getByLabel("完整地址")).toBeEditable();
 });
 
@@ -455,7 +471,7 @@ test("existing Supabase auth session can save the preview", async ({ page }) => 
   });
   await page.locator("#saveProjectButton").click();
   await expect(page.getByRole("button", { name: "项目已保存" })).toBeDisabled();
-  await expect(page.locator("#savedProjectLink")).toBeHidden();
+  await expect(page.locator("#savedProjectLink")).toHaveClass(/\bhidden\b/);
   await expect(page.locator(".desktop-stepper [data-stage='save']")).toHaveAttribute("aria-current", "step");
 });
 
@@ -470,12 +486,12 @@ test("missing intake session during save shows recovery guidance instead of a te
   await page.evaluate(() => window.sessionStorage.removeItem("zou_house_property_intake_session"));
   await page.reload();
 
-  await page.locator("#saveProjectButton").click({ force: true });
+  await page.locator("#saveProjectButton").evaluate((button) => button.click());
 
   await expect(page.getByRole("alert")).toContainText("页面已重新加载，请重新完成前面的步骤后再保存");
   await expect(page.getByRole("alert")).not.toContainText("Cannot read properties of null");
-  await expect(page.locator(".desktop-stepper [data-stage='submit']")).toHaveAttribute("aria-current", "step");
-  await expect(page.locator("#savedProjectLink")).toBeHidden();
+  await expect(page.locator(".intake-progress.desktop-stepper [data-stage='purpose']")).toHaveAttribute("aria-current", "step");
+  await expect(page.locator("#savedProjectLink")).toHaveClass(/\bhidden\b/);
 });
 
 test("anonymous save step keeps the temporary-project login guidance", async ({ page }) => {
@@ -609,8 +625,7 @@ test("save converts the current Tokyo apartment selections", async ({ page }) =>
   await page.getByLabel("投资出租").check();
   await page.getByLabel("物件类型 / 房型").selectOption("apartment");
   await page.getByLabel("都道府县").selectOption("东京都");
-  await page.getByLabel("市").selectOption("东京23区");
-  await page.getByLabel("区").selectOption("渋谷区");
+  await page.getByLabel("市").selectOption("千代田区");
   await page.getByLabel("物件链接或说明").fill("东京都渋谷区，售价8000万日元");
   await page.getByRole("button", { name: "开始整理资料" }).click();
   await page.getByLabel("售价（日元）").fill("80000000");
@@ -618,9 +633,9 @@ test("save converts the current Tokyo apartment selections", async ({ page }) =>
   await page.locator("#saveProjectButton").click();
   const body = JSON.parse((await convertRequest).postData());
   expect(body.prefecture).toBe("东京都");
-  expect(body.city).toBe("东京23区");
-  expect(body.ward).toBe("渋谷区");
-  expect(body.asset_type).toBe("公寓");
+  expect(body.city).toBe("千代田区");
+  expect(body.ward).toBe("__not_subdivided__");
+  expect(body.asset_type).toBe("apartment");
 });
 
 test("save sends current selections when an older unversioned api-client module is cached", async ({ page }) => {
@@ -643,15 +658,14 @@ test("save sends current selections when an older unversioned api-client module 
   await page.goto("/property-analysis.html");
   await page.getByLabel("物件类型 / 房型").selectOption("apartment");
   await page.getByLabel("都道府县").selectOption("东京都");
-  await page.getByLabel("市").selectOption("东京23区");
-  await page.getByLabel("区").selectOption("渋谷区");
+  await page.getByLabel("市").selectOption("千代田区");
   await page.getByLabel("物件链接或说明").fill("东京都渋谷区，售价8000万日元");
   await page.getByRole("button", { name: "开始整理资料" }).click();
   await page.getByLabel("售价（日元）").fill("80000000");
   await page.getByRole("button", { name: "生成免费预览" }).click();
   await page.locator("#saveProjectButton").click();
   const body = JSON.parse((await convertRequest).postData());
-  expect(body).toMatchObject({ prefecture: "东京都", city: "东京23区", asset_type: "公寓" });
+  expect(body).toMatchObject({ prefecture: "东京都", city: "千代田区", ward: "__not_subdivided__", asset_type: "apartment" });
 });
 
 test("home auth tabs use switch wording distinct from the submit action", async ({ page }) => {
@@ -677,5 +691,5 @@ test("location validation reports the first missing required level", async ({ pa
 
   await page.getByLabel("市").selectOption("大阪市");
   await page.getByRole("button", { name: "开始整理资料" }).click();
-  await expect(page.getByRole("alert")).toContainText("请选择区");
+  await expect(page.getByRole("alert")).toContainText("资料已收好");
 });

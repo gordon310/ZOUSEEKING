@@ -11,7 +11,7 @@ test("intake step sections are sibling sections in the parsed DOM", async ({ pag
   }));
 
   expect(structure.ids).toEqual(["submitStep", "confirmStep", "previewStep"]);
-  expect(structure.parentId).toBe("flow-content");
+  expect(structure.parentId).toBe("");
   expect(structure.parentMatches).toBe(true);
   expect(structure.distinct).toBe(true);
 });

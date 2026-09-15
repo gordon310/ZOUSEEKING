@@ -8,6 +8,7 @@ const ONE_PIXEL_PNG = Buffer.from(
 test("photo EXIF location request prefills the query form and has no AI entry", async ({ page }) => {
   let requests = 0;
   await page.addInitScript(() => {
+    window.ZOUSEEKING_RELEASE_SCOPE = { phase: "development", businessOperations: true, adminOperations: true };
     window.ZOUSEEKING_API_BASE_URL = "http://api.test";
     window.localStorage.setItem(
       "zou_house_session",
@@ -34,6 +35,6 @@ test("photo EXIF location request prefills the query form and has no AI entry", 
   await expect(page.getByText("OpenAI")).toHaveCount(0);
   await page.setInputFiles("#propertyPhotos", { name: "property.png", mimeType: "image/png", buffer: ONE_PIXEL_PNG });
   await expect.poll(() => requests).toBe(1);
-  await expect(page.locator("#recognitionLocationStatus")).toContainText("大阪市");
-  await expect(page.locator("#recognitionLocationStatus")).toContainText("北区");
+  await expect(page.locator("#locationStatus")).toContainText("大阪市");
+  await expect(page.locator("#locationStatus")).toContainText("北区");
 });

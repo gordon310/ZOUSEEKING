@@ -16,6 +16,8 @@ function sessionInit() {
       email: "owner@example.com",
       username: "用户 A",
       accessToken: "test-access-token",
+      refreshToken: "test-refresh-token",
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
     }));
   `;
 }
@@ -57,7 +59,7 @@ test("locked report shows unlock card and never renders content", async ({ page 
     if (url.pathname === "/api/my/queries") {
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(completedTask()) });
     }
-    if (url.pathname === `/api/reports/${encodeURIComponent(QUERY_KEY)}` || url.pathname.endsWith(encodeURIComponent(QUERY_KEY))) {
+    if (url.pathname.includes("/api/reports/")) {
       return route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -72,6 +74,11 @@ test("locked report shows unlock card and never renders content", async ({ page 
         }),
       });
     }
+    if (url.pathname === "/api/billing/prices") {
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([
+        { product_code: "risk_report_single", currency: "CNY", amount_minor: 9900, active: true, available: true },
+      ]) });
+    }
     if (url.pathname === "/api/billing/checkout" && route.request().method() === "POST") {
       checkoutCalls += 1;
       const body = JSON.parse(route.request().postData() || "{}");
@@ -85,20 +92,18 @@ test("locked report shows unlock card and never renders content", async ({ page 
     await route.fulfill({ status: 200, contentType: "text/html", body: "<html><body>Stripe Checkout (test)</body></html>" });
   });
 
-  await page.goto("/mypage.html");
-  await expect(page.getByRole("button", { name: "查看结果" }).first()).toBeVisible();
-  await page.getByRole("button", { name: "查看结果" }).first().click();
+  await page.goto(`/report.html?key=${encodeURIComponent(QUERY_KEY)}`);
 
   // Locked card: title + unlock button, no report content
-  await expect(page.getByText("解锁深度报告")).toBeVisible();
-  await expect(page.getByText(/本份深度报告/)).toBeVisible();
+  await expect(page.getByText("解锁本报告查看完整内容")).toBeVisible();
+  await expect(page.getByRole("button", { name: "解锁本报告" })).toBeVisible();
   // deep-report content strings must not appear anywhere
   const body = await page.evaluate(() => document.body.innerText);
   expect(body).not.toContain("成交均价");
   expect(body).not.toContain("国交省");
 
   // Unlock click posts checkout and redirects to the Stripe session
-  await page.getByRole("button", { name: "解锁深度报告" }).click();
+  await page.getByRole("button", { name: /解锁本报告/ }).click();
   await expect.poll(() => checkoutCalls).toBe(1);
   expect(unlockRequestedKey).toBe(QUERY_KEY);
   await page.waitForURL(/checkout\.stripe\.test/);
@@ -117,7 +122,7 @@ test("unlocked report renders full content (no paywall)", async ({ page }) => {
     if (url.pathname === "/api/my/queries") {
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(completedTask()) });
     }
-    if (url.pathname.endsWith(encodeURIComponent(QUERY_KEY))) {
+    if (url.pathname.includes("/api/reports/")) {
       return route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -133,16 +138,15 @@ test("unlocked report renders full content (no paywall)", async ({ page }) => {
           images: [],
           data_sources: [],
           raw_record: {},
+          unlocked: true,
         }),
       });
     }
     return route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ detail: "not found" }) });
   });
 
-  await page.goto("/mypage.html");
-  await expect(page.getByRole("button", { name: "查看结果" }).first()).toBeVisible();
-  await page.getByRole("button", { name: "查看结果" }).first().click();
-  await expect(page.getByText("解锁深度报告")).not.toBeVisible();
+  await page.goto(`/report.html?key=${encodeURIComponent(QUERY_KEY)}`);
+  await expect(page.getByRole("button", { name: /解锁本报告/ })).toHaveCount(0);
   await expect(page.getByText("成交均价参考")).toBeVisible();
 });
 
@@ -150,7 +154,7 @@ test("insufficient-data report has no payment entry point", async ({ page }) => 
   await page.addInitScript(sessionInit());
   await page.route("http://api.test/**", async (route) => {
     const url = new URL(route.request().url());
-    if (url.pathname.endsWith(encodeURIComponent(QUERY_KEY))) {
+    if (url.pathname.includes("/api/reports/")) {
       return route.fulfill({
         status: 200,
         contentType: "application/json",

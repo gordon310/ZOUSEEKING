@@ -1,17 +1,12 @@
 const { test, expect } = require("@playwright/test");
 
-const SUPABASE_URL = "http://127.0.0.1:8787/supabase";
+const SUPABASE_URL = "https://supabase.test";
 
 async function openRegistration(page) {
   await page.addInitScript(() => {
+    window.ZOUSEEKING_RELEASE_SCOPE = { phase: "development", businessOperations: true, adminOperations: true };
     window.ZOUSEEKING_SUPABASE_URL = "https://supabase.test";
     window.ZOUSEEKING_SUPABASE_ANON_KEY = "public-test-key";
-    const nativeFetch = window.fetch.bind(window);
-    window.fetch = (input, init) => {
-      if (!String(input).includes("/auth/v1/signup")) return nativeFetch(input, init);
-      const payload = window.__signupResponse || {};
-      return Promise.resolve(new Response(JSON.stringify(payload), { status: 200, headers: { "Content-Type": "application/json" } }));
-    };
   });
   await page.goto("/index.html");
   await page.getByRole("button", { name: "切换到注册" }).click();
@@ -70,7 +65,7 @@ test("注册返回会话时进入已登录状态并清理注册地址", async ({
 
 test("注册失败时显示失败反馈并保持未登录", async ({ page }) => {
   await openRegistration(page);
-  await page.route(`${SUPABASE_URL}/auth/v1/signup**`, async (route) => {
+  await page.route(/https:\/\/supabase\.test\/auth\/v1\/signup/, async (route) => {
     await route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ error: "server_error" }) });
   });
   await page.getByRole("button", { name: "注册并登录" }).click();

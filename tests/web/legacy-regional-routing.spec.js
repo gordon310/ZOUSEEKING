@@ -27,6 +27,7 @@ test("development compatibility profile runs a legacy regional job without calli
         email: "owner@example.com",
         username: "用户 A",
         accessToken: "test-access-token",
+        refreshToken: "test-refresh-token",
       }),
     );
   });

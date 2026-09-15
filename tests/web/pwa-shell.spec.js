@@ -24,6 +24,8 @@ test("PWA shell assets are served and wired", async ({ page }) => {
   const swSource = await swResponse.text();
   expect(swSource).toContain('self.addEventListener("install"');
   // registration script is present on the page
-  const html = await page.content();
-  expect(html).toContain("navigator.serviceWorker.register");
+  const pwaSrc = await page.locator('script[src*="js/pwa.js"]').getAttribute("src");
+  const pwaResponse = await page.request.get(`/${pwaSrc}`);
+  expect(pwaResponse.status()).toBe(200);
+  expect(await pwaResponse.text()).toContain("navigator.serviceWorker.register");
 });

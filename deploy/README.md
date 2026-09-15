@@ -70,7 +70,11 @@ phase changes.
 The new Nginx container serves the project at `zoubeacon.app` and
 `platform.zoubeacon.com`, keeps the company website at `zoubeacon.com`, and
 proxies `api.zoubeacon.com` to the API container. The worker polls up to 60
-rounds with a 10-second interval; the scheduler performs one feed pass hourly.
+rounds with a 10-second interval; the scheduler performs one feed pass and one
+account-retention sweep hourly. The retention sweep runs
+`python /app/scripts/account_retention_sweeper.py --limit 50` on each scheduler
+loop: it records only the fact that a provider-backup retention deadline has
+passed and does not modify the provider backup.
 
 ## Rollback
 

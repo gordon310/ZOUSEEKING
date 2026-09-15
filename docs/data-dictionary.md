@@ -92,6 +92,7 @@ canonical history 与 staging 的 later-ID reconciliation、provenance constrain
 | `account_deletion_requests.status` | `pending` / `executing` / `completed` / `failed`；失败记录只保存可读、无堆栈和无 PII 的原因。 |
 | `account_deletion_requests.*_due` | 由服务端 `requested_at` 按 24 小时、24 小时、30 天、90 天 SLA 计算。 |
 | `account_deletion_requests.executed_at` | 受控删除完成时间；`auth.users` 行不硬删，`usage_events` 原样保留以维护 append-only 审计链。 |
+| `account_deletion_requests.backup_expired_at` | sweeper 在 `backup_expiry_due` 到期后一次性记录的 UTC 事实时间；只记录到期，不直接修改 provider backup。可为空，服务端 worker-only 写入。 |
 
 ## 报告购买与会员额度
 

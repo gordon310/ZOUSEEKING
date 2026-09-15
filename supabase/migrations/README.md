@@ -97,6 +97,10 @@ psql "$TEST_DATABASE_URL" -X -v ON_ERROR_STOP=1 -f tests/sql/test_m1_reconciliat
 - 2026-09-15 新增账户注销台账 `20260915000300_account_deletion_requests.sql`：受控
   删除只做软删除/匿名化，保留 `auth.users` 与 append-only `usage_events`；发布前需备份，
   发布后运行 `tests/sql/test_account_deletion_requests.sql`，失败采用 forward-fix。
+- 2026-09-15 新增 retention 到期事实列 `20260915000400_account_retention_sweeper.sql`：
+  `account_retention_sweeper.py` 校验 completed 台账的主数据匿名化并一次性记录
+  `backup_expired_at`；不删除 `auth.users`、不写 `usage_events`、不直接修改 provider backup。
+  发布后运行 `tests/sql/test_account_deletion_retention_sweeper.sql`，失败采用 forward-fix。
 - `backend/sql/`、旧 restore 包和 schema dump 只作为历史证据，不是 migration
   history。
 - 每个 migration 必须配套 constraints、focused assertions、backup/restore、

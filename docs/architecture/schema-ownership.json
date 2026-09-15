@@ -37,7 +37,8 @@
     "20260914000200_realtime_authenticated_quota.sql",
     "20260915000100_register_mlit_transaction_source.sql",
     "20260915000200_owner_scoped_report_slugs.sql",
-    "20260915000300_account_deletion_requests.sql"
+    "20260915000300_account_deletion_requests.sql",
+    "20260915000400_account_retention_sweeper.sql"
   ],
   "legacy_sql_files": [
     "backend/sql/001_foundation_data_contract.sql",

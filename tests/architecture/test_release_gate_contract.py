@@ -48,6 +48,7 @@ def test_workflow_has_all_required_triggers_jobs_and_commands() -> None:
         "tests/sql/test_property_intake_schema.sql",
         "tests/sql/test_provenance_policy_metric_contract.sql",
         "tests/sql/test_m1_reconciliation_contract.sql",
+        "tests/sql/test_account_deletion_retention_sweeper.sql",
         "tests/security/test_rls_private_projects.sql",
         "tests/security/test_rls_v1_identity_matrix.sql",
         "npm audit --audit-level=high",
@@ -57,6 +58,7 @@ def test_workflow_has_all_required_triggers_jobs_and_commands() -> None:
         "if: always()",
     ):
         assert marker in text
+    assert text.count("sql-account-retention") >= 3
 
 
 def test_workflow_forbids_live_mutations_and_external_pass_claims() -> None:

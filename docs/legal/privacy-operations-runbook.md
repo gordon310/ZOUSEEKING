@@ -25,13 +25,15 @@
 
 SLA 计时从完成必要身份验证开始。法律保留、争议、欺诈调查或财务义务需要记录例外范围、依据、复核日和解除后的补删动作。Render Free 休眠会让机会式清理无法保证墙钟 SLA；若产品承诺严格期限，必须先配置持续运行并经过演练的清理器。
 
+`scripts/account_retention_sweeper.py` 是可由现有 cron/worker 调度复用的有界作业，默认每次最多处理 50 条 completed 台账。主数据到期只校验受控删除执行器已经完成的匿名化/私有数据清理，不重复删除；备份到期只在台账写入一次 `backup_expired_at` 事实时间，不直接修改线上 provider backup。每条记录独立处理，`--dry-run` 不写入；异常只输出稳定的无 PII 类别。
+
 ## 3. 账户删除流程
 
 1. 用户在账户页勾选确认并提交 `POST /api/account/deletion-request`；请求只包含当前政策版本、条款版本和固定确认值 `DELETE_ACCOUNT`。
 2. FastAPI 验证 Supabase bearer 身份、当前版本和确认值；不能用客户端 email 作为所有权边界。
 3. 未配置受信任删除执行器时返回 503：`no account data was changed`，页面明确提示客服入口，不得显示“已删除”。
 4. 未来执行器获批后，先撤销会话/阻止新任务，再按依赖顺序删除 Storage、项目/查询/报告、profile 和可选索引；审计记录只保留最小删除证明。
-5. 依赖外部 Auth Admin、RLS、Storage、备份或队列的动作，必须在单独的 migration baseline、backup/restore 和回滚方案通过后执行；本仓库当前不执行。
+5. 依赖外部 Auth Admin、RLS、Storage、备份或队列的动作，必须在单独的 migration baseline、backup/restore 和回滚方案通过后执行；本仓库的 retention sweeper 不硬删 `auth.users`、不写 `usage_events`，也不直接修改 provider backup。
 6. 完成或失败都通过受限工单记录状态、时间、失败类别和复核人，不在公开 API 暴露内部异常。
 
 删除账户不等于取消订阅、撤回第三方复制件或删除依法必须保留的记录；客服须向用户说明边界。
@@ -55,4 +57,4 @@ SLA 计时从完成必要身份验证开始。法律保留、争议、欺诈调�
 
 每日/每周只看脱敏指标：删除请求年龄分布、失败分类、匿名对象过期数、Auth 撤销失败数、备份轮换年龄、DSAR SLA 越界和事故响应时间。禁止用客户行、邮箱或原始 payload 做报表。
 
-上线前必须完成：运营主体/法务确认、Auth Admin 删除演练、RLS 四类身份测试、Storage 私有对象删除演练、fresh migration reset、backup/restore 与 forward-fix、持续清理器、客服工单权限、事故桌面演练和部署批准。当前均未在本任务执行；见 `AGENTS.md` 的 release blockers。
+上线前必须完成：运营主体/法务确认、Auth Admin 删除演练、RLS 四类身份测试、Storage 私有对象删除演练、fresh migration reset、backup/restore 与 forward-fix、持续清理器（包括 `account_retention_sweeper.py`）、客服工单权限、事故桌面演练和部署批准。当前本任务只做离线脚本、迁移和断言，未连接线上执行；见 `AGENTS.md` 的 release blockers。

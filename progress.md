@@ -373,6 +373,15 @@
 - **待 Gordon**:①(推荐)先让桌面会话配额任务跑完(单写者优先),再由 Codex 续跑同一任务书至 `npm run test:web -- --workers=1` 0 failed 后 push main;② 决定该分支的部分修复保留(建议保留待续跑)/丢弃,并避免被当作配额任务成果一起推上 main;③ 恢复「每次 push 后 `gh run list -L 1` 确认 gate」纪律。
 - **红线**:零 push、零数据库/线上写、零部署、未动凭据与冻结字段、未删除仓库文件(未碰 migration);仅终止本会话自己的 codex 进程树。
 
+## Release Gate 红链 #5 · Playwright 22 例(唯一红 job),派工被桌面会话持续占用阻塞(2026-09-15 晨班,管家)
+
+- **实测(07:40)**:`main` 工作树干净、本地 = `origin/main` = `a43135d`(09-15 06:28「C 端卡点清单」文档提交)。Release Gate run `34904313042`(commit `a43135d`)**红**,唯一失败 job = **Playwright checks `22 failed / 59 passed`(3.8m)**;其余 6 job(Node / Python / SQL-RLS / Repository policy / Supply-chain / Release evidence)**全绿**。红链自 09-12 00:26 起延续。
+- **失败清单(取自 CI 原始日志,22 例 / 9 个 spec)**:property-intake 9 例(190/213/286/364/394/442/462/603/626/664)、account-controls 2、password-reset 2、signup-flow 2、report-paywall 2、pwa-shell 1、recognition 1、legacy-regional-routing 1、property-analysis-structure 1。修正后的任务书 `~/.hermes/tmp/dispatch-pw-drift-20260915.txt`(314 行,22 例 file:line + 原始错误摘录 + 红线 + 交付约定)已生成;**旧版 09-14 任务书基线 86afa5c/23 例已过期,不要再用**。
+- **⛔ 未派工(非本班能力可解)**:整个班次(07:40–08:1x)本工作树内**持续有桌面会话的 Codex 进程**占用:07:49 派出「live 端到端验证」(07:49–08:06,pid 33971)、完成后 08:07 立刻续派「验证 #2 修正请求形状」(pid 36828)。按 09-14 冻结教训(单写者优先 + 两个 `codex exec` 并发会因 refresh token 轮换互相作废),本班**未派工、未代写代码**,只做定位与文档。桌面会话验证链未完成前,Playwright 红链无法清零。
+- **顺带结论(桌面会话验证 #1 的真实输出)**:同地区两账号 slug 隔离与 sources 解析**通过**;但两次均为 `insufficient_data`——桌面会话已判定为**假阴性**(自拟请求体用了日文 `東京都`,而前端真实取值域 `web/field-options.json` 是简体 `东京都`,且 `match_snapshot` 的 prefecture 为精确相等),故 08:07 续派验证 #2。**C 端「出报告」是否真通仍未验证**,不能按已通过看待。
+- **C2 结案(本班只读实测)**:`PUT /api/intake/sessions/{id}/location` 在**前端已无任何调用方**——`web/js/api-client.js:99` 定义 `saveLocation()`,全 `web/js/**` 零调用点;`web/**` 内 `geolocation` 零命中。当前 C 端定位链是 `POST /api/recognition` → `web/js/recognition.js:23 saveLocationPrefill()` → 回填三级 select,**不经过 location 接口**。故该接口的 `accuracy_m` 422 只影响直连 API 的调用方(含 Playwright 仍在 mock 该旧路径的用例),C 端用户流程不受影响;`saveLocation()` 属死代码,是否清理需产品决定。
+- **红线**:零 push 代码、零数据库/线上写、零部署、未动凭据与冻结字段、无删除操作;本班仅文档改动。
+
 ## Last updated
 
-2026-09-14
+2026-09-15

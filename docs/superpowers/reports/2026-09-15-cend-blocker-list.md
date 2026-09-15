@@ -73,11 +73,11 @@ N1 首次发版引入**线上 500 回归**:`backend/app/auth.py` 的 `require_us
 
 | # | 项 | 状态 |
 |---|---|---|
-| **C1** | Release Gate CI 红:最新 run Playwright **22 failed / 59 passed**(其余 6 job 全绿)——09-12 前端重构后的断言漂移 | 任务书已存在(`~/.hermes/tmp/dispatch-pw-drift-20260914.txt`),待派工清零 |
+| **C1** | Release Gate CI 红 | ✅ **已修复**:Playwright 断言漂移 **22 failed → 0 failed**(本地 `81 passed`,CI 同命令);同时修了新增表导致的 `sql-m1` 授权计数基线(authenticated 23→24、service_role→CI 实测 **339**)。最新 run **34918209738 七个 job 全绿** |
 | **C2** | `location` 接口要求 `accuracy_m`,直接调 API 会 422(前端流程不受影响) | 待确认前端是否总是传全 |
 | **C3** | `pip check` 报缺 `packaging`(环境项,非产品缺陷) | 已记录 |
 | **C4** | 迁移未录入 `supabase_migrations.schema_migrations`(2026091x 起的历史实践即如此) | 卫生项,建议后续统一 |
-| **C5** | 4 个 SQL 测试文件**从未进 CI**(`test_analysis_query` / `test_exports_query` / `test_member_query` / `test_realtime_quota_migration_additive`)—— 该仓库每个 `tests/sql/*.sql` 都要显式登记 step + 两处 `REQUIRED_CHECKS`,漏登记即零拦截(本轮新增的 `test_account_deletion_requests` 已按规范接入) | 待派工补齐 |
+| **C5** | 4 个 SQL 测试文件**从未进 CI**(`test_analysis_query` / `test_exports_query` / `test_member_query` / `test_realtime_quota_migration_additive`)—— 该仓库每个 `tests/sql/*.sql` 都要显式登记 step + 两处 `REQUIRED_CHECKS`,漏登记即零拦截(本轮新增的 `test_account_deletion_requests` 已按规范接入) | 待派工补齐(注意:这些文件从未在 CI 跑过,可能已过期) |
 | **C6** | 注册邮件的**备份到期(90 天)作业**是否存在,未验证 | 待确认 |
 
 ## 四、部署与回滚

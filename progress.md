@@ -380,6 +380,8 @@
 - **⛔ 未派工(非本班能力可解)**:整个班次(07:40–08:1x)本工作树内**持续有桌面会话的 Codex 进程**占用:07:49 派出「live 端到端验证」(07:49–08:06,pid 33971)、完成后 08:07 立刻续派「验证 #2 修正请求形状」(pid 36828)。按 09-14 冻结教训(单写者优先 + 两个 `codex exec` 并发会因 refresh token 轮换互相作废),本班**未派工、未代写代码**,只做定位与文档。桌面会话验证链未完成前,Playwright 红链无法清零。
 - **顺带结论(桌面会话验证 #1 的真实输出)**:同地区两账号 slug 隔离与 sources 解析**通过**;但两次均为 `insufficient_data`——桌面会话已判定为**假阴性**(自拟请求体用了日文 `東京都`,而前端真实取值域 `web/field-options.json` 是简体 `东京都`,且 `match_snapshot` 的 prefecture 为精确相等),故 08:07 续派验证 #2。**C 端「出报告」是否真通仍未验证**,不能按已通过看待。
 - **C2 结案(本班只读实测)**:`PUT /api/intake/sessions/{id}/location` 在**前端已无任何调用方**——`web/js/api-client.js:99` 定义 `saveLocation()`,全 `web/js/**` 零调用点;`web/**` 内 `geolocation` 零命中。当前 C 端定位链是 `POST /api/recognition` → `web/js/recognition.js:23 saveLocationPrefill()` → 回填三级 select,**不经过 location 接口**。故该接口的 `accuracy_m` 422 只影响直连 API 的调用方(含 Playwright 仍在 mock 该旧路径的用例),C 端用户流程不受影响;`saveLocation()` 属死代码,是否清理需产品决定。
+- **✅ 更新(08:16,本班撰写中)**:桌面会话验证 #2 已通过并入库 `42179bd`——用 C 端真实请求形状(`web/field-options.json`:`prefecture="东京都"`、`city="港区"`、`ward="__not_subdivided__"`、`asset_type="塔楼"`)复验:两个不同账号各自得到 `full_report` 且 slug 带各自 owner 前缀(zombie 报告 requeue → `full_report`;source id 由注册表解析)。**B1–B4 四项卡点现均为「已上线 + 已 live 验证」**(详见 `docs/superpowers/reports/2026-09-15-cend-blocker-list.md`)。故本班 07:40 时的「未验证」判断已被上级批次取代——C 端「出报告 → 付费入口」链路**已验证通过**,剩余为 N1(注销,已批准派工中)/N2(SES 退沙盒)/N3(4 行历史僵尸报告)与 C1(CI)。
+- **并发写核实(cron 记录)**:今日 cron 仅本班一次执行(`executions.db`:ab373f6bd99d 07:40:12 running),`jobs.json` 两个班次 `paused_at` 均为 null、无暂停记录;07:40–08:20 本仓库内的 Codex 进程只有桌面会话自己链式派出的两次 live 验证(pid 33971 → 36828)。即**本班零派工**;桌面会话卡点清单 N4 所述「早班 07:40 起两次派 codex」与本班记录不符,建议对账后再决定是否调整班次策略。
 - **红线**:零 push 代码、零数据库/线上写、零部署、未动凭据与冻结字段、无删除操作;本班仅文档改动。
 
 ## Last updated

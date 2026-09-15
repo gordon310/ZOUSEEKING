@@ -76,6 +76,7 @@ N1 首次发版引入**线上 500 回归**:`backend/app/auth.py` 的 `require_us
 | **C1** | Release Gate CI 红 | ✅ **已修复**:Playwright 断言漂移 **22 failed → 0 failed**(本地 `81 passed`,CI 同命令);同时修了新增表导致的 `sql-m1` 授权计数基线(authenticated 23→24、service_role→CI 实测 **339**)。最新 run **34918209738 七个 job 全绿** |
 | **C2** | `location` 接口要求 `accuracy_m` | ✅ **已查清,非产品路径问题**:`accuracy_m` 在请求模型里是必填(`backend/app/intake/models.py:110`),但**前端的照片定位走 `/api/recognition` → 回填三级地区下拉**,`api-client.saveLocation` 全仓无调用点 → 只有直连 API 的调用方才需要传。**默认不改**;若要对外暴露该接口,再改成可选(带默认精度)即可 |
 | **C6** | 90 天备份到期承诺 | 🔴 **确认存在缺口**:全仓无任何 `backup_expiry` 的**执行器/定时清理作业**,`BACKUP_EXPIRY_SLA=90d` 目前只在注销台账里**生成一个到期时间**(`account_deletion_requests.backup_expiry_due`),到点**没有任何东西会执行**。需要决策:①补一个定时作业(建议,与隐私政策文案一致)②或调整隐私政策措辞。**待用户拍板** |
+| **C7** | 线上 `deploy-worker-1` 的 `RestartCount=441` | ✅ **不是崩溃循环,是设计如此**:compose 命令为 `--loop 60 --interval 10`(跑 60 轮 × 10 秒后**主动退出**),由 `restart: unless-stopped` 拉起 → 约每 10 分钟一个生命周期。ExitCode=0、无 OOM、DB 取任务走原子认领,功能正常。**后续会话勿误判为故障** |
 | **C3** | `pip check` 报缺 `packaging`(环境项,非产品缺陷) | 已记录 |
 | **C4** | 迁移未录入 `supabase_migrations.schema_migrations`(2026091x 起的历史实践即如此) | 卫生项,建议后续统一 |
 | **C5** | 4 个 SQL 测试文件从未进 CI | ✅ **已修复**:`sql-analysis` / `sql-exports` / `sql-member` / `sql-realtime-quota` 四个 step + 两处 `REQUIRED_CHECKS` 已接入;其中 `test_realtime_quota_migration_additive.sql` 的 `pg_read_file`(需超级用户+绝对路径)改为临时表 `\copy`,已实跑通过。**CI run `34920080958` 七 job 全绿** |

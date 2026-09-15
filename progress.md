@@ -384,6 +384,19 @@
 - **并发写核实(cron 记录)**:今日 cron 仅本班一次执行(`executions.db`:ab373f6bd99d 07:40:12 running),`jobs.json` 两个班次 `paused_at` 均为 null、无暂停记录;07:40–08:20 本仓库内的 Codex 进程只有桌面会话自己链式派出的两次 live 验证(pid 33971 → 36828)。即**本班零派工**;桌面会话卡点清单 N4 所述「早班 07:40 起两次派 codex」与本班记录不符,建议对账后再决定是否调整班次策略。
 - **红线**:零 push 代码、零数据库/线上写、零部署、未动凭据与冻结字段、无删除操作;本班仅文档改动。
 
+## 夜班只读核查(2026-09-15 20:30,本 BOT)
+
+- **可开工判定**:无未提交改动、无活跃 `codex exec` 进程、近 3 小时仓库零文件写入 → 09-14 记录的「唯一写者占用」已解除(P1 自 09-07 工程闭环,清单内示例单元 admin 真实数据/采集原子抢占/财务对账/会员停复均已完成)。本班**无新增有界单元可做**,按任务书「P1 全部完成→说明并建议下一阶段」执行只读核查。
+- **实测证据**:
+  - `main == origin/main == ce8294f`,工作树干净(今日 22 推)。
+  - **Release Gate 绿**:ce8294f `success`(2026-09-15T09:21Z);自 09-12 起的红链已由白天批次清零(Playwright 22→0、4 个未登记 SQL 文件接入 CI、M1 授权基线刷新、retention sweeper migration 登记)。
+  - **线上健康**:`api.zoubeacon.com/health/ready` → `{"status":"ready","database":"ok","version":"lightsail-2026-09"}`;`platform.zoubeacon.com/admin.html` 200(36 KB);`zoubeacon.app` 200。
+  - **无前端部署漂移**:线上 C 端 / 平台 / admin 静态资源版本均为 `?v=20260914-r35`,与本地 `web/*.html` 逐处一致。
+  - **AGENTS 内容库一致性成立**:`data/content_library.json` 与 `web/content-library.json` SHA-256 相同(`86be5284…`,34,585 B,6 条)。
+  - retention sweeper 已接进生产调度:`deploy/docker-compose.prod.yml:45` scheduler 每 3600s 跑 `account_retention_sweeper.py --limit 50`(与 C6 结案一致)。
+- **待 Gordon(均超本班自主边界,未动)**:① SES 生产权限被驳 + `PutAccountDetails` ConflictException → 需给 IAM `zoubeacon-ses-ops` 加 `support:*` 或本人开案;② 4 行历史僵尸报告清理(需批准;不批也会在对应用户下次查询时自愈);③ SES 获批后把 `mailer_autoconfirm` 改 `false` 并验一轮注册确认链路;④ C4 迁移 ledger 卫生(2026091x 起迁移未录入 `supabase_migrations.schema_migrations`)。
+- **红线**:零代码改动、零数据库/线上写、零部署、未触凭据与冻结字段、无删除操作;本班仅文档。
+
 ## Last updated
 
 2026-09-15

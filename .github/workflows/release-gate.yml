@@ -194,16 +194,16 @@ jobs:
         run: python3 scripts/ci/release_evidence.py record --name sql-sources --output ci-results/sql-sources.json -- psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/sql/test_collection_sources.sql
       - name: Run analysis query SQL assertions
         continue-on-error: true
-        run: python3 scripts/ci/release_evidence.py record --name sql-analysis --output ci-results/sql-analysis.json -- psql postgresql://postgres:***@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/sql/test_analysis_query.sql
+        run: python3 scripts/ci/release_evidence.py record --name sql-analysis --output ci-results/sql-analysis.json -- psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/sql/test_analysis_query.sql
       - name: Run exports query SQL assertions
         continue-on-error: true
-        run: python3 scripts/ci/release_evidence.py record --name sql-exports --output ci-results/sql-exports.json -- psql postgresql://postgres:***@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/sql/test_exports_query.sql
+        run: python3 scripts/ci/release_evidence.py record --name sql-exports --output ci-results/sql-exports.json -- psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/sql/test_exports_query.sql
       - name: Run member query SQL assertions
         continue-on-error: true
-        run: python3 scripts/ci/release_evidence.py record --name sql-member --output ci-results/sql-member.json -- psql postgresql://postgres:***@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/sql/test_member_query.sql
+        run: python3 scripts/ci/release_evidence.py record --name sql-member --output ci-results/sql-member.json -- psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/sql/test_member_query.sql
       - name: Run realtime quota migration SQL assertions
         continue-on-error: true
-        run: python3 scripts/ci/release_evidence.py record --name sql-realtime-quota --output ci-results/sql-realtime-quota.json -- psql postgresql://postgres:***@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/sql/test_realtime_quota_migration_additive.sql
+        run: python3 scripts/ci/release_evidence.py record --name sql-realtime-quota --output ci-results/sql-realtime-quota.json -- psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/sql/test_realtime_quota_migration_additive.sql
       - name: Stop disposable Supabase
         if: always()
         run: npx supabase stop --no-backup || true

@@ -610,6 +610,7 @@ test("明确无效 refresh token shows a clickable login recovery entry", async 
     }));
     window.dispatchEvent(new CustomEvent("zou-auth-session-changed"));
   });
+  await expect.poll(() => page.evaluate(() => window.ZouAuthSession.read()?.refreshToken)).toBe("invalid-refresh-token");
   await expect.poll(() => page.evaluate(() => window.ZouAuthSession.isLoggedIn())).toBe(true);
   await page.locator("#saveProjectButton").click();
   await expect(page.getByRole("alert")).toContainText("登录状态已过期，请重新登录");

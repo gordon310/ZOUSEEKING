@@ -82,8 +82,8 @@ N1 首次发版引入**线上 500 回归**:`backend/app/auth.py` 的 `require_us
 | **N1** | 用户注销(上线前合规项) | ✅ **已完成**:受控删除执行器已上线并 live 验证通过(见第二节) |
 | **N2** | AWS SES 生产权限 | 🔴 **申请被驳回**(`ProductionAccessEnabled=false`,`ReviewDetails.Status=DENIED`,CaseId `178931383400481`);`PutAccountDetails` 返回 **ConflictException**(官方定义=「已有一次账号详情变更在审核中」,裁决后状态被冻住,控制台/API 都无法重提)→ **必须开支持案让 AWS 清掉陈旧审核状态**;而 IAM 用户 `zoubeacon-ses-ops` 没有 `support:*` → **需用户:①给 IAM 加 `support:CreateCase/DescribeCases/AddCommunicationToCase`(推荐,之后由 Hermes 开案跟进)或 ②自己在控制台追加回复(话术已备)** |
 | **N5** | Supabase Auth 配置(本轮已修) | ✅ `site_url` 由 `http://localhost:3000` → **`https://zoubeacon.app`**、补 `uri_allow_list`(zoubeacon.app / platform / 本地 8787、3000)、`smtp_max_frequency` 60→30。⚠️ 修前**改密/确认邮件链接会指向 localhost**,属真实上线缺陷。SMTP 本身早已接 SES(`email-smtp.ap-southeast-1.amazonaws.com:587`,`no-reply@mail.zoubeacon.com`,域名 DKIM + MAIL FROM 均 SUCCESS,SMTP 派生凭据实测认证通过) |
-| **N6** | `mailer_autoconfirm=true` | ⚠️ 注册**不验证邮箱**直接登录;上线前是否开启邮箱确认,待用户拍板 |
-| **N7** | 发信域 DMARC | 缺失(`mail.zoubeacon.com` / `zoubeacon.app` 均无 `_dmarc`);建议用 Cloudflare API 加 `p=none` 起步,待用户同意 |
+| **N6** | `mailer_autoconfirm=true` | ⚠️ 决策(按推荐执行):**现在保持 true**——SES 仍处沙盒,开启邮箱确认会让所有真实用户的注册确认邮件发不出去(= 直接注册失败);**等 SES 生产权限获批后立即改为 false**,并跑一轮注册确认链路验证(注册→收确认邮件→点链接→登录)。已作为上线检查项登记 |
+| **N7** | 发信域 DMARC | ✅ **已添加**(2026-09-15,Cloudflare API 代写并读回核对):zone `zoubeacon.com` 内新增 TXT `_dmarc.mail` = `v=DMARC1; p=none; rua=mailto:canaanlife@goo.jp; fo=1`(DNS only,TTL 3600);`dig @1.1.1.1` 已解析。**只加发信子域,公司主域 `zoubeacon.com` 未被触碰**(主域仍无 `_dmarc` 记录)。观察 1-2 周若 `rua` 报告无异常再收紧到 `p=quarantine` |
 | **N8** | SES 沙盒下的收件验证 | 已把 `gordon310103@gmail.com` 建为待验证身份 → **用户点一下 AWS 验证邮件**即可在沙盒下真实收信、测试注册/改密邮件链路 |
 | **N3** | 4 行历史僵尸报告(`generating`,分属 `1114513@qq.com` 与测试账号 p2test) | 修复后会在对应账号下次查询时自愈;**本批次未删任何数据**,如需清理先给清单待批 |
 | **N4** | 早班/夜班自主班次与人工会话并发写同一仓库 | 本轮发生过(早班 07:40 起两次派 codex,与 live 验证并发) → 已临时暂停早班、终止并发派工,验证完成后已恢复;后续人工会话期间建议先暂停班次 |

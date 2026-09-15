@@ -60,12 +60,31 @@ N1 首次发版引入**线上 500 回归**:`backend/app/auth.py` 的 `require_us
 
 **教训(已写入技能)**:「测试全绿」不等于「路径被执行」——发版前必须对**真实请求**做一次冒烟,尤其是被依赖覆盖 (dependency override) 包裹的鉴权/中间件路径。
 
-## 三、待你决策 / 待处理
+## 二·补:C6 90 天备份到期 —— 已补作业并上线
+
+| 项 | 结果 |
+|---|---|
+| 缺口 | 政策承诺「主数据 30 天 / 备份 90 天」,但全仓没有执行器 → 到点无人执行 |
+| 实现 | `scripts/account_retention_sweeper.py`:幂等、有界(`--limit`)、可 `--dry-run`、逐条隔离、日志无 PII;校验受控删除已完成 + 到期后**只写一次** `backup_expired_at` 事实时间,**不碰 provider backup / `auth.users` / append-only `usage_events`** |
+| schema | forward migration `20260915000400` 加列 + 部分索引;schema 清单计数 34→35 |
+| **调度** | **已接进 `scheduler` 容器每小时循环**(不接进调度 = 等于没跑,这是本轮特意补的一环) |
+| CI | 新 SQL 断言已接入 step + 两处 `REQUIRED_CHECKS`;**CI run `34950183015` 七 job 全绿** |
+| 线上验证 | 服务器已 pull、scheduler 容器重建;容器内实跑 `--limit 5 --dry-run` → `{"scanned":0,"failures":0,...}` 退出码 0 |
+| 口径 | 与政策文案「备份最多 90 天**自然到期**」一致(作业记录事实,不主动删 provider 备份);runbook 已同步 |
+
+### 本轮另外修掉的一个 CI flaky
+`property-intake.spec.js:589` 是**竞态**:用例种下过期 access token + 无效 refresh token 后,页面自身可能先完成刷新失败并清掉会话 → `isLoggedIn()` 在 CI 慢时变 false。上一次只加了一行等待(掩盖),**这次改成测试自己控制刷新时机**(token 响应先挂起,状态断言后再放行);连跑 5 次 + 整套 81 passed 全绿,CI 复验通过。
+
+## 三、账号/SES/邮件侧(需你操作或拍板)
 
 | # | 项 | 状态 |
 |---|---|---|
 | **N1** | 用户注销(上线前合规项) | ✅ **已完成**:受控删除执行器已上线并 live 验证通过(见第二节) |
-| **N2** | AWS SES 退沙盒审核 | 待用户告知结果(注册邮件仍 2 封/时,是上线硬依赖) |
+| **N2** | AWS SES 生产权限 | 🔴 **申请被驳回**(`ProductionAccessEnabled=false`,`ReviewDetails.Status=DENIED`,CaseId `178931383400481`);`PutAccountDetails` 返回 **ConflictException**(官方定义=「已有一次账号详情变更在审核中」,裁决后状态被冻住,控制台/API 都无法重提)→ **必须开支持案让 AWS 清掉陈旧审核状态**;而 IAM 用户 `zoubeacon-ses-ops` 没有 `support:*` → **需用户:①给 IAM 加 `support:CreateCase/DescribeCases/AddCommunicationToCase`(推荐,之后由 Hermes 开案跟进)或 ②自己在控制台追加回复(话术已备)** |
+| **N5** | Supabase Auth 配置(本轮已修) | ✅ `site_url` 由 `http://localhost:3000` → **`https://zoubeacon.app`**、补 `uri_allow_list`(zoubeacon.app / platform / 本地 8787、3000)、`smtp_max_frequency` 60→30。⚠️ 修前**改密/确认邮件链接会指向 localhost**,属真实上线缺陷。SMTP 本身早已接 SES(`email-smtp.ap-southeast-1.amazonaws.com:587`,`no-reply@mail.zoubeacon.com`,域名 DKIM + MAIL FROM 均 SUCCESS,SMTP 派生凭据实测认证通过) |
+| **N6** | `mailer_autoconfirm=true` | ⚠️ 注册**不验证邮箱**直接登录;上线前是否开启邮箱确认,待用户拍板 |
+| **N7** | 发信域 DMARC | 缺失(`mail.zoubeacon.com` / `zoubeacon.app` 均无 `_dmarc`);建议用 Cloudflare API 加 `p=none` 起步,待用户同意 |
+| **N8** | SES 沙盒下的收件验证 | 已把 `gordon310103@gmail.com` 建为待验证身份 → **用户点一下 AWS 验证邮件**即可在沙盒下真实收信、测试注册/改密邮件链路 |
 | **N3** | 4 行历史僵尸报告(`generating`,分属 `1114513@qq.com` 与测试账号 p2test) | 修复后会在对应账号下次查询时自愈;**本批次未删任何数据**,如需清理先给清单待批 |
 | **N4** | 早班/夜班自主班次与人工会话并发写同一仓库 | 本轮发生过(早班 07:40 起两次派 codex,与 live 验证并发) → 已临时暂停早班、终止并发派工,验证完成后已恢复;后续人工会话期间建议先暂停班次 |
 

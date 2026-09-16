@@ -22,6 +22,7 @@ from ..db import get_pool
 from ..billing.entitlements import period_key
 from ..usage.ledger import QuotaExceeded
 from ..usage.quota import consume_current_entitlement
+from .. import service_tasks
 
 
 router = APIRouter(prefix="/api/org", tags=["organization"])
@@ -595,6 +596,31 @@ async def get_org_me(user: AuthUser = Depends(require_user), store: Organization
     except Exception:
         logger.warning("organization summary unavailable", exc_info=False)
         return _error("org_unavailable", "机构信息暂时无法读取。")
+
+
+@router.get("/service-tasks")
+async def list_org_service_tasks(user: AuthUser = Depends(require_user)) -> dict[str, Any]:
+    return await service_tasks.list_for_org(user.user_id)
+
+
+@router.post("/service-tasks/{task_id}/apply")
+async def apply_org_service_task(task_id: UUID, body: service_tasks.ServiceTaskApply, user: AuthUser = Depends(require_user)) -> dict[str, Any]:
+    return await service_tasks.apply(user.user_id, task_id, body)
+
+
+@router.post("/service-tasks/{task_id}/withdraw")
+async def withdraw_org_service_task(task_id: UUID, user: AuthUser = Depends(require_user)) -> dict[str, Any]:
+    return await service_tasks.withdraw(user.user_id, task_id)
+
+
+@router.post("/service-tasks/{task_id}/consent")
+async def grant_org_service_task_consent(task_id: UUID, user: AuthUser = Depends(require_user)) -> dict[str, Any]:
+    return await service_tasks.grant_org_consent(user.user_id, task_id)
+
+
+@router.post("/service-tasks/{task_id}/complete")
+async def complete_org_service_task(task_id: UUID, user: AuthUser = Depends(require_user)) -> dict[str, Any]:
+    return await service_tasks.complete(user.user_id, task_id)
 
 
 @router.get("/members")

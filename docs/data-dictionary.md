@@ -75,6 +75,10 @@
 
 ## Schema 所有权与字段演进
 
+## M-B3 服务任务接单闭环
+
+M-B3 只在既有 `service_tasks`、`task_applications`、`task_status_history`、`contact_consents` 四张 V1 表上增加受信后端流程；不新增平行表或任务表承接方列。机构归属由服务端登录态与 `organization_members` 解析，申请的 `assigned_member_user_id` 必须是该机构在职成员。主链为 `open → matched_pending_consent → in_progress → completion_pending → completed`；`completed` 仅由 C 端创建者确认接口写入。
+
 数据库字段的定义和约束必须沿唯一 forward history 演进：新字段先更新本数据字典，再新增 `supabase/migrations/` 中的 reviewed forward migration、解析映射和离线断言。`backend/sql/` 中的旧脚本只用于来源比对或 disposable local/test compatibility，不能作为新的建库入口。
 
 当前 `migration_baseline_status = canonical_staging_reconciled_production_pending`。

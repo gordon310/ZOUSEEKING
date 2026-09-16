@@ -43,6 +43,7 @@ from .member.routes import router as member_router
 from .exports.routes import router as exports_router
 from .analysis.routes import router as analysis_router
 from .org.routes import router as org_router
+from .service_routes import router as service_router
 from .usage.ledger import QuotaExceeded
 from .usage.quota import consume_current_entitlement
 
@@ -117,6 +118,7 @@ app.include_router(member_router)
 app.include_router(exports_router)
 app.include_router(analysis_router)
 app.include_router(org_router)
+app.include_router(service_router)
 app.include_router(admin_router)
 app.include_router(privacy_router)
 app.include_router(recognition_router)

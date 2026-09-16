@@ -133,7 +133,7 @@ test("小象数据六个补齐页面都提供可评审入口", async ({ page }) 
     await page.goto(`/${route}`);
     await expect(page.locator("body.business-page-ready")).toBeVisible();
     await expect(page.locator("h1")).toHaveText(heading);
-    if (route !== "exports.html" && route !== "organization.html") {
+    if (route !== "exports.html" && route !== "organization.html" && route !== "service-tasks.html") {
       await expect(page.locator(".business-demo-label, .business-fixture-note").first()).toContainText("synthetic_fixture");
     } else if (route === "exports.html") {
       await expect(page.locator(".business-fixture-note").first()).toContainText("真实数据");
@@ -228,7 +228,7 @@ test("机构页读取真实数据并诚实呈现空态和失败态", async ({ pa
   await expect(page.locator("#usageNotice")).toContainText("没有用量读取端点");
 });
 
-test("订阅和服务任务页提供本地演示操作，导出页连接真实接口", async ({ page }) => {
+test("订阅和服务任务页连接真实接口，导出页连接真实接口", async ({ page }) => {
   await seedBusinessReleaseScope(page);
   let subscription = null;
   await page.route("**/api/billing/subscription", (route) => route.fulfill({ json: subscription }));
@@ -257,6 +257,10 @@ test("订阅和服务任务页提供本地演示操作，导出页连接真实�
   await expect(page.locator("#exportList [data-export-row]")).toHaveCount(1);
   await expect(page.locator("#exportNotice")).toContainText("创建");
 
+  let taskApplicationStatus = null;
+  await page.route("**/api/org/service-tasks", (route) => route.fulfill({ json: { items: [{ id: "task-1", purpose: "现场看房协助", region_pref: "大阪", asset_type: "apartment", compensation: "paid", public_description: "需要机构协助现场看房并提供客观记录。", status: "open", application_status: taskApplicationStatus }] } }));
+  await page.route("**/api/org/service-tasks/task-1/apply", (route) => { taskApplicationStatus = "pending"; return route.fulfill({ json: { task_id: "task-1", status: "pending", idempotent: false } }); });
+  await page.route("**/api/org/service-tasks/task-1/withdraw", (route) => { taskApplicationStatus = "withdrawn"; return route.fulfill({ json: { task_id: "task-1", status: "withdrawn", idempotent: false } }); });
   await page.goto("/service-tasks.html");
   await page.locator("#taskFilter").selectOption("open");
   await expect(page.locator("#taskList [data-task-row]")).toHaveCount(1);

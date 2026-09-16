@@ -53,6 +53,16 @@ ADMIN_API_CONTRACT = (
     "GET /api/org/invitations",
     "POST /api/org/invitations/{invitation_id}/revoke",
     "POST /api/org/invitations/accept",
+    "GET /api/org/service-tasks",
+    "POST /api/org/service-tasks/{task_id}/apply",
+    "POST /api/org/service-tasks/{task_id}/withdraw",
+    "POST /api/org/service-tasks/{task_id}/consent",
+    "POST /api/org/service-tasks/{task_id}/complete",
+    "GET /api/service/tasks",
+    "POST /api/service/tasks/{task_id}/consent",
+    "POST /api/service/tasks/{task_id}/confirm-completion",
+    "POST /api/admin/service/tasks",
+    "POST /api/admin/service/tasks/{task_id}/status",
 )
 
 PHASE_ONE_API_CONTRACT = PHASE_ONE_API_CONTRACT + ADMIN_API_CONTRACT

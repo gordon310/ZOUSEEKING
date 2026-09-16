@@ -84,6 +84,7 @@ from .service import (
     MEMBER_STATUSES,
     get_admin_service,
 )
+from .. import service_tasks
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -112,6 +113,10 @@ class MemberStatusRequest(BaseModel):
 
 class MemberAudienceRequest(BaseModel):
     audience: str
+
+
+class ServiceTaskStatusRequest(service_tasks.ServiceTaskStatus):
+    pass
 
 
 class CollectionSourceUpsertRequest(BaseModel):
@@ -598,6 +603,23 @@ async def list_service_tasks(
         page=page,
         page_size=page_size,
     )
+
+
+@router.post("/service/tasks", status_code=201)
+async def create_service_task(
+    body: service_tasks.ServiceTaskCreate,
+    principal: AdminPrincipal = Depends(require_admin_role(MEMBER_OPS, SUPER_ADMIN)),
+) -> dict[str, Any]:
+    return await service_tasks.admin_create(principal.user.user_id, body)
+
+
+@router.post("/service/tasks/{task_id}/status")
+async def change_service_task_status(
+    task_id: UUID,
+    body: ServiceTaskStatusRequest,
+    principal: AdminPrincipal = Depends(require_admin_role(MEMBER_OPS, SUPER_ADMIN)),
+) -> dict[str, Any]:
+    return await service_tasks.admin_status(principal.user.user_id, task_id, body)
 
 
 @router.get("/internal/roles")

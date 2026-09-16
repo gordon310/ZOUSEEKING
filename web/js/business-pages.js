@@ -375,43 +375,56 @@
   }
 
   function renderServiceTasks() {
-    const tasks = [
-      { id: "TASK-001", type: "business.serviceAccompany", status: "open", area: "region.osaka", time: "business.earlySeptember", reward: "business.feeFrom15000", summary: "business.taskSummaryAccompany" },
-      { id: "TASK-002", type: "business.serviceExpert", status: "in_progress", area: "region.tokyo", time: "business.midSeptember", reward: "business.negotiable", summary: "business.taskSummaryExpert" },
-      { id: "TASK-003", type: "business.serviceRecommend", status: "completed", area: "region.yokohama", time: "business.lateAugust", reward: "business.fee8000", summary: "business.taskSummaryRecommend" },
-    ];
     const list = byId("taskList");
     const filter = byId("taskFilter");
     if (!list || !filter) return;
+    let tasks = [];
     let currentFilter = "all";
 
     const statusMeta = {
       open: { key: "business.taskOpen", className: "pending" },
       applied: { key: "business.taskApplied", className: "active" },
+      matched_pending_consent: { key: "business.taskAwaitingConsent", className: "active" },
       in_progress: { key: "business.taskInProgress", className: "active" },
+      completion_pending: { key: "business.taskCompletionPending", className: "active" },
       completed: { key: "business.taskCompleted", className: "" },
+      cancelled: { key: "business.taskCancelled", className: "" },
+      expired: { key: "business.taskExpired", className: "" },
+      closed_unconfirmed: { key: "business.taskClosedUnconfirmed", className: "" },
+      suspended: { key: "business.taskSuspended", className: "" },
     };
+    const typeLabels = { apartment: "business.assetApartment", tower: "business.assetTower", detached_house: "business.assetDetached", other: "business.assetOther" };
+    const rewardLabels = { paid: "business.paid", unpaid: "business.unpaid", negotiable: "business.negotiable" };
+    const sessionUserId = () => window.ZouAuthSession?.read?.()?.userId || "";
 
     function render() {
-      const visible = tasks.filter((task) => currentFilter === "all" || task.status === currentFilter);
+      const visible = tasks.filter((task) => {
+        const displayStatus = task.application_status === "pending" ? "applied" : task.status;
+        return currentFilter === "all" || displayStatus === currentFilter;
+      });
       list.innerHTML = visible.map((task) => {
-        const meta = statusMeta[task.status];
-        const action = task.status === "open"
+        const displayStatus = task.application_status === "pending" ? "applied" : task.status;
+        const meta = statusMeta[displayStatus] || statusMeta[task.status] || statusMeta.open;
+        const action = task.status === "open" && !task.application_status
           ? `<button class="business-button" type="button" data-task-action="apply" data-task-id="${escapeHtml(task.id)}">${escapeHtml(t("business.apply"))}</button>`
-          : task.status === "applied"
+          : task.application_status === "pending"
             ? `<button class="business-button secondary" type="button" data-task-action="withdraw" data-task-id="${escapeHtml(task.id)}">${escapeHtml(t("business.withdraw"))}</button>`
+            : task.status === "matched_pending_consent"
+              ? `<button class="business-button" type="button" data-task-action="consent" data-task-id="${escapeHtml(task.id)}">${escapeHtml(t("business.grantConsent"))}</button>`
+              : task.status === "in_progress"
+                ? `<button class="business-button" type="button" data-task-action="complete" data-task-id="${escapeHtml(task.id)}">${escapeHtml(t("business.completeApply"))}</button>`
             : "";
         return `
           <article class="business-task-card" data-task-row data-task-id="${escapeHtml(task.id)}">
-            <div class="business-panel-heading"><span class="business-status ${meta.className}">${escapeHtml(t(meta.key))}</span><span class="business-fixture-note">${escapeHtml(task.id)} · synthetic_fixture</span></div>
-            <h3>${escapeHtml(t(task.type))}</h3>
-            <p>${escapeHtml(t(task.summary, "C 端服务需求演示，不含个人联系方式。"))}</p>
-            <dl class="business-task-facts"><div><dt>${escapeHtml(t("business.area"))}</dt><dd>${escapeHtml(t(task.area))}</dd></div><div><dt>${escapeHtml(t("business.time"))}</dt><dd>${escapeHtml(t(task.time))}</dd></div><div><dt>${escapeHtml(t("business.reward"))}</dt><dd>${escapeHtml(t(task.reward))}</dd></div><div><dt>${escapeHtml(t("business.taskType"))}</dt><dd>${escapeHtml(t(task.type))}</dd></div></dl>
+            <div class="business-panel-heading"><span class="business-status ${meta.className}">${escapeHtml(t(meta.key))}</span></div>
+            <h3>${escapeHtml(task.purpose || t("business.taskFallback"))}</h3>
+            <p>${escapeHtml(task.public_description || t("business.taskNoDescription"))}</p>
+            <dl class="business-task-facts"><div><dt>${escapeHtml(t("business.area"))}</dt><dd>${escapeHtml(task.region_pref || t("business.notAvailable"))}</dd></div><div><dt>${escapeHtml(t("business.reward"))}</dt><dd>${escapeHtml(t(rewardLabels[task.compensation] || "business.notAvailable"))}</dd></div><div><dt>${escapeHtml(t("business.taskType"))}</dt><dd>${escapeHtml(t(typeLabels[task.asset_type] || "business.assetOther"))}</dd></div></dl>
             <div class="business-list-action">${action}<button class="business-button secondary" type="button" data-task-action="details" data-task-id="${escapeHtml(task.id)}">${escapeHtml(t("business.viewDetails"))}</button></div>
           </article>
         `;
       }).join("");
-      if (!visible.length) list.innerHTML = `<p class="business-panel-copy">${escapeHtml(t("business.taskNoticeDetails"))}</p>`;
+      if (!visible.length) list.innerHTML = `<p class="business-panel-copy">${escapeHtml(t("business.taskEmpty"))}</p>`;
     }
 
     filter.addEventListener("change", () => {
@@ -421,25 +434,25 @@
       setNotice("taskNotice", `${label} · ${t("business.serviceTasksCopy")}`);
     });
 
-    list.addEventListener("click", (event) => {
+    list.addEventListener("click", async (event) => {
       const button = event.target.closest("[data-task-action]");
       if (!button) return;
       const task = tasks.find((item) => item.id === button.dataset.taskId);
       if (!task) return;
       if (button.dataset.taskAction === "apply") {
-        task.status = "applied";
-        currentFilter = "applied";
-        filter.value = currentFilter;
-        render();
-        setNotice("taskNotice", t("business.taskNoticeApplied"));
+        try { await window.ZouBusinessApi.applyServiceTask(task.id, sessionUserId()); currentFilter = "applied"; filter.value = currentFilter; await load(); setNotice("taskNotice", t("business.taskNoticeApplied")); } catch (error) { setNotice("taskNotice", error?.status === 403 ? t("business.organizationForbidden") : t("business.taskUnavailable")); }
         return;
       }
       if (button.dataset.taskAction === "withdraw") {
-        task.status = "open";
-        currentFilter = "open";
-        filter.value = currentFilter;
-        render();
-        setNotice("taskNotice", t("business.taskNoticeWithdrawn"));
+        try { await window.ZouBusinessApi.withdrawServiceTask(task.id); currentFilter = "open"; filter.value = currentFilter; await load(); setNotice("taskNotice", t("business.taskNoticeWithdrawn")); } catch { setNotice("taskNotice", t("business.taskUnavailable")); }
+        return;
+      }
+      if (button.dataset.taskAction === "consent") {
+        try { await window.ZouBusinessApi.grantServiceTaskConsent(task.id); await load(); setNotice("taskNotice", t("business.consentSuccess")); } catch { setNotice("taskNotice", t("business.taskUnavailable")); }
+        return;
+      }
+      if (button.dataset.taskAction === "complete") {
+        try { await window.ZouBusinessApi.completeServiceTask(task.id); await load(); setNotice("taskNotice", t("business.completeSuccess")); } catch { setNotice("taskNotice", t("business.taskUnavailable")); }
         return;
       }
       setNotice("taskNotice", t("business.taskNoticeDetails"));
@@ -447,7 +460,12 @@
       if (detail) detail.textContent = `${t("business.taskDetails")} · ${task.id} · ${t(task.type)} · ${t(task.area)}`;
     });
 
-    render();
+    async function load() {
+      list.innerHTML = `<p class="business-panel-copy">${escapeHtml(t("business.taskLoading"))}</p>`;
+      try { const result = await window.ZouBusinessApi.listServiceTasks(); tasks = Array.isArray(result?.items) ? result.items : []; render(); setNotice("taskNotice", tasks.length ? t("business.serviceTasksLive") : t("business.taskEmpty")); }
+      catch { tasks = []; render(); setNotice("taskNotice", t("business.taskUnavailable")); }
+    }
+    load();
   }
 
   function init() {

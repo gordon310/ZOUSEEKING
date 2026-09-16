@@ -46,6 +46,10 @@
     return { CNY: "CNY", JPY: "JPY", USD: "USD" }[value] || "CNY";
   }
 
+  function orgStatus(value) {
+    return { paid: "business.paid", active: "business.active" }[value] ? t({ paid: "business.paid", active: "business.active" }[value]) : t("business.notAvailable");
+  }
+
   function renderOrganization() {
     const list = byId("organizationMembers");
     if (!list) return;
@@ -114,7 +118,29 @@
     portal.disabled = true;
     setNotice("billingNotice", t("business.billingUnavailable"));
     if (!window.ZouBusinessApi) return;
-    Promise.allSettled([window.ZouBusinessApi.getBillingPrices(), window.ZouBusinessApi.getMe(), window.ZouBusinessApi.getSubscription()]).then(([pricesResult, meResult, subscriptionResult]) => {
+    Promise.allSettled([window.ZouBusinessApi.getBillingPrices(), window.ZouBusinessApi.getMe(), window.ZouBusinessApi.getSubscription(), window.ZouBusinessApi.getOrganization(), window.ZouBusinessApi.getOrganizationBilling()]).then(([pricesResult, meResult, subscriptionResult, orgResult, orgBillingResult]) => {
+      const organization = orgResult.status === "fulfilled" ? orgResult.value?.organization : null;
+      const orgBilling = orgBillingResult.status === "fulfilled" ? orgBillingResult.value : null;
+      if (organization && orgBilling) {
+        status.textContent = organization.name || t("business.organizationNone");
+        price.textContent = orgBilling.subscription ? `${escapeHtml(orgBilling.subscription.product_code)} · ${escapeHtml(orgStatus(orgBilling.subscription.status))}` : t("business.notSubscribed");
+        portal.disabled = true;
+        if (Array.isArray(orgBilling.orders) && orgBilling.orders.length) {
+          plans.innerHTML = orgBilling.orders.map((item) => `<article class="business-card"><h3>${escapeHtml(item.period || "—")}</h3><p>${escapeHtml(item.currency || "")} ${escapeHtml(String(item.amount_minor ?? 0))} · ${escapeHtml(orgStatus(item.status))}</p></article>`).join("");
+        } else {
+          plans.innerHTML = `<p class="business-panel-copy">${escapeHtml(t("business.noInvoiceData"))}</p>`;
+        }
+        setNotice("billingNotice", t("business.billingLive"));
+        return;
+      }
+      if (organization && orgBillingResult.status === "rejected" && orgBillingResult.reason?.status === 403) {
+        status.textContent = organization.name || t("business.organizationNone");
+        price.textContent = "";
+        portal.disabled = true;
+        plans.innerHTML = `<p class="business-panel-copy">${escapeHtml(t("business.organizationForbidden"))}</p>`;
+        setNotice("billingNotice", t("business.organizationForbidden"));
+        return;
+      }
       const me = meResult.status === "fulfilled" ? meResult.value : null;
       const subscription = subscriptionResult.status === "fulfilled" ? subscriptionResult.value : null;
       if (me) status.textContent = me.membership_tier || t("business.notAvailable");
@@ -149,7 +175,27 @@
     list.textContent = t("business.usageEventsUnavailable");
     setNotice("usageNotice", t("business.usageUnavailable"));
     if (!window.ZouBusinessApi) return;
-    window.ZouBusinessApi.getUsageSummary().then((value) => {
+    Promise.allSettled([window.ZouBusinessApi.getOrganization(), window.ZouBusinessApi.getOrganizationUsage(), window.ZouBusinessApi.getUsageSummary()]).then(([orgResult, orgUsageResult, personalResult]) => {
+      const org = orgResult.status === "fulfilled" ? orgResult.value : null;
+      let value = orgUsageResult.status === "fulfilled" ? orgUsageResult.value : null;
+      if (org?.organization && value?.organization) {
+        const usageCopy = byId("usageCopy");
+        if (usageCopy) usageCopy.textContent = t("business.organizationUsageCopy");
+        const labels = { queries: "business.usageQuery", reports: "business.usageReports", exports_rows: "business.usageExport", analysis: "business.usageAnalysis" };
+        cards.innerHTML = Object.entries(value.entitlements || {}).map(([key, item]) => `<article class="business-card"><h3>${escapeHtml(t(labels[key] || "business.notAvailable"))}</h3><p>${escapeHtml(String(item.used ?? 0))} / ${escapeHtml(String(item.limit ?? t("business.unknownLimit")))}</p></article>`).join("") || `<p>${escapeHtml(t("business.organizationEmpty"))}</p>`;
+        const periodElement = byId("usagePeriod");
+        if (periodElement) periodElement.textContent = `${t("business.period")}: ${escapeHtml(value.period || "—")}`;
+        setNotice("usageNotice", t("business.usageLive"));
+        list.textContent = t("business.usageEventsUnavailable");
+        return;
+      }
+      if (org?.organization && orgUsageResult.status === "rejected") {
+        cards.textContent = t("business.usageUnavailable");
+        setNotice("usageNotice", orgUsageResult.reason?.status === 403 ? t("business.organizationForbidden") : t("business.usageUnavailable"));
+        return;
+      }
+      if (personalResult.status === "rejected") throw personalResult.reason;
+      value = personalResult.value;
       const labels = { queries: "business.usageQuery", reports: "business.usageReports", exports_rows: "business.usageExport" };
       cards.innerHTML = Object.entries(value?.entitlements || {}).map(([key, item]) => {
         const limit = item.limit == null ? t("business.unknownLimit") : String(item.limit);
@@ -159,9 +205,9 @@
       const periodElement = byId("usagePeriod");
       if (periodElement) periodElement.textContent = period ? `${t("business.period")}: ${period.start} → ${period.end}` : t("business.periodUnavailable");
       setNotice("usageNotice", value?.available === false ? t("business.sourceUnavailable") : t("business.usageLive"));
-    }).catch(() => {
+    }).catch((error) => {
       cards.textContent = t("business.usageUnavailable");
-      setNotice("usageNotice", t("business.usageUnavailable"));
+      setNotice("usageNotice", error?.status === 403 ? t("business.organizationForbidden") : t("business.usageUnavailable"));
     });
   }
 
@@ -208,10 +254,13 @@
       `).join("");
     }
 
+    let organizationMode = false;
+    let api = window.ZouBusinessApi;
+    let initialLoad = null;
     list.addEventListener("click", (event) => {
       const button = event.target.closest("[data-export-action='download']");
       if (!button) return;
-      window.ZouBusinessApi.downloadExport(button.dataset.exportId).then((blob) => {
+      api[organizationMode ? "downloadOrganizationExport" : "downloadExport"](button.dataset.exportId).then((blob) => {
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
@@ -224,12 +273,12 @@
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       try {
-        await window.ZouBusinessApi.createExport();
+        if (initialLoad) await initialLoad;
+        await api[organizationMode ? "createOrganizationExport" : "createExport"]();
         setNotice("exportNotice", t("business.exportCreated"));
         await load();
       } catch (error) {
-        const message = String(error?.message || "");
-        setNotice("exportNotice", message.includes("429") ? t("business.exportQuotaExceeded") : message.includes("no owned reports") ? t("business.exportNoData") : t("business.exportError"));
+        setNotice("exportNotice", error?.status === 403 ? t("business.organizationForbidden") : error?.status === 429 ? t("business.exportQuotaExceeded") : error?.status === 422 ? t("business.exportNoData") : t("business.exportError"));
       }
     });
 
@@ -239,7 +288,31 @@
         list.textContent = t("business.noExports");
         return;
       }
-      const [usageResult, exportsResult] = await Promise.allSettled([window.ZouBusinessApi.getUsageSummary(), window.ZouBusinessApi.listExports()]);
+      const [orgResult, usageResult, exportsResult] = await Promise.allSettled([window.ZouBusinessApi.getOrganization(), window.ZouBusinessApi.getUsageSummary(), window.ZouBusinessApi.listExports()]);
+      organizationMode = orgResult.status === "fulfilled" && Boolean(orgResult.value?.organization);
+      api = window.ZouBusinessApi;
+      if (organizationMode) {
+        const exportScope = byId("exportScope");
+        if (exportScope) exportScope.textContent = t("business.organizationExportScope");
+        const role = orgResult.value?.role;
+        if (!["owner", "admin"].includes(role)) {
+          form.hidden = true;
+          setNotice("exportNotice", t("business.organizationForbidden"));
+        }
+        let orgUsage;
+        let orgExports;
+        try {
+          [orgUsage, orgExports] = await Promise.all([window.ZouBusinessApi.getOrganizationUsage(), window.ZouBusinessApi.listOrganizationExports()]);
+        } catch (error) {
+          quota.textContent = t("business.exportQuotaUnavailable");
+          list.textContent = error?.status === 403 ? t("business.organizationForbidden") : t("business.exportError");
+          return;
+        }
+        const item = orgUsage?.entitlements?.exports_rows;
+        quota.textContent = item ? format("business.exportQuotaRemaining", { remaining: Math.max(0, item.limit - item.used), limit: item.limit }) : t("business.exportQuotaUnavailable");
+        renderHistory(orgExports?.exports || []);
+        return;
+      }
       if (usageResult.status === "fulfilled") {
         const item = usageResult.value?.entitlements?.exports_rows;
         const limit = item?.limit;
@@ -250,7 +323,7 @@
       else list.textContent = t("business.exportError");
     }
 
-    load();
+    initialLoad = load();
   }
 
   function renderServiceTasks() {

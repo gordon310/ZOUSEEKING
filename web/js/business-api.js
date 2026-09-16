@@ -31,6 +31,8 @@
     getMe: () => request("/api/me"),
     getUsageSummary: () => request("/api/usage/summary"),
     getOrganization: () => request("/api/org/me"),
+    getOrganizationUsage: () => request("/api/org/usage"),
+    getOrganizationBilling: () => request("/api/org/billing"),
     listOrganizationMembers: () => request("/api/org/members"),
     listExports: () => request("/api/exports"),
     createExport: () => request("/api/exports", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) }),
@@ -40,6 +42,16 @@
       if (token) headers.Authorization = `Bearer ${token}`;
       const response = await fetch(`${base}/api/exports/${encodeURIComponent(exportId)}`, { headers });
       if (!response.ok) throw new Error(`API ${response.status}`);
+      return response.blob();
+    },
+    listOrganizationExports: () => request("/api/org/exports"),
+    createOrganizationExport: () => request("/api/org/exports", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) }),
+    downloadOrganizationExport: async (exportId) => {
+      const headers = {};
+      const token = await window.ZouAuthSession?.getValidAccessToken?.() || accessToken();
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const response = await fetch(`${base}/api/org/exports/${encodeURIComponent(exportId)}`, { headers });
+      if (!response.ok) { const error = new Error(`API ${response.status}`); error.status = response.status; throw error; }
       return response.blob();
     },
     createBillingCheckout: (productCode, billingRegion = "CN") => request("/api/billing/checkout", {

@@ -107,9 +107,12 @@ canonical history 与 staging 的 later-ID reconciliation、provenance constrain
 | 表/字段 | 含义与约束 |
 | --- | --- |
 | `exports.owner_user_id` | 服务端从认证用户推导；只允许导出该用户拥有的 `queries` 与 `property_reports`。 |
+| `exports.organization_id` | 2026-09-16 forward migration 新增；服务端从认证用户的 active membership 推导，机构导出读取必须同时匹配机构和属主。 |
 | `exports.row_count` | 本次 CSV 的报告行数；成功写入同一事务中的 `usage_events.usage_kind=export_row`，按实际行数计量。 |
 | `exports.csv_content` | 服务端生成的 UTF-8 BOM CSV 二进制内容；不保存他人数据、照片、联系方式或合成样例。 |
 | `plan_entitlements(metric=export_row, period=month)` | 导出行数额度的唯一优先配置；旧 `pricing_plans.export_rows_monthly` 仅作数据库兼容回退。 |
+
+机构账单与用量只读取 `payment_orders.organization_id`、有效 `subscriptions`、机构 scope 的 `usage_quotas`；金额保持 `amount_minor` 与 `currency` 原样，不生成发票号或汇率换算字段。
 # 定价与套餐目录（pricing_admin migration）
 
 | 表 | 字段 | 含义与约束 |

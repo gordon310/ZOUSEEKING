@@ -101,6 +101,9 @@ psql "$TEST_DATABASE_URL" -X -v ON_ERROR_STOP=1 -f tests/sql/test_m1_reconciliat
   `account_retention_sweeper.py` 校验 completed 台账的主数据匿名化并一次性记录
   `backup_expired_at`；不删除 `auth.users`、不写 `usage_events`、不直接修改 provider backup。
   发布后运行 `tests/sql/test_account_deletion_retention_sweeper.sql`，失败采用 forward-fix。
+- 2026-09-16 新增机构导出归属列 `20260916000100_org_exports.sql`：只新增
+  `exports.organization_id` 与机构/属主复合索引，不修改既有属主列；发布后运行
+  `tests/sql/test_org_billing_contract.sql`，失败采用 forward-fix。
 - `backend/sql/`、旧 restore 包和 schema dump 只作为历史证据，不是 migration
   history。
 - 每个 migration 必须配套 constraints、focused assertions、backup/restore、

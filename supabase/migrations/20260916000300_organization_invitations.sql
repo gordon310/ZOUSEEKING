@@ -75,4 +75,3 @@ using (exists (
 ));
 
 revoke all on function public.set_organization_invitations_updated_at() from public, anon, authenticated;
-

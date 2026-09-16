@@ -90,14 +90,16 @@ begin
   if anon_grant_count <> 1 then
     raise exception 'anon public grant count %, expected 1', anon_grant_count;
   end if;
-  -- 20260915000300_account_deletion_requests.sql adds one authenticated SELECT grant.
-  if authenticated_grant_count <> 24 then
-    raise exception 'authenticated public grant count %, expected 24', authenticated_grant_count;
+  -- 20260915000300_account_deletion_requests.sql adds one authenticated SELECT grant;
+  -- 20260916000300_organization_invitations.sql adds one more (SELECT on the new table).
+  if authenticated_grant_count <> 25 then
+    raise exception 'authenticated public grant count %, expected 25', authenticated_grant_count;
   end if;
   -- 20260915000300_account_deletion_requests.sql adds four service_role grants;
-  -- 336 为手工 bootstrap 计数、339 为 CI disposable-reset 基线(以 CI 为准)。
-  if service_grant_count <> 339 then
-    raise exception 'service_role public grant count %, expected 339', service_grant_count;
+  -- 336 为手工 bootstrap 计数、346 为 CI disposable-reset 基线(以 CI 为准;
+  -- 20260916000300 的 GRANT ALL 在新表上展开 7 条权限行,339 + 7 = 346)。
+  if service_grant_count <> 346 then
+    raise exception 'service_role public grant count %, expected 346', service_grant_count;
   end if;
 
   if exists (

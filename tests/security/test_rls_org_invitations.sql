@@ -27,4 +27,3 @@ do $$ begin
   if (select count(*) from public.organization_invitations) <> 0 then raise exception 'outsider can read invitation'; end if;
 end $$;
 rollback;
-

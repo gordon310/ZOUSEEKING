@@ -25,4 +25,3 @@ def test_member_ops_can_create_organization_and_get_audited_result():
         app.dependency_overrides.clear()
     assert response.status_code == 201
     assert response.json()["organization"]["name"] == "机构一"
-

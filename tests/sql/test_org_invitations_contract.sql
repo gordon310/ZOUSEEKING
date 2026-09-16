@@ -25,4 +25,3 @@ begin
 end $$;
 select 1 as invitation_contract_probe from public.organization_invitations where false;
 rollback;
-

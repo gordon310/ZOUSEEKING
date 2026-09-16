@@ -176,7 +176,7 @@ jobs:
         run: python3 scripts/ci/release_evidence.py record --name sql-organizations --output ci-results/sql-organizations.json -- psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/sql/test_v1_organizations.sql
       - name: Run organization read contract assertions
         continue-on-error: true
-          run: python3 scripts/ci/release_evidence.py record --name sql-org-read --output ci-results/sql-org-read.json -- psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/sql/test_org_read_contract.sql
+        run: python3 scripts/ci/release_evidence.py record --name sql-org-read --output ci-results/sql-org-read.json -- psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/sql/test_org_read_contract.sql
       - name: Run organization billing and export contract assertions
         continue-on-error: true
         run: python3 scripts/ci/release_evidence.py record --name sql-org-billing --output ci-results/sql-org-billing.json -- psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/sql/test_org_billing_contract.sql

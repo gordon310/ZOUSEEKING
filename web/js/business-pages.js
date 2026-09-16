@@ -47,35 +47,57 @@
   }
 
   function renderOrganization() {
-    const members = [
-      { id: "MBR-001", name: "business.memberMain", role: "business.owner", state: "business.active", stateClass: "", last: "business.today" },
-      { id: "MBR-002", name: "business.memberSeatA", role: "business.memberRole", state: "business.active", stateClass: "", last: "business.today" },
-      { id: "MBR-003", name: "business.memberSeatB", role: "business.memberRole", state: "business.invited", stateClass: "pending", last: "business.yesterday" },
-      { id: "MBR-004", name: "business.memberAudit", role: "business.memberRole", state: "business.active", stateClass: "", last: "business.yesterday" },
-    ];
     const list = byId("organizationMembers");
     if (!list) return;
-
-    list.innerHTML = members.map((member) => `
-      <tr data-member-row data-member-id="${escapeHtml(member.id)}">
-        <th scope="row">${escapeHtml(t(member.name))}<span class="business-table-subtext">${escapeHtml(member.id)} · synthetic_fixture</span></th>
-        <td data-label="${escapeHtml(t("business.role"))}">${escapeHtml(t(member.role))}</td>
-        <td data-label="${escapeHtml(t("business.status"))}">${status(member.state, member.stateClass)}</td>
-        <td data-label="${escapeHtml(t("business.lastActive"))}">${escapeHtml(t(member.last))}</td>
-        <td data-label="${escapeHtml(t("business.action"))}"><button class="business-button secondary" type="button" data-member-action="view" data-member-id="${escapeHtml(member.id)}">${escapeHtml(t("business.view"))}</button></td>
-      </tr>
-    `).join("");
-
-    list.addEventListener("click", (event) => {
-      const button = event.target.closest("[data-member-action]");
-      if (!button) return;
-      setNotice("organizationNotice", t("business.memberDetailNotice"));
-      const detail = byId("organizationDetail");
-      if (detail) detail.textContent = `${t("business.memberDetailNotice")} ${button.dataset.memberId}`;
-    });
-
-    byId("inviteMemberButton")?.addEventListener("click", () => {
-      setNotice("organizationNotice", t("business.inviteNotice"));
+    list.innerHTML = `<tr><td colspan="4">${escapeHtml(t("business.organizationLoading"))}</td></tr>`;
+    const roleLabels = { owner: "business.owner", member: "business.memberRole" };
+    const statusLabels = { active: "business.active", inactive: "business.inactive" };
+    const renderMembers = (members) => {
+      if (!members.length) {
+        list.innerHTML = `<tr><td colspan="4">${escapeHtml(t("business.organizationEmpty"))}</td></tr>`;
+        return;
+      }
+      list.innerHTML = members.map((member) => `
+        <tr data-member-row>
+          <th scope="row">${escapeHtml(member.display_name || t("business.memberFallback"))}</th>
+          <td data-label="${escapeHtml(t("business.role"))}">${escapeHtml(t(roleLabels[member.role] || "business.memberRole"))}</td>
+          <td data-label="${escapeHtml(t("business.status"))}">${escapeHtml(t(statusLabels[member.status] || "business.inactive"))}</td>
+          <td data-label="${escapeHtml(t("business.joinedAt"))}">${escapeHtml(member.joined_at || t("business.dateUnavailable"))}</td>
+        </tr>
+      `).join("");
+    };
+    const load = async () => {
+      if (!window.ZouBusinessApi) throw new Error("api_unavailable");
+      const [me, members] = await Promise.all([
+        window.ZouBusinessApi.getOrganization(),
+        window.ZouBusinessApi.listOrganizationMembers(),
+      ]);
+      if (!me?.organization) {
+        byId("organizationAccountHeading").textContent = t("business.organizationNone");
+        byId("organizationPlanName").textContent = "";
+        byId("organizationName").textContent = t("business.organizationNone");
+        byId("organizationRole").textContent = "—";
+        byId("businessSeatSummary").textContent = "—";
+        byId("organizationSeatSummary").textContent = "—";
+        setNotice("organizationNotice", t("business.organizationEmpty"));
+        renderMembers([]);
+        return;
+      }
+      const seatText = format("business.seatSummary", { used: me.seats?.used ?? 0, total: me.seats?.limit ?? 0 });
+      byId("organizationAccountHeading").textContent = me.organization.name || t("business.organizationNone");
+      byId("organizationPlanName").textContent = me.plan?.name || t("business.notAvailable");
+      byId("organizationName").textContent = me.organization.name || t("business.organizationNone");
+      byId("organizationRole").textContent = t(roleLabels[me.role] || "business.memberRole");
+      byId("businessSeatSummary").textContent = seatText;
+      byId("organizationSeatSummary").textContent = seatText;
+      setNotice("organizationNotice", t("business.organizationLive"));
+      renderMembers(Array.isArray(members?.members) ? members.members : []);
+    };
+    load().catch((error) => {
+      const forbidden = error?.status === 401 || error?.status === 403;
+      const message = forbidden ? t("business.organizationForbidden") : t("business.organizationUnavailable");
+      setNotice("organizationNotice", message);
+      list.innerHTML = `<tr><td colspan="4">${escapeHtml(message)}</td></tr>`;
     });
   }
 

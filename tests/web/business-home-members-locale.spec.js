@@ -133,10 +133,13 @@ test("小象数据六个补齐页面都提供可评审入口", async ({ page }) 
     await page.goto(`/${route}`);
     await expect(page.locator("body.business-page-ready")).toBeVisible();
     await expect(page.locator("h1")).toHaveText(heading);
-    if (route !== "exports.html") {
+    if (route !== "exports.html" && route !== "organization.html") {
       await expect(page.locator(".business-demo-label, .business-fixture-note").first()).toContainText("synthetic_fixture");
-    } else {
+    } else if (route === "exports.html") {
       await expect(page.locator(".business-fixture-note").first()).toContainText("真实数据");
+    } else {
+      await expect(page.locator(".business-demo-label, .business-fixture-note")).toHaveCount(0);
+      await expect(page.locator("body")).not.toContainText("synthetic_fixture");
     }
     await expect(page.locator("[data-locale-switcher]")).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
@@ -149,13 +152,37 @@ test("小象数据六个补齐页面都提供可评审入口", async ({ page }) 
   expect(browserErrors).toEqual([]);
 });
 
-test("机构、账单和用量页提供本地演示操作", async ({ page }) => {
+test("机构页读取真实数据并诚实呈现空态和失败态", async ({ page }) => {
   await seedBusinessReleaseScope(page);
+  await page.route("**/api/org/me", (route) => route.fulfill({ json: {
+    organization: { name: "大阪数据协作社" }, role: "owner", seats: { used: 2, limit: 5 },
+    plan: { name: "B Data Pro", entitlements: { queries: { used: 3, limit: 500, period: "month" } } },
+  } }));
+  await page.route("**/api/org/members", (route) => route.fulfill({ json: { members: [
+    { display_name: "h***@example.com", role: "owner", status: "active", joined_at: "2026-09-01T00:00:00+00:00" },
+    { display_name: "成员 2", role: "member", status: "active", joined_at: "2026-09-02T00:00:00+00:00" },
+  ] } }));
   await page.goto("/organization.html");
-  await page.locator("#inviteMemberButton").click();
-  await expect(page.locator("#organizationNotice")).toContainText("邀请流程演示");
-  await page.locator("[data-member-action='view']").first().click();
-  await expect(page.locator("#organizationNotice")).toContainText("成员详情");
+  await expect(page.locator("#organizationAccountHeading")).toHaveText("大阪数据协作社");
+  await expect(page.locator("#businessSeatSummary")).toHaveText("已使用 2 / 5 个席位");
+  await expect(page.locator("#organizationMembers [data-member-row]")).toHaveCount(2);
+  await expect(page.locator("#organizationNotice")).toContainText("真实成员");
+
+  await page.unroute("**/api/org/me");
+  await page.unroute("**/api/org/members");
+  await page.route("**/api/org/me", (route) => route.fulfill({ json: { organization: null, role: null, seats: null, plan: null } }));
+  await page.route("**/api/org/members", (route) => route.fulfill({ json: { members: [] } }));
+  await page.reload();
+  await expect(page.locator("#organizationNotice")).toContainText("尚未加入机构");
+  await expect(page.locator("#organizationMembers")).toContainText("尚未加入机构");
+
+  await page.unroute("**/api/org/me");
+  await page.unroute("**/api/org/members");
+  await page.route("**/api/org/me", (route) => route.fulfill({ status: 503, json: { error: { code: "org_unavailable", message: "机构信息暂时无法读取。" } } }));
+  await page.route("**/api/org/members", (route) => route.fulfill({ status: 503, json: { error: { code: "org_unavailable", message: "机构成员暂时无法读取。" } } }));
+  await page.reload();
+  await expect(page.locator("#organizationNotice")).toContainText("暂时无法读取");
+  await expect(page.locator("#organizationMembers")).toContainText("暂时无法读取");
 
   await page.goto("/billing.html");
   await expect(page.locator("#billingCurrentPlan")).toHaveText("暂无真实数据");

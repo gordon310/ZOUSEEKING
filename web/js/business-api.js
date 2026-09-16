@@ -15,8 +15,10 @@
     let payload = null;
     try { payload = text ? JSON.parse(text) : null; } catch { payload = text; }
     if (!response.ok) {
-      const detail = payload && typeof payload === "object" ? payload.detail || payload.message : payload;
-      throw new Error(typeof detail === "string" ? detail : `API ${response.status}`);
+      const detail = payload && typeof payload === "object" ? payload.error?.message || payload.detail?.message || payload.detail || payload.message : payload;
+      const error = new Error(typeof detail === "string" ? detail : `API ${response.status}`);
+      error.status = response.status;
+      throw error;
     }
     return payload;
   }
@@ -28,6 +30,8 @@
     getSubscription: () => request("/api/billing/subscription"),
     getMe: () => request("/api/me"),
     getUsageSummary: () => request("/api/usage/summary"),
+    getOrganization: () => request("/api/org/me"),
+    listOrganizationMembers: () => request("/api/org/members"),
     listExports: () => request("/api/exports"),
     createExport: () => request("/api/exports", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) }),
     downloadExport: async (exportId) => {

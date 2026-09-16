@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 from uuid import UUID
 
-from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException
+from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from urllib.parse import quote
@@ -42,6 +42,7 @@ from .usage.routes import router as usage_router
 from .member.routes import router as member_router
 from .exports.routes import router as exports_router
 from .analysis.routes import router as analysis_router
+from .org.routes import router as org_router
 from .usage.ledger import QuotaExceeded
 from .usage.quota import consume_current_entitlement
 
@@ -81,6 +82,15 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="ZOU SEEKING HOUSE JPHOUSE API", version="0.1.0", lifespan=lifespan)
 
 
+@app.exception_handler(HTTPException)
+async def scoped_http_error(request: Request, exc: HTTPException):
+    """Keep organization auth failures structured without changing legacy APIs."""
+    if request.url.path.startswith("/api/org/") and isinstance(exc.detail, str):
+        code = "authentication_required" if exc.status_code == 401 else "org_forbidden" if exc.status_code == 403 else "org_unavailable"
+        return JSONResponse(status_code=exc.status_code, content={"error": {"code": code, "message": exc.detail}})
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail}, headers=exc.headers)
+
+
 @app.middleware("http")
 async def enforce_release_scope(request, call_next):
     if not request_allowed(request.method, request.url.path):
@@ -106,6 +116,7 @@ app.include_router(usage_router)
 app.include_router(member_router)
 app.include_router(exports_router)
 app.include_router(analysis_router)
+app.include_router(org_router)
 app.include_router(admin_router)
 app.include_router(privacy_router)
 app.include_router(recognition_router)

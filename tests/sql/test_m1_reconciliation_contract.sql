@@ -91,9 +91,10 @@ begin
     raise exception 'anon public grant count %, expected 1', anon_grant_count;
   end if;
   -- 20260915000300_account_deletion_requests.sql adds one authenticated SELECT grant;
-  -- 20260916000300_organization_invitations.sql adds one more (SELECT on the new table).
-  if authenticated_grant_count <> 25 then
-    raise exception 'authenticated public grant count %, expected 25', authenticated_grant_count;
+  -- 20260916000300_organization_invitations.sql adds one more, and
+  -- 20260916000500_mlit_transactions.sql adds one more (SELECT on the new table).
+  if authenticated_grant_count <> 26 then
+    raise exception 'authenticated public grant count %, expected 26', authenticated_grant_count;
   end if;
   -- 20260915000300_account_deletion_requests.sql adds four service_role grants;
   -- 336 为手工 bootstrap 计数、346 为 CI disposable-reset 基线(以 CI 为准;

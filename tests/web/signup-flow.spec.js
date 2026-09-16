@@ -16,15 +16,16 @@ async function openRegistration(page) {
   await page.locator("#registerPassword").fill("sixsix");
 }
 
-test("注册待确认时显示邮箱地址和可操作的重发入口", async ({ page }) => {
+test("注册响应没有会话时显示登录失败而不是确认邮件提示", async ({ page }) => {
   await openRegistration(page);
   await page.route(/https:\/\/supabase\.test\/auth\/v1\/signup/, async (route) => {
     await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
   });
   await page.getByRole("button", { name: "注册并登录" }).click();
 
-  await expect(page.locator("#formMessage")).toContainText("确认邮件已发送至 signup@example.com");
-  await expect(page.locator("#forgotPasswordLink")).toBeVisible();
+  await expect(page.locator("#formMessage")).toContainText("注册未完成，未收到登录会话");
+  await expect(page.locator("#formMessage")).not.toContainText("确认邮件");
+  await expect(page.locator("#formMessage")).not.toContainText("邮件中的链接");
   await expect(page.locator("#accountTitle")).not.toContainText("你好");
 });
 
@@ -70,7 +71,18 @@ test("注册失败时显示失败反馈并保持未登录", async ({ page }) => 
   });
   await page.getByRole("button", { name: "注册并登录" }).click();
 
-  await expect(page.locator("#formMessage")).toHaveText("注册未完成，请稍后再试。");
+  await expect(page.locator("#formMessage")).toHaveText("注册未完成，请稍后重试。");
+  await expect(page.locator("#accountTitle")).not.toContainText("你好");
+});
+
+test("邮箱已注册时显示对应原因并保持未登录", async ({ page }) => {
+  await openRegistration(page);
+  await page.route(/https:\/\/supabase\.test\/auth\/v1\/signup/, async (route) => {
+    await route.fulfill({ status: 422, contentType: "application/json", body: JSON.stringify({ error: "user_already_exists" }) });
+  });
+  await page.getByRole("button", { name: "注册并登录" }).click();
+
+  await expect(page.locator("#formMessage")).toHaveText("该邮箱已注册，请直接登录。");
   await expect(page.locator("#accountTitle")).not.toContainText("你好");
 });
 

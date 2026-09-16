@@ -1,4 +1,4 @@
-from backend.app.jphouse_service import query_key
+from backend.app.jphouse_service import query_key, query_title
 
 
 def test_query_key_normalizes_empty_and_not_subdivided_ward_values():
@@ -20,3 +20,11 @@ def test_query_key_normalizes_english_and_chinese_asset_types_to_one_key():
     chinese = query_key("东京都", "涩谷区", "未細分", "公寓", 2026, 9)
     assert english == chinese
     assert english.endswith("::未細分::公寓::2026::9")
+
+
+def test_query_title_omits_internal_or_unspecified_ward_sentinels():
+    for ward in ("__not_subdivided__", "__future_sentinel__", "未細分", "未细分"):
+        title = query_title("东京都", "港区", ward, "塔楼", 2026, 8)
+        assert "港区塔楼" in title
+        assert ward not in title
+        assert "__" not in title

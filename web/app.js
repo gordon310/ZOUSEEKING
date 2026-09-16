@@ -500,7 +500,7 @@ async function handleAuthRedirect() {
   const error = params.get("error_description") || params.get("error");
   if (error) {
     history.replaceState(null, "", appRedirectUrl());
-    setMessage("邮箱确认未完成，请重新发起确认链接。", "error");
+    setMessage(uiText("account.authLinkInvalid", "登录状态未完成，请重新登录。"), "error");
     return;
   }
   const accessToken = params.get("access_token");
@@ -519,10 +519,10 @@ async function handleAuthRedirect() {
       ),
     );
     history.replaceState(null, "", appRedirectUrl());
-    setMessage("邮箱确认成功，已经登录。可以开始搜房了。", "success");
+    setMessage(uiText("account.loginSuccess", "登录成功，可以开始搜房了。"), "success");
   } catch {
     history.replaceState(null, "", appRedirectUrl());
-    setMessage("邮箱确认成功但登录状态读取失败，请重新登录。", "error");
+    setMessage(uiText("account.loginStateReadFailed", "登录状态读取失败，请重新登录。"), "error");
   }
 }
 
@@ -1757,24 +1757,40 @@ async function register(event) {
         },
       }),
     });
+    if (!data?.access_token) {
+      const error = new Error("auth_signup_session_missing");
+      error.code = "auth_signup_session_missing";
+      throw error;
+    }
     const session = sessionFromAuth(data, { username, email });
+    if (!session.accessToken || !session.userId || !session.email) {
+      const error = new Error("auth_signup_session_invalid");
+      error.code = "auth_signup_session_invalid";
+      throw error;
+    }
     $("#registerForm").reset();
     state.query = "";
     state.queryOptions = null;
     state.page = 1;
     state.selectedId = "";
-    if (data?.access_token) {
-      saveSession(session);
-      await ensureUserProfile();
-      await loadMyPage();
-      setMessage("注册成功，已登录。可以搜房了，钱包先深呼吸。", "success");
-    } else {
-      setMessage(formatUiText("account.registerPending", "确认邮件已发送至 {email}，请点击邮件中的链接完成注册；未收到？可点击“忘记密码？”重发。", { email }), "success");
-    }
-    if (data?.access_token) history.replaceState(null, "", appRedirectUrl());
+    saveSession(session);
+    await ensureUserProfile();
+    await loadMyPage();
+    setMessage(uiText("account.registerSuccess", "注册成功，已登录。可以搜房了。"), "success");
+    history.replaceState(null, "", appRedirectUrl());
     render();
-  } catch {
-    setMessage("注册未完成，请稍后再试。", "error");
+  } catch (error) {
+    if (error?.code === "auth_signup_session_missing" || error?.code === "auth_signup_session_invalid") {
+      setMessage(uiText("account.registerSessionMissing", "注册未完成，未收到登录会话；请稍后重试。"), "error");
+    } else if (error?.code === "user_already_exists" || error?.code === "email_exists" || error?.status === 422) {
+      setMessage(uiText("account.registerDuplicate", "该邮箱已注册，请直接登录。"), "error");
+    } else if (error?.code === "weak_password" || error?.code === "password_too_short" || error?.status === 400 && /password/i.test(error?.message || "")) {
+      setMessage(uiText("account.registerPasswordInvalid", "密码不符合要求，请使用 6–128 位且不含控制字符的密码。"), "error");
+    } else if (error?.status == null) {
+      setMessage(uiText("account.registerNetworkFailed", "注册服务暂时无法连接，请稍后重试。"), "error");
+    } else {
+      setMessage(uiText("account.registerUnavailable", "注册未完成，请稍后重试。"), "error");
+    }
   } finally {
     submitButton.disabled = false;
   }

@@ -4,6 +4,7 @@ import os
 import json
 import asyncio
 import logging
+import re
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
@@ -12,7 +13,9 @@ from uuid import UUID
 
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
+from urllib.parse import quote
+from html import escape
 
 from .db import close, connect, get_pool, init_schema
 from .auth import AuthUser, optional_user, require_user
@@ -20,6 +23,7 @@ from .intake import storage as intake_storage
 from .intake.market_engine import build_sale_report, load_snapshots, match_snapshot
 from .intake.repository import IntakeRepository
 from .jphouse_service import (
+    display_query_ward,
     fallback_sources,
     placeholder_xhs,
     query_key,
@@ -345,6 +349,112 @@ def public_report_from_row(row: Any, query_key: str) -> dict[str, Any]:
         if value is not None:
             result[name] = value
     return result
+
+
+def _report_json_value(row: Any, name: str, fallback: Any) -> Any:
+    value = _row_get(row, name, fallback)
+    if value is None:
+        return fallback
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError:
+            return fallback
+    return value
+
+
+def _html_text(value: Any) -> str:
+    return escape("" if value is None else str(value), quote=True)
+
+
+def _html_list(items: Any, empty: str = "暂无记录") -> str:
+    values = items if isinstance(items, list) else []
+    if not values:
+        return f"<p>{_html_text(empty)}</p>"
+    return "<ul>" + "".join(f"<li>{_html_text(item)}</li>" for item in values) + "</ul>"
+
+
+def _download_filename(row: Any) -> str:
+    parts = [
+        _row_get(row, "prefecture"),
+        _row_get(row, "city"),
+        display_query_ward(_row_get(row, "ward")),
+        _row_get(row, "asset_type"),
+        _row_get(row, "year"),
+        _row_get(row, "month"),
+    ]
+    if all(value not in (None, "") for value in [parts[0], parts[1], parts[3], parts[4], parts[5]]):
+        business_parts = [re.sub(r"[\\/:*?\"<>|]", "", str(value)) for value in parts if value not in (None, "")]
+        return "物件报告-" + "-".join(business_parts) + ".html"
+    created_at = str(_row_get(row, "created_at") or "")
+    date_match = re.match(r"(\d{4})[-年](\d{2})[-月](\d{2})", created_at)
+    date_text = "".join(date_match.groups()) if date_match else datetime.now().strftime("%Y%m%d")
+    return f"物件报告-{date_text}.html"
+
+
+def render_report_download(row: Any) -> str:
+    """Render only business-facing report data into one dependency-free HTML file."""
+
+    report = row_to_report(row)
+    summary = _report_json_value(row, "summary", {})
+    summary_text = summary if isinstance(summary, str) else summary.get("line") or summary.get("title") or "暂无概要"
+    sales = _report_json_value(row, "sale", [])
+    source_rows = _report_json_value(row, "data_sources", [])
+    limitations = _row_get(row, "limitations") or "报告数字仅代表所标注期间和口径，不构成单套物件估价。"
+    address = _row_get(row, "address") or _row_get(row, "location") or report.get("title") or "未标注地区"
+    source_items = []
+    for source in source_rows if isinstance(source_rows, list) else []:
+        if not isinstance(source, dict):
+            source_items.append(str(source))
+            continue
+        source_name = source.get("name") or "已登记数据来源"
+        period = source.get("period") or _row_get(row, "source_period") or "期间未标注"
+        usage = source.get("usage") or "用途按报告口径使用"
+        rights = source.get("rights") or "授权状态按来源登记"
+        source_items.append(f"{source_name}；期间：{period}；用途：{usage}；使用说明：{rights}")
+    if not source_items:
+        source_items.append(f"已登记来源；期间：{_row_get(row, 'source_period') or '期间未标注'}")
+    sale_rows = []
+    for sale in sales if isinstance(sales, list) else []:
+        if not isinstance(sale, dict):
+            continue
+        layout = sale.get("layout") or "户型未标注"
+        amount = sale.get("amount_yen")
+        if isinstance(amount, (int, float)) and not isinstance(amount, bool):
+            amount_text = f"{amount:,.0f} 日元"
+        else:
+            amount_text = "金额未标注"
+        sale_rows.append(f"<tr><td>{_html_text(layout)}</td><td>{_html_text(amount_text)}</td></tr>")
+    if not sale_rows:
+        sale_rows.append('<tr><td colspan="2">成交数据暂缺</td></tr>')
+    generated_at = _row_get(row, "created_at") or "生成时间未标注"
+    return """<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{title}</title>
+<style>
+body{{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.6;color:#17233d;max-width:900px;margin:0 auto;padding:32px;background:#f7f8fb}}
+main{{background:#fff;padding:32px;border:1px solid #dfe4ee;border-radius:12px}} h1{{margin-top:0}} h2{{border-bottom:1px solid #dfe4ee;padding-bottom:6px;margin-top:30px}}
+dt{{color:#65718a;font-size:.85rem}} dd{{margin:0 0 12px;font-weight:600}} table{{border-collapse:collapse;width:100%}} th,td{{border:1px solid #dfe4ee;padding:8px;text-align:left}} th{{background:#eef2f8}}
+pre{{white-space:pre-wrap;font:inherit}} @media print{{body{{background:#fff;padding:0}}main{{border:0;padding:0}}}}
+</style></head>
+<body><main>
+<h1>{title}</h1><p>{address}</p>
+<dl><dt>生成时间</dt><dd>{generated_at}</dd><dt>数据来源与期间</dt><dd>{sources}</dd></dl>
+<h2>报告概要</h2><p>{summary}</p>
+<h2>成交数据</h2><table><thead><tr><th>户型</th><th>成交金额</th></tr></thead><tbody>{sales}</tbody></table>
+<h2>口径与限制</h2><p>{limitations}</p>
+<h2>报告正文</h2><pre>{markdown}</pre>
+</main></body></html>""".format(
+        title=_html_text(report.get("title") or "物件报告"),
+        address=_html_text(address),
+        generated_at=_html_text(generated_at),
+        sources=_html_list(source_items),
+        summary=_html_text(summary_text),
+        sales="".join(sale_rows),
+        limitations=_html_text(limitations),
+        markdown=_html_text(report.get("markdown") or "暂无正文"),
+    )
 
 
 async def save_report(query_id: str, owner_user_id: str, report: dict[str, Any]) -> None:
@@ -828,7 +938,7 @@ async def get_my_report(query_key: str, user: Optional[AuthUser] = Depends(optio
     async with get_pool().acquire() as conn:
         row = await conn.fetchrow(
             """
-            select pr.*
+            select pr.*, q.prefecture, q.city, q.ward, q.asset_type, q.year, q.month
             from property_reports pr
             join queries q on q.id = pr.query_id
             where pr.query_key=$1
@@ -848,3 +958,35 @@ async def get_my_report(query_key: str, user: Optional[AuthUser] = Depends(optio
     if not unlocked:
         return public_report_from_row(row, query_key)
     return row_to_report(row)
+
+
+@app.get("/api/reports/{query_key}/download")
+async def download_my_report(query_key: str, user: AuthUser = Depends(require_user)) -> Response:
+    async with get_pool().acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            select pr.*
+            from property_reports pr
+            join queries q on q.id = pr.query_id
+            where pr.query_key=$1 and pr.owner_user_id=$2
+            limit 1
+            """,
+            query_key,
+            user.user_id,
+        )
+        if not row:
+            raise HTTPException(status_code=404, detail={"code": "report_not_found", "message": "报告不存在。"})
+        if not await _has_report_unlock(conn, user.user_id, query_key):
+            raise HTTPException(status_code=403, detail={"code": "report_locked", "message": "报告尚未解锁。"})
+    filename = _download_filename(row)
+    content_disposition = (
+        f"attachment; filename=report.html; filename*=UTF-8''{quote(filename, safe='')}"
+    )
+    return Response(
+        content=render_report_download(row),
+        media_type="text/html",
+        headers={
+            "Content-Disposition": content_disposition,
+            "X-Content-Type-Options": "nosniff",
+        },
+    )

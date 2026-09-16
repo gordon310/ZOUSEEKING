@@ -15,8 +15,4 @@
 .report-paywall p { margin: 6px 0; color: var(--navy-soft); }
 .report-price { min-height: 24px; color: var(--navy) !important; font-size: 18px; font-weight: 800; }
 .report-paywall .primary-product-link, .report-paywall button { margin-top: 16px; cursor: pointer; }
-.report-details-content { display: grid; gap: 18px; }
-.report-detail-card { padding: 18px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); }
-.report-detail-card h3 { margin: 0 0 8px; font-size: 16px; }
-.report-detail-card p { margin: 4px 0; }
 .report-error { color: var(--danger); }

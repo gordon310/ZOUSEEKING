@@ -111,6 +111,7 @@ test("locked report shows unlock card and never renders content", async ({ page 
 
 test("unlocked report renders full content (no paywall)", async ({ page }) => {
   await page.addInitScript(sessionInit());
+  let downloadAuthorization = "";
   await page.route("**/content-library.json", async (route) => {
     await route.fulfill({ path: path.resolve(__dirname, "../../data/content_library.json"), contentType: "application/json" });
   });
@@ -121,6 +122,10 @@ test("unlocked report renders full content (no paywall)", async ({ page }) => {
     const url = new URL(route.request().url());
     if (url.pathname === "/api/my/queries") {
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(completedTask()) });
+    }
+    if (url.pathname.endsWith("/download")) {
+      downloadAuthorization = route.request().headers().authorization || "";
+      return route.fulfill({ status: 200, contentType: "text/html", headers: { "content-disposition": "attachment; filename=report.html" }, body: "<!doctype html><html><body>成交均价参考</body></html>" });
     }
     if (url.pathname.includes("/api/reports/")) {
       return route.fulfill({
@@ -146,8 +151,13 @@ test("unlocked report renders full content (no paywall)", async ({ page }) => {
   });
 
   await page.goto(`/report.html?key=${encodeURIComponent(QUERY_KEY)}`);
+  await expect(page.getByRole("button", { name: "下载报告" })).toHaveCount(1);
   await expect(page.getByRole("button", { name: /解锁本报告/ })).toHaveCount(0);
-  await expect(page.getByText("成交均价参考")).toBeVisible();
+  await expect(page.getByText("成交均价参考")).toHaveCount(0);
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "下载报告" }).click();
+  await download;
+  expect(downloadAuthorization).toBe("Bearer test-access-token");
 });
 
 test("insufficient-data report has no payment entry point", async ({ page }) => {

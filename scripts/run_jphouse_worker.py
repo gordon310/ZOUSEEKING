@@ -74,7 +74,10 @@ def publish_month(year: int, month: int) -> str:
 
 
 def area_title(prefecture: str, city: str, ward: str | None) -> str:
-    return "".join([prefecture or "", city or "", ward or ""]).replace("全部区", "")
+    display_ward = ward or ""
+    if display_ward in {"全部区", "未细分", "未細分"} or re.fullmatch(r"__[^_].*__", display_ward):
+        display_ward = ""
+    return "".join([prefecture or "", city or "", display_ward])
 
 
 def base_factor(prefecture: str, city: str, ward: str | None, asset_type: str) -> float:

@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from .fx import convert_jpy, fx_provenance
+from ..jphouse_service import display_query_ward
 
 ROOT = Path(__file__).resolve().parents[3]
 COLLECTED_DIR = ROOT / "data" / "collected"
@@ -227,7 +228,7 @@ def build_sale_report(
     rows carry both numeric fields (amount_yen, unit_yen_per_sqm) and display
     strings; consumers must read the numeric fields for any calculation.
     """
-    area_title = "".join(part for part in [query.get("prefecture", ""), query.get("city", ""), query.get("ward", "")] if part) or "日本"
+    area_title = "".join(part for part in [query.get("prefecture", ""), query.get("city", ""), display_query_ward(query.get("ward"))] if part) or "日本"
     asset_label = str(query.get("asset_type") or "中古マンション")
     sale_rows = []
     for layout in LAYOUTS:

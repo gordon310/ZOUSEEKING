@@ -18,8 +18,8 @@ const elements = {
   login: document.querySelector("#reportLoginButton"),
   unlock: document.querySelector("#reportUnlockButton"),
   details: document.querySelector("#reportDetails"),
-  detailsContent: document.querySelector("#reportDetailsContent"),
   insufficientData: document.querySelector("#reportInsufficientData"),
+  download: document.querySelector("#reportDownloadButton"),
 };
 
 function t(key, fallback) {
@@ -57,42 +57,44 @@ function freeValue(report, ...keys) {
 
 function renderFreeReport(report) {
   setText(elements.title, freeValue(report, "title") || t("report.titleFallback", "物件报告"));
-  setText(elements.address, freeValue(report, "address", "location", "query_key"));
+  setText(elements.address, freeValue(report, "address", "location") || freeValue(report, "title") || t("report.addressUnavailable", "未标注地区"));
   setText(elements.generatedAt, formatDate(freeValue(report, "generated_at", "created_at")));
   setText(elements.source, freeValue(report, "data_sources", "source", "source_label") || t("report.sourceUnavailable", "以报告标注为准"));
   const summary = report?.summary;
   setText(elements.summary, typeof summary === "string" ? summary : summary?.line || summary?.title || freeValue(report, "overview") || t("report.summaryUnavailable", "暂无概要"));
 }
 
-function appendDetail(title, value) {
-  if (value == null || value === "" || (Array.isArray(value) && !value.length)) return;
-  const card = document.createElement("article");
-  card.className = "report-detail-card";
-  const heading = document.createElement("h3");
-  heading.textContent = title;
-  card.append(heading);
-  if (Array.isArray(value)) {
-    value.forEach((item) => {
-      const paragraph = document.createElement("p");
-      paragraph.textContent = typeof item === "string" ? item : JSON.stringify(item);
-      card.append(paragraph);
-    });
-  } else {
-    const paragraph = document.createElement("p");
-    paragraph.textContent = typeof value === "string" ? value : JSON.stringify(value);
-    card.append(paragraph);
+async function downloadReport() {
+  const token = await getValidAccessToken();
+  if (!token) {
+    setStatus(t("auth.sessionExpired", "登录状态已过期，请重新登录。"), "error");
+    return;
   }
-  elements.detailsContent.append(card);
-}
-
-function renderUnlockedDetails(report) {
-  elements.detailsContent.replaceChildren();
-  appendDetail(t("report.detailSummary", "详细概要"), typeof report.summary === "string" ? report.summary : report.summary?.line || report.summary?.title);
-  appendDetail(t("report.saleDetails", "成交价明细"), report.sale);
-  appendDetail(t("report.rentalComparison", "租金对比"), report.rental);
-  appendDetail(t("report.riskItems", "风险项"), report.risk_summary || report.risks);
-  appendDetail(t("report.dataSources", "数据来源"), report.data_sources);
-  appendDetail(t("report.markdown", "报告正文"), report.markdown);
+  elements.download.disabled = true;
+  setStatus(t("report.downloadPreparing", "正在准备下载……"));
+  try {
+    const response = await fetch(`${apiBase}/api/reports/${encodeURIComponent(queryKey)}/download`, {
+      headers: { Accept: "text/html", Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      const error = new Error(payload?.detail?.message || payload?.detail || "download_failed");
+      error.code = payload?.detail?.code || "";
+      throw error;
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "report.html";
+    link.click();
+    URL.revokeObjectURL(url);
+    setStatus(t("report.downloadComplete", "报告已下载。"), "success");
+  } catch {
+    setStatus(t("report.downloadFailed", "报告下载失败，请稍后重试。"), "error");
+  } finally {
+    elements.download.disabled = false;
+  }
 }
 
 async function request(path, options = {}) {
@@ -199,8 +201,13 @@ function renderReport(report) {
   const unlocked = reportAccessState(report) === "unlocked";
   elements.paywall.hidden = unlocked;
   elements.details.hidden = !unlocked;
-  if (unlocked) renderUnlockedDetails(report);
-  else void preparePaywall(report);
+  if (unlocked) {
+    elements.download.hidden = false;
+    elements.download.onclick = downloadReport;
+  } else {
+    elements.download.hidden = true;
+    void preparePaywall(report);
+  }
 }
 
 async function init() {

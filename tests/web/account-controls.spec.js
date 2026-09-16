@@ -25,7 +25,7 @@ test("注册在认证服务不可达时不创建本地密码凭据", async ({ pa
   await page.locator("#registerPassword").fill("Correct Horse Battery Staple");
   await page.getByRole("button", { name: "注册并登录" }).click();
 
-  await expect(page.locator("#formMessage")).toContainText("注册未完成");
+  await expect(page.locator("#formMessage")).toContainText("注册服务暂时无法连接");
   await expect(page).toHaveURL(/data-query\.html/);
   expect(await page.evaluate(() => localStorage.getItem("zou_house_users"))).toBeNull();
   expect(await page.evaluate(() => localStorage.getItem("zou_house_session"))).toBeNull();

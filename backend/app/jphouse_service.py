@@ -24,13 +24,22 @@ def normalize_query_ward(ward: str | None) -> str:
     return value
 
 
+def display_query_ward(ward: str | None) -> str:
+    """Return only a business-facing ward label; query sentinels stay internal."""
+
+    value = str(ward or "").strip()
+    if value in {"", "全部区", "未细分", "未細分"} or re.fullmatch(r"__[^_].*__", value):
+        return ""
+    return value
+
+
 def query_key(prefecture: str, city: str, ward: str | None, asset_type: str, year: int, month: int) -> str:
     canonical_asset_type = normalize_asset_type(asset_type)
     return "::".join([prefecture, city, normalize_query_ward(ward), str(canonical_asset_type), str(year), str(month)])
 
 
 def query_title(prefecture: str, city: str, ward: str | None, asset_type: str, year: int, month: int) -> str:
-    area = "".join(part for part in [prefecture, city, ward or ""] if part)
+    area = "".join(part for part in [prefecture, city, display_query_ward(ward)] if part)
     return f"{area or '日本'}{asset_type}｜{year}年{month}月"
 
 

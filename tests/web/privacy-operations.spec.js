@@ -166,6 +166,6 @@ test("login and signup errors stay enumeration-safe", async ({ page }) => {
   await page.locator("#registerPassword").fill("synthetic-password");
   await page.locator("#registerConsent").check();
   await page.locator("#registerForm button[type='submit']").click();
-  await expect(page.locator("#formMessage")).toContainText("注册未完成，请稍后再试");
+  await expect(page.locator("#formMessage")).toContainText("注册未完成，请稍后重试");
   await expect(page.locator("#formMessage")).not.toContainText("User already registered");
 });

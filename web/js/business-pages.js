@@ -56,12 +56,20 @@
     list.innerHTML = `<tr><td colspan="4">${escapeHtml(t("business.organizationLoading"))}</td></tr>`;
     const roleLabels = { owner: "business.owner", admin: "business.adminRole", member: "business.memberRole" };
     const statusLabels = { active: "business.active", inactive: "business.inactive" };
-    const renderMembers = (members) => {
-      if (!members.length) {
+    const renderMembers = (state) => {
+      if (state.kind === "not_joined") {
         list.innerHTML = `<tr><td colspan="4">${escapeHtml(t("business.organizationEmpty"))}</td></tr>`;
         return;
       }
-      list.innerHTML = members.map((member) => `
+      if (state.kind === "unavailable") {
+        list.innerHTML = `<tr><td colspan="4">${escapeHtml(t("business.organizationMembersUnavailable"))}</td></tr>`;
+        return;
+      }
+      if (!state.members.length) {
+        list.innerHTML = `<tr><td colspan="4">${escapeHtml(t("business.organizationMembersEmpty"))}</td></tr>`;
+        return;
+      }
+      list.innerHTML = state.members.map((member) => `
         <tr data-member-row>
           <th scope="row">${escapeHtml(member.display_name || t("business.memberFallback"))}</th>
           <td data-label="${escapeHtml(t("business.role"))}">${escapeHtml(t(roleLabels[member.role] || "business.memberRole"))}</td>
@@ -73,8 +81,14 @@
     const load = async () => {
       if (!window.ZouBusinessApi) throw new Error("api_unavailable");
       const me = await window.ZouBusinessApi.getOrganization();
-      let members = { members: [] };
-      try { members = await window.ZouBusinessApi.listOrganizationMembers(); } catch { /* summary remains usable */ }
+      let memberState;
+      try {
+        const members = await window.ZouBusinessApi.listOrganizationMembers();
+        memberState = { kind: "loaded", members: Array.isArray(members?.members) ? members.members : [] };
+      } catch (error) {
+        console.warn("[org-members] member request failed", { status: error?.status ?? "unknown" });
+        memberState = { kind: "unavailable" };
+      }
       if (!me?.organization) {
         byId("organizationAccountHeading").textContent = t("business.organizationNone");
         byId("organizationPlanName").textContent = "";
@@ -83,7 +97,7 @@
         byId("businessSeatSummary").textContent = "—";
         byId("organizationSeatSummary").textContent = "—";
         setNotice("organizationNotice", t("business.organizationEmpty"));
-        renderMembers([]);
+        renderMembers({ kind: "not_joined" });
         return;
       }
       const seatText = format("business.seatSummary", { used: me.seats?.used ?? 0, total: me.seats?.limit ?? 0 });
@@ -93,8 +107,8 @@
       byId("organizationRole").textContent = t(roleLabels[me.role] || "business.memberRole");
       byId("businessSeatSummary").textContent = seatText;
       byId("organizationSeatSummary").textContent = seatText;
-      setNotice("organizationNotice", t("business.organizationLive"));
-      renderMembers(Array.isArray(members?.members) ? members.members : []);
+      setNotice("organizationNotice", t(memberState.kind === "unavailable" ? "business.organizationMembersUnavailable" : "business.organizationLive"));
+      renderMembers(memberState);
       const manager = ["owner", "admin"].includes(me.role);
       const inviteButton = byId("inviteMemberButton");
       const form = byId("organizationInviteForm");

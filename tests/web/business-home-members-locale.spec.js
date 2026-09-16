@@ -195,6 +195,22 @@ test("机构页读取真实数据并诚实呈现空态和失败态", async ({ pa
     await expect(page.locator("#businessSeatSummary")).toHaveText("已使用 2 / 5 个席位");
     await expect(page.locator("#organizationMembers [data-member-row]")).toHaveCount(2);
     await expect(page.locator("#organizationNotice")).toContainText("真实成员");
+    await expect(page.locator("body")).not.toContainText("尚未加入机构");
+
+    await page.unroute(/\/api\/org\/members(?:\?.*)?$/);
+    await page.route(/\/api\/org\/members(?:\?.*)?$/, (route) => route.fulfill({ json: { members: [] } }));
+    await waitForOrganizationLoad(page, () => page.reload(), { meStatus: 200, membersStatus: 200, membersCount: 0 });
+    await expect(page.locator("#organizationNotice")).toContainText("真实成员");
+    await expect(page.locator("#organizationMembers")).toContainText("该机构暂无其他成员记录");
+    await expect(page.locator("body")).not.toContainText("尚未加入机构");
+
+    await page.unroute(/\/api\/org\/members(?:\?.*)?$/);
+    await page.route(/\/api\/org\/members(?:\?.*)?$/, (route) => route.fulfill({ status: 500, json: { members: [] } }));
+    await waitForOrganizationLoad(page, () => page.reload(), { meStatus: 200, membersStatus: 500, membersCount: 0 });
+    await expect(page.locator("#organizationNotice")).toContainText("成员信息暂时无法读取");
+    await expect(page.locator("#organizationMembers")).toContainText("成员信息暂时无法读取");
+    await expect(page.locator("body")).not.toContainText("尚未加入机构");
+    expect(consoleMessages).toContainEqual(expect.stringContaining("[org-members] member request failed"));
 
     await page.unroute(/\/api\/org\/me(?:\?.*)?$/);
     await page.unroute(/\/api\/org\/members(?:\?.*)?$/);

@@ -16,17 +16,64 @@ async function openRegistration(page) {
   await page.locator("#registerPassword").fill("sixsix");
 }
 
-test("注册响应没有会话时显示登录失败而不是确认邮件提示", async ({ page }) => {
+test("注册响应没有会话时显示待确认状态和重发入口", async ({ page }) => {
   await openRegistration(page);
   await page.route(/https:\/\/supabase\.test\/auth\/v1\/signup/, async (route) => {
     await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
   });
   await page.getByRole("button", { name: "注册并登录" }).click();
 
-  await expect(page.locator("#formMessage")).toContainText("注册未完成，未收到登录会话");
-  await expect(page.locator("#formMessage")).not.toContainText("确认邮件");
-  await expect(page.locator("#formMessage")).not.toContainText("邮件中的链接");
+  await expect(page.locator("#emailVerificationPanel")).toBeVisible();
+  await expect(page.locator("#emailVerificationMessage")).toContainText("确认邮件已发送到 signup@example.com");
+  await expect(page.locator("#emailVerificationMessage")).toContainText("邮件里的链接");
+  await expect(page.getByRole("button", { name: "重新发送确认邮件" })).toBeVisible();
   await expect(page.locator("#accountTitle")).not.toContainText("你好");
+});
+
+test("登录返回邮箱未验证时显示专属文案和重发入口", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.ZOUSEEKING_RELEASE_SCOPE = { phase: "development", businessOperations: true, adminOperations: true };
+    window.ZOUSEEKING_SUPABASE_URL = "https://supabase.test";
+    window.ZOUSEEKING_SUPABASE_ANON_KEY = "public-test-key";
+  });
+  await page.goto("/index.html");
+  await page.locator("#loginUsername").fill("unverified@example.com");
+  await page.locator("#loginPassword").fill("sixsix");
+  await page.route(/https:\/\/supabase\.test\/auth\/v1\/token/, async (route) => {
+    await route.fulfill({
+      status: 400,
+      contentType: "application/json",
+      body: JSON.stringify({ error_code: "email_not_confirmed", msg: "Email not confirmed" }),
+    });
+  });
+  await page.getByRole("button", { name: "登录查询" }).click();
+
+  await expect(page.locator("#emailVerificationPanel")).toBeVisible();
+  await expect(page.locator("#formMessage")).toContainText("邮箱尚未验证");
+  await expect(page.locator("#formMessage")).not.toContainText("邮箱或密码不正确");
+  await expect(page.getByRole("button", { name: "重新发送确认邮件" })).toBeVisible();
+});
+
+test("重新发送确认邮件使用 signup 语义且 60 秒内节流", async ({ page }) => {
+  await openRegistration(page);
+  let resendCount = 0;
+  let resendBody;
+  await page.route(/https:\/\/supabase\.test\/auth\/v1\/signup/, async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+  });
+  await page.route(/https:\/\/supabase\.test\/auth\/v1\/resend/, async (route) => {
+    resendCount += 1;
+    resendBody = JSON.parse(route.request().postData() || "{}");
+    await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+  });
+  await page.getByRole("button", { name: "注册并登录" }).click();
+  const resend = page.getByRole("button", { name: "重新发送确认邮件" });
+  await resend.click();
+  await expect(page.locator("#formMessage")).toContainText("确认邮件已重新发送");
+  await resend.click();
+  await expect(page.locator("#formMessage")).toContainText("请等待");
+  expect(resendCount).toBe(1);
+  expect(resendBody).toEqual({ type: "signup", email: "signup@example.com" });
 });
 
 test("注册返回会话时进入已登录状态并清理注册地址", async ({ page }) => {

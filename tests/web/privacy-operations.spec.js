@@ -157,9 +157,11 @@ test("login and signup errors stay enumeration-safe", async ({ page }) => {
   await page.locator("#loginUsername").fill("member@example.invalid");
   await page.locator("#loginPassword").fill("synthetic-password");
   await page.locator("#loginForm button[type='submit']").click();
-  await expect(page.locator("#formMessage")).toContainText("邮箱或密码不正确，或账户暂不可用");
+  await expect(page.locator("#formMessage")).toContainText("邮箱尚未验证，请先点击确认邮件里的链接");
   await expect(page.locator("#formMessage")).not.toContainText("Email not confirmed");
+  await expect(page.locator("#formMessage")).not.toContainText("邮箱或密码不正确");
 
+  await page.reload();
   await page.locator("#showRegister").click();
   await page.locator("#registerUsername").fill("演示用户");
   await page.locator("#registerEmail").fill("member@example.invalid");

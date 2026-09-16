@@ -8,6 +8,7 @@ const SUPABASE_ANON_KEY = window.ZOUSEEKING_SUPABASE_ANON_KEY || localStorage.ge
 const PRIVACY_POLICY_VERSION = "privacy-2026-08";
 const TERMS_VERSION = "terms-2026-08";
 const ACCOUNT_DELETION_CONFIRMATION = "DELETE_ACCOUNT";
+const EMAIL_RESEND_COOLDOWN_SECONDS = 60;
 
 const DEFAULT_FIELD_OPTIONS = {
   prefectures: [
@@ -209,6 +210,8 @@ const state = {
   profileLoaded: false,
   profileEditing: false,
   authMode: "login",
+  emailVerification: null,
+  emailVerificationTimer: null,
   messageTimer: null,
   compareIds: [],
   entitlementSessionToken: null,
@@ -296,6 +299,105 @@ function setMessage(text, tone = "") {
       message.className = "form-message";
       state.messageTimer = null;
     }, 2200);
+  }
+}
+
+function ensureEmailVerificationPanel() {
+  const message = $("#formMessage");
+  if (!message || $("#emailVerificationPanel")) return;
+  const panel = document.createElement("div");
+  panel.id = "emailVerificationPanel";
+  panel.className = "email-verification-panel hidden";
+  panel.setAttribute("aria-live", "polite");
+  const copy = document.createElement("p");
+  copy.id = "emailVerificationMessage";
+  const button = document.createElement("button");
+  button.id = "resendConfirmationButton";
+  button.type = "button";
+  button.addEventListener("click", resendConfirmationEmail);
+  panel.append(copy, button);
+  message.before(panel);
+}
+
+function showEmailVerification(email, context) {
+  state.emailVerification = {
+    email: String(email || "").trim(),
+    context: context === "login" ? "login" : "register",
+    resendAvailableAt: 0,
+  };
+  ensureEmailVerificationPanel();
+  renderAccount();
+}
+
+function emailVerificationPending() {
+  return Boolean(state.emailVerification?.email);
+}
+
+function renderEmailVerificationPanel() {
+  ensureEmailVerificationPanel();
+  const panel = $("#emailVerificationPanel");
+  const copy = $("#emailVerificationMessage");
+  const button = $("#resendConfirmationButton");
+  if (!panel || !copy || !button) return;
+  const pending = state.emailVerification;
+  const visible = !isLoggedIn() && Boolean(pending?.email);
+  panel.classList.toggle("hidden", !visible);
+  if (!visible) return;
+  copy.textContent = formatUiText(
+    "account.emailVerificationPending",
+    "确认邮件已发送到 {email}，请点邮件里的链接完成验证。",
+    { email: pending.email },
+  );
+  const seconds = Math.max(0, Math.ceil((Number(pending.resendAvailableAt || 0) - Date.now()) / 1000));
+  button.textContent = seconds > 0
+    ? formatUiText("account.resendConfirmationCooldownButton", "重新发送确认邮件（{seconds}秒）", { seconds })
+    : uiText("account.resendConfirmation", "重新发送确认邮件");
+}
+
+function startEmailVerificationCooldown() {
+  state.emailVerification.resendAvailableAt = Date.now() + EMAIL_RESEND_COOLDOWN_SECONDS * 1000;
+  if (state.emailVerificationTimer) clearInterval(state.emailVerificationTimer);
+  state.emailVerificationTimer = setInterval(() => {
+    if (!emailVerificationPending() || Date.now() >= state.emailVerification.resendAvailableAt) {
+      clearInterval(state.emailVerificationTimer);
+      state.emailVerificationTimer = null;
+    }
+    renderEmailVerificationPanel();
+  }, 1000);
+}
+
+async function resendConfirmationEmail() {
+  const pending = state.emailVerification;
+  if (!pending?.email) return;
+  const seconds = Math.max(0, Math.ceil((Number(pending.resendAvailableAt || 0) - Date.now()) / 1000));
+  if (seconds > 0) {
+    setMessage(formatUiText("account.resendCooldown", "请等待 {seconds} 秒后再发送。", { seconds }), "error");
+    return;
+  }
+  const button = $("#resendConfirmationButton");
+  try {
+    button.disabled = true;
+    setMessage(uiText("account.resendSending", "正在发送确认邮件……"));
+    await supabaseAuthFetch("/resend", {
+      method: "POST",
+      body: JSON.stringify({ type: "signup", email: pending.email }),
+    });
+    startEmailVerificationCooldown();
+    setMessage(uiText("account.resendSuccess", "确认邮件已重新发送，请查收邮箱。"), "success");
+  } catch (error) {
+    if (error?.status === 429 || error?.code === "over_email_send_rate_limit") {
+      startEmailVerificationCooldown();
+      setMessage(uiText("account.resendRateLimited", "邮件发送过于频繁，请稍后再试。"), "error");
+    } else if (error?.code === "invalid_email" || error?.status === 400 && /email/i.test(error?.message || "")) {
+      setMessage(uiText("account.resendInvalid", "确认邮件未发送：请检查邮箱地址后再试。"), "error");
+    } else if (error?.status == null) {
+      setMessage(uiText("account.resendNetworkFailed", "确认邮件服务暂时无法连接，请稍后重试。"), "error");
+    } else {
+      setMessage(uiText("account.resendUnavailable", "确认邮件未发送，请稍后重试。"), "error");
+    }
+  } finally {
+    if (button) button.disabled = false;
+    renderEmailVerificationPanel();
   }
 }
 
@@ -479,7 +581,8 @@ async function supabaseAuthFetch(path, options = {}) {
     const message = payload?.msg || payload?.message || payload?.error_description || payload?.error || text || `Supabase Auth ${response.status}`;
     const error = new Error(message);
     error.status = response.status;
-    if (response.status === 400 && path.startsWith("/token?grant_type=password")) error.code = "auth_credentials_invalid";
+    error.code = payload?.error_code || payload?.code || payload?.error || "";
+    if (response.status === 400 && path.startsWith("/token?grant_type=password") && !error.code) error.code = "auth_credentials_invalid";
     throw error;
   }
   return payload;
@@ -1280,6 +1383,7 @@ function renderAccount() {
   const loggedIn = isLoggedIn();
   const registerMode = state.authMode === "register";
   const forgotMode = state.authMode === "forgot";
+  const verificationPending = emailVerificationPending();
   $("#accountPanel")?.classList.toggle("compact-account", loggedIn);
   const profileName = state.profile?.display_name || state.session?.username;
   const taskCount = state.myTasks?.length || 0;
@@ -1315,11 +1419,12 @@ function renderAccount() {
     renderMemberEntitlements();
   }
   if (!loggedIn) state.entitlementSessionToken = null;
-  $("#accountTabs")?.classList.toggle("hidden", loggedIn || forgotMode);
-  $("#forgotPasswordLink")?.classList.toggle("hidden", loggedIn || forgotMode);
-  $("#loginForm")?.classList.toggle("hidden", loggedIn || registerMode || forgotMode);
-  $("#registerForm")?.classList.toggle("hidden", loggedIn || !registerMode || forgotMode);
-  $("#forgotPasswordForm")?.classList.toggle("hidden", loggedIn || !forgotMode);
+  $("#accountTabs")?.classList.toggle("hidden", loggedIn || forgotMode || verificationPending);
+  $("#forgotPasswordLink")?.classList.toggle("hidden", loggedIn || forgotMode || verificationPending);
+  $("#loginForm")?.classList.toggle("hidden", loggedIn || registerMode || forgotMode || verificationPending);
+  $("#registerForm")?.classList.toggle("hidden", loggedIn || !registerMode || forgotMode || verificationPending);
+  $("#forgotPasswordForm")?.classList.toggle("hidden", loggedIn || !forgotMode || verificationPending);
+  renderEmailVerificationPanel();
   $("#logoutButton").classList.toggle("hidden", !loggedIn);
   document.querySelectorAll(".account-action-link").forEach((link) => {
     link.classList.toggle("hidden", !loggedIn);
@@ -1758,9 +1863,9 @@ async function register(event) {
       }),
     });
     if (!data?.access_token) {
-      const error = new Error("auth_signup_session_missing");
-      error.code = "auth_signup_session_missing";
-      throw error;
+      showEmailVerification(email, "register");
+      setMessage("");
+      return;
     }
     const session = sessionFromAuth(data, { username, email });
     if (!session.accessToken || !session.userId || !session.email) {
@@ -1780,9 +1885,7 @@ async function register(event) {
     history.replaceState(null, "", appRedirectUrl());
     render();
   } catch (error) {
-    if (error?.code === "auth_signup_session_missing" || error?.code === "auth_signup_session_invalid") {
-      setMessage(uiText("account.registerSessionMissing", "注册未完成，未收到登录会话；请稍后重试。"), "error");
-    } else if (error?.code === "user_already_exists" || error?.code === "email_exists" || error?.status === 422) {
+    if (error?.code === "user_already_exists" || error?.code === "email_exists" || error?.status === 422) {
       setMessage(uiText("account.registerDuplicate", "该邮箱已注册，请直接登录。"), "error");
     } else if (error?.code === "weak_password" || error?.code === "password_too_short" || error?.status === 400 && /password/i.test(error?.message || "")) {
       setMessage(uiText("account.registerPasswordInvalid", "密码不符合要求，请使用 6–128 位且不含控制字符的密码。"), "error");
@@ -1834,7 +1937,10 @@ async function login(event) {
     }
     saveSession(session);
   } catch (error) {
-    if (error?.code === "auth_credentials_invalid") {
+    if (error?.code === "email_not_confirmed" || /email\s+not\s+confirmed|not\s+confirmed/i.test(error?.message || "")) {
+      showEmailVerification(email, "login");
+      setMessage(uiText("account.loginEmailNotConfirmed", "邮箱尚未验证，请先点击确认邮件里的链接。"), "error");
+    } else if (error?.code === "auth_credentials_invalid" || error?.code === "invalid_grant") {
       setMessage("邮箱或密码不正确，或账户暂不可用。", "error");
     } else if (error?.code === "auth_session_storage_failed") {
       setMessage("登录成功，但会话保存失败；请检查浏览器储存空间后重试。", "error");
@@ -1982,6 +2088,7 @@ function closeImage() {
 }
 
 async function init() {
+  ensureEmailVerificationPanel();
   window.addEventListener("zou-auth-session-changed", (event) => {
     state.session = event.detail || window.ZouAuthSession?.read?.() || null;
     console.debug("[auth] session change received", { loggedIn: isLoggedIn() });

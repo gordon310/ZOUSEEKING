@@ -24,6 +24,7 @@ def is_versioned_asset(url: str) -> bool:
     return (
         path.startswith("js/")
         or path.startswith("assets/")
+        or path == "app.js"
         or path == "config.js"
         or path.endswith(".css")
         or path == "manifest.webmanifest"

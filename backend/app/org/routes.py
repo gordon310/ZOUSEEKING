@@ -5,11 +5,16 @@ from __future__ import annotations
 import logging
 import csv
 import io
-from datetime import datetime, timezone
+import hashlib
+import hmac
+import re
+import secrets
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional, Protocol
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from fastapi.responses import JSONResponse, Response
 
 from ..auth import AuthUser, require_user
@@ -31,6 +36,9 @@ PUBLIC_ENTITLEMENTS = {
 PLAN_NAMES = {"free_b": "B Free", "b_data_pro": "B Data Pro"}
 ORG_EXPORT_CSV_COLUMNS = ("账期", "用量类型", "已用", "上限", "订单金额(最小单位)", "币种", "订单状态")
 ORG_EXPORT_WINDOW_SECONDS = 60
+INVITATION_TTL = timedelta(days=7)
+INVITATION_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+INVITATION_ROLES = frozenset({"owner", "admin", "member"})
 
 
 def org_export_idempotency_key(organization_id: UUID, owner_user_id: UUID, month_key: str, now: datetime) -> str:
@@ -57,6 +65,201 @@ def _iso(value: Optional[datetime]) -> Optional[str]:
     if value.tzinfo is None:
         value = value.replace(tzinfo=timezone.utc)
     return value.astimezone(timezone.utc).isoformat()
+
+
+def invitation_token_hash(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _invitation_email(value: str) -> str:
+    email = (value or "").strip().lower()
+    if not INVITATION_EMAIL_RE.fullmatch(email) or len(email) > 320:
+        raise HTTPException(status_code=400, detail="受邀邮箱格式无效")
+    return email
+
+
+def _invitation_role(value: str) -> str:
+    role = (value or "").strip().lower()
+    if role not in INVITATION_ROLES:
+        raise HTTPException(status_code=400, detail="邀请角色无效")
+    return role
+
+
+class OrganizationInvitationRequest(BaseModel):
+    email: str
+    role: str = "member"
+
+
+class OrganizationAcceptInvitationRequest(BaseModel):
+    token: str
+
+
+def _invitation_status(row: Any, now: Optional[datetime] = None) -> str:
+    now = now or _utcnow()
+    if _value(row, "accepted_at") is not None:
+        return "accepted"
+    if _value(row, "revoked_at") is not None:
+        return "revoked"
+    expires_at = _value(row, "expires_at")
+    if expires_at is not None and expires_at <= now:
+        return "expired"
+    return "pending"
+
+
+def _serialize_invitation(row: Any) -> dict[str, Any]:
+    return {
+        "id": str(_value(row, "id")),
+        "email": str(_value(row, "email", "")),
+        "role": str(_value(row, "role", "member")),
+        "status": _invitation_status(row),
+        "expires_at": _iso(_value(row, "expires_at")),
+        "accepted_at": _iso(_value(row, "accepted_at")),
+        "revoked_at": _iso(_value(row, "revoked_at")),
+        "created_at": _iso(_value(row, "created_at")),
+    }
+
+
+def _invitation_organization(row: Any) -> dict[str, str]:
+    name = str(_value(row, "organization_name", "") or "").strip()
+    return {"name": name or "未命名机构"}
+
+
+class OrganizationInvitationStore:
+    async def create(self, user: AuthUser, email: str, role: str) -> dict[str, Any]:
+        raise NotImplementedError
+
+    async def list(self, user: AuthUser) -> list[dict[str, Any]]:
+        raise NotImplementedError
+
+    async def revoke(self, user: AuthUser, invitation_id: UUID) -> dict[str, Any]:
+        raise NotImplementedError
+
+    async def accept(self, user: AuthUser, token: str) -> dict[str, Any]:
+        raise NotImplementedError
+
+
+class DbOrganizationInvitationStore(OrganizationInvitationStore):
+    async def _membership(self, conn: Any, user_id: UUID) -> Any:
+        return await conn.fetchrow(
+            """select om.organization_id, om.role, o.name
+               from public.organization_members om
+               join public.organizations o on o.id=om.organization_id
+               where om.user_id=$1 and om.status='active'
+               order by om.created_at, om.id limit 1""", user_id)
+
+    async def _manager_membership(self, conn: Any, user_id: UUID) -> Any:
+        membership = await self._membership(conn, user_id)
+        if not membership:
+            raise HTTPException(status_code=404, detail="机构不存在")
+        if str(_value(membership, "role")) not in {"owner", "admin"}:
+            raise HTTPException(status_code=403, detail="只有机构管理员可以管理邀请")
+        return membership
+
+    async def _seat_limit(self, conn: Any, organization_id: UUID) -> int:
+        row = await conn.fetchrow(
+            """select coalesce(nullif(pp.subscription_slots, 0), 5) as seat_limit
+               from public.organizations o
+               left join public.subscriptions s on s.organization_id=o.id
+                 and s.product_code='b_data_pro_monthly'
+                 and s.status in ('active','trialing')
+                 and (s.current_period_end is null or s.current_period_end > now())
+               left join public.pricing_plans pp on pp.plan_code=case when s.id is null then 'free_b' else 'b_data_pro' end
+                 and pp.audience='b' and pp.active=true
+               where o.id=$1 limit 1""", organization_id)
+        return max(1, int(_value(row, "seat_limit", 5) or 5))
+
+    async def create(self, user: AuthUser, email: str, role: str) -> dict[str, Any]:
+        email, role = _invitation_email(email), _invitation_role(role)
+        async with get_pool().acquire() as conn:
+            async with conn.transaction():
+                membership = await self._manager_membership(conn, user.user_id)
+                org_id = _value(membership, "organization_id")
+                duplicate = await conn.fetchval(
+                    """select 1 from public.organization_invitations
+                       where organization_id=$1 and email=$2 and accepted_at is null
+                         and revoked_at is null and expires_at > now() limit 1""", org_id, email)
+                if duplicate:
+                    raise HTTPException(status_code=409, detail="该邮箱已有待处理邀请")
+                active, pending, limit = await conn.fetchrow(
+                    """select
+                       (select count(*) from public.organization_members where organization_id=$1 and status='active') as active,
+                       (select count(*) from public.organization_invitations where organization_id=$1 and accepted_at is null and revoked_at is null and expires_at > now()) as pending,
+                       (select coalesce(nullif(pp.subscription_slots,0),5) from public.organizations o
+                          left join public.subscriptions s on s.organization_id=o.id and s.product_code='b_data_pro_monthly' and s.status in ('active','trialing') and (s.current_period_end is null or s.current_period_end > now())
+                          left join public.pricing_plans pp on pp.plan_code=case when s.id is null then 'free_b' else 'b_data_pro' end and pp.audience='b' and pp.active=true where o.id=$1 limit 1)""", org_id)
+                if int(active or 0) + int(pending or 0) >= int(limit or 5):
+                    raise HTTPException(status_code=409, detail="机构可用席位已满")
+                token = secrets.token_urlsafe(32)
+                expires = _utcnow() + INVITATION_TTL
+                await conn.execute(
+                    """insert into public.organization_invitations
+                       (organization_id,email,role,token_hash,created_by_user_id,expires_at)
+                       values($1,$2,$3,$4,$5,$6)""", org_id, email, role, invitation_token_hash(token), user.user_id, expires)
+        return {"invite_token": token, "expires_at": _iso(expires)}
+
+    async def list(self, user: AuthUser) -> list[dict[str, Any]]:
+        async with get_pool().acquire() as conn:
+            membership = await self._manager_membership(conn, user.user_id)
+            rows = await conn.fetch(
+                """select id,email,role,expires_at,accepted_at,revoked_at,created_at
+                   from public.organization_invitations where organization_id=$1
+                   order by created_at desc,id desc""", _value(membership, "organization_id"))
+            return [_serialize_invitation(row) for row in rows]
+
+    async def revoke(self, user: AuthUser, invitation_id: UUID) -> dict[str, Any]:
+        async with get_pool().acquire() as conn:
+            async with conn.transaction():
+                membership = await self._manager_membership(conn, user.user_id)
+                row = await conn.fetchrow(
+                    """select * from public.organization_invitations
+                       where id=$1 and organization_id=$2 for update""", invitation_id, _value(membership, "organization_id"))
+                if not row:
+                    raise HTTPException(status_code=404, detail="邀请不存在")
+                current = _invitation_status(row)
+                if current != "pending":
+                    raise HTTPException(status_code=409, detail=f"邀请当前状态为{current}，不能撤销")
+                row = await conn.fetchrow("update public.organization_invitations set revoked_at=now() where id=$1 returning id,email,role,expires_at,accepted_at,revoked_at,created_at", invitation_id)
+                return _serialize_invitation(row)
+
+    async def accept(self, user: AuthUser, token: str) -> dict[str, Any]:
+        token = (token or "").strip()
+        if not token or len(token) > 512:
+            raise HTTPException(status_code=400, detail="邀请链接无效或已失效")
+        computed = invitation_token_hash(token)
+        async with get_pool().acquire() as conn:
+            async with conn.transaction():
+                row = await conn.fetchrow(
+                    """select oi.*, o.name as organization_name
+                       from public.organization_invitations oi
+                       join public.organizations o on o.id=oi.organization_id
+                       where oi.token_hash=$1 for update""", computed)
+                if not row or not hmac.compare_digest(str(_value(row, "token_hash", "")), computed):
+                    raise HTTPException(status_code=404, detail="邀请链接无效或已失效")
+                if user.email.strip().lower() != str(_value(row, "email", "")).lower():
+                    raise HTTPException(status_code=403, detail="请使用受邀邮箱登录后接受邀请")
+                status = _invitation_status(row)
+                if status == "accepted":
+                    return {"accepted": True, "already_accepted": True, "organization": _invitation_organization(row), "role": str(_value(row, "role"))}
+                if status == "revoked":
+                    raise HTTPException(status_code=410, detail="邀请已撤销")
+                if status == "expired":
+                    raise HTTPException(status_code=410, detail="邀请已过期")
+                existing = await conn.fetchval("select 1 from public.organization_members where organization_id=$1 and user_id=$2", _value(row, "organization_id"), user.user_id)
+                if existing:
+                    await conn.execute("update public.organization_invitations set accepted_at=now(),accepted_by_user_id=$2 where id=$1", _value(row, "id"), user.user_id)
+                    return {"accepted": True, "already_member": True, "organization": _invitation_organization(row), "role": str(_value(row, "role"))}
+                active = await conn.fetchval("select count(*) from public.organization_members where organization_id=$1 and status='active'", _value(row, "organization_id"))
+                pending = await conn.fetchval("select count(*) from public.organization_invitations where organization_id=$1 and accepted_at is null and revoked_at is null and expires_at > now()", _value(row, "organization_id"))
+                limit = await self._seat_limit(conn, _value(row, "organization_id"))
+                if int(active or 0) >= limit:
+                    raise HTTPException(status_code=409, detail="机构可用席位已满")
+                await conn.execute("insert into public.organization_members(organization_id,user_id,role,status) values($1,$2,$3,'active')", _value(row, "organization_id"), user.user_id, _value(row, "role"))
+                await conn.execute("update public.organization_invitations set accepted_at=now(),accepted_by_user_id=$2 where id=$1", _value(row, "id"), user.user_id)
+                return {"accepted": True, "organization": _invitation_organization(row), "role": str(_value(row, "role"))}
+
+
+def get_org_invitation_store() -> OrganizationInvitationStore:
+    return DbOrganizationInvitationStore()
 
 
 class OrganizationReadStore:
@@ -96,6 +299,10 @@ class OrganizationReadStore:
             "select plan_code, name from public.pricing_plans where plan_code=$1 and audience='b' and active=true",
             plan_code,
         )
+        seat_limit = await conn.fetchval(
+            """select coalesce(nullif(subscription_slots, 0), 5)
+               from public.pricing_plans where plan_code=$1 and audience='b' and active=true
+               limit 1""", plan_code)
         entitlements = await conn.fetch(
             """
             select metric, period, limit_units from public.plan_entitlements
@@ -134,7 +341,7 @@ class OrganizationReadStore:
         return {
             "organization": {"name": str(_value(membership, "name", ""))},
             "role": str(_value(membership, "role", "member")),
-            "seats": {"used": int(used or 0), "limit": 5},
+            "seats": {"used": int(used or 0), "limit": int(seat_limit or 5)},
             "plan": {
                 "name": str(_value(plan, "name", PLAN_NAMES[plan_code])),
                 "entitlements": public_entitlements,
@@ -397,3 +604,38 @@ async def get_org_members(user: AuthUser = Depends(require_user), store: Organiz
     except Exception:
         logger.warning("organization members unavailable", exc_info=False)
         return _error("org_unavailable", "机构成员暂时无法读取。")
+
+
+@router.post("/invitations", status_code=201)
+async def create_org_invitation(
+    body: OrganizationInvitationRequest,
+    user: AuthUser = Depends(require_user),
+    store: OrganizationInvitationStore = Depends(get_org_invitation_store),
+) -> Any:
+    return await store.create(user, body.email, body.role)
+
+
+@router.get("/invitations")
+async def list_org_invitations(
+    user: AuthUser = Depends(require_user),
+    store: OrganizationInvitationStore = Depends(get_org_invitation_store),
+) -> dict[str, Any]:
+    return {"invitations": await store.list(user)}
+
+
+@router.post("/invitations/{invitation_id}/revoke")
+async def revoke_org_invitation(
+    invitation_id: UUID,
+    user: AuthUser = Depends(require_user),
+    store: OrganizationInvitationStore = Depends(get_org_invitation_store),
+) -> Any:
+    return await store.revoke(user, invitation_id)
+
+
+@router.post("/invitations/accept")
+async def accept_org_invitation(
+    body: OrganizationAcceptInvitationRequest,
+    user: AuthUser = Depends(require_user),
+    store: OrganizationInvitationStore = Depends(get_org_invitation_store),
+) -> Any:
+    return await store.accept(user, body.token)

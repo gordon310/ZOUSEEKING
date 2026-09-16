@@ -54,7 +54,7 @@
     const list = byId("organizationMembers");
     if (!list) return;
     list.innerHTML = `<tr><td colspan="4">${escapeHtml(t("business.organizationLoading"))}</td></tr>`;
-    const roleLabels = { owner: "business.owner", member: "business.memberRole" };
+    const roleLabels = { owner: "business.owner", admin: "business.adminRole", member: "business.memberRole" };
     const statusLabels = { active: "business.active", inactive: "business.inactive" };
     const renderMembers = (members) => {
       if (!members.length) {
@@ -72,10 +72,9 @@
     };
     const load = async () => {
       if (!window.ZouBusinessApi) throw new Error("api_unavailable");
-      const [me, members] = await Promise.all([
-        window.ZouBusinessApi.getOrganization(),
-        window.ZouBusinessApi.listOrganizationMembers(),
-      ]);
+      const me = await window.ZouBusinessApi.getOrganization();
+      let members = { members: [] };
+      try { members = await window.ZouBusinessApi.listOrganizationMembers(); } catch { /* summary remains usable */ }
       if (!me?.organization) {
         byId("organizationAccountHeading").textContent = t("business.organizationNone");
         byId("organizationPlanName").textContent = "";
@@ -96,13 +95,51 @@
       byId("organizationSeatSummary").textContent = seatText;
       setNotice("organizationNotice", t("business.organizationLive"));
       renderMembers(Array.isArray(members?.members) ? members.members : []);
+      const manager = ["owner", "admin"].includes(me.role);
+      const inviteButton = byId("inviteMemberButton");
+      const form = byId("organizationInviteForm");
+      if (inviteButton) inviteButton.hidden = !manager;
+      if (form) form.hidden = !manager;
+      const invitationPanel = byId("organizationInvitations");
+      if (manager && invitationPanel && window.ZouBusinessApi.listOrganizationInvitations) {
+        const invitations = await window.ZouBusinessApi.listOrganizationInvitations();
+        invitationPanel.replaceChildren(...(invitations?.invitations || []).map((item) => {
+          const row = document.createElement("p");
+          row.textContent = `${item.email} · ${t(`business.invitationStatus.${item.status}`, item.status)}`;
+          if (item.status === "pending") {
+            const revoke = document.createElement("button"); revoke.type = "button"; revoke.className = "business-button secondary"; revoke.textContent = t("business.revokeInvite");
+            revoke.addEventListener("click", async () => { await window.ZouBusinessApi.revokeOrganizationInvitation(item.id); await load(); }); row.append(" ", revoke);
+          }
+          return row;
+        }));
+      }
     };
+    byId("organizationInviteForm")?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget; const button = form.querySelector("button[type=submit]"); button.disabled = true;
+      try {
+        const result = await window.ZouBusinessApi.createOrganizationInvitation(form.email.value, form.role.value);
+        const link = `${window.location.origin}${window.location.pathname.replace(/organization\.html$/, "invite.html")}?token=${encodeURIComponent(result.invite_token)}`;
+        const output = byId("inviteResult"); output.textContent = t("business.inviteShownOnce");
+        const copy = document.createElement("button"); copy.type = "button"; copy.className = "business-button secondary"; copy.textContent = t("business.copyInvite"); copy.addEventListener("click", () => navigator.clipboard.writeText(link));
+        output.append(" ", copy); form.reset();
+      } catch (error) { setNotice("inviteResult", error?.status === 409 ? t("business.inviteFullOrDuplicate") : t("business.inviteError")); }
+      finally { button.disabled = false; }
+    });
     load().catch((error) => {
       const forbidden = error?.status === 401 || error?.status === 403;
       const message = forbidden ? t("business.organizationForbidden") : t("business.organizationUnavailable");
       setNotice("organizationNotice", message);
       list.innerHTML = `<tr><td colspan="4">${escapeHtml(message)}</td></tr>`;
     });
+  }
+
+  function renderInvite() {
+    const notice = byId("invitePageNotice"); const button = byId("acceptInviteButton"); const token = new URLSearchParams(window.location.search).get("token") || "";
+    if (!token) { notice.textContent = t("business.inviteInvalid"); return; }
+    if (!window.ZouAuthSession?.isLoggedIn?.()) return;
+    byId("inviteLoginLink").hidden = true; button.hidden = false;
+    button.addEventListener("click", async () => { try { await window.ZouBusinessApi.acceptOrganizationInvitation(token); window.location.assign("organization.html"); } catch (error) { const key = error?.status === 403 ? "business.inviteMismatch" : error?.status === 409 ? "business.inviteFull" : error?.status === 410 ? "business.inviteExpiredOrRevoked" : "business.inviteInvalid"; notice.textContent = t(key); } });
   }
 
   function renderBilling() {
@@ -415,7 +452,8 @@
 
   function init() {
     renderSideSummary();
-    if (page === "organization") renderOrganization();
+  if (page === "organization") renderOrganization();
+  if (page === "invite") renderInvite();
     if (page === "billing") renderBilling();
     if (page === "usage") renderUsage();
     if (page === "subscriptions") renderSubscriptions();

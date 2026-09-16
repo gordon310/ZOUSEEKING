@@ -40,7 +40,8 @@
     "20260915000300_account_deletion_requests.sql",
     "20260915000400_account_retention_sweeper.sql",
     "20260916000100_org_exports.sql",
-    "20260916000200_org_export_idempotency.sql"
+    "20260916000200_org_export_idempotency.sql",
+    "20260916000300_organization_invitations.sql"
   ],
   "legacy_sql_files": [
     "backend/sql/001_foundation_data_contract.sql",

@@ -17,7 +17,7 @@ concurrency:
 env:
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "22"
-  REQUIRED_CHECKS: "python-pytest,python-compileall,pip-check,node-syntax,node-edge,browser,sql-start,sql-reset,sql-foundation,sql-intake,sql-provenance,sql-rls,sql-identity,sql-business-rls,sql-m1,sql-finance,sql-member-status,sql-collection,sql-sources,sql-organizations,sql-org-read,sql-org-billing,sql-products,sql-usage,sql-service-tasks,sql-renovation,sql-account-deletion,sql-account-retention,sql-analysis,sql-exports,sql-member,sql-realtime-quota,npm-audit,pip-audit,secret-scan,policy,diff"
+  REQUIRED_CHECKS: "python-pytest,python-compileall,pip-check,node-syntax,node-edge,browser,sql-start,sql-reset,sql-foundation,sql-intake,sql-provenance,sql-rls,sql-identity,sql-business-rls,sql-m1,sql-finance,sql-member-status,sql-collection,sql-sources,sql-organizations,sql-org-read,sql-org-billing,sql-org-invitations,sql-org-invitation-rls,sql-products,sql-usage,sql-service-tasks,sql-renovation,sql-account-deletion,sql-account-retention,sql-analysis,sql-exports,sql-member,sql-realtime-quota,npm-audit,pip-audit,secret-scan,policy,diff"
 
 jobs:
   python:
@@ -180,6 +180,12 @@ jobs:
       - name: Run organization billing and export contract assertions
         continue-on-error: true
         run: python3 scripts/ci/release_evidence.py record --name sql-org-billing --output ci-results/sql-org-billing.json -- psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/sql/test_org_billing_contract.sql
+      - name: Run organization invitation contract assertions
+        continue-on-error: true
+        run: python3 scripts/ci/release_evidence.py record --name sql-org-invitations --output ci-results/sql-org-invitations.json -- psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/sql/test_org_invitations_contract.sql
+      - name: Run organization invitation RLS matrix assertions
+        continue-on-error: true
+        run: python3 scripts/ci/release_evidence.py record --name sql-org-invitation-rls --output ci-results/sql-org-invitation-rls.json -- psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/security/test_rls_org_invitations.sql
       - name: Run products/subscriptions SQL assertions
         continue-on-error: true
         run: python3 scripts/ci/release_evidence.py record --name sql-products --output ci-results/sql-products.json -- psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/sql/test_v1_products_subscriptions.sql
@@ -218,7 +224,7 @@ jobs:
         run: npx supabase stop --no-backup || true
       - name: Fail if SQL or RLS checks failed
         if: always()
-        run: python3 scripts/ci/release_evidence.py validate --results-dir ci-results --required sql-start,sql-reset,sql-foundation,sql-intake,sql-provenance,sql-rls,sql-identity,sql-business-rls,sql-m1,sql-finance,sql-member-status,sql-collection,sql-sources,sql-organizations,sql-org-read,sql-org-billing,sql-products,sql-usage,sql-service-tasks,sql-renovation,sql-account-deletion,sql-account-retention,sql-analysis,sql-exports,sql-member,sql-realtime-quota
+        run: python3 scripts/ci/release_evidence.py validate --results-dir ci-results --required sql-start,sql-reset,sql-foundation,sql-intake,sql-provenance,sql-rls,sql-identity,sql-business-rls,sql-m1,sql-finance,sql-member-status,sql-collection,sql-sources,sql-organizations,sql-org-read,sql-org-billing,sql-org-invitations,sql-org-invitation-rls,sql-products,sql-usage,sql-service-tasks,sql-renovation,sql-account-deletion,sql-account-retention,sql-analysis,sql-exports,sql-member,sql-realtime-quota
       - name: Upload SQL/RLS evidence
         if: always()
         uses: actions/upload-artifact@v4

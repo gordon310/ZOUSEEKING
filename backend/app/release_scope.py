@@ -48,6 +48,11 @@ ADMIN_API_CONTRACT = (
     "GET /api/admin/internal/roles",
     "POST /api/admin/internal/roles",
     "DELETE /api/admin/internal/roles/{user_id}/{role}",
+    "POST /api/admin/organizations",
+    "POST /api/org/invitations",
+    "GET /api/org/invitations",
+    "POST /api/org/invitations/{invitation_id}/revoke",
+    "POST /api/org/invitations/accept",
 )
 
 PHASE_ONE_API_CONTRACT = PHASE_ONE_API_CONTRACT + ADMIN_API_CONTRACT

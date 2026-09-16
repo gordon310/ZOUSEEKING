@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import json
 import os
+import secrets
 from datetime import datetime
 from typing import Any, List, Optional
 from uuid import UUID
@@ -43,6 +44,7 @@ from fastapi import HTTPException
 
 from ..db import get_pool
 from ..usage.ledger import UTC_PLUS_8
+from ..org.routes import INVITATION_TTL, invitation_token_hash
 
 DEFAULT_PAGE_SIZE = 20
 MAX_PAGE_SIZE = 100
@@ -378,6 +380,32 @@ class AdminService:
 
     def _acquire(self) -> asyncpg.Pool:
         return self._pool if self._pool is not None else get_pool()
+
+    async def create_organization(self, *, name: str, owner_email: Optional[str], actor: UUID) -> dict[str, Any]:
+        """Create an organization and optional one-time owner invitation atomically."""
+        async with self._acquire().acquire() as conn:
+            async with conn.transaction():
+                org = await conn.fetchrow(
+                    "insert into public.organizations(name, created_by_user_id) values($1,$2) returning id,name,created_by_user_id,created_at",
+                    name, actor,
+                )
+                invitation = None
+                if owner_email:
+                    email = owner_email.strip().lower()
+                    token = secrets.token_urlsafe(32)
+                    expires = datetime.now(UTC_PLUS_8) + INVITATION_TTL
+                    invitation = {"invite_token": token, "expires_at": expires.isoformat()}
+                    await conn.execute(
+                        """insert into public.organization_invitations
+                           (organization_id,email,role,token_hash,created_by_user_id,expires_at)
+                           values($1,$2,'owner',$3,$4,$5)""", org["id"], email, invitation_token_hash(token), actor, expires,
+                    )
+                await conn.execute(
+                    """insert into public.audit_events(actor_user_id,action,target_type,target_id,summary)
+                       values($1,'admin.organization.created','organization',$2,$3::jsonb)""",
+                    actor, str(org["id"]), json.dumps({"name_length": len(name), "owner_invitation": bool(invitation)}, ensure_ascii=False),
+                )
+        return {"organization": {"id": str(org["id"]), "name": str(org["name"]), "created_at": org["created_at"].isoformat()}, "owner_invitation": invitation}
 
     # -- roles ---------------------------------------------------------------
 

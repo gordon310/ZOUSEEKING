@@ -61,6 +61,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from ..auth import AuthUser  # noqa: F401  (documented dependency)
+from ..org.routes import _invitation_email
 from .auth import (
     DATA_OPS,
     FINANCE,
@@ -164,6 +165,11 @@ class PricingEntitlementRequest(BaseModel):
 
 class PricingPriceStatusRequest(BaseModel):
     active: bool
+
+
+class OrganizationCreateRequest(BaseModel):
+    name: str
+    owner_email: Optional[str] = None
 
 
 def _role_or_400(role: Optional[str]) -> str:
@@ -308,6 +314,19 @@ async def list_members(
     return await service.list_members(
         q=q, page=page, page_size=page_size, email_visible=email_visible
     )
+
+
+@router.post("/organizations", status_code=201)
+async def create_organization(
+    body: OrganizationCreateRequest,
+    principal: AdminPrincipal = Depends(require_admin_role(MEMBER_OPS, SUPER_ADMIN)),
+    service: AdminService = Depends(get_admin_service),
+) -> dict[str, Any]:
+    name = (body.name or "").strip()
+    if not name or len(name) > 120:
+        raise HTTPException(status_code=400, detail="机构名称不能为空且不能超过 120 个字符")
+    owner_email = _invitation_email(body.owner_email) if body.owner_email else None
+    return await service.create_organization(name=name, owner_email=owner_email, actor=principal.user.user_id)
 
 
 @router.get("/pricing")

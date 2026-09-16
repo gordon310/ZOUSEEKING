@@ -34,6 +34,10 @@
     getOrganizationUsage: () => request("/api/org/usage"),
     getOrganizationBilling: () => request("/api/org/billing"),
     listOrganizationMembers: () => request("/api/org/members"),
+    createOrganizationInvitation: (email, role) => request("/api/org/invitations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, role }) }),
+    listOrganizationInvitations: () => request("/api/org/invitations"),
+    revokeOrganizationInvitation: (id) => request(`/api/org/invitations/${encodeURIComponent(id)}/revoke`, { method: "POST" }),
+    acceptOrganizationInvitation: (token) => request("/api/org/invitations/accept", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token }) }),
     listExports: () => request("/api/exports"),
     createExport: () => request("/api/exports", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) }),
     downloadExport: async (exportId) => {

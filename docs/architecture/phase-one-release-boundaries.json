@@ -30,7 +30,12 @@
     "GET /api/admin/internal/me",
     "GET /api/admin/internal/roles",
     "POST /api/admin/internal/roles",
-    "DELETE /api/admin/internal/roles/{user_id}/{role}"
+    "DELETE /api/admin/internal/roles/{user_id}/{role}",
+    "POST /api/admin/organizations",
+    "POST /api/org/invitations",
+    "GET /api/org/invitations",
+    "POST /api/org/invitations/{invitation_id}/revoke",
+    "POST /api/org/invitations/accept"
   ],
   "project_conversion": "disabled",
   "business_and_admin_operations": "demo_only_no_network_writes",

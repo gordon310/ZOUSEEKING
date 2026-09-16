@@ -97,10 +97,11 @@ begin
     raise exception 'authenticated public grant count %, expected 26', authenticated_grant_count;
   end if;
   -- 20260915000300_account_deletion_requests.sql adds four service_role grants;
-  -- 336 为手工 bootstrap 计数、346 为 CI disposable-reset 基线(以 CI 为准;
-  -- 20260916000300 的 GRANT ALL 在新表上展开 7 条权限行,339 + 7 = 346)。
-  if service_grant_count <> 346 then
-    raise exception 'service_role public grant count %, expected 346', service_grant_count;
+  -- 336 为手工 bootstrap 计数、353 为 CI disposable-reset 基线(以 CI 为准;
+  -- 20260916000300 与 20260916000500 各自在新表上 GRANT ALL,每个展开 7 条权限行:
+  -- 339 + 7 + 7 = 353)。
+  if service_grant_count <> 353 then
+    raise exception 'service_role public grant count %, expected 353', service_grant_count;
   end if;
 
   if exists (

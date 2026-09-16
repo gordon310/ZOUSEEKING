@@ -2666,6 +2666,22 @@
   // Dynamic copy used by the report, workspace and operations views. Keep the
   // sentence whole so locale-specific word order is preserved.
   const ADDITIONAL_I18N = {
+    "regionStats.eyebrow": { "zh-CN": "MLIT 成交价资料", en: "MLIT CLOSED-PRICE DATA", ja: "MLIT 成約価格データ" },
+    "regionStats.title": { "zh-CN": "区域成交价统计", en: "Regional closed-price statistics", ja: "地域別成約価格統計" },
+    "regionStats.intro": { "zh-CN": "仅使用国土交通省公开成交价资料；数值由服务端按库内记录实时计算。", en: "Uses only MLIT public closed-price data; values are calculated live from stored records.", ja: "国土交通省の公開成約価格データのみを使用し、保存済みレコードからサーバーでリアルタイム計算します。" },
+    "regionStats.quarter": { "zh-CN": "季度", en: "Quarter", ja: "四半期" },
+    "regionStats.submit": { "zh-CN": "读取统计", en: "Load statistics", ja: "統計を読み込む" },
+    "regionStats.login": { "zh-CN": "登录后读取机构统计。", en: "Sign in to read organization statistics.", ja: "ログインすると組織統計を読み込めます。" },
+    "regionStats.loading": { "zh-CN": "正在读取统计……", en: "Loading statistics…", ja: "統計を読み込んでいます…" },
+    "regionStats.insufficient": { "zh-CN": "样本不足（少于 5 条），不显示中位数或四分位数。", en: "Insufficient sample (fewer than 5); medians and quartiles are withheld.", ja: "サンプル不足（5件未満）のため、中央値と四分位数は表示しません。" },
+    "regionStats.failed": { "zh-CN": "统计暂时无法读取，请稍后重试。", en: "Statistics are temporarily unavailable. Try again later.", ja: "統計を読み込めません。後でもう一度お試しください。" },
+    "regionStats.forbidden": { "zh-CN": "当前账户没有机构统计权限。", en: "This account does not have organization-statistics access.", ja: "このアカウントには組織統計の権限がありません。" },
+    "regionStats.median": { "zh-CN": "中位㎡单价", en: "Median price / sqm", ja: "㎡単価中央値" },
+    "regionStats.quartiles": { "zh-CN": "P25 / P75", en: "P25 / P75", ja: "P25 / P75" },
+    "regionStats.samples": { "zh-CN": "样本量", en: "Samples", ja: "サンプル数" },
+    "regionStats.source": { "zh-CN": "出典: 不动产信息库（国土交通省） · 许可: PDL1.0", en: "Source: Real Estate Information Library (MLIT) · License: PDL1.0", ja: "出典: 不動産情報ライブラリ（国土交通省）・ライセンス: PDL1.0" },
+    "regionStats.ratio": { "zh-CN": "租售比：暂不可用（租金数据未授权）", en: "Rent-to-sale ratio: unavailable (rental data is not authorized)", ja: "賃貸・売買比: 利用不可（賃料データ未承認）" },
+    "regionStats.limitations": { "zh-CN": "限制：参考信息，非逐笔成交明细；㎡单价由官方总价和面积计算。", en: "Limitations: reference information, not itemized transactions; price/sqm is derived from official total price and area.", ja: "制限: 参考情報であり個別取引明細ではありません。㎡単価は公式の総額と面積から算出しています。" },
     "page.inviteTitle": { "zh-CN": "接受机构邀请", en: "Accept organization invitation", ja: "組織への招待を受け入れる" },
     "business.inviteMember": { "zh-CN": "邀请成员", en: "Invite member", ja: "メンバーを招待" },
     "business.inviteeEmail": { "zh-CN": "受邀邮箱", en: "Invitee email", ja: "招待するメールアドレス" },

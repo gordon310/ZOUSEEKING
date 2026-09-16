@@ -42,7 +42,8 @@
     "20260916000100_org_exports.sql",
     "20260916000200_org_export_idempotency.sql",
     "20260916000300_organization_invitations.sql",
-    "20260916000400_service_task_b3.sql"
+    "20260916000400_service_task_b3.sql",
+    "20260916000500_mlit_transactions.sql"
   ],
   "legacy_sql_files": [
     "backend/sql/001_foundation_data_contract.sql",

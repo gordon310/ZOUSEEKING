@@ -271,6 +271,18 @@
   font-weight: 800;
 }
 
+.region-stats-panel {
+  margin: 18px 0;
+  padding: 20px;
+  border: 1px solid var(--line, #d9e1eb);
+  border-radius: 14px;
+  background: #fff;
+}
+.region-stats-result { margin-top: 14px; color: var(--navy, #10284d); }
+.region-stats-result .stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.region-stats-result .stat-card { padding: 12px; background: #f4f7fb; border-radius: 10px; }
+@media (max-width: 700px) { .region-stats-result .stat-grid { grid-template-columns: 1fr; } }
+
 .service-task-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

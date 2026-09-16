@@ -1770,7 +1770,43 @@ function render() {
   renderMyPage();
   renderAnalysis();
   renderView();
+  renderRegionStats();
 }
+
+const regionStatsState = { loading: false, result: null, error: "" };
+
+function renderRegionStats() {
+  const result = $("#regionStatsResult");
+  const form = $("#regionStatsForm");
+  if (!result || !form) return;
+  const loggedIn = isLoggedIn();
+  form.querySelectorAll("button, select, input").forEach((el) => { el.disabled = !loggedIn || regionStatsState.loading; });
+  if (!loggedIn) { result.innerHTML = `<p>${escapeHtml(uiText("regionStats.login", "登录后读取机构统计。"))}</p>`; return; }
+  if (regionStatsState.loading) { result.innerHTML = `<p>${escapeHtml(uiText("regionStats.loading", "正在读取统计……"))}</p>`; return; }
+  if (regionStatsState.error === "forbidden") { result.innerHTML = `<p>${escapeHtml(uiText("regionStats.forbidden", "当前账户没有机构统计权限。"))}</p>`; return; }
+  if (regionStatsState.error) { result.innerHTML = `<p>${escapeHtml(uiText("regionStats.failed", "统计暂时无法读取，请稍后重试。"))}</p>`; return; }
+  const data = regionStatsState.result;
+  if (!data) return;
+  if (data.status === "insufficient_sample") { result.innerHTML = `<p>${escapeHtml(uiText("regionStats.insufficient", "样本不足（少于 5 条），不显示中位数或四分位数。"))}</p>`; return; }
+  const money = (value) => Number(value).toLocaleString();
+  result.innerHTML = `<div class="stat-grid"><div class="stat-card"><strong>${escapeHtml(uiText("regionStats.median", "中位㎡单价"))}</strong><br>${money(data.median_unit_price_jpy_per_sqm)} JPY</div><div class="stat-card"><strong>${escapeHtml(uiText("regionStats.quartiles", "P25 / P75"))}</strong><br>${money(data.p25)} / ${money(data.p75)} JPY</div><div class="stat-card"><strong>${escapeHtml(uiText("regionStats.samples", "样本量"))}</strong><br>${data.sample_size}</div></div><p>${escapeHtml(uiText("regionStats.source", "出典: 不动产信息库（国土交通省） · 许可: PDL1.0"))}</p><p>${escapeHtml(uiText("regionStats.ratio", "租售比：暂不可用（租金数据未授权）"))}</p><p>${escapeHtml(uiText("regionStats.limitations", "限制：参考信息，非逐笔成交明细；㎡单价由官方总价和面积计算。"))}</p>`;
+}
+
+async function loadRegionStats(event) {
+  event?.preventDefault();
+  if (!isLoggedIn()) { renderRegionStats(); return; }
+  regionStatsState.loading = true; regionStatsState.error = ""; renderRegionStats();
+  const params = new URLSearchParams({
+    prefecture: $("#statsPrefecture").value, city: $("#statsCity").value,
+    ward: $("#statsWard").value, asset_type: $("#statsAssetType").value,
+    year: $("#statsYear").value, quarter: $("#statsQuarter").value,
+  });
+  try { regionStatsState.result = await apiFetch(`/api/org/region-stats?${params}`); }
+  catch (error) { regionStatsState.result = null; regionStatsState.error = String(error.message || "").includes("403") ? "forbidden" : "failed"; }
+  finally { regionStatsState.loading = false; renderRegionStats(); }
+}
+
+window.ZouRegionStats = Object.freeze({ load: loadRegionStats });
 
 function renderView() {
   const detail = isLoggedIn() && state.selectedId;
@@ -2093,6 +2129,9 @@ async function init() {
     state.session = event.detail || window.ZouAuthSession?.read?.() || null;
     console.debug("[auth] session change received", { loggedIn: isLoggedIn() });
     render();
+  });
+  document.addEventListener("submit", (event) => {
+    if (event.target?.id === "regionStatsForm") loadRegionStats(event);
   });
   const isAnalysisPage = Boolean($("#analysisPanel"));
   if (!isAnalysisPage) {

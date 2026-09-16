@@ -236,6 +236,7 @@
     const form = byId("exportForm");
     const quota = byId("exportQuota");
     if (!list || !form || !quota) return;
+    const submitButton = form.querySelector("button[type='submit']");
     list.textContent = t("business.loading");
     quota.textContent = t("business.loading");
 
@@ -272,13 +273,23 @@
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
+      if (submitButton?.disabled) return;
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = t("business.exportSubmitting");
+      }
       try {
         if (initialLoad) await initialLoad;
-        await api[organizationMode ? "createOrganizationExport" : "createExport"]();
-        setNotice("exportNotice", t("business.exportCreated"));
+        const result = await api[organizationMode ? "createOrganizationExport" : "createExport"]();
+        setNotice("exportNotice", result?.reused ? t("business.exportReused") : t("business.exportCreated"));
         await load();
       } catch (error) {
         setNotice("exportNotice", error?.status === 403 ? t("business.organizationForbidden") : error?.status === 429 ? t("business.exportQuotaExceeded") : error?.status === 422 ? t("business.exportNoData") : t("business.exportError"));
+      } finally {
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.textContent = t("business.createExport");
+        }
       }
     });
 

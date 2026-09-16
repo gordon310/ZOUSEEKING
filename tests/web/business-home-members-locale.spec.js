@@ -248,7 +248,7 @@ test("订阅和服务任务页提供本地演示操作，导出页连接真实�
   await page.route("**/api/exports", (route) => {
     if (route.request().method() === "POST") {
       exportCreated = true;
-      return route.fulfill({ json: { id: "export-1", status: "completed", row_count: 2, created_at: "2026-09-12T00:00:00Z", download_url: "/api/exports/export-1" } });
+      return route.fulfill({ json: { id: "export-1", status: "completed", row_count: 2, created_at: "2026-09-12T00:00:00Z", download_url: "/api/exports/export-1", reused: false } });
     }
     return route.fulfill({ json: { exports: exportCreated ? [{ id: "export-1", status: "completed", row_count: 2, created_at: "2026-09-12T00:00:00Z" }] : [] } });
   });
@@ -264,6 +264,29 @@ test("订阅和服务任务页提供本地演示操作，导出页连接真实�
   await expect(page.locator("#taskNotice")).toContainText("申请");
   await page.locator("[data-task-action='withdraw']").click();
   await expect(page.locator("#taskNotice")).toContainText("撤回");
+});
+
+test("导出提交期间禁用主按钮并提示沿用的导出", async ({ page }) => {
+  await seedBusinessReleaseScope(page);
+  let releasePost;
+  const postBlocked = new Promise((resolve) => { releasePost = resolve; });
+  await page.route("**/api/org/me", (route) => route.fulfill({ json: { organization: null, role: null, seats: null, plan: null } }));
+  await page.route("**/api/usage/summary", (route) => route.fulfill({ json: { available: true, entitlements: { exports_rows: { used: 0, limit: 10 } } } }));
+  await page.route("**/api/exports", async (route) => {
+    if (route.request().method() === "POST") {
+      await postBlocked;
+      return route.fulfill({ json: { id: "export-1", status: "completed", row_count: 1, created_at: "2026-09-16T00:00:00Z", reused: true } });
+    }
+    return route.fulfill({ json: { exports: [] } });
+  });
+  await page.goto("/exports.html");
+  const button = page.locator("#exportForm button[type='submit']");
+  await button.click();
+  await expect(button).toBeDisabled();
+  await expect(button).toHaveText("正在提交……");
+  releasePost();
+  await expect(button).toBeEnabled();
+  await expect(page.locator("#exportNotice")).toContainText("沿用刚刚生成的导出");
 });
 
 test("补齐的 B 端页面支持英文和日文切换", async ({ page }) => {

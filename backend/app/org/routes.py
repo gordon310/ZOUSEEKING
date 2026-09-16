@@ -30,6 +30,16 @@ PUBLIC_ENTITLEMENTS = {
 }
 PLAN_NAMES = {"free_b": "B Free", "b_data_pro": "B Data Pro"}
 ORG_EXPORT_CSV_COLUMNS = ("账期", "用量类型", "已用", "上限", "订单金额(最小单位)", "币种", "订单状态")
+ORG_EXPORT_WINDOW_SECONDS = 60
+
+
+def org_export_idempotency_key(organization_id: UUID, owner_user_id: UUID, month_key: str, now: datetime) -> str:
+    window = int(now.timestamp()) // ORG_EXPORT_WINDOW_SECONDS
+    return f"org-export:{organization_id}:{owner_user_id}:{month_key}:{window}"
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 def _value(row: Any, name: str, default: Any = None) -> Any:
@@ -259,7 +269,23 @@ class DbOrgExportStore:
             async with conn.transaction():
                 membership = await self._membership(conn, user)
                 org_id = _value(membership, "organization_id")
-                month_key = period_key(datetime.now(timezone.utc), "month")
+                now = _utcnow()
+                month_key = period_key(now, "month")
+                idempotency_key = org_export_idempotency_key(org_id, user.user_id, month_key, now)
+                await conn.execute("select pg_advisory_xact_lock(hashtext($1))", f"{idempotency_key}:create")
+                existing = await conn.fetchrow(
+                    "select id, status, row_count, created_at from public.exports where organization_id=$1 and owner_user_id=$2 and idempotency_key=$3",
+                    org_id, user.user_id, idempotency_key,
+                )
+                if existing:
+                    return {
+                        "id": str(existing["id"]),
+                        "status": str(existing["status"]),
+                        "row_count": int(existing["row_count"]),
+                        "created_at": _iso(existing["created_at"]),
+                        "download_url": f"/api/org/exports/{existing['id']}",
+                        "reused": True,
+                    }
                 usage = await conn.fetch("select usage_kind, consumed_units, limit_units from public.usage_quotas where scope_key=$1 and period_key=$2 order by usage_kind", f"org:{org_id}", month_key)
                 if not usage:
                     raise HTTPException(status_code=422, detail="no organization usage is available for export")
@@ -273,11 +299,10 @@ class DbOrgExportStore:
                 writer.writerows(rows)
                 content = ("\ufeff" + output.getvalue()).encode("utf-8")
                 export_id = uuid4()
-                fingerprint = f"org-export:{export_id}:{len(rows)}"
-                await consume_current_entitlement(conn, user=user, metric="export_row", units=len(rows), idempotency_key=fingerprint, fingerprint=fingerprint, scope_key=f"org:{org_id}")
-                await conn.execute("insert into public.exports(id, owner_user_id, organization_id, status, row_count, csv_content) values($1,$2,$3,'completed',$4,$5)", export_id, user.user_id, org_id, len(rows), content)
+                await consume_current_entitlement(conn, user=user, metric="export_row", units=len(rows), idempotency_key=idempotency_key, fingerprint=idempotency_key, scope_key=f"org:{org_id}")
+                await conn.execute("insert into public.exports(id, owner_user_id, organization_id, idempotency_key, status, row_count, csv_content) values($1,$2,$3,$4,'completed',$5,$6)", export_id, user.user_id, org_id, idempotency_key, len(rows), content)
                 row = await conn.fetchrow("select id, status, row_count, created_at from public.exports where id=$1", export_id)
-                return {"id": str(row["id"]), "status": str(row["status"]), "row_count": int(row["row_count"]), "created_at": _iso(row["created_at"]), "download_url": f"/api/org/exports/{export_id}"}
+                return {"id": str(row["id"]), "status": str(row["status"]), "row_count": int(row["row_count"]), "created_at": _iso(row["created_at"]), "download_url": f"/api/org/exports/{export_id}", "reused": False}
 
     async def list_exports(self, user: AuthUser) -> list[dict[str, Any]]:
         async with get_pool().acquire() as conn:

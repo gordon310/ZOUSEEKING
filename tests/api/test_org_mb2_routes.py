@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import HTTPException
@@ -7,10 +8,11 @@ from fastapi.testclient import TestClient
 
 from backend.app.auth import AuthUser, require_user
 from backend.app.main import app
-from backend.app.org.routes import ORG_EXPORT_CSV_COLUMNS, get_org_billing_store, get_org_export_store, get_org_usage_store
+from backend.app.org.routes import ORG_EXPORT_CSV_COLUMNS, get_org_billing_store, get_org_export_store, get_org_usage_store, org_export_idempotency_key
 
 OWNER = UUID("00000000-0000-0000-0000-000000000030")
 OUTSIDER = UUID("00000000-0000-0000-0000-000000000032")
+ORG_ID = UUID("00000000-0000-0000-0000-000000000033")
 EXPORT = UUID("00000000-0000-0000-0000-000000000034")
 
 
@@ -26,10 +28,10 @@ class Store:
         return {"organization": {"name": "大阪数据协作社"}, "role": "owner", "orders": [{"period": "2026-09", "product_code": "b_data_pro_monthly", "amount_minor": 399900, "currency": "JPY", "status": "paid", "paid_at": "2026-09-01T00:00:00+00:00"}], "summary": {"order_count": 1, "amount_minor": 399900, "currency": "JPY"}, "subscription": {"product_code": "b_data_pro_monthly", "status": "active", "amount_minor": 399900, "currency": "JPY", "current_period_start": "2026-09-01T00:00:00+00:00", "current_period_end": "2026-10-01T00:00:00+00:00"}}
 
     async def create_export(self, user):
-        return {"id": str(EXPORT), "status": "completed", "row_count": 1, "created_at": "2026-09-16T00:00:00+00:00", "download_url": f"/api/org/exports/{EXPORT}"}
+        return {"id": str(EXPORT), "status": "completed", "row_count": 1, "created_at": "2026-09-16T00:00:00+00:00", "download_url": f"/api/org/exports/{EXPORT}", "reused": False}
 
     async def list_exports(self, user):
-        return [{"id": str(EXPORT), "status": "completed", "row_count": 1, "created_at": "2026-09-16T00:00:00+00:00", "download_url": f"/api/org/exports/{EXPORT}"}]
+        return [{"id": str(EXPORT), "status": "completed", "row_count": 1, "created_at": "2026-09-16T00:00:00+00:00", "download_url": f"/api/org/exports/{EXPORT}", "reused": False}]
 
     async def download_export(self, user, export_id):
         return "账期,用量类型,已用,上限,订单金额(最小单位),币种,订单状态\r\n2026-09,queries,3,500,399900,JPY,paid\r\n".encode("utf-8-sig")
@@ -83,11 +85,18 @@ def test_org_exports_have_fixed_allowlisted_csv_and_auth_routes():
     finally:
         teardown()
     assert created.status_code == 201
+    assert created.json()["reused"] is False
     assert listed.status_code == 200
     assert downloaded.status_code == 200
     assert downloaded.content.startswith(b"\xef\xbb\xbf")
     assert downloaded.content.decode("utf-8-sig").splitlines()[0].split(",") == list(ORG_EXPORT_CSV_COLUMNS)
     assert "user_id" not in downloaded.text and "scope_key" not in downloaded.text
+
+
+def test_org_export_idempotency_key_is_reproducible_per_minute_window():
+    now = datetime(2026, 9, 16, 12, 34, 59, tzinfo=timezone.utc)
+    assert org_export_idempotency_key(ORG_ID, OWNER, "2026-09", now) == org_export_idempotency_key(ORG_ID, OWNER, "2026-09", now)
+    assert org_export_idempotency_key(ORG_ID, OWNER, "2026-09", now) != org_export_idempotency_key(ORG_ID, OWNER, "2026-09", now.replace(minute=35, second=0))
 
 
 def test_org_non_member_is_hidden():

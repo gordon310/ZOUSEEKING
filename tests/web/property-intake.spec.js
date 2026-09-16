@@ -621,10 +621,12 @@ test("明确无效 refresh token shows a clickable login recovery entry", async 
     window.dispatchEvent(new CustomEvent("zou-auth-session-changed"));
   });
   // 刷新失败会清除会话；必须先挂起 token 响应，避免它在登录态断言前完成。
+  const refreshPromise = page.evaluate(() => window.ZouAuthSession.ensureValidSession());
   await refreshRequestStarted;
   await expect.poll(() => page.evaluate(() => window.ZouAuthSession.read()?.refreshToken)).toBe("invalid-refresh-token");
   await expect.poll(() => page.evaluate(() => window.ZouAuthSession.isLoggedIn())).toBe(true);
   releaseRefresh();
+  await refreshPromise;
   await page.locator("#saveProjectButton").click();
   await expect(page.getByRole("alert")).toContainText("登录状态已过期，请重新登录");
   await expect(page.getByRole("alert").getByRole("link", { name: "前往登录" })).toHaveAttribute("href", "profile.html?role=consumer#accountPanel");

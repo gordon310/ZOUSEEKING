@@ -137,3 +137,24 @@ N1 首次发版引入**线上 500 回归**:`backend/app/auth.py` 的 `require_us
 - 部署:push → 服务器 `git checkout -- . && git pull` → `docker compose -f deploy/docker-compose.prod.yml up -d --build api`;nginx 未改。
 - 线上库变更:① 追加 1 行 `sources`(可 delete 回滚)② 替换 `property_reports` 的 slug 唯一约束(可回滚为 `unique(slug)`)。
 - 回滚:服务器 `git checkout <上一提交>` 后重建 api 容器;DB 侧见对应 migration 的反向语句。
+
+## 六、2026-09-17 更新:SES 生产权限**已获批**(只读实测,晨班)
+
+- **证据**(本机只读调用 `~/.aws-ses-ops` 凭据,IAM 用户 `zoubeacon-ses-ops`,region `ap-southeast-1`,零写操作、零发信):
+  - `sesv2:GetAccount` → `ProductionAccessEnabled=true`、`SendingEnabled=true`、`EnforcementStatus=HEALTHY`、`MailType=TRANSACTIONAL`、`ReviewDetails.Status=**GRANTED**`(CaseId `178931383400481`,即第五节 N2 的同一案件)。
+  - 配额(`ses:GetSendQuota`):24h `50,000` 封 / `14 msg/s`;近 24h 已发 1 封 → **沙盒限制(200 封/日、仅已验证地址)已解除**。
+  - 身份:`mail.zoubeacon.com`(域名)+ `canaanlife@goo.jp`、`gordon310103@gmail.com`(历史沙盒验证地址,可保留);配置集 `zoubeacon-tracking` 存在。
+- **缺口状态**:第五节 N2「🔴 申请被驳回/`ConflictException`」**已解除**;SES 不再是上线阻塞项。密码重置/安全通知现在可发给任意真实用户邮箱。
+- **唯一剩余动作(需授权,本班未执行)**:把 Supabase Auth 的 `mailer_autoconfirm` 由 `true` 切为 `false`,然后跑通「注册 → 收确认信 → 点链接 → 登录」。两种等价方式(均已按最新官方文档核对,2026-09-17):
+  1. **Management API(推荐,Gordon 侧提供 access token 后由 Hermes 代执行)**:
+     ```bash
+     curl -X GET "https://api.supabase.com/v1/projects/fnogxuytbabxmqousifh/config/auth" \
+       -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN"
+     curl -X PATCH "https://api.supabase.com/v1/projects/fnogxuytbabxmqousifh/config/auth" \
+       -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" \
+       -d '{"mailer_autoconfirm": false}'
+     ```
+     token 获取页:https://supabase.com/dashboard/account/tokens(本机当前**无**该 token,`supabase` CLI 亦未 link 本项目 → 无法自行执行)。
+  2. **控制台**:Supabase Dashboard → 项目 `zoubeacon-staging` → **Authentication → Providers → Email** 内的 **Confirm Email** 开关(官方 general-configuration 文档:该选项位于 email provider 的 provider-specific configuration)。关闭后等价于 `mailer_autoconfirm=false`。
+- **切换注意**:应用侧已是双模式(`mailer_autoconfirm` 单开关,不改代码);切换前确认 SES 侧发信身份与模板已就绪(§四已核对);切换后立即跑一轮真实地址注册验证,失败则回切 `true`。
+- 红线:本节仅只读取证 + 文档;零 DB/线上写、零部署、零凭据改动、零删除、未改 migration 与冻结字段。

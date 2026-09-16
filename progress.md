@@ -10,6 +10,7 @@
 - 2026-09-11 修复发布门禁回归：`fb36907` 下架未授权条目后内容库仅剩 3 条，B 端首页 Playwright 断言仍写死 5 条卡片 → 断言改为由 `data/content_library.json` 推导（`min(5, len)`）并补匿名上限 5 条用例；顺带入库 Codex 支付接线批次 A 证据报告（`docs/superpowers/reports/`）并清理其尾随空白。commit `3b4eeb2` / `8eb9b03` / `1af1329`
 - 2026-09-11 晚班：Release Gate 连续红链（244f5bd/513dfdb/5c71a26 引入，管家定位出 5 个独立根因）修复完毕，CI run `34600659312` 七 job 全绿；当前 main=`e100374`（含 `web/config.example.js` 前端配置契约、定价控制台 spec mock、schema 清单 24 迁移、M1 grant 基线 318）
 - P2 待推进：P2-2 JPPGSKILL 联调、P2-3 深度报告真实链接线（引擎 P2-3b 已就绪）、P2-4 支付接线（Stripe 后端已就绪）、P2-5 合规、P2-6 提审材料；live 采集激活卡海外执行（国交省 land 国内不可达）
+- **2026-09-17 晨班快照**：main = `4d23922`（工作树干净、本地=远端）；Release Gate 绿；**AWS SES 生产权限已获批**（`ProductionAccessEnabled=true` / `ReviewDetails.Status=GRANTED`）→ 上线前最后一个邮件阻塞项解除，剩余动作只剩切 `mailer_autoconfirm=false`；09-16 白天批次已落 20 commit（机构域邀请/账单/导出、服务任务 C 端闭环、下载式报告交付、**MLIT 真实成交价区域统计** `GET /api/org/region-stats` + `20260916000500_mlit_transactions` + `sql-mlit-transactions` 门禁、资源版本 r44）
 
 ## Recently completed
 
@@ -405,6 +406,15 @@
 - **建议(待 Gordon 选,推荐置顶)**:D1 派 Codex 做「报告生成入 durable worker」;D2 退役 `app.js` legacy 直读;D3 未部署冻结件(Edge 函数 / `run_jphouse_worker.py`)删除或长期冻结二选一;D4 环境与合规项(SES IAM `support:*`、僵尸报告清理、`mailer_autoconfirm`、迁移台账 C4、`20260904000100` staging 门禁);D5 建议把本班次(job `ab373f6bd99d`)改绑 P2 或停用——已无 P1 单元,与夜班只读核查重复。
 - **红线**:零代码改动、零 DB/线上写、零部署、未触凭据与冻结字段、无删除操作、未改 migration;本班仅文档。
 
+## SES 生产权限获批 + 晨班只读核验(2026-09-17 晨班,本 BOT)
+
+- **班前实测**:工作树干净、`main == origin/main == 4d23922`;Release Gate `4d23922` **success**;`api.zoubeacon.com/health/ready` → ready/database ok;`zoubeacon.app` 200、`platform.zoubeacon.com/admin.html` 200;本地 `web/*.html` 222 处版本 = 线上 `?v=20260916-r44`(**无部署漂移**);两侧内容库 SHA-256 一致(`86be5284…`);`compileall` + `node --check` 通过;`backend/.venv/bin/python -m pytest tests/unit tests/architecture -q` → **387 passed / 85 skipped**;仓库内无 `codex exec` 进程。
+- **本轮新增事实(本班实测,首次落地)**:AWS **SES 生产权限已获批**——只读调用 `sesv2:GetAccount`:`ProductionAccessEnabled=true`、`SendingEnabled=true`、`EnforcementStatus=HEALTHY`、`ReviewDetails.Status=GRANTED`(CaseId `178931383400481`);`ses:GetSendQuota` 24h `50,000` 封 / `14 msg/s`(近 24h 发 1 封);身份 `mail.zoubeacon.com` + 两个历史验证地址;配置集 `zoubeacon-tracking` 存在。**09-16 记录的唯一上线阻塞缺口(N2)解除**;09-16 20:30 夜班输出为「进行中」(任务书 33 在跑),未报此项 → 本条为首次通报。证据与后续动作已落档 `docs/superpowers/reports/2026-09-15-cend-blocker-list.md` §六。
+- **唯一剩余动作(超本班红线,未执行)**:切 Supabase `mailer_autoconfirm → false` 并跑通「注册→收信→点链接→登录」。本机**无** `SUPABASE_ACCESS_TOKEN`(`supabase` CLI 未 link 本项目,`~/.hermes/.env` 无该变量)→ 需 Gordon 提供 token(https://supabase.com/dashboard/account/tokens,提供后由 Hermes 用 Management API `PATCH /v1/projects/fnogxuytbabxmqousifh/config/auth` 代执行),或自己在控制台 Authentication → Providers → Email → Confirm Email 关闭。两种路径与命令均已按官方文档核对(2026-09-17)。
+- **P1 依然无剩余单元**(09-07 工程闭环);M1 两个收敛单元(报告生成入 durable worker、`app.js` legacy 直读退役)仍待批准派工。
+- **仍待 Gordon 拍板**:① 切 `mailer_autoconfirm`(见上)② 4 行历史僵尸报告清理(DB 写 + 本机无 DB 凭据,需批准并授权)③ 迁移台账 C4「补齐 or 不补」口径(本机 CLI 未 link → staging 应用状态无法核)④ 未部署冻结件(Edge 函数 / `run_jphouse_worker.py`)删除 vs 长期冻结 ⑤ M1 两单元是否派工 ⑥ 本班次(job `ab373f6bd99d`)改绑 P2 或停用。
+- 红线:仅文档 + commit/push;零 DB 写、零部署、零删除、未改 migration 与冻结字段;SES 侧仅只读查询(无发信、无配置变更)。
+
 ## Last updated
 
-2026-09-16
+2026-09-17

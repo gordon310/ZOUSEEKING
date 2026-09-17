@@ -5,8 +5,10 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-User=zouseeking
-Group=zouseeking
+User=ubuntu
+Group=ubuntu
+LogsDirectory=zouseeking
+Environment=MLIT_REFRESH_LOG=/var/log/zouseeking/mlit-refresh.log
 WorkingDirectory=/opt/zouseeking
 EnvironmentFile=-/opt/zouseeking/deploy/.env
 ExecStart=/opt/zouseeking/deploy/mlit-refresh.sh

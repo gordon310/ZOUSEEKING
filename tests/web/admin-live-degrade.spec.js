@@ -194,7 +194,8 @@ test("default (unconfigured) admin page keeps working local demo with no API cal
 
   // Demo member table rendered (fixture rows, never real).
   await expect(page.locator("#memberList tr[data-member-row]")).toHaveCount(4);
-  await expect(page.locator("#memberCount")).toHaveText("synthetic_fixture");
+  await expect(page.locator("#memberCount")).toHaveText("演示会员");
+  await expect(page.locator("body")).not.toContainText("synthetic_fixture");
 
   // Demo surface chrome is unchanged and honestly labelled.
   await expect(page.locator("#adminFixtureLabel")).toHaveText("演示数据，不代表生产状态");

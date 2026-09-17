@@ -11,7 +11,7 @@ test("free preview renders the report-style preview and its paid teaser", async 
   await expect(freeReport.getByRole("heading", { name: "先看清资料状态，再决定是否继续" })).toBeVisible();
   await expect(freeReport.getByText("收费完整版会继续展开什么？")).toBeVisible();
   await expect(freeReport.getByRole("button", { name: "注册并保存项目" })).toBeVisible();
-  await expect(freeReport).toContainText("synthetic_fixture");
+  await expect(page.locator("body")).not.toContainText("synthetic_fixture");
 
   const hasHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   expect(hasHorizontalOverflow).toBe(false);
@@ -28,7 +28,8 @@ test("paid report renders all 11 chapters and hides the free preview", async ({ 
   await expect(paidReport.getByRole("heading", { level: 3 })).toHaveCount(11);
   await expect(paidReport.getByRole("heading", { name: "投资收益分析" })).toBeVisible();
   await expect(paidReport.getByRole("heading", { name: "方法、版本信息和免责声明" })).toBeVisible();
-  await expect(paidReport).toContainText("数据类别 synthetic_fixture");
+  await expect(paidReport).toContainText("数据类别：合成示例数据");
+  await expect(page.locator("body")).not.toContainText("synthetic_fixture");
 });
 
 test("review state selector switches between free and paid report layouts", async ({ page }) => {

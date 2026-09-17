@@ -182,7 +182,7 @@
 
   function renderDemoMembers() {
     if (!memberList) return;
-    setText(memberCount, "synthetic_fixture");
+    setText(memberCount, t("admin.demoMemberCount", "演示会员"));
     memberList.innerHTML = views.demoMemberRowsHtml(demoFilteredRows());
     memberList.querySelectorAll("[data-member-action]").forEach((button) => {
       button.addEventListener("click", () => {

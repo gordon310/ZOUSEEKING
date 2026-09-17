@@ -113,11 +113,60 @@ test("all supported locales have the same key set", () => {
   }
 });
 
+test("every dynamic dictionary entry declares all four locales", () => {
+  const source = fs.readFileSync("web/js/i18n.js", "utf8").replace(
+    "const ADDITIONAL_I18N = {",
+    "const ADDITIONAL_I18N = window.__additionalI18n = {",
+  );
+  const context = {
+    window: { addEventListener() {} },
+    document: { documentElement: {}, querySelectorAll() { return []; } },
+    localStorage: { getItem() { return null; }, setItem() {} },
+    location: { search: "" }, URLSearchParams,
+    navigator: { language: "en-US" },
+    Intl: { DateTimeFormat: () => ({ resolvedOptions: () => ({ timeZone: "UTC" }) }) },
+  };
+  vm.runInNewContext(source, context, { filename: "web/js/i18n.js" });
+  const entries = Object.entries(context.window.__additionalI18n);
+  assert.equal(entries.length, 195, "all dynamic dictionary entries were found");
+  for (const [key, values] of entries) {
+    for (const locale of ["zh-CN", "zh-Hant", "en", "ja"]) {
+      assert.ok(Object.prototype.hasOwnProperty.call(values, locale), `${key}: ${locale}`);
+    }
+  }
+});
+
+test("all locales provide non-empty copy and matching placeholders for every key", () => {
+  const baseline = loadI18n({ search: "?lang=zh-CN" });
+  const locales = Object.fromEntries(["zh-CN", "zh-Hant", "en", "ja"].map((locale) => [
+    locale,
+    locale === "zh-CN" ? baseline : loadI18n({ search: `?lang=${locale}` }),
+  ]));
+  for (const key of baseline.keys("zh-CN")) {
+    const expected = baseline.placeholders("zh-CN", key);
+    for (const locale of ["zh-CN", "zh-Hant", "en", "ja"]) {
+      const i18n = locales[locale];
+      const value = i18n.t(key);
+      assert.notEqual(value, "", `${locale}: ${key}`);
+      assert.notEqual(value, key, `${locale}: ${key} is missing`);
+      assert.deepEqual(Array.from(i18n.placeholders(locale, key)), Array.from(expected), `${locale}: ${key}`);
+    }
+  }
+});
+
 test("zh-Hant keeps the same placeholders as zh-CN", () => {
   const i18n = loadI18n();
   for (const key of i18n.keys("zh-CN")) {
     assert.deepEqual(i18n.placeholders("zh-Hant", key), i18n.placeholders("zh-CN", key), key);
   }
+});
+
+test("zh-Hant uses 數據 for the region-stat data copy and localizes the report footer", () => {
+  const i18n = loadI18n({ search: "?lang=zh-Hant" });
+  assert.equal(i18n.t("regionStats.ratio"), "租售比：暫不可用（租金數據未授權）");
+  assert.equal(i18n.t("regionStats.towerDisclosure").startsWith("官方數據未區分塔樓與公寓"), true);
+  assert.equal(i18n.t("workspace.reportFooterVersion", "").includes("synthetic_fixture"), false);
+  assert.equal(i18n.t("workspace.reportFooterVersion", "").includes("synthetic_sample"), false);
 });
 
 test("password guidance is six to 128 characters in every supported locale", () => {

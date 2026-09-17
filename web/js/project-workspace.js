@@ -76,7 +76,7 @@ const STATE_DATA = {
     nextTitle: "补充资料后更新一次",
     nextCopy: "首轮完整报告生成后的 30 天内，可以补充资料并生成一次新版本。",
     nextLabel: "补充资料",
-    notice: "当前显示完整报告演示。所有数字和结论均为 synthetic_fixture，不代表真实判断。",
+    notice: "当前显示完整报告演示。所有数字和结论均为合成示例数据，不代表真实判断。",
   },
   failed: {
     status: "生成失败",
@@ -334,9 +334,9 @@ function render() {
   elements.freeReportContent.hidden = !showFreePreview;
   elements.reportContent.hidden = !(isReportView && state.activeVersion !== "v1");
   const reportVersion = state.activeVersion.toUpperCase();
-  elements.reportVersionLabel.textContent = `FULL REPORT · ${reportVersion} · SYNTHETIC FIXTURE`;
+  elements.reportVersionLabel.textContent = `FULL REPORT · ${reportVersion} · SYNTHETIC SAMPLE`;
   elements.reportMetaVersion.textContent = reportVersion;
-  elements.reportFooterVersion.textContent = interp(t("workspace.reportFooterVersion", "收费完整版 {version} · 输入版本 I1 · 数据类别 synthetic_fixture"), { version: reportVersion });
+  elements.reportFooterVersion.textContent = interp(t("workspace.reportFooterVersion", "收费完整版 {version} · 输入版本 I1 · 数据类别：合成示例数据"), { version: reportVersion });
   elements.completionValue.textContent = `${config.completion}%`;
   elements.completionMeter.style.width = `${config.completion}%`;
   updateNextAction(state.view);

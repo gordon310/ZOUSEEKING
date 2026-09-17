@@ -114,27 +114,56 @@ Cloudflare Origin Certificate mounted from `/opt/zoubeacon/certs`. Do not run
 
 The refresh service imports the current and previous calendar year for Tokyo,
 Osaka, and Niigata. It is idempotent and does not restart the Compose
-containers. Before installing it, create a root-owned key file with mode 600;
-the job reads it without printing the value:
+containers. The unit template runs as `ubuntu`, which is the service user on the
+current host. If your deployment user differs, change both `User=` and `Group=`
+in `deploy/systemd/mlit-refresh.service` and synchronize the key-file owner
+below before installing the unit. The script checks that the API key is readable
+and has mode `600`, and exits without running the importer when that check fails.
+
+Install the host interpreter and dependency first. The default interpreter is
+`/opt/zouseeking/backend/.venv/bin/python`; set `PYTHON_BIN=` in a systemd
+drop-in or the deployment copy of the script only when using another path.
+`DATABASE_URL` is read from the optional systemd environment file shown below:
+
+```bash
+cd /opt/zouseeking
+python3 -m venv /opt/zouseeking/backend/.venv
+/opt/zouseeking/backend/.venv/bin/pip install asyncpg
+chmod 600 /opt/zouseeking/deploy/.env
+```
+
+Create the API key file as the service user with mode `600`; edit it without
+printing the value:
 
 ```bash
 sudo install -d -m 755 /etc/zouseeking
-sudo install -o zouseeking -g zouseeking -m 600 /dev/null /etc/zouseeking/mlit-api-key
+sudo install -o ubuntu -g ubuntu -m 600 /dev/null /etc/zouseeking/mlit-api-key
 sudoedit /etc/zouseeking/mlit-api-key
-sudo install -o root -g root -m 644 deploy/mlit-refresh.sh /opt/zouseeking/deploy/mlit-refresh.sh
-sudo install -d -m 755 /etc/systemd/system
-sudo install -o root -g root -m 644 deploy/systemd/mlit-refresh.service /etc/systemd/system/mlit-refresh.service
-sudo install -o root -g root -m 644 deploy/systemd/mlit-refresh.timer /etc/systemd/system/mlit-refresh.timer
+sudo chown ubuntu:ubuntu /etc/zouseeking/mlit-api-key
+sudo chmod 600 /etc/zouseeking/mlit-api-key
+```
+
+Install the script and systemd units, reload systemd, and enable the timer:
+
+```bash
+cd /opt/zouseeking
+sudo install -o root -g root -m 755 deploy/mlit-refresh.sh /opt/zouseeking/deploy/mlit-refresh.sh
+sudo cp deploy/systemd/mlit-refresh.* /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now mlit-refresh.timer
 ```
 
-The service expects `/opt/zouseeking/backend/.venv/bin/python` and the normal
-`DATABASE_URL` environment used by the host deployment. If the host uses a
-different interpreter, set `PYTHON_BIN=` in a systemd drop-in or change the
-deployment copy of the script. Run one manual refresh with
-`sudo systemctl start mlit-refresh.service`; inspect only the timestamped
-summary and importer output with
-`sudo tail -n 200 /var/log/zouseeking-mlit-refresh.log`. Stop and disable the
-timer with `sudo systemctl disable --now mlit-refresh.timer`. The script does
-not contain a production connection string or secret.
+Confirm one manual run and inspect its timestamped output:
+
+```bash
+sudo systemctl start mlit-refresh.service
+sudo tail -n 200 /var/log/zouseeking/mlit-refresh.log
+```
+
+Stop and disable the timer when the refresh is no longer wanted:
+
+```bash
+sudo systemctl disable --now mlit-refresh.timer
+```
+
+The script does not contain a production connection string or secret.

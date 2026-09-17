@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
 from uuid import UUID
 
 import asyncpg
@@ -15,10 +14,15 @@ from backend.app.auth import AuthUser
 from backend.app.main import app
 from backend.app.region_stats_routes import DbRegionStatsStore, get_region_stats_store, region_stats
 from backend.app.auth import require_user
-from tests.support.pg_bootstrap import bootstrap_and_migrate, database_url, is_local_server
+from tests.support.pg_bootstrap import (
+    bootstrap_and_migrate,
+    configured_database_url,
+    database_url,
+    require_postgres_or_skip,
+)
 
 
-BASE_URL = os.getenv("REGION_STATS_TEST_DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:55432/postgres")
+BASE_URL = configured_database_url("REGION_STATS_TEST_DATABASE_URL")
 TEST_DB = "zouseeking_region_stats_test"
 USER_ID = UUID("00000000-0000-0000-0000-000000000030")
 SOURCE_ID = UUID("bf4b6d56-f7ed-4e66-b599-3900e22001d6")
@@ -26,8 +30,7 @@ SOURCE_ID = UUID("bf4b6d56-f7ed-4e66-b599-3900e22001d6")
 
 @pytest.fixture(scope="module")
 def region_stats_database():
-    if not is_local_server(BASE_URL):
-        pytest.fail("REGION_STATS_TEST_DATABASE_URL must point at a disposable local PostgreSQL server")
+    asyncio.run(require_postgres_or_skip(BASE_URL))
     asyncio.run(bootstrap_and_migrate(BASE_URL, TEST_DB))
     target_url = database_url(BASE_URL, TEST_DB)
 

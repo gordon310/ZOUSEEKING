@@ -152,7 +152,10 @@ test("小象数据六个补齐页面都提供可评审入口", async ({ page }) 
     await expect(page.locator("body.business-page-ready")).toBeVisible();
     await expect(page.locator("h1")).toHaveText(heading);
     if (route !== "exports.html" && route !== "organization.html" && route !== "service-tasks.html") {
-      await expect(page.locator(".business-demo-label, .business-fixture-note").first()).toContainText("synthetic_fixture");
+      const demoLabel = page.locator(".business-demo-label, .business-fixture-note").first();
+      await expect(demoLabel).toContainText("界面演示");
+      await expect(demoLabel).toContainText("合成示例数据");
+      await expect(page.locator("body")).not.toContainText("synthetic_fixture");
     } else if (route === "exports.html") {
       await expect(page.locator(".business-fixture-note").first()).toContainText("真实数据");
     } else {

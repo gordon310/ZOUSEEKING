@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -9,19 +8,28 @@ import asyncpg
 import pytest
 
 from backend.app.main import ReportSourceResolutionError, resolve_market_source_id
-from tests.support.pg_bootstrap import bootstrap_and_migrate, database_url, is_local_server
+from tests.support.pg_bootstrap import (
+    bootstrap_and_migrate,
+    configured_database_url,
+    database_url,
+    require_postgres_or_skip,
+)
 
 
-BASE_URL = os.getenv("REPORT_SOURCE_TEST_DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:55432/postgres")
+BASE_URL = configured_database_url("REPORT_SOURCE_TEST_DATABASE_URL")
+
+
+@pytest.fixture
+def report_source_database_url():
+    asyncio.run(require_postgres_or_skip(BASE_URL))
+    return BASE_URL
 
 
 @pytest.mark.asyncio
-async def test_real_sources_business_key_resolves_and_missing_row_is_structured():
-    if not is_local_server(BASE_URL):
-        pytest.skip("requires a disposable local PostgreSQL server")
+async def test_real_sources_business_key_resolves_and_missing_row_is_structured(report_source_database_url):
     database = f"report_source_{uuid4().hex[:10]}"
-    target_url = database_url(BASE_URL, database)
-    await bootstrap_and_migrate(BASE_URL, database)
+    target_url = database_url(report_source_database_url, database)
+    await bootstrap_and_migrate(report_source_database_url, database)
     conn = await asyncpg.connect(target_url)
     try:
         from backend.app import main

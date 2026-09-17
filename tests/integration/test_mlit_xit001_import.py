@@ -1,4 +1,5 @@
 import copy
+import asyncio
 import json
 import os
 import threading
@@ -15,12 +16,23 @@ import scripts.import_mlit_transactions as importer
 from backend.app.region_names import load_field_options
 from backend.app.auth import AuthUser
 from backend.app.region_stats_routes import DbRegionStatsStore
-from tests.support.pg_bootstrap import bootstrap_and_migrate, database_url
+from tests.support.pg_bootstrap import (
+    bootstrap_and_migrate,
+    configured_database_url,
+    database_url,
+    require_postgres_or_skip,
+)
 
 
 FIXTURE = Path("tests/fixtures/mlit_xit001_sample.json")
 USER_ID = UUID("00000000-0000-0000-0000-000000000099")
-LOCAL_DATABASE_URL = "postgresql://postgres:postgres@127.0.0.1:55432/postgres"
+BASE_URL = configured_database_url()
+
+
+@pytest.fixture
+def mlit_database_url():
+    asyncio.run(require_postgres_or_skip(BASE_URL))
+    return BASE_URL
 
 
 async def _rowwise_upsert(database_url, rows):
@@ -46,8 +58,8 @@ async def _rowwise_upsert(database_url, rows):
 
 
 @pytest.mark.asyncio
-async def test_xit001_local_http_to_local_postgres_is_idempotent_and_queryable():
-    base_url = os.getenv("MLIT_TEST_DATABASE_URL", LOCAL_DATABASE_URL)
+async def test_xit001_local_http_to_local_postgres_is_idempotent_and_queryable(mlit_database_url):
+    base_url = mlit_database_url
     database = f"mlit_xit001_{uuid4().hex[:10]}"
     target_url = database_url(base_url, database)
     await bootstrap_and_migrate(base_url, database)
@@ -153,8 +165,8 @@ async def test_xit001_local_http_to_local_postgres_is_idempotent_and_queryable()
 
 
 @pytest.mark.asyncio
-async def test_batch_upsert_deduplicates_repeated_keys_within_one_chunk():
-    base_url = os.getenv("MLIT_TEST_DATABASE_URL", LOCAL_DATABASE_URL)
+async def test_batch_upsert_deduplicates_repeated_keys_within_one_chunk(mlit_database_url):
+    base_url = mlit_database_url
     database = f"mlit_same_chunk_{uuid4().hex[:10]}"
     target_url = database_url(base_url, database)
     await bootstrap_and_migrate(base_url, database)
@@ -181,8 +193,8 @@ async def test_batch_upsert_deduplicates_repeated_keys_within_one_chunk():
 
 
 @pytest.mark.asyncio
-async def test_batch_upsert_handles_more_than_one_chunk():
-    base_url = os.getenv("MLIT_TEST_DATABASE_URL", LOCAL_DATABASE_URL)
+async def test_batch_upsert_handles_more_than_one_chunk(mlit_database_url):
+    base_url = mlit_database_url
     database = f"mlit_multi_chunk_{uuid4().hex[:10]}"
     target_url = database_url(base_url, database)
     await bootstrap_and_migrate(base_url, database)
@@ -212,8 +224,8 @@ async def test_batch_upsert_handles_more_than_one_chunk():
 
 
 @pytest.mark.asyncio
-async def test_batch_upsert_matches_rowwise_counts_and_preserves_raw_for_duplicates():
-    base_url = os.getenv("MLIT_TEST_DATABASE_URL", LOCAL_DATABASE_URL)
+async def test_batch_upsert_matches_rowwise_counts_and_preserves_raw_for_duplicates(mlit_database_url):
+    base_url = mlit_database_url
     database = f"mlit_batch_{uuid4().hex[:10]}"
     target_url = database_url(base_url, database)
     reference_url = database_url(base_url, f"mlit_reference_{uuid4().hex[:10]}")

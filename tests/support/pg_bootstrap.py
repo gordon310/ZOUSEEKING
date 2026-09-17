@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
+import os
 from pathlib import Path
+from typing import Optional
 from urllib.parse import urlparse, urlunparse
 
 import asyncpg
+import pytest
 
 
 MIGRATIONS_DIR = Path(__file__).resolve().parents[2] / "supabase" / "migrations"
@@ -24,6 +28,34 @@ def database_url(url: str, database: str) -> str:
 def is_local_server(url: str) -> bool:
     host = (urlparse(url).hostname or "").lower()
     return host in ("localhost", "127.0.0.1", "::1")
+
+
+def configured_database_url(*specific_names: str) -> Optional[str]:
+    """Return the first configured integration-test database URL.
+
+    Integration tests must opt in to a disposable PostgreSQL instance.  The
+    shared names keep CI's unset-environment behavior consistent while the
+    specific names preserve per-suite overrides.
+    """
+    for name in (*specific_names, "MLIT_TEST_DATABASE_URL", "DATABASE_URL"):
+        value = os.getenv(name)
+        if value:
+            return value
+    return None
+
+
+async def require_postgres_or_skip(url: Optional[str]) -> None:
+    """Skip when the opt-in database is absent or cannot be reached."""
+    if not url:
+        pytest.skip("requires a configured disposable local PostgreSQL server")
+    if not is_local_server(url):
+        pytest.skip("requires a disposable local PostgreSQL server")
+    try:
+        conn = await asyncpg.connect(url, database="postgres", timeout=3)
+    except (OSError, TimeoutError, asyncio.TimeoutError, asyncpg.PostgresConnectionError) as exc:
+        pytest.skip(f"disposable PostgreSQL server unavailable: {type(exc).__name__}")
+    else:
+        await conn.close()
 
 
 BOOTSTRAP_SQL = """

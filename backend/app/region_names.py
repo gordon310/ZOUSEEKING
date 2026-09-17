@@ -134,3 +134,17 @@ def map_region_names(
             report._add_sample(report.city_samples, source_municipality)
         return target_prefecture, target_city, None
     return target_prefecture, target_city, target_ward
+
+
+def normalize_region_stats_names(
+    prefecture: str, city: str, ward: str | None = None,
+) -> tuple[str, str, str | None]:
+    """Normalize stats query names while preserving unknown values as fallbacks."""
+    mapped_prefecture, mapped_city, _ = map_region_names(prefecture, city)
+    target_prefecture = mapped_prefecture or prefecture
+    target_city = mapped_city or city
+    target_ward = (ward or "").strip() or None
+    if target_ward:
+        wards = load_field_options().get("wards", {}).get(f"{target_prefecture}::{target_city}", [])
+        target_ward = next((item for item in wards if simplify_japanese(item) == simplify_japanese(target_ward)), target_ward)
+    return target_prefecture, target_city, target_ward

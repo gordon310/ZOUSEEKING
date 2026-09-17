@@ -28,14 +28,31 @@ class Store:
 class CapturingStore(Store):
     def __init__(self):
         self.calls = []
+        self.region_calls = []
 
     async def get(self, user, prefecture, city, ward, asset_type, period):
         self.calls.append((ward, asset_type))
+        self.region_calls.append((prefecture, city, ward, asset_type, period))
         result = await super().get(user, prefecture, city, ward, asset_type, period)
         result["ward"] = ward
         if asset_type == "塔楼":
             result["disclosure"] = {"code": "tower_merged_into_apartment"}
         return result
+
+
+def test_region_stats_normalizes_japanese_region_names_before_store_call():
+    store = CapturingStore()
+    app.dependency_overrides[require_user] = lambda: AuthUser(USER, "hidden@example.com", "Member")
+    app.dependency_overrides[get_region_stats_store] = lambda: store
+    try:
+        response = TestClient(app).get(
+            "/api/org/region-stats",
+            params={"prefecture": "東京都", "city": "港区", "ward": "麻布", "asset_type": "公寓", "year": 2025, "quarter": 1},
+        )
+    finally:
+        app.dependency_overrides.clear()
+    assert response.status_code == 200
+    assert store.region_calls == [("东京都", "港区", "麻布", "公寓", "2025Q1")]
 
 
 def test_region_stats_requires_authentication():

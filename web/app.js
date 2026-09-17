@@ -185,6 +185,7 @@ const DEFAULT_FIELD_OPTIONS = {
   assetTypes: ["塔楼", "公寓", "一户建"],
   years: ["2024", "2025", "2026", "2027"],
   months: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"],
+  quarters: ["1", "2", "3", "4"],
 };
 
 function readJson(key, fallback) {
@@ -510,6 +511,7 @@ function normalizeFieldOptions(rows = [], baseOptions = cloneDefaultFieldOptions
     assetTypes: [],
     years: [],
     months: [],
+    quarters: [],
   };
   for (const row of rows) {
     if (!row?.is_active) continue;
@@ -531,6 +533,7 @@ function normalizeFieldOptions(rows = [], baseOptions = cloneDefaultFieldOptions
     if (row.option_type === "asset_type") next.assetTypes.push(value);
     if (row.option_type === "year") next.years.push(value);
     if (row.option_type === "month") next.months.push(value);
+    if (row.option_type === "quarter") next.quarters.push(value);
   }
   return {
     prefectures: next.prefectures.length ? next.prefectures : options.prefectures,
@@ -539,6 +542,7 @@ function normalizeFieldOptions(rows = [], baseOptions = cloneDefaultFieldOptions
     assetTypes: next.assetTypes.length ? next.assetTypes : options.assetTypes,
     years: next.years.length ? next.years : options.years,
     months: next.months.length ? next.months : options.months,
+    quarters: next.quarters.length ? next.quarters : options.quarters,
   };
 }
 
@@ -1568,6 +1572,32 @@ function renderQueryOptions() {
   populateWards();
 }
 
+function renderRegionStatsOptions() {
+  const prefecture = $("#statsPrefecture");
+  const city = $("#statsCity");
+  const assetType = $("#statsAssetType");
+  const year = $("#statsYear");
+  const quarter = $("#statsQuarter");
+  if (!prefecture || !city || !assetType || !year || !quarter) return;
+  const currentPrefecture = prefecture.value || "东京都";
+  prefecture.innerHTML = state.fieldOptions.prefectures.map((item) => optionHtml(item)).join("");
+  prefecture.value = state.fieldOptions.prefectures.includes(currentPrefecture) ? currentPrefecture : state.fieldOptions.prefectures[0] || "";
+  const cities = state.fieldOptions.cities[prefecture.value] || [];
+  const currentCity = city.value || "港区";
+  city.innerHTML = cities.map((item) => optionHtml(item)).join("");
+  city.value = cities.includes(currentCity) ? currentCity : cities[0] || "";
+  const currentAssetType = assetType.value || "公寓";
+  assetType.innerHTML = state.fieldOptions.assetTypes.map((item) => optionHtml(item, assetTypeLabel(item))).join("");
+  assetType.value = state.fieldOptions.assetTypes.includes(currentAssetType) ? currentAssetType : state.fieldOptions.assetTypes[0] || "";
+  const currentYear = year.value || "2025";
+  year.innerHTML = state.fieldOptions.years.map((item) => optionHtml(item)).join("");
+  year.value = state.fieldOptions.years.includes(currentYear) ? currentYear : state.fieldOptions.years[0] || "";
+  const quarters = state.fieldOptions.quarters || ["1", "2", "3", "4"];
+  const currentQuarter = quarter.value || "1";
+  quarter.innerHTML = quarters.map((item) => optionHtml(item, `Q${item}`)).join("");
+  quarter.value = quarters.includes(currentQuarter) ? currentQuarter : quarters[0] || "";
+}
+
 function optionHtml(value, label = value) {
   return `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`;
 }
@@ -1797,6 +1827,7 @@ async function handleStructuredQuery(event) {
 function render() {
   renderAccount();
   renderQueryOptions();
+  renderRegionStatsOptions();
   renderQueryHistory();
   renderMyPage();
   renderAnalysis();
@@ -2229,6 +2260,7 @@ async function init() {
     populateCities();
     populateWards();
   });
+  on("#statsPrefecture", "change", renderRegionStatsOptions);
   on("#citySelect", "change", populateWards);
   on("#queryForm", "submit", handleStructuredQuery);
   on("#backToList", "click", closeDetail);

@@ -1,5 +1,22 @@
 const { test, expect } = require("@playwright/test");
 
+test("区域成交价统计表单选项全部来自 field-options 词表", async ({ page }) => {
+  await page.goto("/data-query.html");
+  const options = await page.evaluate(async () => fetch("field-options.json").then((response) => response.json()));
+  const values = await page.evaluate(() => Object.fromEntries(
+    ["statsPrefecture", "statsCity", "statsAssetType", "statsYear", "statsQuarter"].map((id) => [
+      id,
+      [...document.querySelectorAll(`#${id} option`)].map((option) => option.value),
+    ]),
+  ));
+  expect(values.statsPrefecture.every((value) => options.prefectures.includes(value))).toBe(true);
+  const selectedPrefecture = await page.locator("#statsPrefecture").inputValue();
+  expect(values.statsCity.every((value) => options.cities[selectedPrefecture].includes(value))).toBe(true);
+  expect(values.statsAssetType.every((value) => options.assetTypes.includes(value))).toBe(true);
+  expect(values.statsYear.every((value) => options.years.includes(value))).toBe(true);
+  expect(values.statsQuarter.every((value) => options.quarters.includes(value))).toBe(true);
+});
+
 test("区域成交价统计成功态展示真实口径与出典", async ({ page }) => {
   await page.addInitScript(() => {
     window.ZOUSEEKING_API_BASE_URL = "https://api.test";

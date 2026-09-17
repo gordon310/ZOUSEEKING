@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from .auth import AuthUser, require_user
 from .db import get_pool
 from .region_stats import aggregate_region_rows
+from .region_names import normalize_region_stats_names
 
 router = APIRouter(prefix="/api/org", tags=["regional statistics"])
 TOWER_DISCLOSURE_CODE = "tower_merged_into_apartment"
@@ -78,7 +79,10 @@ async def region_stats(
         raise HTTPException(status_code=400, detail="物件类型无效")
     period = f"{year}Q{quarter}"
     normalized_ward = normalize_stats_ward(ward)
-    result = await store.get(user, prefecture, city, normalized_ward, asset_type, period)
+    normalized_prefecture, normalized_city, normalized_ward = normalize_region_stats_names(
+        prefecture, city, normalized_ward
+    )
+    result = await store.get(user, normalized_prefecture, normalized_city, normalized_ward, asset_type, period)
     result["ward"] = normalized_ward
     if asset_type == "塔楼":
         result["disclosure"] = {"code": TOWER_DISCLOSURE_CODE}

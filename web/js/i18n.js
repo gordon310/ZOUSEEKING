@@ -2726,6 +2726,7 @@
     "account.registerSuccess": { "zh-CN": "注册成功，已登录。可以搜房了。", "zh-Hant": "註冊成功，已登入。可以開始找房了。", en: "Sign-up succeeded and you are signed in.", ja: "登録が完了し、ログインしました。" },
     "account.registerSessionMissing": { "zh-CN": "注册未完成，未收到登录会话；请稍后重试。", "zh-Hant": "註冊未完成，未收到登入工作階段；請稍後重試。", en: "Sign-up was not completed because no sign-in session was returned. Try again later.", ja: "ログイン状態が返されなかったため、登録を完了できませんでした。後でもう一度お試しください。" },
     "account.registerDuplicate": { "zh-CN": "该邮箱已注册，请直接登录。", "zh-Hant": "此電子郵件已註冊，請直接登入。", en: "This email is already registered. Please log in.", ja: "このメールアドレスは登録済みです。ログインしてください。" },
+    "account.registerRateLimited": { "zh-CN": "邮件发送过于频繁，请稍后再试。", "zh-Hant": "郵件發送過於頻繁，請稍後再試。", en: "Email sending is temporarily rate-limited. Please try again later.", ja: "メール送信が一時的に制限されています。しばらくしてからもう一度お試しください。" },
     "account.registerPasswordInvalid": { "zh-CN": "密码不符合要求，请使用 6–128 位且不含控制字符的密码。", "zh-Hant": "密碼不符合要求，請使用 6–128 位且不含控制字元的密碼。", en: "The password does not meet the requirements. Use 6–128 characters with no control characters.", ja: "パスワードが要件を満たしていません。6～128文字で制御文字を含めないでください。" },
     "account.registerNetworkFailed": { "zh-CN": "注册服务暂时无法连接，请稍后重试。", "zh-Hant": "註冊服務暫時無法連線，請稍後重試。", en: "The sign-up service could not be reached. Try again later.", ja: "登録サービスに接続できません。後でもう一度お試しください。" },
     "account.registerUnavailable": { "zh-CN": "注册未完成，请稍后重试。", "zh-Hant": "註冊未完成，請稍後重試。", en: "Sign-up was not completed. Try again later.", ja: "登録を完了できませんでした。後でもう一度お試しください。" },

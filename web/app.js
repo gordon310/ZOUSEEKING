@@ -329,6 +329,14 @@ function showEmailVerification(email, context) {
   renderAccount();
 }
 
+function clearEmailVerification() {
+  if (state.emailVerificationTimer) {
+    clearInterval(state.emailVerificationTimer);
+    state.emailVerificationTimer = null;
+  }
+  state.emailVerification = null;
+}
+
 function emailVerificationPending() {
   return Boolean(state.emailVerification?.email);
 }
@@ -1899,8 +1907,22 @@ async function register(event) {
       }),
     });
     if (!data?.access_token) {
-      showEmailVerification(email, "register");
-      setMessage("");
+      const identities = Array.isArray(data?.identities)
+        ? data.identities
+        : Array.isArray(data?.user?.identities)
+          ? data.user.identities
+          : null;
+      if (Array.isArray(identities) && identities.length === 0) {
+        clearEmailVerification();
+        showMode("login");
+        setMessage(uiText("account.registerDuplicate", "该邮箱已注册，请直接登录。"), "error");
+      } else if (Array.isArray(identities) && identities.length > 0) {
+        showEmailVerification(email, "register");
+        setMessage("");
+      } else {
+        clearEmailVerification();
+        setMessage(uiText("account.registerUnavailable", "注册未完成，请稍后重试。"), "error");
+      }
       return;
     }
     const session = sessionFromAuth(data, { username, email });
@@ -1921,7 +1943,12 @@ async function register(event) {
     history.replaceState(null, "", appRedirectUrl());
     render();
   } catch (error) {
-    if (error?.code === "user_already_exists" || error?.code === "email_exists" || error?.status === 422) {
+    if (error?.status === 429 || error?.code === "over_email_send_rate_limit") {
+      clearEmailVerification();
+      setMessage(uiText("account.registerRateLimited", "邮件发送过于频繁，请稍后再试。"), "error");
+    } else if (error?.code === "user_already_exists" || error?.code === "email_exists" || error?.status === 422) {
+      clearEmailVerification();
+      showMode("login");
       setMessage(uiText("account.registerDuplicate", "该邮箱已注册，请直接登录。"), "error");
     } else if (error?.code === "weak_password" || error?.code === "password_too_short" || error?.status === 400 && /password/i.test(error?.message || "")) {
       setMessage(uiText("account.registerPasswordInvalid", "密码不符合要求，请使用 6–128 位且不含控制字符的密码。"), "error");

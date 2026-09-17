@@ -19,7 +19,11 @@ async function openRegistration(page) {
 test("注册响应没有会话时显示待确认状态和重发入口", async ({ page }) => {
   await openRegistration(page);
   await page.route(/https:\/\/supabase\.test\/auth\/v1\/signup/, async (route) => {
-    await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ id: "new-user-id", email: "signup@example.com", user: { identities: [{}] } }),
+    });
   });
   await page.getByRole("button", { name: "注册并登录" }).click();
 
@@ -28,6 +32,46 @@ test("注册响应没有会话时显示待确认状态和重发入口", async ({
   await expect(page.locator("#emailVerificationMessage")).toContainText("邮件里的链接");
   await expect(page.getByRole("button", { name: "重新发送确认邮件" })).toBeVisible();
   await expect(page.locator("#accountTitle")).not.toContainText("你好");
+});
+
+test("已注册邮箱的空身份响应切到登录并提供找回密码入口", async ({ page }) => {
+  await openRegistration(page);
+  await page.route(/https:\/\/supabase\.test\/auth\/v1\/signup/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ id: "existing-user-id", email: "signup@example.com", identities: [] }),
+    });
+  });
+  await page.getByRole("button", { name: "注册并登录" }).click();
+
+  await expect(page.locator("#formMessage")).toHaveText("该邮箱已注册，请直接登录。");
+  await expect(page.locator("#showLogin")).toBeVisible();
+  await expect(page.locator("#loginForm")).toBeVisible();
+  await expect(page.locator("#forgotPasswordLink")).toBeVisible();
+  await page.locator("#forgotPasswordLink").click();
+  await expect(page.locator("#forgotPasswordForm")).toBeVisible();
+  await expect(page.locator("#emailVerificationPanel")).toBeHidden();
+  await expect(page.locator("body")).not.toContainText("确认邮件已发送");
+  await expect(page.locator("body")).not.toContainText("identities");
+  await expect(page.getByRole("button", { name: /重新发送确认邮件/ })).toHaveCount(0);
+});
+
+test("注册命中邮件频率限制时显示专属提示而不宣称已发送", async ({ page }) => {
+  await openRegistration(page);
+  await page.route(/https:\/\/supabase\.test\/auth\/v1\/signup/, async (route) => {
+    await route.fulfill({
+      status: 429,
+      contentType: "application/json",
+      body: JSON.stringify({ code: 429, error_code: "over_email_send_rate_limit", msg: "rate limited" }),
+    });
+  });
+  await page.getByRole("button", { name: "注册并登录" }).click();
+
+  await expect(page.locator("#formMessage")).toHaveText("邮件发送过于频繁，请稍后再试。");
+  await expect(page.locator("body")).not.toContainText("已发送");
+  await expect(page.locator("body")).not.toContainText("over_email_send_rate_limit");
+  await expect(page.getByRole("button", { name: /重新发送确认邮件/ })).toHaveCount(0);
 });
 
 test("登录返回邮箱未验证时显示专属文案和重发入口", async ({ page }) => {
@@ -59,7 +103,11 @@ test("重新发送确认邮件使用 signup 语义且 60 秒内节流", async ({
   let resendCount = 0;
   let resendBody;
   await page.route(/https:\/\/supabase\.test\/auth\/v1\/signup/, async (route) => {
-    await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ id: "new-user-id", email: "signup@example.com", user: { identities: [{}] } }),
+    });
   });
   await page.route(/https:\/\/supabase\.test\/auth\/v1\/resend/, async (route) => {
     resendCount += 1;

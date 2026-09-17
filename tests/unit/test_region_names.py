@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from backend.app.region_names import RegionMappingReport, map_region_names, simplify_japanese
 
 
@@ -46,6 +48,24 @@ def test_maps_all_tokyo_and_osaka_entries_and_generic_wards():
 
 def test_folds_traditional_characters_on_both_sides():
     assert simplify_japanese("新潟県湯沢町關川村廣島市") == "新潟县汤泽町关川村广岛市"
+
+
+@pytest.mark.parametrize(
+    ("source_prefecture", "source_city", "target_prefecture", "target_city"),
+    [
+        ("東京都", "渋谷区", "东京都", "涩谷区"),
+        ("東京都", "稲城市", "东京都", "稻城市"),
+        ("東京都", "豊島区", "东京都", "丰岛区"),
+        ("大阪府", "豊中市", "大阪府", "丰中市"),
+        ("大阪府", "豊能郡豊能町", "大阪府", "丰能町"),
+    ],
+)
+def test_maps_all_observed_missing_folded_municipalities(
+    source_prefecture, source_city, target_prefecture, target_city
+):
+    options = OPTIONS
+    assert target_city in options["cities"][target_prefecture]
+    assert map_region_names(source_prefecture, source_city) == (target_prefecture, target_city, None)
 
 
 def test_unmapped_name_is_counted_and_not_guessed():

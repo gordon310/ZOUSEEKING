@@ -134,13 +134,25 @@ def normalize_xit001_rows(
     normalized: list[dict[str, Any]] = []
     skipped_unmapped = 0
     for row in rows:
-        if not map_asset_type(str(row.get("Type") or "").strip()):
+        raw_type = str(row.get("Type") or "").strip()
+        if not map_asset_type(raw_type):
             skipped_unmapped += 1
+            if region_report:
+                region_report._add_sample(region_report.type_samples, raw_type)
             continue
         item = normalize_xit001_row(row, imported_at, region_report=region_report)
         if item:
             normalized.append(item)
     return normalized, skipped_unmapped
+
+
+def print_unmapped_samples(*, skipped_unmapped_type: int, report: RegionMappingReport) -> None:
+    if report.unmapped_prefecture > 0:
+        print(f"unmapped_prefecture_samples={','.join(report.prefecture_samples[:5])}")
+    if report.unmapped_city > 0:
+        print(f"unmapped_city_samples={','.join(report.city_samples[:5])}")
+    if skipped_unmapped_type > 0:
+        print(f"skipped_unmapped_type_samples={','.join(report.type_samples[:5])}")
 
 
 def normalize_row(
@@ -391,6 +403,7 @@ def main(argv: list[str] | None = None) -> int:
             f"dry_run_rows={len(all_rows)} skipped_unmapped_type={skipped_unmapped} "
             f"unmapped_prefecture={region_report.unmapped_prefecture} unmapped_city={region_report.unmapped_city}"
         )
+        print_unmapped_samples(skipped_unmapped_type=skipped_unmapped, report=region_report)
         return 0
     if args.chunk_size <= 0:
         print("--chunk-size 必须是正整数。", file=sys.stderr)
@@ -401,6 +414,7 @@ def main(argv: list[str] | None = None) -> int:
         f"skipped={result['skipped']} skipped_unmapped_type={skipped_unmapped} "
         f"unmapped_prefecture={region_report.unmapped_prefecture} unmapped_city={region_report.unmapped_city}"
     )
+    print_unmapped_samples(skipped_unmapped_type=skipped_unmapped, report=region_report)
     return 0
 
 

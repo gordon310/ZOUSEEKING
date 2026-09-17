@@ -62,6 +62,23 @@ def test_normalization_report_counts_original_unmapped_city():
     assert report.city_samples == ["不存在市"]
 
 
+def test_summary_prints_unmapped_region_samples(capsys):
+    importer.print_unmapped_samples(
+        skipped_unmapped_type=0,
+        report=RegionMappingReport(
+            unmapped_prefecture=1,
+            unmapped_city=2,
+            prefecture_samples=["未知县"],
+            city_samples=["未知市", "另一市"],
+        ),
+    )
+
+    assert capsys.readouterr().out.splitlines() == [
+        "unmapped_prefecture_samples=未知县",
+        "unmapped_city_samples=未知市,另一市",
+    ]
+
+
 def test_decodes_cp932_zip_and_skips_unusable_rows():
     output = io.BytesIO()
     with zipfile.ZipFile(output, "w") as archive:

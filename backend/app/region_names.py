@@ -35,6 +35,7 @@ _CHAR_MAP = str.maketrans({
     "鳥": "鸟", "児": "儿", "沖": "冲", "縄": "绳", "兵": "兵", "庫": "库", "歌": "歌",
     "馬": "马", "千": "千", "宮": "宫", "戸": "户", "瀬": "濑", "檜": "桧", "調": "调",
     "貝": "贝", "門": "门", "邊": "边", "聖": "圣", "籠": "笼", "魚": "鱼", "見": "见",
+    "渋": "涩", "稲": "稻", "豊": "丰",
 })
 
 _EXPLICIT_CITY_OVERRIDES = {
@@ -51,6 +52,7 @@ class RegionMappingReport:
     unmapped_city: int = 0
     prefecture_samples: list[str] = field(default_factory=list)
     city_samples: list[str] = field(default_factory=list)
+    type_samples: list[str] = field(default_factory=list)
 
     @staticmethod
     def _add_sample(samples: list[str], value: str) -> None:

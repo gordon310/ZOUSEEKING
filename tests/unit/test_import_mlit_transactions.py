@@ -1,8 +1,21 @@
 import io
+import gzip
+import threading
+import json
 import zipfile
 from datetime import datetime, timezone
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+import urllib.request
+from urllib.parse import parse_qs, urlparse
 
-from scripts.import_mlit_transactions import normalize_row, rows_from_zip
+import scripts.import_mlit_transactions as importer
+from scripts.import_mlit_transactions import (
+    decode_xit001_response,
+    normalize_xit001_rows,
+    normalize_row,
+    rows_from_zip,
+)
 
 
 def sample_row():
@@ -32,3 +45,67 @@ def test_decodes_cp932_zip_and_skips_unusable_rows():
         archive.writestr("transactions.csv", text.getvalue().encode("cp932"))
     rows = rows_from_zip(output.getvalue(), datetime(2026, 9, 16, tzinfo=timezone.utc))
     assert len(rows) == 1
+
+
+def test_maps_recorded_xit001_rows_and_computes_missing_unit_price():
+    payload = json.loads(Path("tests/fixtures/mlit_xit001_sample.json").read_text())
+    rows, skipped_unmapped = normalize_xit001_rows(payload["data"], datetime(2026, 9, 16, tzinfo=timezone.utc))
+    assert skipped_unmapped == 1
+    assert len(rows) == 2
+    assert rows[0]["asset_kind"] == "中古マンション等"
+    assert rows[0]["asset_type"] == "公寓"
+    assert rows[0]["city"] == "港区"
+    assert rows[0]["ward"] is None
+    assert rows[0]["unit_price_jpy_per_sqm"] == 2_000_000
+    assert rows[0]["trade_quarter"] == "2025Q1"
+    assert rows[0]["nearest_station"] is None
+    assert rows[0]["raw"]["DistrictName"] == "芝浦"
+
+
+def test_decodes_gzip_xit001_response():
+    body = json.dumps({"status": "OK", "data": []}, ensure_ascii=False).encode()
+    assert decode_xit001_response(gzip.compress(body), "gzip") == {"status": "OK", "data": []}
+
+
+def test_treats_xit001_404_as_no_data():
+    assert decode_xit001_response(b"", "", status_code=404) == {"status": "NO_DATA", "data": []}
+
+
+def test_requests_local_xit001_server_with_area_and_secret_header():
+    seen = {"requests": []}
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            query = parse_qs(urlparse(self.path).query)
+            seen["requests"].append((query, self.headers.get("Ocp-Apim-Subscription-Key")))
+            if query.get("quarter") == ["2"]:
+                self.send_response(404)
+                self.end_headers()
+                return
+            body = gzip.compress(json.dumps({"status": "OK", "data": []}).encode())
+            self.send_response(200)
+            self.send_header("Content-Encoding", "gzip")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *_args):
+            return
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    old_url = importer.XIT001_URL
+    importer.XIT001_URL = f"http://127.0.0.1:{server.server_port}/ex-api/external/XIT001"
+    local_opener = urllib.request.build_opener(urllib.request.ProxyHandler({})).open
+    try:
+        assert importer.request_xit001({"year": "2025", "quarter": "1", "area": "13", "language": "ja"}, "local-test-key", local_opener)["status"] == "OK"
+        assert importer.request_xit001({"year": "2025", "quarter": "2", "area": "13", "language": "ja"}, "local-test-key", local_opener)["status"] == "NO_DATA"
+    finally:
+        importer.XIT001_URL = old_url
+        server.shutdown()
+        thread.join(timeout=2)
+        server.server_close()
+    assert seen["requests"][0][0] == {"year": ["2025"], "quarter": ["1"], "area": ["13"], "language": ["ja"]}
+    assert seen["requests"][0][1] == "local-test-key"
+    assert seen["requests"][1][0] == {"year": ["2025"], "quarter": ["2"], "area": ["13"], "language": ["ja"]}

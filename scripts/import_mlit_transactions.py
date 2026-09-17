@@ -1,16 +1,12 @@
 #!/usr/bin/env python3
-"""Import real MLIT transaction-price CSV downloads into PostgreSQL.
-
-The MLIT web download endpoint returns JSON containing either a temporary ZIP
-URL or a base64-encoded ZIP.  No fixture or estimate is used by this script.
-"""
+"""Import official MLIT XIT001 transaction data, with local CSV fallback."""
 
 from __future__ import annotations
 
 import argparse
 import asyncio
-import base64
 import csv
+import gzip
 import hashlib
 import io
 import json
@@ -19,6 +15,7 @@ import re
 import sys
 import time
 import urllib.parse
+import urllib.error
 import urllib.request
 import zipfile
 from datetime import datetime, timezone
@@ -30,36 +27,40 @@ import asyncpg
 from backend.app.region_stats import map_asset_type
 
 SOURCE_ID = "bf4b6d56-f7ed-4e66-b599-3900e22001d6"
-DOWNLOAD_URL = "https://www.reinfolib.mlit.go.jp/in-api/api-aur/aur/csv/transactionPrices"
+XIT001_URL = os.getenv("MLIT_XIT001_URL", "https://www.reinfolib.mlit.go.jp/ex-api/external/XIT001")
 DEFAULT_PREFECTURES = ("13", "27", "15")
 DEFAULT_YEARS = (2025, 2026)
 QUARTER_RE = re.compile(r"^(\d{4})年第([1-4])四半期$")
 
 
-def request_json(url: str, api_key: str) -> dict[str, Any]:
-    req = urllib.request.Request(url, headers={"Ocp-Apim-Subscription-Key": api_key, "Accept": "application/json"})
-    with urllib.request.urlopen(req, timeout=120) as response:
-        return json.loads(response.read().decode("utf-8"))
+def decode_xit001_response(payload: bytes, content_encoding: str, *, status_code: int = 200) -> dict[str, Any]:
+    if status_code == 404:
+        return {"status": "NO_DATA", "data": []}
+    if status_code != 200:
+        raise RuntimeError(f"XIT001 request failed with HTTP {status_code}")
+    if "gzip" in (content_encoding or "").lower() or payload[:2] == b"\x1f\x8b":
+        payload = gzip.decompress(payload)
+    response = json.loads(payload.decode("utf-8"))
+    if not isinstance(response, dict):
+        raise RuntimeError("XIT001 returned a non-object response")
+    return response
 
 
-def download_zip(params: dict[str, str], api_key: str, opener=urllib.request.urlopen) -> tuple[str, bytes]:
-    url = f"{DOWNLOAD_URL}?{urllib.parse.urlencode(params)}"
-    req = urllib.request.Request(url, headers={"Ocp-Apim-Subscription-Key": api_key, "Accept": "application/json"})
-    for attempt in range(12):
-        with opener(req, timeout=120) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-        if payload.get("processing"):
-            time.sleep(min(5 * (attempt + 1), 30))
-            continue
-        if payload.get("isBase64Encoded"):
-            return url, base64.b64decode(payload["body"])
-        if payload.get("isExists") and payload.get("url"):
-            with opener(urllib.request.Request(payload["url"]), timeout=120) as response:
-                return url, response.read()
-        if payload.get("body") and payload.get("statusCode") == 200:
-            return url, base64.b64decode(payload["body"])
-        raise RuntimeError("MLIT download returned an unusable response")
-    raise RuntimeError("MLIT download remained in processing state after bounded polling")
+def request_xit001(params: dict[str, str], api_key: str, opener=urllib.request.urlopen) -> dict[str, Any]:
+    url = f"{XIT001_URL}?{urllib.parse.urlencode(params)}"
+    request = urllib.request.Request(
+        url,
+        headers={"Ocp-Apim-Subscription-Key": api_key, "Accept": "application/json"},
+    )
+    try:
+        with opener(request, timeout=120) as response:
+            return decode_xit001_response(
+                response.read(), response.headers.get("Content-Encoding", ""), status_code=response.status
+            )
+    except urllib.error.HTTPError as error:
+        if error.code == 404:
+            return {"status": "NO_DATA", "data": []}
+        raise RuntimeError(f"XIT001 request failed with HTTP {error.code}") from None
 
 
 def _number(value: str | None) -> float | None:
@@ -83,6 +84,59 @@ def _quarter(value: str) -> tuple[int, str] | None:
     return year, f"{year}Q{quarter}"
 
 
+def _source_record_key(raw: dict[str, Any]) -> str:
+    return hashlib.sha256(json.dumps(raw, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def normalize_xit001_row(row: dict[str, Any], imported_at: datetime) -> dict[str, Any] | None:
+    raw_kind = str(row.get("Type") or "").strip()
+    asset_type = map_asset_type(raw_kind)
+    quarter = _quarter(str(row.get("Period") or ""))
+    price = _number(str(row.get("TradePrice") or ""))
+    area = _number(str(row.get("Area") or ""))
+    if not asset_type or not quarter or price is None or area is None:
+        return None
+    raw = dict(row)
+    municipality = str(row.get("Municipality") or "").strip()
+    ward = None
+    city = municipality
+    if municipality.startswith("大阪市") and municipality.endswith("区"):
+        city, ward = "大阪市", municipality.removeprefix("大阪市")
+    unit_price = _number(str(row.get("UnitPrice") or "")) or price / area
+    return {
+        "source_id": SOURCE_ID,
+        "source_record_key": _source_record_key(raw),
+        "prefecture": str(row.get("Prefecture") or "").strip(),
+        "city": city,
+        "ward": ward,
+        "asset_kind": raw_kind,
+        "asset_type": asset_type,
+        "price_jpy": round(price),
+        "area_sqm": area,
+        "unit_price_jpy_per_sqm": unit_price,
+        "trade_quarter": quarter[1],
+        "trade_year": quarter[0],
+        "nearest_station": None,
+        "distance_minutes": None,
+        "layout": str(row.get("FloorPlan") or "").strip() or None,
+        "raw": raw,
+        "imported_at": imported_at,
+    }
+
+
+def normalize_xit001_rows(rows: list[dict[str, Any]], imported_at: datetime) -> tuple[list[dict[str, Any]], int]:
+    normalized: list[dict[str, Any]] = []
+    skipped_unmapped = 0
+    for row in rows:
+        if not map_asset_type(str(row.get("Type") or "").strip()):
+            skipped_unmapped += 1
+            continue
+        item = normalize_xit001_row(row, imported_at)
+        if item:
+            normalized.append(item)
+    return normalized, skipped_unmapped
+
+
 def normalize_row(row: dict[str, str], imported_at: datetime) -> dict[str, Any] | None:
     raw_kind = (row.get("種類") or "").strip()
     asset_type = map_asset_type(raw_kind)
@@ -92,7 +146,7 @@ def normalize_row(row: dict[str, str], imported_at: datetime) -> dict[str, Any] 
     if not asset_type or not quarter or price is None or area is None:
         return None
     raw = dict(row)
-    key = hashlib.sha256(json.dumps(raw, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    key = _source_record_key(raw)
     municipality = (row.get("市区町村名") or "").strip()
     ward = None
     city = municipality
@@ -129,64 +183,93 @@ def rows_from_zip(data: bytes, imported_at: datetime) -> list[dict[str, Any]]:
     return rows
 
 
-async def upsert_rows(database_url: str, rows: list[dict[str, Any]]) -> int:
+def rows_from_csv_path(path: Path, imported_at: datetime) -> list[dict[str, Any]]:
+    if path.suffix.lower() == ".zip":
+        return rows_from_zip(path.read_bytes(), imported_at)
+    with path.open("r", encoding="cp932", newline="") as stream:
+        return [item for row in csv.DictReader(stream) if (item := normalize_row(row, imported_at))]
+
+
+async def upsert_rows(database_url: str, rows: list[dict[str, Any]]) -> dict[str, int]:
     conn = await asyncpg.connect(database_url)
     try:
-        before = await conn.fetchval("select count(*) from public.mlit_transactions")
-        await conn.executemany(
-            """insert into public.mlit_transactions
+        inserted = 0
+        skipped = 0
+        query = """insert into public.mlit_transactions
             (source_id,source_record_key,prefecture,city,ward,asset_kind,asset_type,price_jpy,area_sqm,
              unit_price_jpy_per_sqm,trade_quarter,trade_year,nearest_station,distance_minutes,layout,raw,imported_at)
             values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
-            on conflict (source_id,source_record_key) do nothing""",
-            [tuple(json.dumps(value, ensure_ascii=False, separators=(",", ":")) if key == "raw" else value for key, value in row.items()) for row in rows],
-        )
-        after = await conn.fetchval("select count(*) from public.mlit_transactions")
-        return int(after) - int(before)
+            on conflict (source_id,source_record_key) do nothing
+            returning 1"""
+        async with conn.transaction():
+            for row in rows:
+                values = tuple(
+                    json.dumps(value, ensure_ascii=False, separators=(",", ":")) if key == "raw" else value
+                    for key, value in row.items()
+                )
+                if await conn.fetchval(query, *values) is None:
+                    skipped += 1
+                else:
+                    inserted += 1
+        return {"inserted": inserted, "skipped": skipped}
     finally:
         await conn.close()
 
 
 def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--prefecture", action="append", dest="prefectures", default=list(DEFAULT_PREFECTURES), help="MLIT prefecture code; repeatable")
-    p.add_argument("--year", action="append", type=int, dest="years", default=list(DEFAULT_YEARS), help="year to include; repeatable")
+    p.add_argument("--source", choices=("api", "csv"), default="api")
+    p.add_argument("--prefecture", action="append", dest="prefectures", help="MLIT prefecture code; repeatable")
+    p.add_argument("--year", action="append", type=int, dest="years", help="year to include; repeatable")
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--database-url", default=os.getenv("DATABASE_URL", ""))
     p.add_argument("--raw-dir", type=Path, default=Path("/tmp/zouseeking-mlit-raw"))
+    p.add_argument("--csv-path", type=Path, help="local manually downloaded CSV or ZIP when --source csv")
     return p
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     api_key = os.getenv("MLIT_API_KEY", "").strip()
-    if not api_key:
+    if args.source == "api" and not api_key:
         print("MLIT_API_KEY 未配置；官方 CSV 下载接口需要服务端订阅值。", file=sys.stderr)
+        return 2
+    if args.source == "csv" and not args.csv_path:
+        print("--csv-path 未配置；CSV 兜底只读取人工下载的本地 CSV/ZIP。", file=sys.stderr)
         return 2
     if not args.dry_run and not args.database_url:
         print("DATABASE_URL 未配置；请只指向一次性本地数据库。", file=sys.stderr)
         return 2
     imported_at = datetime.now(timezone.utc)
-    args.raw_dir.mkdir(parents=True, exist_ok=True)
+    prefectures = tuple(args.prefectures or DEFAULT_PREFECTURES)
+    years = tuple(args.years or DEFAULT_YEARS)
     all_rows: list[dict[str, Any]] = []
-    for prefecture in args.prefectures:
-        for year in args.years:
-            params = {"language": "ja", "areaCondition": "address", "prefecture": prefecture,
-                      "transactionPrice": "true", "closedPrice": "true", "kind": "used",
-                      "seasonFrom": f"{year}1", "seasonTo": f"{year}4"}
-            # The four-quarter window is narrowed below to the task's latest
-            # periods by the caller; keeping each request bounded avoids a
-            # giant unreviewable download.
-            url, data = download_zip(params, api_key)
-            (args.raw_dir / f"{prefecture}-{year}.zip").write_bytes(data)
-            rows = rows_from_zip(data, imported_at)
-            all_rows.extend(rows)
-            print(f"download prefecture={prefecture} year={year} bytes={len(data)} rows={len(rows)} url={url}")
+    skipped_unmapped = 0
+    if args.source == "csv":
+        all_rows = rows_from_csv_path(args.csv_path, imported_at)
+        print(f"csv path={args.csv_path.name} rows={len(all_rows)} status=OK")
+    requests = 0
+    if args.source == "api":
+        for prefecture in prefectures:
+            for year in years:
+                for quarter in range(1, 5):
+                    if requests:
+                        time.sleep(2)
+                    requests += 1
+                    payload = request_xit001(
+                        {"year": str(year), "quarter": str(quarter), "area": prefecture, "language": "ja"}, api_key
+                    )
+                    raw_data = payload.get("data") or []
+                    rows, unmapped = normalize_xit001_rows(raw_data, imported_at)
+                    skipped_unmapped += unmapped
+                    all_rows.extend(rows)
+                    status = payload.get("status", "NO_DATA")
+                    print(f"request prefecture={prefecture} year={year} quarter={quarter} rows={len(rows)} status={status}")
     if args.dry_run:
         print(f"dry_run_rows={len(all_rows)}")
         return 0
-    inserted = asyncio.run(upsert_rows(args.database_url, all_rows))
-    print(f"normalized_rows={len(all_rows)} attempted_insert_rows={inserted}")
+    result = asyncio.run(upsert_rows(args.database_url, all_rows))
+    print(f"normalized_rows={len(all_rows)} inserted={result['inserted']} skipped={result['skipped']} skipped_unmapped={skipped_unmapped}")
     return 0
 
 

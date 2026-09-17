@@ -300,16 +300,21 @@ test("订阅和服务任务页连接真实接口，导出页连接真实接口",
   await expect(page.locator("#subscriptionNotice")).toContainText("真实订阅");
 
   let exportCreated = false;
+  let resolveExportList;
+  const exportRowReady = new Promise((resolve) => { resolveExportList = resolve; });
   await page.route("**/api/usage/summary", (route) => route.fulfill({ json: { available: true, entitlements: { exports_rows: { used: 2, limit: 10 } } } }));
   await page.route("**/api/exports", (route) => {
     if (route.request().method() === "POST") {
       exportCreated = true;
       return route.fulfill({ json: { id: "export-1", status: "completed", row_count: 2, created_at: "2026-09-12T00:00:00Z", download_url: "/api/exports/export-1", reused: false } });
     }
-    return route.fulfill({ json: { exports: exportCreated ? [{ id: "export-1", status: "completed", row_count: 2, created_at: "2026-09-12T00:00:00Z" }] : [] } });
+    const settled = route.fulfill({ json: { exports: exportCreated ? [{ id: "export-1", status: "completed", row_count: 2, created_at: "2026-09-12T00:00:00Z" }] : [] } });
+    if (exportCreated) resolveExportList(settled);
+    return settled;
   });
   await page.goto("/exports.html");
   await page.locator("#exportForm button[type='submit']").click();
+  await exportRowReady;
   await expect(page.locator("#exportList [data-export-row]")).toHaveCount(1);
   await expect(page.locator("#exportNotice")).toContainText("创建");
 

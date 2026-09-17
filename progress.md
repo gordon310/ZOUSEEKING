@@ -10,6 +10,7 @@
 - 2026-09-11 修复发布门禁回归：`fb36907` 下架未授权条目后内容库仅剩 3 条，B 端首页 Playwright 断言仍写死 5 条卡片 → 断言改为由 `data/content_library.json` 推导（`min(5, len)`）并补匿名上限 5 条用例；顺带入库 Codex 支付接线批次 A 证据报告（`docs/superpowers/reports/`）并清理其尾随空白。commit `3b4eeb2` / `8eb9b03` / `1af1329`
 - 2026-09-11 晚班：Release Gate 连续红链（244f5bd/513dfdb/5c71a26 引入，管家定位出 5 个独立根因）修复完毕，CI run `34600659312` 七 job 全绿；当前 main=`e100374`（含 `web/config.example.js` 前端配置契约、定价控制台 spec mock、schema 清单 24 迁移、M1 grant 基线 318）
 - P2 待推进：P2-2 JPPGSKILL 联调、P2-3 深度报告真实链接线（引擎 P2-3b 已就绪）、P2-4 支付接线（Stripe 后端已就绪）、P2-5 合规、P2-6 提审材料；live 采集激活卡海外执行（国交省 land 国内不可达）
+- **2026-09-17 夜班警示**：当前 main `1bfc01c` **Release Gate 红灯**（自 06:40Z `f06a77d` 起连续 7 推）——根因两条：①新增真实库集成测试在 CI Python job 无 `127.0.0.1:55432` 一次性库（5 failed + 2 errors）；②i18n 收口后 Playwright 断言仍写字面 `synthetic_fixture`（1 failed / 100 passed）。修复口径与证据见文末「夜班·P1自主推进 → CI 红链定位」条目，需派 Codex。
 - **2026-09-17 晨班快照**：main = `4d23922`（工作树干净、本地=远端）；Release Gate 绿；**AWS SES 生产权限已获批**（`ProductionAccessEnabled=true` / `ReviewDetails.Status=GRANTED`）→ 上线前最后一个邮件阻塞项解除，剩余动作只剩切 `mailer_autoconfirm=false`；09-16 白天批次已落 20 commit（机构域邀请/账单/导出、服务任务 C 端闭环、下载式报告交付、**MLIT 真实成交价区域统计** `GET /api/org/region-stats` + `20260916000500_mlit_transactions` + `sql-mlit-transactions` 门禁、资源版本 r44）
 
 ## Recently completed
@@ -414,6 +415,17 @@
 - **P1 依然无剩余单元**(09-07 工程闭环);M1 两个收敛单元(报告生成入 durable worker、`app.js` legacy 直读退役)仍待批准派工。
 - **仍待 Gordon 拍板**:① 切 `mailer_autoconfirm`(见上)② 4 行历史僵尸报告清理(DB 写 + 本机无 DB 凭据,需批准并授权)③ 迁移台账 C4「补齐 or 不补」口径(本机 CLI 未 link → staging 应用状态无法核)④ 未部署冻结件(Edge 函数 / `run_jphouse_worker.py`)删除 vs 长期冻结 ⑤ M1 两单元是否派工 ⑥ 本班次(job `ab373f6bd99d`)改绑 P2 或停用。
 - 红线:仅文档 + commit/push;零 DB 写、零部署、零删除、未改 migration 与冻结字段;SES 侧仅只读查询(无发信、无配置变更)。
+
+## 夜班·P1自主推进 → CI 红链定位(2026-09-17 20:30,本 BOT)
+
+- **班前实测**:工作树干净、`main == origin/main == 1bfc01c`;仓库内无 `codex exec` 进程、19:33 之后零文件写入 → 不判「进行中」;P1 清单自 09-07 已闭环无剩余单元 → 本班转「只读定位 + 汇报」。
+- **M-B4(MLIT 真实成交价区域统计)已落地**:09-17 白天批次连续 10 推(`10fb967`→`1bfc01c`),含 XIT001 官方 API 导入器、区域名归一词表 `backend/app/region_names.py`、`GET /api/org/region-stats`、`web/data-query.html` 区域统计面板、资源版本 r49;线上静态资源 `?v=20260917-r49` 与本地逐处一致(**无部署漂移**)。
+- **⚠️ 但 Release Gate 已连续红 7 推**:首红 `f06a77d`(09-17T06:40Z),此后 `db188cc`/`df5b9f7`/`a10bb46`/`0d0466d`/`18dfd51`/`1bfc01c`(11:34Z)全红;上一次绿为 `10fb967`(06:25Z)→ **当前 main 处于门禁红灯状态**。两个根因均已定位,均为**确定性失败(非 flaky)**:
+  1. **Python checks**(`gh run view 35216399794`):`5 failed, 600 passed, 86 skipped, 2 errors in 11.90s`,失败全部为 `ConnectionRefusedError: [Errno 111] Connect call failed ('127.0.0.1', 55432)`。成因:09-17 新增的真实库集成测试(`tests/integration/test_mlit_xit001_import.py`、`tests/integration/test_region_stats_postgres.py`,外加既存 `tests/integration/test_report_source_resolution_postgres.py`)**硬编码**一次性库地址(`MLIT_TEST_DATABASE_URL` / `REGION_STATS_TEST_DATABASE_URL` 默认 `postgresql://postgres:***@127.0.0.1:55432/postgres`,不可达即 `pytest.fail`),而 release-gate 的 Python job 只跑 `pytest -q`、**不启动任何数据库**(`.github/workflows/release-gate.yml` 全文无 `55432`、无这两个环境变量;SQL job 用的是 supabase local `127.0.0.1:54322`)→ 本地 55432 有一次性库故本地绿,CI 必红。首红时 2 例,随新增集成测试增至 5 failed + 2 errors。
+  2. **Playwright checks**(自 `0d0466d` 起):`1 failed, 100 passed` → `tests/web/business-home-members-locale.spec.js:155` 断言 `.business-demo-label` 文本含**字面** `synthetic_fixture`,而当日 i18n 提交(`0d0466d`,195 key zh-Hant 收口)已把该标签改为 `data-i18n="common.fixture"` → 实际渲染 `界面演示 · 合成示例数据`,断言过期。
+- **本机自证(本班实测)**:`compileall` OK、`node --check web/app.js` OK、`pytest tests/unit tests/architecture -q` → **412 passed / 85 skipped**;`api.zoubeacon.com/health/ready` → ready/database ok;`zoubeacon.app` 200、`platform.zoubeacon.com/admin.html` 200;两侧内容库 SHA-256 一致(`86be5284…`)。
+- **修复口径(归 Codex:开发与测试不归本 BOT,未代写)**:① 首选 —— release-gate Python job 起一次性 PG(`services: postgres:16` 映射 55432,或复用 `npx supabase start` 后把两个 `*_TEST_DATABASE_URL` 指向 54322)并在 pytest 前导出环境变量;② 次选 —— 显式 `-m realdb` 默认排除(会弱化 M-B4 真实库证据,不推荐);③ 更新 `business-home-members-locale.spec.js:155` 断言到新的本地化文案(数据类声明仍须对用户可见,不得删)。
+- **未做/红线**:零代码改动、零 DB 写、零部署、零删除、未触凭据与冻结字段、未改 migration;本班仅文档 + commit/push。
 
 ## Last updated
 

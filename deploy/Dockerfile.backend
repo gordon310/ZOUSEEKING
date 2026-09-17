@@ -9,6 +9,7 @@ COPY data/input/ /app/data/input/
 COPY data/municipality_codes.json /app/data/municipality_codes.json
 COPY data/collected_licensed/ /app/data/collected_licensed/
 COPY web/content-library.json /app/web/content-library.json
+COPY web/field-options.json /app/web/field-options.json
 COPY backend/requirements.txt /app/backend/requirements.txt
 
 RUN mkdir -p /app/data/collected

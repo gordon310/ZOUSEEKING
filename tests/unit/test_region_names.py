@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from backend.app import region_names
 from backend.app.region_names import RegionMappingReport, map_region_names, simplify_japanese
 
 
@@ -73,3 +74,15 @@ def test_unmapped_name_is_counted_and_not_guessed():
     assert map_region_names("新潟県", "存在しない市", report=report) == ("新潟县", None, None)
     assert report.unmapped_city == 1
     assert report.city_samples == ["存在しない市"]
+
+
+def test_normalize_region_stats_names_keeps_original_values_when_options_file_is_missing(tmp_path, monkeypatch):
+    monkeypatch.setattr(region_names, "FIELD_OPTIONS_PATH", tmp_path / "missing-field-options.json")
+    assert region_names.normalize_region_stats_names("東京都", "港区", "麻布") == ("東京都", "港区", "麻布")
+
+
+def test_normalize_region_stats_names_keeps_original_values_when_options_file_is_corrupt(tmp_path, monkeypatch):
+    path = tmp_path / "field-options.json"
+    path.write_text("{not valid json", encoding="utf-8")
+    monkeypatch.setattr(region_names, "FIELD_OPTIONS_PATH", path)
+    assert region_names.normalize_region_stats_names("東京都", "港区", "麻布") == ("東京都", "港区", "麻布")

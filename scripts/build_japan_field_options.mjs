@@ -192,6 +192,7 @@ const fieldOptions = {
   assetTypes: ["塔楼", "公寓", "一户建"],
   years: ["2024", "2025", "2026", "2027"],
   months: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"],
+  quarters: ["1", "2", "3", "4"],
 };
 
 const sqlRows = [];
@@ -240,6 +241,9 @@ for (const [index, year] of fieldOptions.years.entries()) {
 }
 for (const [index, month] of fieldOptions.months.entries()) {
   sqlRows.push(row("month", "", month, `${month}月`, index + 1));
+}
+for (const [index, quarter] of fieldOptions.quarters.entries()) {
+  sqlRows.push(row("quarter", "", quarter, `Q${quarter}`, index + 1));
 }
 
 fieldOptions.prefectures = uniqueSorted(fieldOptions.prefectures);

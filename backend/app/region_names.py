@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
+from functools import lru_cache
+import logging
 from pathlib import Path
 import re
 from typing import Any
 
 
 FIELD_OPTIONS_PATH = Path(__file__).resolve().parents[2] / "web" / "field-options.json"
+logger = logging.getLogger(__name__)
 
 PREFECTURE_NAME_MAP = {
     "北海道": "北海道", "青森県": "青森县", "岩手県": "岩手县", "宮城県": "宮城县",
@@ -60,8 +63,31 @@ class RegionMappingReport:
             samples.append(value)
 
 
+@lru_cache(maxsize=None)
+def _load_field_options(path: str) -> dict[str, Any]:
+    try:
+        options = json.loads(Path(path).read_text(encoding="utf-8"))
+        prefectures = options.get("prefectures") if isinstance(options, dict) else None
+        cities = options.get("cities") if isinstance(options, dict) else None
+        wards = options.get("wards", {}) if isinstance(options, dict) else None
+        if (
+            not isinstance(options, dict)
+            or not isinstance(prefectures, list)
+            or not all(isinstance(item, str) for item in prefectures)
+            or not isinstance(cities, dict)
+            or not all(isinstance(items, list) and all(isinstance(item, str) for item in items) for items in cities.values())
+            or not isinstance(wards, dict)
+            or not all(isinstance(items, list) and all(isinstance(item, str) for item in items) for items in wards.values())
+        ):
+            raise ValueError("invalid field options schema")
+        return options
+    except (OSError, UnicodeError, json.JSONDecodeError, TypeError, ValueError) as exc:
+        logger.warning("field options unavailable category=%s", type(exc).__name__)
+        return {}
+
+
 def load_field_options() -> dict[str, Any]:
-    return json.loads(FIELD_OPTIONS_PATH.read_text(encoding="utf-8"))
+    return _load_field_options(str(FIELD_OPTIONS_PATH))
 
 
 def simplify_japanese(value: str) -> str:
@@ -114,6 +140,8 @@ def map_region_names(
     source_prefecture = source_prefecture.strip()
     source_municipality = source_municipality.strip()
     options = load_field_options()
+    if not options:
+        return None, None, None
     target_prefecture = _target_prefecture(source_prefecture, options)
     if target_prefecture is None:
         if report:
@@ -140,11 +168,14 @@ def normalize_region_stats_names(
     prefecture: str, city: str, ward: str | None = None,
 ) -> tuple[str, str, str | None]:
     """Normalize stats query names while preserving unknown values as fallbacks."""
+    options = load_field_options()
+    if not options:
+        return prefecture, city, ward
     mapped_prefecture, mapped_city, _ = map_region_names(prefecture, city)
     target_prefecture = mapped_prefecture or prefecture
     target_city = mapped_city or city
     target_ward = (ward or "").strip() or None
     if target_ward:
-        wards = load_field_options().get("wards", {}).get(f"{target_prefecture}::{target_city}", [])
+        wards = options.get("wards", {}).get(f"{target_prefecture}::{target_city}", [])
         target_ward = next((item for item in wards if simplify_japanese(item) == simplify_japanese(target_ward)), target_ward)
     return target_prefecture, target_city, target_ward

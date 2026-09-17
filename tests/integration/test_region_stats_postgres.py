@@ -7,11 +7,14 @@ import os
 from uuid import UUID
 
 import asyncpg
+import httpx
 import pytest
 
 from backend.app import db
 from backend.app.auth import AuthUser
-from backend.app.region_stats_routes import DbRegionStatsStore, region_stats
+from backend.app.main import app
+from backend.app.region_stats_routes import DbRegionStatsStore, get_region_stats_store, region_stats
+from backend.app.auth import require_user
 from tests.support.pg_bootstrap import bootstrap_and_migrate, database_url, is_local_server
 
 
@@ -69,3 +72,28 @@ def test_real_postgres_ward_normalization_and_filtering(region_stats_database):
     results = asyncio.run(exercise())
     assert results[0]["sample_size"] > 0
     assert results[1]["sample_size"] == results[0]["sample_size"]
+
+
+def test_real_postgres_region_stats_endpoint_degrades_when_options_file_is_unavailable(region_stats_database, monkeypatch, tmp_path):
+    monkeypatch.setattr("backend.app.region_names.FIELD_OPTIONS_PATH", tmp_path / "missing-field-options.json")
+    async def exercise():
+        old_pool = db.pool
+        db.pool = await asyncpg.create_pool(region_stats_database, min_size=1, max_size=2)
+        app.dependency_overrides[require_user] = lambda: AuthUser(USER_ID, "region-stats@test.invalid", "Member")
+        app.dependency_overrides[get_region_stats_store] = lambda: DbRegionStatsStore()
+        try:
+            transport = httpx.ASGITransport(app=app)
+            async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+                return await client.get(
+                    "/api/org/region-stats",
+                    params={"prefecture": "东京都", "city": "港区", "ward": "麻布", "asset_type": "公寓", "year": 2025, "quarter": 1},
+                )
+        finally:
+            app.dependency_overrides.clear()
+            await db.pool.close()
+            db.pool = old_pool
+
+    response = asyncio.run(exercise())
+
+    assert response.status_code == 200
+    assert response.json()["sample_size"] == 5

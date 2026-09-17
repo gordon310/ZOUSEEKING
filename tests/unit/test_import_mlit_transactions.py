@@ -16,6 +16,7 @@ from scripts.import_mlit_transactions import (
     normalize_row,
     rows_from_zip,
 )
+from backend.app.region_names import RegionMappingReport
 
 
 def sample_row():
@@ -33,6 +34,32 @@ def test_normalizes_real_official_csv_shape_and_derives_numeric_unit_price():
     assert row["unit_price_jpy_per_sqm"] == 190000000 / 55
     assert row["city"] == "港区"
     assert len(row["source_record_key"]) == 64
+
+
+def test_normalizes_mlit_region_to_frontend_shape_and_preserves_japanese_raw():
+    row = normalize_xit001_rows(
+        [{
+            "Type": "中古マンション等", "Prefecture": "新潟県", "Municipality": "南魚沼郡湯沢町",
+            "Period": "2025年第1四半期", "TradePrice": "10000000", "Area": "50", "FloorPlan": "2LDK",
+        }], datetime(2026, 9, 16, tzinfo=timezone.utc)
+    )[0][0]
+    assert (row["prefecture"], row["city"], row["ward"]) == ("新潟县", "湯泽町", None)
+    assert row["raw"]["Prefecture"] == "新潟県"
+    assert row["raw"]["Municipality"] == "南魚沼郡湯沢町"
+
+
+def test_normalization_report_counts_original_unmapped_city():
+    report = RegionMappingReport()
+    rows, skipped = normalize_xit001_rows(
+        [{
+            "Type": "中古マンション等", "Prefecture": "新潟県", "Municipality": "不存在市",
+            "Period": "2025年第1四半期", "TradePrice": "10000000", "Area": "50",
+        }], datetime(2026, 9, 16, tzinfo=timezone.utc), region_report=report
+    )
+    assert rows == []
+    assert skipped == 0
+    assert report.unmapped_city == 1
+    assert report.city_samples == ["不存在市"]
 
 
 def test_decodes_cp932_zip_and_skips_unusable_rows():

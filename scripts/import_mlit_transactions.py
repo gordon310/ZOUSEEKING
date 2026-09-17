@@ -25,6 +25,7 @@ from typing import Any
 import asyncpg
 
 from backend.app.region_stats import map_asset_type
+from backend.app.region_names import RegionMappingReport, map_region_names
 
 SOURCE_ID = "bf4b6d56-f7ed-4e66-b599-3900e22001d6"
 XIT001_URL = os.getenv("MLIT_XIT001_URL", "https://www.reinfolib.mlit.go.jp/ex-api/external/XIT001")
@@ -88,7 +89,9 @@ def _source_record_key(raw: dict[str, Any]) -> str:
     return hashlib.sha256(json.dumps(raw, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
-def normalize_xit001_row(row: dict[str, Any], imported_at: datetime) -> dict[str, Any] | None:
+def normalize_xit001_row(
+    row: dict[str, Any], imported_at: datetime, *, region_report: RegionMappingReport | None = None
+) -> dict[str, Any] | None:
     raw_kind = str(row.get("Type") or "").strip()
     asset_type = map_asset_type(raw_kind)
     quarter = _quarter(str(row.get("Period") or ""))
@@ -98,15 +101,16 @@ def normalize_xit001_row(row: dict[str, Any], imported_at: datetime) -> dict[str
         return None
     raw = dict(row)
     municipality = str(row.get("Municipality") or "").strip()
-    ward = None
-    city = municipality
-    if municipality.startswith("大阪市") and municipality.endswith("区"):
-        city, ward = "大阪市", municipality.removeprefix("大阪市")
+    prefecture, city, ward = map_region_names(
+        str(row.get("Prefecture") or ""), municipality, report=region_report
+    )
+    if not prefecture or not city:
+        return None
     unit_price = _number(str(row.get("UnitPrice") or "")) or price / area
     return {
         "source_id": SOURCE_ID,
         "source_record_key": _source_record_key(raw),
-        "prefecture": str(row.get("Prefecture") or "").strip(),
+        "prefecture": prefecture,
         "city": city,
         "ward": ward,
         "asset_kind": raw_kind,
@@ -124,20 +128,24 @@ def normalize_xit001_row(row: dict[str, Any], imported_at: datetime) -> dict[str
     }
 
 
-def normalize_xit001_rows(rows: list[dict[str, Any]], imported_at: datetime) -> tuple[list[dict[str, Any]], int]:
+def normalize_xit001_rows(
+    rows: list[dict[str, Any]], imported_at: datetime, *, region_report: RegionMappingReport | None = None
+) -> tuple[list[dict[str, Any]], int]:
     normalized: list[dict[str, Any]] = []
     skipped_unmapped = 0
     for row in rows:
         if not map_asset_type(str(row.get("Type") or "").strip()):
             skipped_unmapped += 1
             continue
-        item = normalize_xit001_row(row, imported_at)
+        item = normalize_xit001_row(row, imported_at, region_report=region_report)
         if item:
             normalized.append(item)
     return normalized, skipped_unmapped
 
 
-def normalize_row(row: dict[str, str], imported_at: datetime) -> dict[str, Any] | None:
+def normalize_row(
+    row: dict[str, str], imported_at: datetime, *, region_report: RegionMappingReport | None = None
+) -> dict[str, Any] | None:
     raw_kind = (row.get("種類") or "").strip()
     asset_type = map_asset_type(raw_kind)
     quarter = _quarter(row.get("取引時期") or "")
@@ -148,14 +156,15 @@ def normalize_row(row: dict[str, str], imported_at: datetime) -> dict[str, Any] 
     raw = dict(row)
     key = _source_record_key(raw)
     municipality = (row.get("市区町村名") or "").strip()
-    ward = None
-    city = municipality
-    if municipality.startswith("大阪市") and municipality.endswith("区"):
-        city, ward = "大阪市", municipality.removeprefix("大阪市")
+    prefecture, city, ward = map_region_names(
+        (row.get("都道府県名") or "").strip(), municipality, report=region_report
+    )
+    if not prefecture or not city:
+        return None
     return {
         "source_id": SOURCE_ID,
         "source_record_key": key,
-        "prefecture": (row.get("都道府県名") or "").strip(),
+        "prefecture": prefecture,
         "city": city,
         "ward": ward,
         "asset_kind": raw_kind,
@@ -173,21 +182,31 @@ def normalize_row(row: dict[str, str], imported_at: datetime) -> dict[str, Any] 
     }
 
 
-def rows_from_zip(data: bytes, imported_at: datetime) -> list[dict[str, Any]]:
+def rows_from_zip(
+    data: bytes, imported_at: datetime, *, region_report: RegionMappingReport | None = None
+) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     with zipfile.ZipFile(io.BytesIO(data)) as archive:
         for name in archive.namelist():
             with archive.open(name) as stream:
                 text = io.TextIOWrapper(stream, encoding="cp932", newline="")
-                rows.extend(item for row in csv.DictReader(text) if (item := normalize_row(row, imported_at)))
+                rows.extend(
+                    item for row in csv.DictReader(text)
+                    if (item := normalize_row(row, imported_at, region_report=region_report))
+                )
     return rows
 
 
-def rows_from_csv_path(path: Path, imported_at: datetime) -> list[dict[str, Any]]:
+def rows_from_csv_path(
+    path: Path, imported_at: datetime, *, region_report: RegionMappingReport | None = None
+) -> list[dict[str, Any]]:
     if path.suffix.lower() == ".zip":
-        return rows_from_zip(path.read_bytes(), imported_at)
+        return rows_from_zip(path.read_bytes(), imported_at, region_report=region_report)
     with path.open("r", encoding="cp932", newline="") as stream:
-        return [item for row in csv.DictReader(stream) if (item := normalize_row(row, imported_at))]
+        return [
+            item for row in csv.DictReader(stream)
+            if (item := normalize_row(row, imported_at, region_report=region_report))
+        ]
 
 
 MLIT_COLUMNS = (
@@ -224,7 +243,7 @@ async def upsert_rows(database_url: str, rows: list[dict[str, Any]], *, chunk_si
     conn = await asyncpg.connect(database_url)
     try:
         if not rows:
-            return {"inserted": 0, "skipped": 0}
+            return {"inserted": 0, "updated": 0, "skipped": 0}
         await conn.execute("""create temporary table _mlit_transactions_import (
             source_id uuid not null,
             source_record_key text not null,
@@ -245,6 +264,7 @@ async def upsert_rows(database_url: str, rows: list[dict[str, Any]], *, chunk_si
             imported_at timestamptz not null
         ) on commit preserve rows""")
         inserted = 0
+        updated = 0
         for chunk_number, start in enumerate(range(0, len(rows), chunk_size), start=1):
             chunk = rows[start : start + chunk_size]
             async with conn.transaction():
@@ -254,7 +274,7 @@ async def upsert_rows(database_url: str, rows: list[dict[str, Any]], *, chunk_si
                     records=(_row_values(row) for row in chunk),
                     columns=MLIT_COLUMNS,
                 )
-                chunk_inserted = await conn.fetchval("""with inserted as (
+            counts = await conn.fetchrow("""with upserted as (
                     insert into public.mlit_transactions
                         (source_id,source_record_key,prefecture,city,ward,asset_kind,asset_type,price_jpy,area_sqm,
                          unit_price_jpy_per_sqm,trade_quarter,trade_year,nearest_station,distance_minutes,layout,raw,imported_at)
@@ -262,19 +282,36 @@ async def upsert_rows(database_url: str, rows: list[dict[str, Any]], *, chunk_si
                            unit_price_jpy_per_sqm,trade_quarter,trade_year,nearest_station,distance_minutes,layout,
                            raw::jsonb,imported_at
                     from _mlit_transactions_import
-                    on conflict (source_id,source_record_key) do nothing
-                    returning 1
-                ) select count(*) from inserted""")
-            inserted += int(chunk_inserted)
-            chunk_skipped = len(chunk) - int(chunk_inserted)
+                    on conflict (source_id,source_record_key) do update set
+                        prefecture=excluded.prefecture,
+                        city=excluded.city,
+                        ward=excluded.ward,
+                        asset_type=excluded.asset_type,
+                        layout=excluded.layout,
+                        raw=excluded.raw
+                    where public.mlit_transactions.prefecture is distinct from excluded.prefecture
+                       or public.mlit_transactions.city is distinct from excluded.city
+                       or public.mlit_transactions.ward is distinct from excluded.ward
+                       or public.mlit_transactions.asset_type is distinct from excluded.asset_type
+                       or public.mlit_transactions.layout is distinct from excluded.layout
+                       or public.mlit_transactions.raw is distinct from excluded.raw
+                    returning (xmax = 0) as inserted
+                ) select count(*) filter (where inserted) as inserted,
+                         count(*) filter (where not inserted) as updated
+                    from upserted""")
+            chunk_inserted = int(counts["inserted"])
+            chunk_updated = int(counts["updated"])
+            inserted += chunk_inserted
+            updated += chunk_updated
+            chunk_skipped = len(chunk) - chunk_inserted - chunk_updated
             processed = start + len(chunk)
-            skipped = processed - inserted
+            skipped = processed - inserted - updated
             print(
-                f"chunk={chunk_number} input={len(chunk)} inserted={chunk_inserted} skipped={chunk_skipped} "
-                f"cumulative={inserted}/{skipped}"
+                f"chunk={chunk_number} input={len(chunk)} inserted={chunk_inserted} updated={chunk_updated} skipped={chunk_skipped} "
+                f"cumulative={inserted + updated}/{skipped}"
             )
-        skipped = len(rows) - inserted
-        return {"inserted": inserted, "skipped": skipped}
+        skipped = len(rows) - inserted - updated
+        return {"inserted": inserted, "updated": updated, "skipped": skipped}
     finally:
         await conn.close()
 
@@ -309,8 +346,9 @@ def main(argv: list[str] | None = None) -> int:
     years = tuple(args.years or DEFAULT_YEARS)
     all_rows: list[dict[str, Any]] = []
     skipped_unmapped = 0
+    region_report = RegionMappingReport()
     if args.source == "csv":
-        all_rows = rows_from_csv_path(args.csv_path, imported_at)
+        all_rows = rows_from_csv_path(args.csv_path, imported_at, region_report=region_report)
         print(f"csv path={args.csv_path.name} rows={len(all_rows)} status=OK")
     requests = 0
     if args.source == "api":
@@ -324,19 +362,26 @@ def main(argv: list[str] | None = None) -> int:
                         {"year": str(year), "quarter": str(quarter), "area": prefecture, "language": "ja"}, api_key
                     )
                     raw_data = payload.get("data") or []
-                    rows, unmapped = normalize_xit001_rows(raw_data, imported_at)
+                    rows, unmapped = normalize_xit001_rows(raw_data, imported_at, region_report=region_report)
                     skipped_unmapped += unmapped
                     all_rows.extend(rows)
                     status = payload.get("status", "NO_DATA")
                     print(f"request prefecture={prefecture} year={year} quarter={quarter} rows={len(rows)} status={status}")
     if args.dry_run:
-        print(f"dry_run_rows={len(all_rows)}")
+        print(
+            f"dry_run_rows={len(all_rows)} skipped_unmapped_type={skipped_unmapped} "
+            f"unmapped_prefecture={region_report.unmapped_prefecture} unmapped_city={region_report.unmapped_city}"
+        )
         return 0
     if args.chunk_size <= 0:
         print("--chunk-size 必须是正整数。", file=sys.stderr)
         return 2
     result = asyncio.run(upsert_rows(args.database_url, all_rows, chunk_size=args.chunk_size))
-    print(f"normalized_rows={len(all_rows)} inserted={result['inserted']} skipped={result['skipped']} skipped_unmapped={skipped_unmapped}")
+    print(
+        f"normalized_rows={len(all_rows)} inserted={result['inserted']} updated={result['updated']} "
+        f"skipped={result['skipped']} skipped_unmapped_type={skipped_unmapped} "
+        f"unmapped_prefecture={region_report.unmapped_prefecture} unmapped_city={region_report.unmapped_city}"
+    )
     return 0
 
 

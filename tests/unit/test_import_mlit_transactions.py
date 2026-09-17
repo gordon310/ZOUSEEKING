@@ -71,6 +71,11 @@ def test_treats_xit001_404_as_no_data():
     assert decode_xit001_response(b"", "", status_code=404) == {"status": "NO_DATA", "data": []}
 
 
+def test_parser_defaults_to_five_thousand_row_chunks_and_allows_override():
+    assert importer.parser().parse_args([]).chunk_size == 5000
+    assert importer.parser().parse_args(["--chunk-size", "123"]).chunk_size == 123
+
+
 def test_requests_local_xit001_server_with_area_and_secret_header():
     seen = {"requests": []}
 

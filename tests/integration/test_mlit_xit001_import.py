@@ -21,6 +21,28 @@ FIXTURE = Path("tests/fixtures/mlit_xit001_sample.json")
 USER_ID = UUID("00000000-0000-0000-0000-000000000099")
 
 
+async def _rowwise_upsert(database_url, rows):
+    query = """insert into public.mlit_transactions
+        (source_id,source_record_key,prefecture,city,ward,asset_kind,asset_type,price_jpy,area_sqm,
+         unit_price_jpy_per_sqm,trade_quarter,trade_year,nearest_station,distance_minutes,layout,raw,imported_at)
+        values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+        on conflict (source_id,source_record_key) do nothing
+        returning 1"""
+    conn = await asyncpg.connect(database_url)
+    try:
+        inserted = 0
+        async with conn.transaction():
+            for row in rows:
+                values = tuple(
+                    json.dumps(value, ensure_ascii=False, separators=(",", ":")) if key == "raw" else value
+                    for key, value in row.items()
+                )
+                inserted += (await conn.fetchval(query, *values)) or 0
+        return {"inserted": inserted, "skipped": len(rows) - inserted}
+    finally:
+        await conn.close()
+
+
 @pytest.mark.asyncio
 async def test_xit001_local_http_to_local_postgres_is_idempotent_and_queryable():
     base_url = os.getenv("MLIT_TEST_DATABASE_URL")
@@ -116,5 +138,44 @@ async def test_xit001_local_http_to_local_postgres_is_idempotent_and_queryable()
         admin = await asyncpg.connect(base_url, database="postgres")
         try:
             await admin.execute(f'drop database "{database}" with (force)')
+        finally:
+            await admin.close()
+
+
+@pytest.mark.asyncio
+async def test_batch_upsert_matches_rowwise_counts_and_preserves_raw_for_duplicates():
+    base_url = os.getenv("MLIT_TEST_DATABASE_URL")
+    if not base_url:
+        pytest.skip("NOT_EXECUTED: set MLIT_TEST_DATABASE_URL to a disposable local PostgreSQL URL")
+    database = f"mlit_batch_{uuid4().hex[:10]}"
+    target_url = database_url(base_url, database)
+    reference_url = database_url(base_url, f"mlit_reference_{uuid4().hex[:10]}")
+    await bootstrap_and_migrate(base_url, database)
+    await bootstrap_and_migrate(base_url, reference_url.rsplit("/", 1)[-1])
+    try:
+        payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
+        normalized, _ = importer.normalize_xit001_rows(
+            payload["data"], datetime(2026, 9, 17, tzinfo=timezone.utc)
+        )
+        rows = normalized + [copy.deepcopy(normalized[0]), copy.deepcopy(normalized[1])]
+        expected = await _rowwise_upsert(reference_url, rows)
+        actual = await importer.upsert_rows(target_url, rows, chunk_size=2)
+        assert actual == expected == {"inserted": 2, "skipped": 2}
+        second = await importer.upsert_rows(target_url, rows, chunk_size=2)
+        assert second == {"inserted": 0, "skipped": 4}
+        conn = await asyncpg.connect(target_url)
+        try:
+            stored = await conn.fetchval(
+                "select raw from public.mlit_transactions where source_record_key=$1",
+                normalized[0]["source_record_key"],
+            )
+            assert json.loads(stored) == normalized[0]["raw"]
+        finally:
+            await conn.close()
+    finally:
+        admin = await asyncpg.connect(base_url, database="postgres")
+        try:
+            await admin.execute(f'drop database "{database}" with (force)')
+            await admin.execute(f'drop database "{reference_url.rsplit("/", 1)[-1]}" with (force)')
         finally:
             await admin.close()

@@ -190,27 +190,90 @@ def rows_from_csv_path(path: Path, imported_at: datetime) -> list[dict[str, Any]
         return [item for row in csv.DictReader(stream) if (item := normalize_row(row, imported_at))]
 
 
-async def upsert_rows(database_url: str, rows: list[dict[str, Any]]) -> dict[str, int]:
+MLIT_COLUMNS = (
+    "source_id",
+    "source_record_key",
+    "prefecture",
+    "city",
+    "ward",
+    "asset_kind",
+    "asset_type",
+    "price_jpy",
+    "area_sqm",
+    "unit_price_jpy_per_sqm",
+    "trade_quarter",
+    "trade_year",
+    "nearest_station",
+    "distance_minutes",
+    "layout",
+    "raw",
+    "imported_at",
+)
+
+
+def _row_values(row: dict[str, Any]) -> tuple[Any, ...]:
+    return tuple(
+        json.dumps(row[column], ensure_ascii=False, separators=(",", ":")) if column == "raw" else row[column]
+        for column in MLIT_COLUMNS
+    )
+
+
+async def upsert_rows(database_url: str, rows: list[dict[str, Any]], *, chunk_size: int = 5000) -> dict[str, int]:
+    if chunk_size <= 0:
+        raise ValueError("chunk_size must be positive")
     conn = await asyncpg.connect(database_url)
     try:
+        if not rows:
+            return {"inserted": 0, "skipped": 0}
+        await conn.execute("""create temporary table _mlit_transactions_import (
+            source_id uuid not null,
+            source_record_key text not null,
+            prefecture text not null,
+            city text not null,
+            ward text,
+            asset_kind text not null,
+            asset_type text not null,
+            price_jpy numeric(18,0),
+            area_sqm numeric(12,2),
+            unit_price_jpy_per_sqm numeric(18,2),
+            trade_quarter text not null,
+            trade_year smallint not null,
+            nearest_station text,
+            distance_minutes smallint,
+            layout text,
+            raw text not null,
+            imported_at timestamptz not null
+        ) on commit preserve rows""")
         inserted = 0
-        skipped = 0
-        query = """insert into public.mlit_transactions
-            (source_id,source_record_key,prefecture,city,ward,asset_kind,asset_type,price_jpy,area_sqm,
-             unit_price_jpy_per_sqm,trade_quarter,trade_year,nearest_station,distance_minutes,layout,raw,imported_at)
-            values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
-            on conflict (source_id,source_record_key) do nothing
-            returning 1"""
-        async with conn.transaction():
-            for row in rows:
-                values = tuple(
-                    json.dumps(value, ensure_ascii=False, separators=(",", ":")) if key == "raw" else value
-                    for key, value in row.items()
+        for chunk_number, start in enumerate(range(0, len(rows), chunk_size), start=1):
+            chunk = rows[start : start + chunk_size]
+            async with conn.transaction():
+                await conn.execute("truncate _mlit_transactions_import")
+                await conn.copy_records_to_table(
+                    "_mlit_transactions_import",
+                    records=(_row_values(row) for row in chunk),
+                    columns=MLIT_COLUMNS,
                 )
-                if await conn.fetchval(query, *values) is None:
-                    skipped += 1
-                else:
-                    inserted += 1
+                chunk_inserted = await conn.fetchval("""with inserted as (
+                    insert into public.mlit_transactions
+                        (source_id,source_record_key,prefecture,city,ward,asset_kind,asset_type,price_jpy,area_sqm,
+                         unit_price_jpy_per_sqm,trade_quarter,trade_year,nearest_station,distance_minutes,layout,raw,imported_at)
+                    select source_id,source_record_key,prefecture,city,ward,asset_kind,asset_type,price_jpy,area_sqm,
+                           unit_price_jpy_per_sqm,trade_quarter,trade_year,nearest_station,distance_minutes,layout,
+                           raw::jsonb,imported_at
+                    from _mlit_transactions_import
+                    on conflict (source_id,source_record_key) do nothing
+                    returning 1
+                ) select count(*) from inserted""")
+            inserted += int(chunk_inserted)
+            chunk_skipped = len(chunk) - int(chunk_inserted)
+            processed = start + len(chunk)
+            skipped = processed - inserted
+            print(
+                f"chunk={chunk_number} input={len(chunk)} inserted={chunk_inserted} skipped={chunk_skipped} "
+                f"cumulative={inserted}/{skipped}"
+            )
+        skipped = len(rows) - inserted
         return {"inserted": inserted, "skipped": skipped}
     finally:
         await conn.close()
@@ -225,6 +288,7 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--database-url", default=os.getenv("DATABASE_URL", ""))
     p.add_argument("--raw-dir", type=Path, default=Path("/tmp/zouseeking-mlit-raw"))
     p.add_argument("--csv-path", type=Path, help="local manually downloaded CSV or ZIP when --source csv")
+    p.add_argument("--chunk-size", type=int, default=5000, help="rows per committed database chunk")
     return p
 
 
@@ -268,7 +332,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.dry_run:
         print(f"dry_run_rows={len(all_rows)}")
         return 0
-    result = asyncio.run(upsert_rows(args.database_url, all_rows))
+    if args.chunk_size <= 0:
+        print("--chunk-size 必须是正整数。", file=sys.stderr)
+        return 2
+    result = asyncio.run(upsert_rows(args.database_url, all_rows, chunk_size=args.chunk_size))
     print(f"normalized_rows={len(all_rows)} inserted={result['inserted']} skipped={result['skipped']} skipped_unmapped={skipped_unmapped}")
     return 0
 

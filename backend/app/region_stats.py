@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from math import floor
+from statistics import mean
 from typing import Any
 
 MIN_SAMPLE_SIZE = 5
@@ -44,6 +45,7 @@ def aggregate_region_rows(rows: list[dict[str, Any]], *, asset_type: str, period
         return result
     result.update(
         {
+            "mean_unit_price_jpy_per_sqm": mean(values),
             "median_unit_price_jpy_per_sqm": _percentile(values, 0.5),
             "p25": _percentile(values, 0.25),
             "p75": _percentile(values, 0.75),

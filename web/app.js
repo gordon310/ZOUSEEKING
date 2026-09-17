@@ -1471,7 +1471,7 @@ function renderAccount() {
   const hint = $("#queryHint");
   if (hint) {
     hint.textContent = loggedIn
-      ? uiText("query.hintLoggedIn", "选择条件后查询。已有数据直接展示；没有命中会保存到 Supabase，等 JPHOUSE 采集器补数据。")
+      ? uiText("query.hintLoggedIn", "选择条件后查询。已有数据直接展示；未命中的条件会先记录下来，数据补齐后即可直接查看。")
       : uiText("query.hintLoggedOut", "登录后可以查询。已有记录直接调取，没做过的会进入生成流程。");
   }
 }
@@ -1818,7 +1818,7 @@ async function handleStructuredQuery(event) {
   setMessage(
     matchedCount
       ? formatUiText("query.matched", `查到了 ${matchedCount} 条，直接调取。`, { count: matchedCount })
-      : uiText("query.noLocal", "当前库里还没有，已保存查询记录，等 JPHOUSE 采集器补数据。"),
+      : uiText("query.noLocal", "目前还没有符合该条件的数据，已记录下来；数据补齐后即可直接查看。"),
     matchedCount ? "success" : "",
   );
   render();
@@ -1849,12 +1849,24 @@ function renderRegionStats() {
   if (regionStatsState.error) { result.innerHTML = `<p>${escapeHtml(uiText("regionStats.failed", "统计暂时无法读取，请稍后重试。"))}</p>`; return; }
   const data = regionStatsState.result;
   if (!data) return;
-  if (data.status === "insufficient_sample") { result.innerHTML = `<p>${escapeHtml(uiText("regionStats.insufficient", "样本不足（少于 5 条），不显示中位数或四分位数。"))}</p>`; return; }
-  const money = (value) => Number(value).toLocaleString();
+  if (data.status === "insufficient_sample") { result.innerHTML = `<p>${escapeHtml(uiText("regionStats.insufficient", "本季度该地区官方成交记录不足 5 笔，暂不显示统计数值。"))}</p>`; return; }
+  const exactYen = (value) => Math.round(Number(value)).toLocaleString("en-US");
+  const tenThousands = (value) => (Number(value) / 10000).toFixed(1);
+  const selectedLabel = (id) => $(`#${id}`)?.selectedOptions?.[0]?.textContent?.trim() || $(`#${id}`)?.value || "";
+  const prefecture = data.prefecture || selectedLabel("statsPrefecture");
+  const city = data.city || selectedLabel("statsCity");
+  const assetType = data.asset_type || selectedLabel("statsAssetType");
+  const periodMatch = String(data.period || "").match(/^(\d{4})Q([1-4])$/);
+  const period = periodMatch ? `${periodMatch[1]}年 Q${periodMatch[2]}` : String(data.period || "");
+  const context = formatUiText("regionStats.context", "{prefecture} {city} · {assetType} · {period}", { prefecture, city, assetType, period });
+  const exact = formatUiText("regionStats.exact", "精确值:均价 {mean} 円/㎡ · 中位数 {median} 円/㎡ · 区间 {p25} 〜 {p75} 円/㎡", {
+    mean: exactYen(data.mean_unit_price_jpy_per_sqm), median: exactYen(data.median_unit_price_jpy_per_sqm),
+    p25: exactYen(data.p25), p75: exactYen(data.p75),
+  });
   const disclosure = data.disclosure?.code === "tower_merged_into_apartment"
     ? `<p>${escapeHtml(uiText("regionStats.towerDisclosure", "官方数据未区分塔楼与公寓，此处按公寓口径统计。塔楼通常指20层以上或建筑高度超过60米。"))}</p>`
     : "";
-  result.innerHTML = `${disclosure}<div class="stat-grid"><div class="stat-card"><strong>${escapeHtml(uiText("regionStats.median", "中位㎡单价"))}</strong><br>${money(data.median_unit_price_jpy_per_sqm)} JPY</div><div class="stat-card"><strong>${escapeHtml(uiText("regionStats.quartiles", "P25 / P75"))}</strong><br>${money(data.p25)} / ${money(data.p75)} JPY</div><div class="stat-card"><strong>${escapeHtml(uiText("regionStats.samples", "样本量"))}</strong><br>${data.sample_size}</div></div><p>${escapeHtml(uiText("regionStats.source", "出典: 不动产信息库（国土交通省） · 许可: PDL1.0"))}</p><p>${escapeHtml(uiText("regionStats.ratio", "租售比：暂不可用（租金数据未授权）"))}</p><p>${escapeHtml(uiText("regionStats.limitations", "限制：参考信息，非逐笔成交明细；㎡单价由官方总价和面积计算。"))}</p>`;
+  result.innerHTML = `${disclosure}<p class="stats-context">${escapeHtml(context)}</p><div class="stats-summary"><strong>${escapeHtml(uiText("regionStats.mean", "均价"))} ${escapeHtml(uiText("regionStats.approx", "约"))} ${escapeHtml(tenThousands(data.mean_unit_price_jpy_per_sqm))} 万円/㎡</strong><small>${escapeHtml(uiText("regionStats.medianValue", "中位数"))} ${escapeHtml(uiText("regionStats.approx", "约"))} ${escapeHtml(tenThousands(data.median_unit_price_jpy_per_sqm))} 万円/㎡</small></div><div class="stat-grid"><div class="stat-card"><strong>${escapeHtml(uiText("regionStats.quartiles", "价格区间"))} ${escapeHtml(tenThousands(data.p25))} 〜 ${escapeHtml(tenThousands(data.p75))} 万円/㎡</strong><small>${escapeHtml(uiText("regionStats.middleHalf", "中间 50% 的成交落在这个区间"))}</small></div><div class="stat-card"><strong>${data.sample_size} ${escapeHtml(uiText("regionStats.officialRecords", "笔官方成交记录"))}</strong></div></div><p class="stats-exact">${escapeHtml(exact)}</p><p>${escapeHtml(uiText("regionStats.source", "出典: 不动产信息库（国土交通省） · 许可: PDL1.0"))}</p><p>${escapeHtml(uiText("regionStats.ratio", "租售比：暂不可用（租金数据未授权）"))}</p><p>${escapeHtml(uiText("regionStats.limitations", "限制：参考信息，非逐笔成交明细；㎡单价由官方总价和面积计算。"))}</p>`;
 }
 
 async function loadRegionStats(event) {

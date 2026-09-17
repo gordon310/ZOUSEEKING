@@ -16,7 +16,7 @@ class Store:
             from fastapi import HTTPException
             raise HTTPException(status_code=403, detail="机构成员权限不足")
         return {
-            "status": "ok", "sample_size": 5, "median_unit_price_jpy_per_sqm": 300000,
+            "status": "ok", "sample_size": 5, "mean_unit_price_jpy_per_sqm": 310000, "median_unit_price_jpy_per_sqm": 300000,
             "p25": 200000, "p75": 400000, "distribution": [], "period": period,
             "asset_type": asset_type, "sources": [{"id": "source", "name": "MLIT", "url": "https://www.reinfolib.mlit.go.jp/realEstatePrices/"}],
             "license": {"name": "PDL1.0", "attribution": "出典:不動産情報ライブラリ（国土交通省）"},
@@ -68,6 +68,7 @@ def test_region_stats_returns_numeric_server_contract():
         app.dependency_overrides.clear()
     assert response.status_code == 200
     assert response.json()["median_unit_price_jpy_per_sqm"] == 300000
+    assert response.json()["mean_unit_price_jpy_per_sqm"] == 310000
     assert response.json()["rent_sale_ratio"]["available"] is False
     assert "organization_members" not in response.text
 

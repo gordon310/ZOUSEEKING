@@ -22,8 +22,8 @@ test("区域成交价统计成功态展示真实口径与出典", async ({ page 
     window.ZOUSEEKING_API_BASE_URL = "https://api.test";
   });
   const successPayload = {
-      status: "ok", sample_size: 553, median_unit_price_jpy_per_sqm: 1800000,
-      p25: 1266666.67, p75: 2640000, period: "2025Q1", asset_type: "公寓",
+    status: "ok", sample_size: 552, mean_unit_price_jpy_per_sqm: 1794736.84, median_unit_price_jpy_per_sqm: 1800000,
+      p25: 1263636.365, p75: 2646666.668, period: "2025Q1", asset_type: "公寓",
       sources: [{ name: "国土交通省 不動産情報ライブラリ", url: "https://www.reinfolib.mlit.go.jp/realEstatePrices/" }],
       license: { name: "PDL1.0" }, limitations: "参考信息", data_class: "scraped_aggregate",
       rent_sale_ratio: { available: false, reason: "租金数据未授权" },
@@ -33,10 +33,37 @@ test("区域成交价统计成功态展示真实口径与出典", async ({ page 
   await page.waitForFunction(() => document.body.classList.contains("auth-ready"));
   await page.evaluate((payload) => { window.fetch = async () => new Response(JSON.stringify(payload), { status: 200, headers: { "Content-Type": "application/json" } }); }, successPayload);
   await page.evaluate(() => window.ZouRegionStats.load({ preventDefault() {} }));
-  await expect(page.locator("#regionStatsResult")).toContainText("1,800,000");
+  const statsResult = page.locator("#regionStatsResult");
+  await expect(statsResult).toContainText("东京都 港区 · 公寓 · 2025年 Q1");
+  await expect(statsResult).toContainText("均价 约 179.5 万円/㎡");
+  await expect(statsResult).toContainText("中位数 约 180.0 万円/㎡");
+  await expect(statsResult).toContainText("价格区间 126.4 〜 264.7 万円/㎡");
+  await expect(statsResult).toContainText("中间 50% 的成交落在这个区间");
+  await expect(statsResult).toContainText("552 笔官方成交记录");
+  await expect(statsResult).toContainText("精确值:均价 1,794,737 円/㎡ · 中位数 1,800,000 円/㎡ · 区间 1,263,636 〜 2,646,667 円/㎡");
+  await expect(statsResult).not.toContainText(/\d+\.\d{2,}/);
   await expect(page.locator("#regionStatsResult")).toContainText("出典");
   await expect(page.locator("#regionStatsResult")).toContainText("租售比");
   await expect(page.locator("#regionStatsResult")).not.toContainText("scraped_aggregate");
+});
+
+test("区域成交价统计四语言文案键完整且没有内部枚举", async ({ page }) => {
+  await page.goto("/data-query.html");
+  const locales = await page.evaluate(() => Object.fromEntries(["zh-CN", "zh-Hant", "en", "ja"].map((locale) => {
+    localStorage.setItem("zou_ui_locale", locale);
+    window.ZouI18n?.setLocale?.(locale);
+    const dictionary = window.__additionalI18n || {};
+    return [locale, Object.fromEntries(Object.entries(dictionary).filter(([key]) => key.startsWith("regionStats.")))];
+  })));
+  const keys = Object.keys(locales["zh-CN"]);
+  expect(keys.length).toBeGreaterThan(0);
+  for (const locale of ["zh-CN", "zh-Hant", "en", "ja"]) {
+    expect(Object.keys(locales[locale]).sort()).toEqual(keys.sort());
+    for (const value of Object.values(locales[locale])) {
+      for (const text of Object.values(value)) expect(text).not.toMatch(/\b(?:scraped_aggregate|insufficient_sample|tower_merged_into_apartment)\b/);
+    }
+  }
+  expect(locales["zh-Hant"]["regionStats.insufficient"]["zh-Hant"]).toContain("數據");
 });
 
 test("区域成交价统计样本不足态不显示数字", async ({ page }) => {
@@ -46,7 +73,7 @@ test("区域成交价统计样本不足态不显示数字", async ({ page }) => 
   await page.waitForFunction(() => document.body.classList.contains("auth-ready"));
   await page.evaluate(() => { window.fetch = async () => new Response(JSON.stringify({ status: "insufficient_sample", sample_size: 4 }), { status: 200, headers: { "Content-Type": "application/json" } }); });
   await page.evaluate(() => window.ZouRegionStats.load({ preventDefault() {} }));
-  await expect(page.locator("#regionStatsResult")).toContainText("样本不足");
+  await expect(page.locator("#regionStatsResult")).toContainText("官方成交记录不足 5 笔");
   await expect(page.locator("#regionStatsResult")).not.toContainText("中位㎡单价");
 });
 
@@ -91,6 +118,14 @@ test("区域成交价统计将 500 显示为暂时失败", async ({ page }) => {
   });
   await page.evaluate(() => window.ZouRegionStats.load({ preventDefault() {} }));
   await expect(page.locator("#regionStatsResult")).toContainText("统计暂时无法读取");
+});
+
+test("物件查询未命中提示使用业务措辞", async ({ page }) => {
+  await page.goto("/data-query.html");
+  await page.evaluate(() => window.ZouAuthSession.write({ provider: "demo", username: "Member", email: "member@example.test", userId: "member-1" }));
+  await page.waitForFunction(() => document.body.classList.contains("auth-ready"));
+  await expect(page.locator("#queryHint")).toContainText("未命中的条件会先记录下来");
+  await expect(page.locator("#queryHint")).not.toContainText(/Supabase|JPHOUSE|采集器/);
 });
 
 test("物件查询的来源失败只显示本地化安全文案", async ({ page }) => {

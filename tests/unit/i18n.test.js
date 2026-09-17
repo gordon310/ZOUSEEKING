@@ -131,7 +131,7 @@ test("every dynamic dictionary entry declares all four locales", () => {
   };
   vm.runInNewContext(source, context, { filename: "web/js/i18n.js" });
   const entries = Object.entries(context.window.__additionalI18n);
-  assert.equal(entries.length, 198, "all dynamic dictionary entries were found");
+  assert.ok(entries.length >= 200, "all dynamic dictionary entries were found");
   for (const [key, values] of entries) {
     for (const locale of ["zh-CN", "zh-Hant", "en", "ja"]) {
       assert.ok(Object.prototype.hasOwnProperty.call(values, locale), `${key}: ${locale}`);

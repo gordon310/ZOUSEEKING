@@ -15,6 +15,7 @@ def test_aggregates_numeric_unit_prices_with_quartiles_and_buckets():
         period="2025Q1",
     )
     assert result["sample_size"] == 5
+    assert result["mean_unit_price_jpy_per_sqm"] == 300_000
     assert result["median_unit_price_jpy_per_sqm"] == 300_000
     assert result["p25"] == 200_000
     assert result["p75"] == 400_000
@@ -35,6 +36,20 @@ def test_does_not_emit_statistics_below_five_samples():
     assert result["status"] == "insufficient_sample"
     assert result["sample_size"] == 4
     assert "median_unit_price_jpy_per_sqm" not in result
+    assert "mean_unit_price_jpy_per_sqm" not in result
+
+
+def test_mean_and_percentiles_share_the_same_valid_positive_source_values():
+    result = aggregate_region_rows(
+        [{"unit_price_jpy_per_sqm": value} for value in [100_000, 200_000, 300_000, 400_000, 1_000_000, None, 0]],
+        asset_type="公寓",
+        period="2025Q1",
+    )
+    assert result["sample_size"] == 5
+    assert result["mean_unit_price_jpy_per_sqm"] == 400_000
+    assert result["median_unit_price_jpy_per_sqm"] == 300_000
+    assert result["p25"] == 200_000
+    assert result["p75"] == 400_000
 
 
 def test_rent_sale_ratio_is_explicitly_unavailable():

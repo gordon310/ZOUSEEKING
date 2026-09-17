@@ -657,7 +657,15 @@ async function apiFetch(path, options = {}) {
   });
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || `API ${response.status}`);
+    let body = text;
+    try { body = text ? JSON.parse(text) : null; } catch { /* preserve raw response body */ }
+    const error = new Error(text || `API ${response.status}`);
+    const structured = body?.error || body?.detail;
+    error.status = response.status;
+    error.body = body;
+    error.code = structured && typeof structured === "object" ? structured.code || "" : body?.code || "";
+    error.detail = structured && typeof structured === "object" ? structured.detail || structured.message || "" : body?.detail || "";
+    throw error;
   }
   return response.json();
 }
@@ -1227,6 +1235,21 @@ function analysisApiError(error) {
   }
 }
 
+function backendErrorMessage(error) {
+  const messages = {
+    "market_source_unavailable": "query.error.marketSourceUnavailable",
+    "report_generation_failed": "query.error.generationFailed",
+  };
+  const key = messages[error?.code] || "query.error.unknown";
+  return uiText(key, "查询暂时无法完成，请稍后重试。");
+}
+
+function jobError(job) {
+  const error = new Error(job?.error?.message || job?.error_message || "生成失败");
+  error.code = job?.error?.code || "report_generation_failed";
+  return error;
+}
+
 function renderAnalysisResult(result) {
   const points = Array.isArray(result.points) ? result.points : [];
   const unit = result.unit === "percent" ? "%" : result.unit === "JPY/month" ? "JPY/month" : "JPY";
@@ -1298,7 +1321,7 @@ async function runJphouseFromMyPage(queryId) {
     renderProgress("云端 JPHOUSE", 20, ["发送任务到 FastAPI", "后台生成数据报告"]);
     let result = await apiFetch(`/api/jobs/${encodeURIComponent(queryId)}/run`, { method: "POST" });
     for (let i = 0; i < 30 && result?.status !== "completed"; i += 1) {
-      if (result?.status === "failed") throw new Error(result.error_message || "生成失败");
+      if (result?.status === "failed") throw jobError(result);
       await delay(900);
       result = await apiFetch(`/api/jobs/${encodeURIComponent(queryId)}`);
       renderProgress("云端 JPHOUSE", result.progress || 20, [result.current_step || "生成中", `任务状态：${result.status}`]);
@@ -1318,7 +1341,7 @@ async function runJphouseFromMyPage(queryId) {
     render();
   } catch (error) {
     if ($("#progressDialog").open) $("#progressDialog").close();
-    setMessage(`JPHOUSE API 执行失败：${error.message}`, "error");
+    setMessage(`JPHOUSE API 执行失败：${backendErrorMessage(error)}`, "error");
     await loadMyPage();
     render();
   }
@@ -1727,7 +1750,7 @@ async function runBackendQuery(options) {
       $("#progressDialog").close();
       return { matchedCount: 1, status: "已生成" };
     }
-    if (job.status === "failed") throw new Error(job.error_message || "生成失败");
+    if (job.status === "failed") throw jobError(job);
   }
   $("#progressDialog").close();
   return { matchedCount: 0, status: "生成中" };
@@ -1750,7 +1773,7 @@ async function handleStructuredQuery(event) {
       status = backendResult.status;
     } catch (error) {
       if ($("#progressDialog").open) $("#progressDialog").close();
-      setMessage(`后端查询失败，未使用本地演示结果：${error.message}`, "error");
+      setMessage(`后端查询失败，未使用本地演示结果：${backendErrorMessage(error)}`, "error");
       return;
     }
   } else {
@@ -1813,7 +1836,7 @@ async function loadRegionStats(event) {
     year: $("#statsYear").value, quarter: $("#statsQuarter").value,
   });
   try { regionStatsState.result = await apiFetch(`/api/org/region-stats?${params}`); }
-  catch (error) { regionStatsState.result = null; regionStatsState.error = String(error.message || "").includes("403") ? "forbidden" : "failed"; }
+  catch (error) { regionStatsState.result = null; regionStatsState.error = error.status === 403 ? "forbidden" : "failed"; }
   finally { regionStatsState.loading = false; renderRegionStats(); }
 }
 

@@ -37,4 +37,5 @@ class JobResponse(BaseModel):
     progress: int
     current_step: str
     error_message: Optional[str] = None
+    error: Optional[dict[str, str]] = None
     report: Optional[dict[str, Any]] = None

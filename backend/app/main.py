@@ -58,7 +58,6 @@ ALLOWED_ORIGINS = [
     if origin.strip()
 ]
 SCHEMA_INIT_ENVIRONMENTS = {"local", "development", "test"}
-MARKET_SOURCE_URL = "https://www.mlit.go.jp/"
 MARKET_SOURCE_CACHE_TTL_SECONDS = 60.0
 _market_source_cache: tuple[str, float] | None = None
 _market_source_cache_lock: asyncio.Lock | None = None
@@ -167,6 +166,33 @@ def report_status_for_report(*, has_snapshot: bool) -> str:
 class ReportSourceResolutionError(RuntimeError):
     """A publishable report cannot resolve its authorized source registry row."""
 
+    code = "market_source_unavailable"
+    user_message = "市场数据源暂时不可用，请稍后重试。"
+
+    def __init__(self, detail: str):
+        super().__init__(detail)
+        self.detail = detail
+
+
+def job_error_payload(error: Exception) -> dict[str, str]:
+    """Return the only error shape allowed to cross the member API boundary."""
+
+    if isinstance(error, ReportSourceResolutionError):
+        return {"code": error.code, "message": error.user_message}
+    return {"code": "report_generation_failed", "message": "报告生成失败，请稍后重试。"}
+
+
+def parse_job_error(value: Any) -> dict[str, str] | None:
+    if not value:
+        return None
+    try:
+        payload = json.loads(value) if isinstance(value, str) else value
+    except (TypeError, ValueError):
+        return {"code": "report_generation_failed", "message": "报告生成失败，请稍后重试。"}
+    if not isinstance(payload, dict) or not payload.get("code") or not payload.get("message"):
+        return {"code": "report_generation_failed", "message": "报告生成失败，请稍后重试。"}
+    return {"code": str(payload["code"]), "message": str(payload["message"])}
+
 
 def namespaced_report_slug(owner_user_id: str, base_slug: str) -> str:
     """Keep the human-readable slug while making it unique per owner."""
@@ -212,11 +238,11 @@ async def resolve_market_source_id(conn: Any) -> str:
                 """
                 select id
                 from public.sources
-                where url=$1 and permission_status='rights_confirmed'
+                where permission_status='rights_confirmed'
+                  and source_type='government_open_data'
                 order by updated_at desc, created_at desc
                 limit 1
                 """,
-                MARKET_SOURCE_URL,
             )
         except Exception as exc:
             logger.warning("market source lookup failed: %s", type(exc).__name__)
@@ -615,12 +641,14 @@ async def run_generation_job(job_id: str, query_id: str, owner_user_id: str, req
                 job_id,
             )
     except Exception as exc:
+        error_payload = job_error_payload(exc)
+        logger.exception("report generation failed", extra={"error_code": error_payload["code"]})
         async with get_pool().acquire() as conn:
             await conn.execute("update queries set status='failed', updated_at=now() where id=$1", query_id)
             await conn.execute(
                 "update generation_jobs set status='failed', progress=100, current_step='失败', error_message=$2, updated_at=now() where id=$1",
                 job_id,
-                str(exc),
+                json.dumps(error_payload, ensure_ascii=False),
             )
             await conn.execute(
                 """
@@ -906,7 +934,8 @@ async def get_job(job_id: str, user: AuthUser = Depends(require_user)) -> JobRes
             status=job["status"],
             progress=job["progress"],
             current_step=job["current_step"],
-            error_message=job["error_message"],
+            error_message=(parse_job_error(job["error_message"]) or {}).get("message"),
+            error=parse_job_error(job["error_message"]),
             report=report,
         )
 
@@ -944,6 +973,10 @@ async def list_my_queries(user: AuthUser = Depends(require_user)) -> list[dict[s
         item = dict(row)
         if isinstance(item.get("generation_jobs"), str):
             item["generation_jobs"] = json.loads(item["generation_jobs"])
+        for job in item.get("generation_jobs") or []:
+            error = parse_job_error(job.get("error_message"))
+            job["error"] = error
+            job["error_message"] = error["message"] if error else None
         result.append(item)
     return result
 

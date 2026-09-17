@@ -77,7 +77,10 @@ const INTAKE_RUNTIME_KEYS = [
 ];
 
 function loadI18n({ language = "en-US", search = "", savedLocale = null } = {}) {
-  const source = fs.readFileSync("web/js/i18n.js", "utf8");
+  const source = fs.readFileSync("web/js/i18n.js", "utf8").replace(
+    "const ADDITIONAL_I18N = {",
+    "const ADDITIONAL_I18N = window.__additionalI18n = {",
+  );
   const elements = [];
   const document = {
     documentElement: { lang: "" },
@@ -97,7 +100,7 @@ function loadI18n({ language = "en-US", search = "", savedLocale = null } = {}) 
     window: { addEventListener() {} },
   };
   vm.runInNewContext(source, context, { filename: "web/js/i18n.js" });
-  return context.window.ZouI18n;
+  return Object.assign(context.window.ZouI18n, { additionalI18n: context.window.__additionalI18n });
 }
 
 test("zh-Hant has exactly the zh-CN keys", () => {
@@ -128,7 +131,7 @@ test("every dynamic dictionary entry declares all four locales", () => {
   };
   vm.runInNewContext(source, context, { filename: "web/js/i18n.js" });
   const entries = Object.entries(context.window.__additionalI18n);
-  assert.equal(entries.length, 195, "all dynamic dictionary entries were found");
+  assert.equal(entries.length, 198, "all dynamic dictionary entries were found");
   for (const [key, values] of entries) {
     for (const locale of ["zh-CN", "zh-Hant", "en", "ja"]) {
       assert.ok(Object.prototype.hasOwnProperty.call(values, locale), `${key}: ${locale}`);
@@ -167,6 +170,15 @@ test("zh-Hant uses 數據 for the region-stat data copy and localizes the report
   assert.equal(i18n.t("regionStats.towerDisclosure").startsWith("官方數據未區分塔樓與公寓"), true);
   assert.equal(i18n.t("workspace.reportFooterVersion", "").includes("synthetic_fixture"), false);
   assert.equal(i18n.t("workspace.reportFooterVersion", "").includes("synthetic_sample"), false);
+});
+
+test("runtime zh-Hant keeps every hand-written ADDITIONAL_I18N value", () => {
+  const i18n = loadI18n({ search: "?lang=zh-Hant" });
+  for (const [key, values] of Object.entries(i18n.additionalI18n)) {
+    if (Object.prototype.hasOwnProperty.call(values, "zh-Hant")) {
+      assert.equal(i18n.t(key), values["zh-Hant"], key);
+    }
+  }
 });
 
 test("password guidance is six to 128 characters in every supported locale", () => {

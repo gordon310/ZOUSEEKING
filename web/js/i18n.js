@@ -2665,7 +2665,7 @@
 
   // Dynamic copy used by the report, workspace and operations views. Keep the
   // sentence whole so locale-specific word order is preserved.
-  const ADDITIONAL_I18N = {
+  const ADDITIONAL_I18N = window.__additionalI18n = {
     "regionStats.eyebrow": { "zh-CN": "MLIT 成交价资料", "zh-Hant": "MLIT 成交價資料", en: "MLIT CLOSED-PRICE DATA", ja: "MLIT 成約価格データ" },
     "regionStats.title": { "zh-CN": "区域成交价统计", "zh-Hant": "區域成交價統計", en: "Regional closed-price statistics", ja: "地域別成約価格統計" },
     "regionStats.intro": { "zh-CN": "仅使用国土交通省公开成交价资料；数值由服务端按库内记录实时计算。", "zh-Hant": "僅使用國土交通省公開成交價資料；數值由服務端按庫內記錄即時計算。", en: "Uses only MLIT public closed-price data; values are calculated live from stored records.", ja: "国土交通省の公開成約価格データのみを使用し、保存済みレコードからサーバーでリアルタイム計算します。" },
@@ -2683,6 +2683,9 @@
     "regionStats.ratio": { "zh-CN": "租售比：暂不可用（租金数据未授权）", "zh-Hant": "租售比：暫不可用（租金數據未授權）", en: "Rent-to-sale ratio: unavailable (rental data is not authorized)", ja: "賃貸・売買比: 利用不可（賃料データ未承認）" },
     "regionStats.limitations": { "zh-CN": "限制：参考信息，非逐笔成交明细；㎡单价由官方总价和面积计算。", "zh-Hant": "限制：參考資訊，非逐筆成交明細；㎡單價由官方總價和面積計算。", en: "Limitations: reference information, not itemized transactions; price/sqm is derived from official total price and area.", ja: "制限: 参考情報であり個別取引明細ではありません。㎡単価は公式の総額と面積から算出しています。" },
     "regionStats.towerDisclosure": { "zh-CN": "官方数据未区分塔楼与公寓，此处按公寓口径统计。塔楼通常指20层以上或建筑高度超过60米。", "zh-Hant": "官方數據未區分塔樓與公寓，此處按公寓口徑統計。塔樓通常指20層以上或建築高度超過60米。", en: "Official data does not distinguish towers from apartments; this statistic uses the apartment definition. A tower commonly means 20 or more floors or a building over 60 m tall.", ja: "公式データではタワーとマンションを区別していないため、マンションの定義で集計しています。タワーは一般に20階以上、または高さ60m超を指します。" },
+    "query.error.marketSourceUnavailable": { "zh-CN": "市场数据源暂时不可用，请稍后重试。", "zh-Hant": "市場資料來源暫時無法使用，請稍後重試。", en: "The market data source is temporarily unavailable. Try again later.", ja: "市場データソースを一時的に利用できません。後でもう一度お試しください。" },
+    "query.error.generationFailed": { "zh-CN": "报告生成失败，请稍后重试。", "zh-Hant": "報告生成失敗，請稍後重試。", en: "The report could not be generated. Try again later.", ja: "レポートを生成できませんでした。後でもう一度お試しください。" },
+    "query.error.unknown": { "zh-CN": "查询暂时无法完成，请稍后重试。", "zh-Hant": "查詢暫時無法完成，請稍後重試。", en: "The query could not be completed. Try again later.", ja: "検索を完了できませんでした。後でもう一度お試しください。" },
     "page.inviteTitle": { "zh-CN": "接受机构邀请", "zh-Hant": "接受機構邀請", en: "Accept organization invitation", ja: "組織への招待を受け入れる" },
     "business.inviteMember": { "zh-CN": "邀请成员", "zh-Hant": "邀請成員", en: "Invite member", ja: "メンバーを招待" },
     "business.inviteeEmail": { "zh-CN": "受邀邮箱", "zh-Hant": "受邀電子郵件", en: "Invitee email", ja: "招待するメールアドレス" },
@@ -2791,7 +2794,7 @@
   };
   for (const [key, values] of Object.entries(ADDITIONAL_I18N)) {
     DICTIONARY["zh-CN"][key] = values["zh-CN"];
-    DICTIONARY["zh-Hant"][key] = toTraditional(values["zh-CN"]);
+    DICTIONARY["zh-Hant"][key] = values["zh-Hant"] || toTraditional(values["zh-CN"]);
     DICTIONARY.en[key] = values.en;
     DICTIONARY.ja[key] = values.ja;
   }

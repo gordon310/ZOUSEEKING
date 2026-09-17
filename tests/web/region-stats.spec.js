@@ -47,3 +47,68 @@ test("塔楼统计显示口径说明且不泄露内部标识", async ({ page }) 
   await expect(page.locator("#regionStatsResult")).toContainText("官方数据未区分塔楼与公寓");
   await expect(page.locator("#regionStatsResult")).not.toContainText("tower_merged_into_apartment");
 });
+
+test("区域成交价统计将 403 显示为权限提示而不是暂时失败", async ({ page }) => {
+  await page.addInitScript(() => { window.ZOUSEEKING_API_BASE_URL = "https://api.test"; });
+  await page.goto("/data-query.html");
+  await page.evaluate(() => window.ZouAuthSession.write({ provider: "demo", username: "Member", email: "member@example.test", userId: "member-1" }));
+  await page.waitForFunction(() => document.body.classList.contains("auth-ready"));
+  await page.evaluate(() => {
+    window.fetch = async () => new Response(JSON.stringify({ error: { code: "org_forbidden", message: "无权访问" } }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  });
+  await page.evaluate(() => window.ZouRegionStats.load({ preventDefault() {} }));
+  await expect(page.locator("#regionStatsResult")).toContainText("当前账户没有机构统计权限");
+  await expect(page.locator("#regionStatsResult")).not.toContainText("统计暂时无法读取");
+});
+
+test("区域成交价统计将 500 显示为暂时失败", async ({ page }) => {
+  await page.addInitScript(() => { window.ZOUSEEKING_API_BASE_URL = "https://api.test"; });
+  await page.goto("/data-query.html");
+  await page.evaluate(() => window.ZouAuthSession.write({ provider: "demo", username: "Member", email: "member@example.test", userId: "member-1" }));
+  await page.waitForFunction(() => document.body.classList.contains("auth-ready"));
+  await page.evaluate(() => {
+    window.fetch = async () => new Response("服务不可用", { status: 500 });
+  });
+  await page.evaluate(() => window.ZouRegionStats.load({ preventDefault() {} }));
+  await expect(page.locator("#regionStatsResult")).toContainText("统计暂时无法读取");
+});
+
+test("物件查询的来源失败只显示本地化安全文案", async ({ page }) => {
+  await page.addInitScript(() => { window.ZOUSEEKING_API_BASE_URL = "https://api.test"; });
+  await page.goto("/data-query.html");
+  await page.evaluate(() => window.ZouAuthSession.write({
+    provider: "supabase", username: "Member", email: "member@example.test", userId: "member-1", accessToken: "test-token", refreshToken: "test-refresh",
+  }));
+  await page.waitForFunction(() => document.body.classList.contains("auth-ready"));
+  await page.evaluate(() => {
+    window.fetch = async (url) => {
+      if (String(url).includes("/api/query")) {
+        return new Response(JSON.stringify({ job_id: "job-1", status: "pending", cached: false, title: "测试", query_key: "test", report: null }), { status: 200 });
+      }
+      if (String(url).includes("/api/jobs/job-1")) {
+        return new Response(JSON.stringify({
+          job_id: "job-1", status: "failed", progress: 100, current_step: "失败",
+          error: { code: "market_source_unavailable", message: "市场数据源暂时不可用，请稍后重试。" },
+        }), { status: 200 });
+      }
+      return new Response(JSON.stringify([]), { status: 200 });
+    };
+    for (const select of document.querySelectorAll("#queryForm select")) select.disabled = false;
+    const prefecture = document.querySelector("#prefectureSelect");
+    prefecture.selectedIndex = 1;
+    prefecture.dispatchEvent(new Event("change", { bubbles: true }));
+    const city = document.querySelector("#citySelect");
+    city.selectedIndex = 1;
+    city.dispatchEvent(new Event("change", { bubbles: true }));
+    document.querySelector("#assetTypeSelect").selectedIndex = 1;
+    document.querySelector("#yearSelect").selectedIndex = 1;
+    document.querySelector("#monthSelect").selectedIndex = 1;
+    document.querySelector("#queryForm").requestSubmit();
+  });
+  await expect(page.locator("#formMessage")).toContainText("市场数据源暂时不可用，请稍后重试");
+  await expect(page.locator("body")).not.toContainText("market_source_unavailable");
+  await expect(page.locator("body")).not.toContainText("no rights_confirmed");
+});

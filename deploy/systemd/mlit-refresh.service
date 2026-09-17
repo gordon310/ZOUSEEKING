@@ -1,0 +1,17 @@
+[Unit]
+Description=Refresh ZOUSEEKING MLIT transaction statistics
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=zouseeking
+Group=zouseeking
+WorkingDirectory=/opt/zouseeking
+EnvironmentFile=-/opt/zouseeking/deploy/.env
+ExecStart=/opt/zouseeking/deploy/mlit-refresh.sh
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

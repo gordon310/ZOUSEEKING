@@ -32,3 +32,18 @@ test("区域成交价统计样本不足态不显示数字", async ({ page }) => 
   await expect(page.locator("#regionStatsResult")).toContainText("样本不足");
   await expect(page.locator("#regionStatsResult")).not.toContainText("中位㎡单价");
 });
+
+test("塔楼统计显示口径说明且不泄露内部标识", async ({ page }) => {
+  await page.addInitScript(() => { window.ZOUSEEKING_API_BASE_URL = "https://api.test"; });
+  await page.goto("/data-query.html");
+  await page.evaluate(() => window.ZouAuthSession.write({ provider: "demo", username: "Member", email: "member@example.test", userId: "member-1" }));
+  await page.waitForFunction(() => document.body.classList.contains("auth-ready"));
+  await page.selectOption("#statsAssetType", { label: "塔楼" });
+  await page.evaluate(() => window.fetch = async () => new Response(JSON.stringify({
+    status: "ok", sample_size: 5, median_unit_price_jpy_per_sqm: 300000,
+    p25: 200000, p75: 400000, disclosure: { code: "tower_merged_into_apartment" },
+  }), { status: 200, headers: { "Content-Type": "application/json" } }));
+  await page.evaluate(() => window.ZouRegionStats.load({ preventDefault() {} }));
+  await expect(page.locator("#regionStatsResult")).toContainText("官方数据未区分塔楼与公寓");
+  await expect(page.locator("#regionStatsResult")).not.toContainText("tower_merged_into_apartment");
+});

@@ -109,3 +109,32 @@ curl -fsS https://api.zoubeacon.com/health/ready
 SSL is terminated through Cloudflare using Full (strict) mode and the existing
 Cloudflare Origin Certificate mounted from `/opt/zoubeacon/certs`. Do not run
 `certbot` on this machine.
+
+## Monthly MLIT transaction refresh
+
+The refresh service imports the current and previous calendar year for Tokyo,
+Osaka, and Niigata. It is idempotent and does not restart the Compose
+containers. Before installing it, create a root-owned key file with mode 600;
+the job reads it without printing the value:
+
+```bash
+sudo install -d -m 755 /etc/zouseeking
+sudo install -o zouseeking -g zouseeking -m 600 /dev/null /etc/zouseeking/mlit-api-key
+sudoedit /etc/zouseeking/mlit-api-key
+sudo install -o root -g root -m 644 deploy/mlit-refresh.sh /opt/zouseeking/deploy/mlit-refresh.sh
+sudo install -d -m 755 /etc/systemd/system
+sudo install -o root -g root -m 644 deploy/systemd/mlit-refresh.service /etc/systemd/system/mlit-refresh.service
+sudo install -o root -g root -m 644 deploy/systemd/mlit-refresh.timer /etc/systemd/system/mlit-refresh.timer
+sudo systemctl daemon-reload
+sudo systemctl enable --now mlit-refresh.timer
+```
+
+The service expects `/opt/zouseeking/backend/.venv/bin/python` and the normal
+`DATABASE_URL` environment used by the host deployment. If the host uses a
+different interpreter, set `PYTHON_BIN=` in a systemd drop-in or change the
+deployment copy of the script. Run one manual refresh with
+`sudo systemctl start mlit-refresh.service`; inspect only the timestamped
+summary and importer output with
+`sudo tail -n 200 /var/log/zouseeking-mlit-refresh.log`. Stop and disable the
+timer with `sudo systemctl disable --now mlit-refresh.timer`. The script does
+not contain a production connection string or secret.

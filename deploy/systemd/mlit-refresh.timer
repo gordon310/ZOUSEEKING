@@ -1,0 +1,10 @@
+[Unit]
+Description=Monthly ZOUSEEKING MLIT transaction refresh
+
+[Timer]
+OnCalendar=*-*-05 03:30:00 Asia/Tokyo
+Persistent=true
+Unit=mlit-refresh.service
+
+[Install]
+WantedBy=timers.target

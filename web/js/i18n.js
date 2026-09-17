@@ -2682,6 +2682,7 @@
     "regionStats.source": { "zh-CN": "出典: 不动产信息库（国土交通省） · 许可: PDL1.0", en: "Source: Real Estate Information Library (MLIT) · License: PDL1.0", ja: "出典: 不動産情報ライブラリ（国土交通省）・ライセンス: PDL1.0" },
     "regionStats.ratio": { "zh-CN": "租售比：暂不可用（租金数据未授权）", en: "Rent-to-sale ratio: unavailable (rental data is not authorized)", ja: "賃貸・売買比: 利用不可（賃料データ未承認）" },
     "regionStats.limitations": { "zh-CN": "限制：参考信息，非逐笔成交明细；㎡单价由官方总价和面积计算。", en: "Limitations: reference information, not itemized transactions; price/sqm is derived from official total price and area.", ja: "制限: 参考情報であり個別取引明細ではありません。㎡単価は公式の総額と面積から算出しています。" },
+    "regionStats.towerDisclosure": { "zh-CN": "官方数据未区分塔楼与公寓，此处按公寓口径统计。塔楼通常指20层以上或建筑高度超过60米。", en: "Official data does not distinguish towers from apartments; this statistic uses the apartment definition. A tower commonly means 20 or more floors or a building over 60 m tall.", ja: "公式データではタワーとマンションを区別していないため、マンションの定義で集計しています。タワーは一般に20階以上、または高さ60m超を指します。" },
     "page.inviteTitle": { "zh-CN": "接受机构邀请", en: "Accept organization invitation", ja: "組織への招待を受け入れる" },
     "business.inviteMember": { "zh-CN": "邀请成员", en: "Invite member", ja: "メンバーを招待" },
     "business.inviteeEmail": { "zh-CN": "受邀邮箱", en: "Invitee email", ja: "招待するメールアドレス" },

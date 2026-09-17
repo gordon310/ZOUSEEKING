@@ -1797,7 +1797,10 @@ function renderRegionStats() {
   if (!data) return;
   if (data.status === "insufficient_sample") { result.innerHTML = `<p>${escapeHtml(uiText("regionStats.insufficient", "样本不足（少于 5 条），不显示中位数或四分位数。"))}</p>`; return; }
   const money = (value) => Number(value).toLocaleString();
-  result.innerHTML = `<div class="stat-grid"><div class="stat-card"><strong>${escapeHtml(uiText("regionStats.median", "中位㎡单价"))}</strong><br>${money(data.median_unit_price_jpy_per_sqm)} JPY</div><div class="stat-card"><strong>${escapeHtml(uiText("regionStats.quartiles", "P25 / P75"))}</strong><br>${money(data.p25)} / ${money(data.p75)} JPY</div><div class="stat-card"><strong>${escapeHtml(uiText("regionStats.samples", "样本量"))}</strong><br>${data.sample_size}</div></div><p>${escapeHtml(uiText("regionStats.source", "出典: 不动产信息库（国土交通省） · 许可: PDL1.0"))}</p><p>${escapeHtml(uiText("regionStats.ratio", "租售比：暂不可用（租金数据未授权）"))}</p><p>${escapeHtml(uiText("regionStats.limitations", "限制：参考信息，非逐笔成交明细；㎡单价由官方总价和面积计算。"))}</p>`;
+  const disclosure = data.disclosure?.code === "tower_merged_into_apartment"
+    ? `<p>${escapeHtml(uiText("regionStats.towerDisclosure", "官方数据未区分塔楼与公寓，此处按公寓口径统计。塔楼通常指20层以上或建筑高度超过60米。"))}</p>`
+    : "";
+  result.innerHTML = `${disclosure}<div class="stat-grid"><div class="stat-card"><strong>${escapeHtml(uiText("regionStats.median", "中位㎡单价"))}</strong><br>${money(data.median_unit_price_jpy_per_sqm)} JPY</div><div class="stat-card"><strong>${escapeHtml(uiText("regionStats.quartiles", "P25 / P75"))}</strong><br>${money(data.p25)} / ${money(data.p75)} JPY</div><div class="stat-card"><strong>${escapeHtml(uiText("regionStats.samples", "样本量"))}</strong><br>${data.sample_size}</div></div><p>${escapeHtml(uiText("regionStats.source", "出典: 不动产信息库（国土交通省） · 许可: PDL1.0"))}</p><p>${escapeHtml(uiText("regionStats.ratio", "租售比：暂不可用（租金数据未授权）"))}</p><p>${escapeHtml(uiText("regionStats.limitations", "限制：参考信息，非逐笔成交明细；㎡单价由官方总价和面积计算。"))}</p>`;
 }
 
 async function loadRegionStats(event) {

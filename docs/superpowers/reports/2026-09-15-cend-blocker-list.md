@@ -158,3 +158,15 @@ N1 首次发版引入**线上 500 回归**:`backend/app/auth.py` 的 `require_us
   2. **控制台**:Supabase Dashboard → 项目 `zoubeacon-staging` → **Authentication → Providers → Email** 内的 **Confirm Email** 开关(官方 general-configuration 文档:该选项位于 email provider 的 provider-specific configuration)。关闭后等价于 `mailer_autoconfirm=false`。
 - **切换注意**:应用侧已是双模式(`mailer_autoconfirm` 单开关,不改代码);切换前确认 SES 侧发信身份与模板已就绪(§四已核对);切换后立即跑一轮真实地址注册验证,失败则回切 `true`。
 - 红线:本节仅只读取证 + 文档;零 DB/线上写、零部署、零凭据改动、零删除、未改 migration 与冻结字段。
+
+## 七、2026-09-18 更新:N6 已闭环 + 门禁真实库证据缺口(晨班只读)
+
+| # | 项 | 状态 |
+|---|---|---|
+| **N6** | `mailer_autoconfirm` 切 `false` | ✅ **已闭环(2026-09-17 人工会话执行)**:开关已切 `false`、「注册 → 真收信 → 点链接 → 登录」端到端验证通过;§六「唯一剩余动作」作废。本班只读复核:Hermes `cron list` 已无 SES 监视作业,与闭环记录一致 |
+| **C1** | Release Gate 红链(09-17 连续 7 推) | ✅ **已复位**:`0a70e3e` / run `35245512352`(09-17T16:16Z)**七 job 全绿**;两条根因分别由 `d233e6f`(集成测试改 skip + 浏览器断言去 `synthetic_fixture` 字面)与 `57617d3`/`0a70e3e`(Playwright)修掉 |
+| **C1b** | ⚠️ **新缺口(本班实测)**:修复走的是「库不在即 skip」次选路径 | `.github/workflows/release-gate.yml` 的 Python job **无任何数据库服务**(无 `55432`、无 `services:`),`npx supabase start` 只在 `sql-rls` job(54322,跨 job 不可用)→ **7 个真实库集成测试在 CI 静默跳过**,MLIT XIT001 导入 / region-stats / 报告来源解析的**真实库证据在门禁中不成立**。本机复现:`pytest tests/integration -q`(未设库变量)→ 7 skipped。**最小修法(建议派 Codex)**:Python job 加 `services: postgres:16`(映射 `55432:5432`)+ pytest step 导出 `DATABASE_URL`;`tests/support/pg_bootstrap.py` 自建库并跑迁移,无需 supabase CLI |
+| **N3** | 4 行历史僵尸报告 | 仍待批(本班无 DB 凭据,未动);修复后会在对应账号下次查询时自愈 |
+| **C4** | 迁移台账卫生 | 仍待口径(补齐 or 不补) |
+
+- 红线:本节仅只读核验 + 文档;零 DB/线上写、零部署、零删除、未触凭据与冻结字段、未改 migration。

@@ -10,7 +10,7 @@
 - 2026-09-11 修复发布门禁回归：`fb36907` 下架未授权条目后内容库仅剩 3 条，B 端首页 Playwright 断言仍写死 5 条卡片 → 断言改为由 `data/content_library.json` 推导（`min(5, len)`）并补匿名上限 5 条用例；顺带入库 Codex 支付接线批次 A 证据报告（`docs/superpowers/reports/`）并清理其尾随空白。commit `3b4eeb2` / `8eb9b03` / `1af1329`
 - 2026-09-11 晚班：Release Gate 连续红链（244f5bd/513dfdb/5c71a26 引入，管家定位出 5 个独立根因）修复完毕，CI run `34600659312` 七 job 全绿；当前 main=`e100374`（含 `web/config.example.js` 前端配置契约、定价控制台 spec mock、schema 清单 24 迁移、M1 grant 基线 318）
 - P2 待推进：P2-2 JPPGSKILL 联调、P2-3 深度报告真实链接线（引擎 P2-3b 已就绪）、P2-4 支付接线（Stripe 后端已就绪）、P2-5 合规、P2-6 提审材料；live 采集激活卡海外执行（国交省 land 国内不可达）
-- **2026-09-17 夜班警示**：当前 main `1bfc01c` **Release Gate 红灯**（自 06:40Z `f06a77d` 起连续 7 推）——根因两条：①新增真实库集成测试在 CI Python job 无 `127.0.0.1:55432` 一次性库（5 failed + 2 errors）；②i18n 收口后 Playwright 断言仍写字面 `synthetic_fixture`（1 failed / 100 passed）。修复口径与证据见文末「夜班·P1自主推进 → CI 红链定位」条目，需派 Codex。
+- **2026-09-17 夜班警示（✅ 已于 09-17 晚复位，见文末 09-18 晨班条目）**：当时 main `1bfc01c` **Release Gate 红灯**（自 06:40Z `f06a77d` 起连续 7 推）——根因两条：①新增真实库集成测试在 CI Python job 无 `127.0.0.1:55432` 一次性库（5 failed + 2 errors）；②i18n 收口后 Playwright 断言仍写字面 `synthetic_fixture`（1 failed / 100 passed）。修复口径与证据见文末「夜班·P1自主推进 → CI 红链定位」条目，需派 Codex。
 - **2026-09-17 晨班快照**：main = `4d23922`（工作树干净、本地=远端）；Release Gate 绿；**AWS SES 生产权限已获批**（`ProductionAccessEnabled=true` / `ReviewDetails.Status=GRANTED`）→ 上线前最后一个邮件阻塞项解除，剩余动作只剩切 `mailer_autoconfirm=false`；09-16 白天批次已落 20 commit（机构域邀请/账单/导出、服务任务 C 端闭环、下载式报告交付、**MLIT 真实成交价区域统计** `GET /api/org/region-stats` + `20260916000500_mlit_transactions` + `sql-mlit-transactions` 门禁、资源版本 r44）
 
 ## Recently completed
@@ -427,6 +427,19 @@
 - **修复口径(归 Codex:开发与测试不归本 BOT,未代写)**:① 首选 —— release-gate Python job 起一次性 PG(`services: postgres:16` 映射 55432,或复用 `npx supabase start` 后把两个 `*_TEST_DATABASE_URL` 指向 54322)并在 pytest 前导出环境变量;② 次选 —— 显式 `-m realdb` 默认排除(会弱化 M-B4 真实库证据,不推荐);③ 更新 `business-home-members-locale.spec.js:155` 断言到新的本地化文案(数据类声明仍须对用户可见,不得删)。
 - **未做/红线**:零代码改动、零 DB 写、零部署、零删除、未触凭据与冻结字段、未改 migration;本班仅文档 + commit/push。
 
+## CI 绿灯复位 + 门禁真实库证据缺口(2026-09-18 晨班,本 BOT)
+
+- **班前实测**:工作树干净(近期改动均已提交)、`main == origin/main == 0a70e3e`;无 `codex exec` 进程 → 不判「进行中」;P1 清单自 09-07 闭环,本班复核对后台真实数据单元后仍**无剩余单元**。
+- **CI 红链已复位(本轮首次落地)**:Release Gate `0a70e3e` / run `35245512352`(09-17T16:16Z)**七个 job 全绿**(Python / Node / Disposable SQL and RLS / Repository policy / Supply-chain / Playwright / Release evidence);09-17 夜班定位的两条确定性失败均已修:① `d233e6f`(集成测试改为「库不在即 skip」+ 浏览器断言去 `synthetic_fixture` 字面)② `57617d3` / `0a70e3e`(Playwright 等待与六页 review 用例)。首屏「夜班警示」条已标注复位。
+- **⚠️ 新发现(本班实测,需派 Codex 的最小修法)**:① 走的是夜班清单里的**次选**——`.github/workflows/release-gate.yml` 的 **Python job 没有任何数据库服务**(全文无 `55432`、无 `services:`;仅 `pytest -q`),`npx supabase start` 只在 `sql-rls` job(54322,跨 job 不可用)→ **CI 中 7 个真实库集成测试静默跳过,M-B4(MLIT XIT001 导入 / region-stats / 报告来源解析)的真实库证据在门禁里并不成立**。
+  - 本机复现(只读):`env -u MLIT_TEST_DATABASE_URL -u DATABASE_URL … pytest tests/integration -q` → **7 skipped**;本机 55432 一次性库在运行,`d233e6f` commit message 记录「有库时 7 passed」→ 测试本身健康,缺的只是 CI 接线。
+  - **最小修法**:Python job 加 `services: postgres:16`(端口映射 `55432:5432`)+ pytest step 导出 `DATABASE_URL`;`tests/support/pg_bootstrap.py` 会自建库并跑 `supabase/migrations`,不依赖 supabase CLI,也不需要 SQL job 的 54322。
+- **班前核验**:`api.zoubeacon.com/health/ready` → ready/database ok;`zoubeacon.app` 200、`platform.zoubeacon.com/admin.html` 200;本地 `web/*.html` 23/23 = 线上 `?v=20260917-r51`(首页 / admin / data-query / mypage 四处抽验一致,**无部署漂移**;`deploy/frontend-version.txt` 同值);两侧内容库 SHA-256 一致(`86be5284…`);`compileall` + `node --check web/app.js` 通过;`pytest tests/unit tests/architecture -q` → **413 passed / 85 skipped**。
+- **P1 后台管理真实数据复核(只读)**:`backend/app/admin/routes.py` 端点覆盖 member / audit / orders(+refunds)/ collection(+sources)/ pricing / overview / service-tasks / internal-roles / member-status;`backend/app/**` 与 `web/js/**` 无 fixture/demo/mock 数据源残留(唯一命中 `web/js/property-intake.js:104` 是免费预览**显式声明** `data_class="synthetic_fixture"`,属合规声明而非假数据)→ 该单元维持完成。
+- **认证邮件链路(09-17 人工会话已闭环,本班只读复核)**:`mailer_autoconfirm=false` 已生效、「注册→真收信→点链接→登录」端到端跑通、SES 监视 cron 已撤;`hermes cron list` 实测已无该作业,与闭环记录一致。
+- **仍待 Gordon 拍板(未变)**:① M1 两个收敛单元(报告生成入 durable worker / `app.js` legacy 直读退役)是否派工 ② 4 行历史僵尸报告清理(需批准;不批亦会自愈)③ 迁移台账 C4 口径 ④ 未部署冻结件(Edge 函数 / `run_jphouse_worker.py`)删除 vs 长期冻结 ⑤ 本班次(job `ab373f6bd99d`)改绑 P2 或停用。
+- **红线**:零代码改动、零 DB 写、零部署、零删除、未触凭据与冻结字段、未改 migration;本班仅文档 + commit/push。
+
 ## Last updated
 
-2026-09-17
+2026-09-18

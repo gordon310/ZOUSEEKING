@@ -103,6 +103,17 @@ def test_parser_defaults_to_five_thousand_row_chunks_and_allows_override():
     assert importer.parser().parse_args(["--chunk-size", "123"]).chunk_size == 123
 
 
+def test_deduplicates_chunk_by_source_record_key_and_keeps_first_row():
+    first = {"source_record_key": "same", "value": "first"}
+    second = {"source_record_key": "same", "value": "second"}
+    third = {"source_record_key": "other", "value": "third"}
+
+    unique, skipped = importer._deduplicate_chunk([first, second, third])
+
+    assert unique == [first, third]
+    assert skipped == 1
+
+
 def test_requests_local_xit001_server_with_area_and_secret_header():
     seen = {"requests": []}
 

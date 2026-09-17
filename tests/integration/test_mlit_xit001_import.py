@@ -153,6 +153,65 @@ async def test_xit001_local_http_to_local_postgres_is_idempotent_and_queryable()
 
 
 @pytest.mark.asyncio
+async def test_batch_upsert_deduplicates_repeated_keys_within_one_chunk():
+    base_url = os.getenv("MLIT_TEST_DATABASE_URL", LOCAL_DATABASE_URL)
+    database = f"mlit_same_chunk_{uuid4().hex[:10]}"
+    target_url = database_url(base_url, database)
+    await bootstrap_and_migrate(base_url, database)
+    try:
+        payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
+        source_rows = payload["data"]
+        rows = []
+        for index in range(5):
+            item = copy.deepcopy(source_rows[index % 2])
+            item["DistrictName"] = f"same-chunk-fixture-{index}"
+            item["TradePrice"] = str((index + 1) * 1_000_000)
+            rows.append(importer.normalize_xit001_rows([item], datetime(2026, 9, 17, tzinfo=timezone.utc))[0][0])
+        rows.extend([copy.deepcopy(rows[0]), copy.deepcopy(rows[1])])
+
+        actual = await importer.upsert_rows(target_url, rows, chunk_size=7)
+
+        assert actual == {"inserted": 5, "updated": 0, "skipped": 2}
+    finally:
+        admin = await asyncpg.connect(base_url, database="postgres")
+        try:
+            await admin.execute(f'drop database "{database}" with (force)')
+        finally:
+            await admin.close()
+
+
+@pytest.mark.asyncio
+async def test_batch_upsert_handles_more_than_one_chunk():
+    base_url = os.getenv("MLIT_TEST_DATABASE_URL", LOCAL_DATABASE_URL)
+    database = f"mlit_multi_chunk_{uuid4().hex[:10]}"
+    target_url = database_url(base_url, database)
+    await bootstrap_and_migrate(base_url, database)
+    try:
+        payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
+        rows = []
+        for index in range(12):
+            item = copy.deepcopy(payload["data"][index % 2])
+            item["DistrictName"] = f"multi-chunk-fixture-{index}"
+            item["TradePrice"] = str((index + 1) * 1_000_000)
+            rows.append(importer.normalize_xit001_rows([item], datetime(2026, 9, 17, tzinfo=timezone.utc))[0][0])
+
+        actual = await importer.upsert_rows(target_url, rows, chunk_size=5)
+
+        assert actual == {"inserted": 12, "updated": 0, "skipped": 0}
+        conn = await asyncpg.connect(target_url)
+        try:
+            assert await conn.fetchval("select count(*) from public.mlit_transactions") == 12
+        finally:
+            await conn.close()
+    finally:
+        admin = await asyncpg.connect(base_url, database="postgres")
+        try:
+            await admin.execute(f'drop database "{database}" with (force)')
+        finally:
+            await admin.close()
+
+
+@pytest.mark.asyncio
 async def test_batch_upsert_matches_rowwise_counts_and_preserves_raw_for_duplicates():
     base_url = os.getenv("MLIT_TEST_DATABASE_URL", LOCAL_DATABASE_URL)
     database = f"mlit_batch_{uuid4().hex[:10]}"

@@ -237,6 +237,24 @@ def _row_values(row: dict[str, Any]) -> tuple[Any, ...]:
     )
 
 
+def _deduplicate_chunk(rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], int]:
+    """Keep the first row for each source key and count discarded duplicates.
+
+    ``source_record_key`` is the SHA-256 of the complete raw record. Equal keys
+    therefore mean equal raw records and equal derived columns, so keeping the
+    first occurrence cannot discard information.
+    """
+    unique_rows: list[dict[str, Any]] = []
+    seen_keys: set[str] = set()
+    for row in rows:
+        key = row["source_record_key"]
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+        unique_rows.append(row)
+    return unique_rows, len(rows) - len(unique_rows)
+
+
 async def upsert_rows(database_url: str, rows: list[dict[str, Any]], *, chunk_size: int = 5000) -> dict[str, int]:
     if chunk_size <= 0:
         raise ValueError("chunk_size must be positive")
@@ -267,11 +285,12 @@ async def upsert_rows(database_url: str, rows: list[dict[str, Any]], *, chunk_si
         updated = 0
         for chunk_number, start in enumerate(range(0, len(rows), chunk_size), start=1):
             chunk = rows[start : start + chunk_size]
+            unique_chunk, duplicate_count = _deduplicate_chunk(chunk)
             async with conn.transaction():
                 await conn.execute("truncate _mlit_transactions_import")
                 await conn.copy_records_to_table(
                     "_mlit_transactions_import",
-                    records=(_row_values(row) for row in chunk),
+                    records=(_row_values(row) for row in unique_chunk),
                     columns=MLIT_COLUMNS,
                 )
             counts = await conn.fetchrow("""with upserted as (
@@ -303,7 +322,7 @@ async def upsert_rows(database_url: str, rows: list[dict[str, Any]], *, chunk_si
             chunk_updated = int(counts["updated"])
             inserted += chunk_inserted
             updated += chunk_updated
-            chunk_skipped = len(chunk) - chunk_inserted - chunk_updated
+            chunk_skipped = duplicate_count + len(unique_chunk) - chunk_inserted - chunk_updated
             processed = start + len(chunk)
             skipped = processed - inserted - updated
             print(

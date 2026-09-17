@@ -37,8 +37,9 @@ test("区域成交价统计成功态展示真实口径与出典", async ({ page 
   await expect(statsResult).toContainText("东京都 港区 · 公寓 · 2025年 Q1");
   await expect(statsResult).toContainText("均价 约 179.5 万円/㎡");
   await expect(statsResult).toContainText("中位数 约 180.0 万円/㎡");
-  await expect(statsResult).toContainText("价格区间 126.4 〜 264.7 万円/㎡");
-  await expect(statsResult).toContainText("中间 50% 的成交落在这个区间");
+  await expect(statsResult).toContainText("主力成交价带 126.4 〜 264.7 万円/㎡");
+  await expect(statsResult).toContainText("低于此带 = 相对便宜,高于此带 = 相对偏贵(按官方成交四分位计算)");
+  await expect(statsResult).toContainText("均价 = 全部成交的平均值,高价房源会把均价拉高;中位数 = 成交价排序后取中间,更能代表典型行情。");
   await expect(statsResult).toContainText("552 笔官方成交记录");
   await expect(statsResult).toContainText("精确值:均价 1,794,737 円/㎡ · 中位数 1,800,000 円/㎡ · 区间 1,263,636 〜 2,646,667 円/㎡");
   await expect(statsResult).not.toContainText(/\d+\.\d{2,}/);

@@ -133,6 +133,20 @@ test("管理员会员管理仅操作本地演示记录", async ({ page }) => {
 });
 
 test("小象数据六个补齐页面都提供可评审入口", async ({ page }) => {
+  await page.route("**/api/**", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname === "/api/org/me") {
+      return route.fulfill({ json: { organization: null, role: null, seats: null, plan: null } });
+    }
+    if (url.pathname === "/api/org/members") return route.fulfill({ json: { members: [] } });
+    if (url.pathname === "/api/org/invitations") return route.fulfill({ json: { invitations: [] } });
+    if (url.pathname === "/api/org/service-tasks") return route.fulfill({ json: { items: [] } });
+    if (url.pathname === "/api/usage/summary") return route.fulfill({ json: { available: false, entitlements: {} } });
+    if (url.pathname === "/api/billing/prices") return route.fulfill({ json: [] });
+    if (url.pathname === "/api/billing/subscription") return route.fulfill({ json: null });
+    if (url.pathname === "/api/exports") return route.fulfill({ json: { exports: [] } });
+    return route.fulfill({ json: {} });
+  });
   const browserErrors = [];
   page.on("pageerror", (error) => browserErrors.push(`pageerror: ${error.message}`));
   page.on("console", (message) => {
@@ -335,7 +349,7 @@ test("导出提交期间禁用主按钮并提示沿用的导出", async ({ page 
   await seedBusinessReleaseScope(page);
   let releasePost;
   const postBlocked = new Promise((resolve) => { releasePost = resolve; });
-  await page.route("**/api/org/me", (route) => route.fulfill({ json: { organization: null, role: null, seats: null, plan: null } }));
+  await page.route("**/api/org/me", (route) => route.fulfill({ json: {} }));
   await page.route("**/api/usage/summary", (route) => route.fulfill({ json: { available: true, entitlements: { exports_rows: { used: 0, limit: 10 } } } }));
   await page.route("**/api/exports", async (route) => {
     if (route.request().method() === "POST") {

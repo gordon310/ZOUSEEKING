@@ -6,8 +6,8 @@ import {
   generatePreview,
   getValidAccessToken,
   uploadFiles,
-} from "./api-client.js?v=20260917-r50";
-import { extractPropertyFields } from "./property-intake-extraction.js?v=20260917-r50";
+} from "./api-client.js?v=20260917-r51";
+import { extractPropertyFields } from "./property-intake-extraction.js?v=20260917-r51";
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const INTAKE_SESSION_KEY = "zou_house_property_intake_session";

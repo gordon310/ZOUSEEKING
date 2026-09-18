@@ -14,6 +14,8 @@ from .region_names import normalize_region_stats_names
 
 router = APIRouter(prefix="/api/org", tags=["regional statistics"])
 TOWER_DISCLOSURE_CODE = "tower_merged_into_apartment"
+RENT_REFERENCE_122_4 = "estat_housing_land_122_4"
+RENT_REFERENCE_122_5 = "estate_housing_land_122_5"
 
 
 def normalize_stats_ward(ward: Optional[str]) -> Optional[str]:
@@ -26,6 +28,47 @@ class RegionStatsStore(Protocol):
 
 
 class DbRegionStatsStore:
+    @staticmethod
+    async def _rent_reference(conn: asyncpg.Connection, prefecture: str, city: str, ward: Optional[str], asset_type: str):
+        preferred_dimensions = {
+            "公寓": ("共同住宅", "非木造"),
+            "塔楼": ("共同住宅", "非木造"),
+            "一户建": ("一戸建", "総数"),
+        }.get(asset_type)
+        location_sql = """prefecture=$2 and
+            ((city=$3 and (ward=$4 or ward='__not_subdivided__'))
+             or (city='__not_subdivided__' and ward='__not_subdivided__'))"""
+        order_sql = """order by case when city=$3 and ward=$4 then 0
+                                      when city=$3 and ward='__not_subdivided__' then 1
+                                      else 2 end, survey_year desc limit 1"""
+        if preferred_dimensions:
+            preferred_location_sql = """prefecture=$3 and
+                ((city=$4 and (ward=$5 or ward='__not_subdivided__'))
+                 or (city='__not_subdivided__' and ward='__not_subdivided__'))"""
+            preferred_order_sql = """order by case when city=$4 and ward=$5 then 0
+                                                when city=$4 and ward='__not_subdivided__' then 1
+                                                else 2 end,
+                                           case when source_key=$1 then 0 else 1 end,
+                                           survey_year desc limit 1"""
+            return await conn.fetchrow(
+                f"""select source_key, rent_jpy_per_sqm_month_excl_zero, scope_label, survey_label, survey_year,
+                          geo_level, source_label, source_url, license_label
+                   from public.rent_reference_stats
+                  where ((source_key=$1 and building_type=$6 and structure_type=$7) or source_key=$2)
+                    and {preferred_location_sql}
+                  {preferred_order_sql}""",
+                RENT_REFERENCE_122_5, RENT_REFERENCE_122_4, prefecture, city,
+                ward or "__not_subdivided__", *preferred_dimensions,
+            )
+        return await conn.fetchrow(
+            f"""select source_key, rent_jpy_per_sqm_month_excl_zero, scope_label, survey_label, survey_year,
+                      geo_level, source_label, source_url, license_label
+               from public.rent_reference_stats
+              where source_key=$1 and {location_sql}
+              {order_sql}""",
+            RENT_REFERENCE_122_4, prefecture, city, ward or "__not_subdivided__",
+        )
+
     async def get(self, user: AuthUser, prefecture: str, city: str, ward: Optional[str], asset_type: str, period: str) -> dict[str, Any]:
         query_asset_type = "公寓" if asset_type == "塔楼" else asset_type
         async with get_pool().acquire() as conn:
@@ -55,18 +98,7 @@ class DbRegionStatsStore:
                 "data_class": "scraped_aggregate",
                 "limitations": "参考情報；非逐笔成交明细；区域口径=市区町村/区；㎡単価由官方总价除以官方面积计算。",
             })
-            rent_reference = await conn.fetchrow(
-                """select rent_jpy_per_sqm_month_excl_zero, scope_label, survey_label, survey_year,
-                          geo_level, source_label, source_url, license_label
-                   from public.rent_reference_stats
-                  where source_key='estat_housing_land_122_4' and prefecture=$1
-                    and ((city=$2 and (ward=$3 or ward='__not_subdivided__'))
-                         or (city='__not_subdivided__' and ward='__not_subdivided__'))
-                  order by case when city=$2 and ward=$3 then 0
-                                when city=$2 and ward='__not_subdivided__' then 1
-                                else 2 end, survey_year desc limit 1""",
-                prefecture, city, ward or "__not_subdivided__",
-            )
+            rent_reference = await self._rent_reference(conn, prefecture, city, ward, asset_type)
             monthly_rent = await conn.fetchrow(
                 """select rent_jpy_per_sqm_month, observed_month, source_label, source_url, license_label
                      from public.rent_reference_stats
@@ -82,6 +114,7 @@ class DbRegionStatsStore:
                 )
             result["rent_reference"] = (
                 {
+                    "source_key": rent_reference["source_key"],
                     "rent_jpy_per_sqm_month": float(rent_reference["rent_jpy_per_sqm_month_excl_zero"]),
                     "scope_label": rent_reference["scope_label"], "survey_label": rent_reference["survey_label"],
                     "survey_year": rent_reference["survey_year"], "geo_level": rent_reference["geo_level"],
@@ -98,7 +131,7 @@ class DbRegionStatsStore:
             result["rent_to_price_ratio"] = (
                 {"gross_value": 12 * float(rent_reference["rent_jpy_per_sqm_month_excl_zero"]) / float(denominator),
                  "formula_label": "12 × 月租(円/㎡) ÷ ㎡単価(円/㎡)",
-                 "numerator_label": "官方家賃・民営借家・家賃0円を含まない",
+                 "numerator_label": f"官方家賃・{rent_reference['scope_label']}・家賃0円を含まない",
                  "denominator_label": "本市官方成交均值㎡単価", "survey_label": rent_reference["survey_label"],
                  "geo_level": rent_reference["geo_level"]}
                 if rent_reference and denominator and float(denominator) > 0 else None

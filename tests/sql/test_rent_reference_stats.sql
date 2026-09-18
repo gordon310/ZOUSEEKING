@@ -5,7 +5,7 @@ begin
   if to_regclass('public.rent_reference_stats') is null then
     raise exception 'rent_reference_stats table is missing';
   end if;
-  foreach required in array array['source_key','source_label','prefecture','city','ward','geo_level','scope_label','rent_jpy_per_sqm_month','rent_jpy_per_sqm_month_excl_zero','survey_year','survey_label','observed_month','source_url','license_label','fetched_at'] loop
+  foreach required in array array['source_key','source_label','prefecture','city','ward','geo_level','scope_label','building_type','structure_type','rent_jpy_per_sqm_month','rent_jpy_per_sqm_month_excl_zero','survey_year','survey_label','observed_month','source_url','license_label','fetched_at'] loop
     if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='rent_reference_stats' and column_name=required) then
       raise exception 'missing rent_reference_stats.%', required;
     end if;

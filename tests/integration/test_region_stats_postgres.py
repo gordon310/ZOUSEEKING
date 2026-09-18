@@ -58,6 +58,18 @@ def region_stats_database():
                         1700, 1809, 2023, '令和5年(2023)',
                         'https://www.e-stat.go.jp/', 'e-Stat利用規約（出典明記・加工して作成）', now())"""
             )
+            await conn.execute(
+                """insert into public.rent_reference_stats
+                (source_key, source_label, prefecture, city, ward, geo_level, scope_label,
+                 building_type, structure_type, rent_jpy_per_sqm_month,
+                 rent_jpy_per_sqm_month_excl_zero, survey_year, survey_label,
+                 source_url, license_label, fetched_at)
+                values ('estate_housing_land_122_5', '令和5年住宅・土地統計調査 第122-5表',
+                        '东京都', '港区', '__not_subdivided__', 'city',
+                        '借家(専用住宅)・共同住宅・非木造', '共同住宅', '非木造',
+                        2100, 2111, 2023, '令和5年(2023)',
+                        'https://www.e-stat.go.jp/', 'e-Stat利用規約（出典明記・加工して作成）', now())"""
+            )
         finally:
             await conn.close()
 
@@ -85,6 +97,8 @@ def test_real_postgres_ward_normalization_and_filtering(region_stats_database):
     results = asyncio.run(exercise())
     assert results[0]["sample_size"] > 0
     assert results[1]["sample_size"] == results[0]["sample_size"]
+    assert results[0]["rent_reference"]["source_key"] == "estate_housing_land_122_5"
+    assert results[0]["rent_reference"]["rent_jpy_per_sqm_month"] == 2111
 
 
 def test_real_postgres_region_stats_endpoint_degrades_when_options_file_is_unavailable(region_stats_database, monkeypatch, tmp_path):
@@ -124,7 +138,7 @@ def test_real_postgres_rent_value_is_read_again_after_database_update(region_sta
                 await conn.execute(
                     """update public.rent_reference_stats
                        set rent_jpy_per_sqm_month_excl_zero=1999
-                     where source_key='estat_housing_land_122_4' and prefecture='东京都' and city='港区'"""
+                       where source_key='estate_housing_land_122_5' and prefecture='东京都' and city='港区'"""
                 )
             after = await region_stats("东京都", "港区", "公寓", 2025, 1, None, user, store)
             return before, after
@@ -133,6 +147,6 @@ def test_real_postgres_rent_value_is_read_again_after_database_update(region_sta
             db.pool = old_pool
 
     before, after = asyncio.run(exercise())
-    assert before["rent_reference"]["rent_jpy_per_sqm_month"] == 1809
+    assert before["rent_reference"]["rent_jpy_per_sqm_month"] == 2111
     assert after["rent_reference"]["rent_jpy_per_sqm_month"] == 1999
     assert after["rent_to_price_ratio"]["gross_value"] != before["rent_to_price_ratio"]["gross_value"]

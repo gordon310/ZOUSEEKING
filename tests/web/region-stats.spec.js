@@ -26,7 +26,7 @@ test("区域成交价统计成功态展示真实口径与出典", async ({ page 
       p25: 1263636.365, p75: 2646666.668, period: "2025Q1", asset_type: "公寓",
       sources: [{ name: "国土交通省 不動産情報ライブラリ", url: "https://www.reinfolib.mlit.go.jp/realEstatePrices/" }],
       license: { name: "PDL1.0" }, limitations: "参考信息", data_class: "scraped_aggregate",
-      rent_reference: { rent_jpy_per_sqm_month: 1809, scope_label: "民営借家・借家(専用住宅)", survey_label: "令和5年(2023)", survey_year: 2023, geo_level: "city", geo_level_label: "市区町村", source_label: "令和5年住宅・土地統計調査 第122-4表", source_url: "https://www.e-stat.go.jp/", license_label: "e-Stat" },
+      rent_reference: { rent_jpy_per_sqm_month: 1809, scope_label: "借家(専用住宅)・共同住宅・非木造", survey_label: "令和5年(2023)", survey_year: 2023, geo_level: "city", geo_level_label: "市区町村", source_key: "estate_housing_land_122_5", source_label: "令和5年住宅・土地統計調査 第122-5表", source_url: "https://www.e-stat.go.jp/", license_label: "e-Stat" },
       monthly_rent_reference: { rent_jpy_per_sqm_month: 1260, observed_month: "2026-08", source_label: "小売物価統計調査(動向編) 2026年8月", source_url: "https://www.e-stat.go.jp/", license_label: "e-Stat" },
       rent_to_price_ratio: { gross_value: 0.012, formula_label: "formula", numerator_label: "rent", denominator_label: "price", survey_label: "令和5年(2023)", geo_level: "city" },
   };
@@ -54,7 +54,7 @@ test("区域成交价统计成功态展示真实口径与出典", async ({ page 
   await expect(statsResult).toContainText("㎡均价 1,794,737 円/㎡（官方成交均值・552 笔）");
   await expect(statsResult).toContainText("计算式 21,708 ÷ 1,794,737 = 1.20%");
   await expect(statsResult).toContainText("官方家賃月度动向：1,260 円/㎡/月（2026年8月・都市别口径）");
-  await expect(statsResult).toContainText("按官方家賃（令和5年(2023)・民営借家・借家(専用住宅)）与本市㎡均价计算");
+  await expect(statsResult).toContainText("按官方家賃（令和5年(2023)・借家(専用住宅)・共同住宅・非木造）与本市㎡均价计算");
   await expect(statsResult).toContainText("说明 毛回报；不含管理费/修缮费/空置等费用");
   await expect(statsResult).not.toContainText("家賃基准为 令和5年(2023) 官方调查");
   expect(await statsResult.getByText(/不含管理费\/修缮费\/空置等费用/).count()).toBe(1);

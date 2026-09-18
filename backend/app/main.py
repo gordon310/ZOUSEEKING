@@ -12,6 +12,8 @@ from typing import Any, Optional
 from uuid import UUID
 
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from urllib.parse import quote
@@ -86,10 +88,47 @@ app = FastAPI(title="ZOU SEEKING HOUSE JPHOUSE API", version="0.1.0", lifespan=l
 @app.exception_handler(HTTPException)
 async def scoped_http_error(request: Request, exc: HTTPException):
     """Keep organization auth failures structured without changing legacy APIs."""
-    if request.url.path.startswith("/api/org/") and isinstance(exc.detail, str):
-        code = "authentication_required" if exc.status_code == 401 else "org_forbidden" if exc.status_code == 403 else "org_unavailable"
-        return JSONResponse(status_code=exc.status_code, content={"error": {"code": code, "message": exc.detail}})
+    if request.url.path.startswith("/api/org/"):
+        code = {
+            401: "authentication_required",
+            403: "org_forbidden",
+            404: "not_found",
+            422: "invalid_request",
+        }.get(exc.status_code, "org_unavailable")
+        if isinstance(exc.detail, str):
+            message = exc.detail
+        elif isinstance(exc.detail, dict) and isinstance(exc.detail.get("message"), str):
+            message = exc.detail["message"]
+        else:
+            message = {
+                "not_found": "请求的资源不存在。",
+                "invalid_request": "请求参数无效。",
+                "org_unavailable": "机构服务暂时不可用。",
+            }.get(code, "请求失败。")
+        return JSONResponse(status_code=exc.status_code, content={"error": {"code": code, "message": message}})
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail}, headers=exc.headers)
+
+
+def _validation_summary(exc: RequestValidationError) -> str:
+    fields: list[str] = []
+    hidden_locations = {"body", "query", "path", "header", "cookie"}
+    for item in exc.errors():
+        locations = [str(part) for part in item.get("loc", ()) if str(part) not in hidden_locations]
+        if locations and locations[-1] not in fields:
+            fields.append(locations[-1])
+    if fields:
+        return f"请求参数无效，请检查字段：{'、'.join(fields)}。"
+    return "请求参数无效。"
+
+
+@app.exception_handler(RequestValidationError)
+async def scoped_validation_error(request: Request, exc: RequestValidationError):
+    if request.url.path.startswith("/api/org/"):
+        return JSONResponse(
+            status_code=422,
+            content={"error": {"code": "invalid_request", "message": _validation_summary(exc)}},
+        )
+    return JSONResponse(status_code=422, content={"detail": jsonable_encoder(exc.errors())})
 
 
 @app.middleware("http")

@@ -1836,6 +1836,11 @@ function render() {
 }
 
 const regionStatsState = { loading: false, result: null, error: "" };
+const REGION_STATS_ERROR_KEYS = Object.freeze({
+  org_forbidden: "regionStats.forbidden",
+  not_found: "regionStats.notFound",
+  invalid_request: "regionStats.invalidRequest",
+});
 
 function renderRegionStats() {
   const result = $("#regionStatsResult");
@@ -1845,8 +1850,18 @@ function renderRegionStats() {
   form.querySelectorAll("button, select, input").forEach((el) => { el.disabled = !loggedIn || regionStatsState.loading; });
   if (!loggedIn) { result.innerHTML = `<p>${escapeHtml(uiText("regionStats.login", "登录后读取机构统计。"))}</p>`; return; }
   if (regionStatsState.loading) { result.innerHTML = `<p>${escapeHtml(uiText("regionStats.loading", "正在读取统计……"))}</p>`; return; }
-  if (regionStatsState.error === "forbidden") { result.innerHTML = `<p>${escapeHtml(uiText("regionStats.forbidden", "当前账户没有机构统计权限。"))}</p>`; return; }
-  if (regionStatsState.error) { result.innerHTML = `<p>${escapeHtml(uiText("regionStats.failed", "统计暂时无法读取，请稍后重试。"))}</p>`; return; }
+  if (regionStatsState.error) {
+    const errorKey = REGION_STATS_ERROR_KEYS[regionStatsState.error];
+    const fallback = regionStatsState.error === "org_forbidden"
+      ? "当前账户没有机构统计权限。"
+      : regionStatsState.error === "not_found"
+        ? "请求的资源不存在。"
+        : regionStatsState.error === "invalid_request"
+          ? "提交的条件不完整或格式不正确。"
+          : "统计暂时无法读取，请稍后重试。";
+    result.innerHTML = `<p>${escapeHtml(uiText(errorKey || "regionStats.failed", fallback))}</p>`;
+    return;
+  }
   const data = regionStatsState.result;
   if (!data) return;
   if (data.status === "insufficient_sample") { result.innerHTML = `<p>${escapeHtml(uiText("regionStats.insufficient", "本季度该地区官方成交记录不足 5 笔，暂不显示统计数值。"))}</p>`; return; }
@@ -1882,7 +1897,7 @@ function renderRegionStats() {
     ? formatUiText("regionStats.rentMethodFallback", "按所在{geoLevelLabel}口径（该市区町村无官方数据）", { geoLevelLabel: rentGeoLevelLabel })
     : formatUiText("regionStats.rentMethod", "按官方家賃（{survey}・{scope}）与本市㎡均价计算", { survey: rent?.survey_label, scope: rent?.scope_label, geoLevelLabel: rentGeoLevelLabel });
   const rentText = rent && rentRatio
-    ? `<div class="stat-card rent-detail-card"><strong>${escapeHtml(formatUiText("regionStats.ratioGross", "租售比(毛) 约 {value}%", { value: (Number(rentRatio.gross_value) * 100).toFixed(2) }))}</strong><small>${escapeHtml(formatUiText("regionStats.rentDetailRent", "官方家賃 {rent} 円/㎡/月（{geoLevelLabel}・{survey}）", { rent: rentYen.toLocaleString("en-US"), geoLevelLabel: rentGeoLevelLabel, survey: rent.survey_label }))}</small><small>${escapeHtml(formatUiText("regionStats.rentDetailAnnual", "年家賃 {annualRent} 円/㎡/年（{rent} × 12）", { annualRent: annualRent.toLocaleString("en-US"), rent: rentYen.toLocaleString("en-US") }))}</small><small>${escapeHtml(formatUiText("regionStats.rentDetailPrice", "㎡均价 {meanPrice} 円/㎡（官方成交均值・{sampleSize} 笔）", { meanPrice: meanPriceYen.toLocaleString("en-US"), sampleSize: data.sample_size }))}</small><small>${escapeHtml(formatUiText("regionStats.rentDetailFormula", "计算式 {annualRent} ÷ {meanPrice} = {value}%", { annualRent: annualRent.toLocaleString("en-US"), meanPrice: meanPriceYen.toLocaleString("en-US"), value: (Number(rentRatio.gross_value) * 100).toFixed(2) }))}</small><small>${escapeHtml(rentMethod)}</small>${data.monthly_rent_reference ? `<small>${escapeHtml(formatUiText("regionStats.monthlyRent", "官方家賃月度动向：{rent} 円/㎡/月（{month}・都市别口径）", { rent: Math.round(Number(data.monthly_rent_reference.rent_jpy_per_sqm_month)).toLocaleString("en-US"), month: formatObservedMonth(data.monthly_rent_reference.observed_month) }))}</small>` : ""}<small>${escapeHtml(formatUiText("regionStats.rentDetailNote", "说明 毛回报；不含管理费/修缮费/空置等费用", {}))}</small><small>${escapeHtml(uiText("regionStats.rentSource", "出典:政府統計の総合窓口(e-Stat)(https://www.e-stat.go.jp/)(加工して作成)"))}</small></div>`
+    ? `<div class="stat-card rent-detail-card"><strong>${escapeHtml(formatUiText("regionStats.ratioGross", "租售比(毛) 约 {value}%", { value: (Number(rentRatio.gross_value) * 100).toFixed(2) }))}</strong><small>${escapeHtml(formatUiText("regionStats.rentDetailRent", "官方家賃 {rent} 円/㎡/月（{geoLevelLabel}・{survey}）", { rent: rentYen.toLocaleString("en-US"), geoLevelLabel: rentGeoLevelLabel, survey: rent.survey_label }))}</small><small>${escapeHtml(formatUiText("regionStats.rentDetailAnnual", "年家賃 {annualRent} 円/㎡/年（{rent} × 12）", { annualRent: annualRent.toLocaleString("en-US"), rent: rentYen.toLocaleString("en-US") }))}</small><small>${escapeHtml(formatUiText("regionStats.rentDetailPrice", "㎡均价 {meanPrice} 円/㎡（官方成交均值・{sampleSize} 笔）", { meanPrice: meanPriceYen.toLocaleString("en-US"), sampleSize: data.sample_size }))}</small><small>${escapeHtml(formatUiText("regionStats.rentDetailFormula", "计算式 {annualRent} ÷ {meanPrice} = {value}%", { annualRent: annualRent.toLocaleString("en-US"), meanPrice: meanPriceYen.toLocaleString("en-US"), value: (Number(rentRatio.gross_value) * 100).toFixed(2) }))}</small><small>${escapeHtml(rentMethod)}</small>${data.monthly_rent_reference?.city ? `<small>${escapeHtml(formatUiText("regionStats.monthlyRent", "官方家賃月度动向：{rent} 円/㎡/月（{month}・{city}）", { rent: Math.round(Number(data.monthly_rent_reference.rent_jpy_per_sqm_month)).toLocaleString("en-US"), month: formatObservedMonth(data.monthly_rent_reference.observed_month), city: data.monthly_rent_reference.city }))}</small>` : ""}<small>${escapeHtml(formatUiText("regionStats.rentDetailNote", "说明 毛回报；不含管理费/修缮费/空置等费用", {}))}</small><small>${escapeHtml(uiText("regionStats.rentSource", "出典:政府統計の総合窓口(e-Stat)(https://www.e-stat.go.jp/)(加工して作成)"))}</small></div>`
     : `<p>${escapeHtml(uiText("regionStats.ratio", "租售比：暂不可用（租金数据未授权）"))}</p>`;
   result.innerHTML = `${disclosure}<p class="stats-context">${escapeHtml(context)}</p><div class="stats-summary"><strong>${escapeHtml(uiText("regionStats.mean", "均价"))} ${escapeHtml(uiText("regionStats.approx", "约"))} ${escapeHtml(tenThousands(data.mean_unit_price_jpy_per_sqm))} 万円/㎡</strong><small>${escapeHtml(uiText("regionStats.medianValue", "中位数"))} ${escapeHtml(uiText("regionStats.approx", "约"))} ${escapeHtml(tenThousands(data.median_unit_price_jpy_per_sqm))} 万円/㎡</small><small>${escapeHtml(uiText("regionStats.meanVsMedian", "均价 = 全部成交的平均值,高价房源会把均价拉高;中位数 = 成交价排序后取中间,更能代表典型行情。"))}</small></div><div class="stat-grid"><div class="stat-card"><strong>${escapeHtml(uiText("regionStats.quartiles", "主力成交价带"))} ${escapeHtml(tenThousands(data.p25))} 〜 ${escapeHtml(tenThousands(data.p75))} 万円/㎡</strong></div><div class="stat-card"><strong>${data.sample_size} ${escapeHtml(uiText("regionStats.officialRecords", "笔官方成交记录"))}</strong></div></div><p class="stats-exact">${escapeHtml(exact)}</p><p>${escapeHtml(uiText("regionStats.source", "出典: 不动产信息库（国土交通省） · 许可: PDL1.0"))}</p>${rentText}${rent && rentRatio ? "" : `<p>${escapeHtml(uiText("regionStats.rentSource", "出典:政府統計の総合窓口(e-Stat)(https://www.e-stat.go.jp/)(加工して作成)"))}</p>`}<p>${escapeHtml(uiText("regionStats.limitations", "限制：参考信息，非逐笔成交明细；㎡单价由官方总价和面积计算。"))}</p>`;
 }
@@ -1897,7 +1912,12 @@ async function loadRegionStats(event) {
     year: $("#statsYear").value, quarter: $("#statsQuarter").value,
   });
   try { regionStatsState.result = await apiFetch(`/api/org/region-stats?${params}`); }
-  catch (error) { regionStatsState.result = null; regionStatsState.error = error.status === 403 ? "forbidden" : "failed"; }
+  catch (error) {
+    regionStatsState.result = null;
+    regionStatsState.error = REGION_STATS_ERROR_KEYS[error.code]
+      ? error.code
+      : error.status === 403 ? "org_forbidden" : "failed";
+  }
   finally { regionStatsState.loading = false; renderRegionStats(); }
 }
 

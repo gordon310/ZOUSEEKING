@@ -4,7 +4,7 @@ import pytest
 
 from backend.app.auth import AuthUser, require_user
 from backend.app.main import app
-from backend.app.region_stats_routes import get_region_stats_store
+from backend.app.region_stats_routes import DbRegionStatsStore, get_region_stats_store
 from fastapi.testclient import TestClient
 
 USER = UUID("00000000-0000-0000-0000-000000000030")
@@ -118,3 +118,45 @@ def test_region_stats_rejects_unknown_asset_type():
     finally:
         app.dependency_overrides.clear()
     assert response.status_code == 400
+
+
+def test_db_region_stats_returns_city_from_the_monthly_rent_row(monkeypatch):
+    class Connection:
+        async def fetchval(self, query, *args):
+            return 1
+
+        async def fetch(self, query, *args):
+            if "mlit_transactions" in query:
+                return []
+            raise AssertionError(f"unexpected fetch query: {query}")
+
+        async def fetchrow(self, query, *args):
+            if "source_key='estat_kouri_3001'" in query:
+                return {
+                    "city": "东京23区", "rent_jpy_per_sqm_month": 3045,
+                    "observed_month": "2026-08", "source_label": "e-Stat",
+                    "source_url": "https://www.e-stat.go.jp/", "license_label": "e-Stat",
+                }
+            if "from public.sources" in query:
+                return None
+            if "rent_reference_stats" in query:
+                return None
+            raise AssertionError(f"unexpected fetchrow query: {query}")
+
+    class Acquire:
+        async def __aenter__(self):
+            return Connection()
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+    class Pool:
+        def acquire(self):
+            return Acquire()
+
+    monkeypatch.setattr("backend.app.region_stats_routes.get_pool", lambda: Pool())
+    result = __import__("asyncio").run(
+        DbRegionStatsStore().get(AuthUser(USER, "member@example.test", "Member"), "东京都", "港区", None, "公寓", "2025Q1")
+    )
+
+    assert result["monthly_rent_reference"]["city"] == "东京23区"

@@ -10,6 +10,7 @@ from backend.app.auth import AuthUser, require_user
 from backend.app.main import app
 from backend.app.org import routes as org_routes
 from backend.app.org.routes import get_org_store
+from backend.app.org.routes import get_org_export_store
 
 
 USER_ID = UUID("00000000-0000-0000-0000-000000000030")
@@ -97,6 +98,37 @@ def test_org_api_converts_store_failures_to_structured_error() -> None:
 
     assert response.status_code == 503
     assert response.json() == {"error": {"code": "org_unavailable", "message": "机构信息暂时无法读取。"}}
+
+
+def test_org_http_exception_404_keeps_not_found_semantics() -> None:
+    class MissingExportStore:
+        async def download_export(self, user, export_id):
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="export not found")
+
+    app.dependency_overrides[require_user] = lambda: AuthUser(USER_ID, "hidden@example.com", "Member")
+    app.dependency_overrides[get_org_export_store] = MissingExportStore
+    try:
+        response = TestClient(app).get("/api/org/exports/00000000-0000-0000-0000-000000000099")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 404
+    assert response.json() == {"error": {"code": "not_found", "message": "export not found"}}
+
+
+def test_org_request_validation_422_is_structured_without_internal_details() -> None:
+    app.dependency_overrides[require_user] = lambda: AuthUser(USER_ID, "hidden@example.com", "Member")
+    try:
+        response = TestClient(app).get("/api/org/exports/not-a-uuid")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 422
+    payload = response.json()
+    assert payload["error"]["code"] == "invalid_request"
+    assert "export_id" in payload["error"]["message"]
+    assert "uuid_parsing" not in payload["error"]["message"]
 
 
 def test_org_store_reads_real_member_columns_and_masks_auth_email(monkeypatch) -> None:

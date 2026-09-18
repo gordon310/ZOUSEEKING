@@ -102,14 +102,14 @@ class DbRegionStatsStore:
             })
             rent_reference = await self._rent_reference(conn, prefecture, city, ward, asset_type)
             monthly_rent = await conn.fetchrow(
-                """select rent_jpy_per_sqm_month, observed_month, source_label, source_url, license_label
+                """select city, rent_jpy_per_sqm_month, observed_month, source_label, source_url, license_label
                      from public.rent_reference_stats
                     where source_key='estat_kouri_3001' and prefecture=$1 and city=$2
                     order by observed_month desc nulls last limit 1""", prefecture, city,
             )
             if not monthly_rent and prefecture == "东京都":
                 monthly_rent = await conn.fetchrow(
-                    """select rent_jpy_per_sqm_month, observed_month, source_label, source_url, license_label
+                    """select city, rent_jpy_per_sqm_month, observed_month, source_label, source_url, license_label
                          from public.rent_reference_stats
                         where source_key='estat_kouri_3001' and prefecture=$1 and city='东京23区'
                         order by observed_month desc nulls last limit 1""", prefecture,

@@ -177,6 +177,18 @@ test("region rent polish copy keeps four locales aligned without duplicated disc
       en: "Note: gross return; excludes management, repair, vacancy and other costs.",
       ja: "説明: 表面利回り。管理費・修繕費・空室などは含みません。",
     },
+    "regionStats.notFound": {
+      "zh-CN": "请求的资源不存在。",
+      "zh-Hant": "請求的資源不存在。",
+      en: "The requested resource was not found.",
+      ja: "要求されたリソースが見つかりません。",
+    },
+    "regionStats.invalidRequest": {
+      "zh-CN": "提交的条件不完整或格式不正确。",
+      "zh-Hant": "提交的條件不完整或格式不正確。",
+      en: "The submitted conditions are incomplete or invalid.",
+      ja: "送信された条件が不完全または正しくありません。",
+    },
   };
   for (const [key, locales] of Object.entries(expected)) {
     for (const [locale, value] of Object.entries(locales)) {

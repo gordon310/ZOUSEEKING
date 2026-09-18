@@ -1,2 +1,3 @@
-[functions.jphouse-run]
-verify_jwt = true
+# Minimal Supabase CLI config. The dormant jphouse-run Edge Function was removed
+# (see docs/architecture/runtime-conflict-inventory.md); no functions are registered.
+project_id = "JPPropDIs"

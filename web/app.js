@@ -419,17 +419,7 @@ function recordMatches(record) {
 }
 
 function inferRecordLocation(record) {
-  const title = record.title || "";
-  if (title.startsWith("东京")) {
-    return { prefecture: "东京都", city: "东京23区", ward: title.replace(/^东京/, "").split("塔楼")[0] };
-  }
-  if (title.startsWith("大阪")) {
-    return { prefecture: "大阪府", city: "大阪市", ward: title.replace(/^大阪/, "").split("塔楼")[0] };
-  }
-  if (title.startsWith("横滨")) {
-    return { prefecture: "神奈川县", city: "横滨市", ward: title.replace(/^横滨/, "").split("塔楼")[0] };
-  }
-  return { prefecture: "", city: "", ward: "" };
+  return window.ZouRecordLocation.recordLocation(record);
 }
 
 function recordMatchesOptions(record, options) {
@@ -438,8 +428,7 @@ function recordMatchesOptions(record, options) {
   if (options.prefecture && loc.prefecture !== options.prefecture) return false;
   if (options.city && loc.city !== options.city) return false;
   if (options.ward && loc.ward !== options.ward) return false;
-  if (options.assetType && options.assetType !== "塔楼" && record.asset_type !== options.assetType) return false;
-  if (options.assetType === "塔楼" && !compact(record.title).includes("塔楼")) return false;
+  if (options.assetType && loc.asset_type !== options.assetType) return false;
   if (options.year && !String(record.publish_month || "").includes(`${options.year}年`)) return false;
   if (options.month && record.publish_month !== monthText) return false;
   return true;
@@ -686,6 +675,9 @@ function backendReportToRecord(options, report) {
     publish_month: report.publish_month,
     generated_at: new Date().toISOString(),
     regions: [options.prefecture, options.city, options.ward].filter(Boolean),
+    prefecture: options.prefecture || "",
+    city: options.city || "",
+    ward: options.ward || "",
     asset_type: options.assetType,
     layouts,
     status: "generated",
@@ -718,14 +710,13 @@ function supabaseReportToRecord(options, report) {
 }
 
 function supabaseStoredReportToRecord(report) {
-  const query = report.raw_record?.query || {};
-  const inferred = inferRecordLocation({ title: report.title || "" });
+  const location = inferRecordLocation(report);
   return backendReportToRecord(
     {
-      prefecture: query.prefecture || inferred.prefecture || "",
-      city: query.city || inferred.city || "",
-      ward: query.ward || inferred.ward || "",
-      assetType: query.asset_type || query.assetType || "",
+      prefecture: location.prefecture,
+      city: location.city,
+      ward: location.ward,
+      assetType: location.asset_type,
     },
     report,
   );

@@ -55,7 +55,7 @@
 | 路径 | 第一阶段状态 | 机械门闩 | 重新启用条件 |
 | --- | --- | --- | --- |
 | 浏览器私有 PostgREST 与 Edge fallback | frozen | B/admin 页面 `release-boundary.js` 仅允许同源 `/content-library.json` 与 `/field-options.json` GET；发布配置不固定 Supabase 项目 | 新 ADR、等价 FastAPI 接口和浏览器回归通过 |
-| `supabase/functions/jphouse-run` | frozen | `JPHOUSE_LEGACY_EXECUTION_ENABLED` 必须精确为 `true`，否则 410 | 仅经批准的迁移/排空窗口；不得作为常规业务后端 |
+| `supabase/functions/jphouse-run` | removed | 仓库与 Supabase function 配置均不再登记 | 若重新引入，必须先有新 ADR、FastAPI 等价授权/配额与回归证据 |
 | `scripts/run_jphouse_worker.py` | frozen | `ENABLE_FROZEN_JPHOUSE_WORKER` 必须精确为 `true`，且先于凭证读取检查 | 仅经批准的恢复/迁移操作，记录输入、范围和回滚 |
 | FastAPI in-process regional executor | frozen | release allowlist 在 handler 与 `BackgroundTasks` 前阻断 | 由一个 durable worker 替代并另行验收 |
 | B 端与管理员按钮 | demo only | 浏览器级网络写阻断；只允许内存中 `synthetic_fixture` 状态 | 完成服务端数据模型、授权、审计和对应 ADR |

@@ -145,7 +145,7 @@ sink 为 `NOT_EXECUTED`。正式上线前重点检查：
 确认、密码恢复、refresh rotation、global logout/revocation、Admin hard delete 与
 profile cascade；access JWT 在自身到期前仍可能有效，这是 Supabase 的会话边界。
 这些 provider 行为测试不等于 FastAPI 账户删除执行器已经接通。旧区域路径仍可能
-由 `web/app.js` 直连 Supabase REST/Edge Function，受信任删除 worker 尚未收敛。
+由 `web/app.js` 保留的 Supabase REST 兼容读取仍需继续收敛；旧 Edge Function 已从仓库和 Supabase function 配置删除，受信任删除 worker 尚未收敛。
 
 上线前仍必须完成运营主体/隐私负责人确认、客服工单权限、近期重新认证、
 生产 SMTP、持续清理器、事故通知决定和 production 恢复策略。M1 仅在 staging
@@ -208,43 +208,6 @@ worker 会：
 
 注意：worker 会在本地生成图片到 `web/library/...`。如果新报告需要在线显示图片，还要把 `web/` 同步到 GitHub Pages。
 
-## 9. 方案B：Supabase Edge Function 云端执行（冻结兼容参考）
+## 9. 旧 Edge Function（已退役）
 
-以下部署命令只保留历史兼容路径的记录，不属于本轮 schema ownership 变更。
-当前 release baseline 打开时不得执行；新的私有业务必须走 FastAPI 唯一边界。
-
-现在项目里已经加入 `supabase/functions/jphouse-run`。
-
-它负责：
-
-1. 检查用户登录状态
-2. 读取用户自己的查询任务
-3. 如果已有同条件报告，直接返回缓存
-4. 如果没有报告，就按 JPHOUSE 模型生成数据
-5. 写入 `property_reports`
-6. 更新 `queries` 和 `generation_jobs`
-
-部署前先在本地安装 Supabase CLI，并登录：
-
-```bash
-supabase login
-supabase link --project-ref vbwynsyryuiigpqwvuer
-```
-
-设置云函数需要的私密 key。
-
-注意：新版 Supabase CLI 不允许手动设置 `SUPABASE_` 开头的 secret，所以这里使用项目自己的名字 `JPHOUSE_SERVICE_ROLE_KEY`。
-
-```bash
-supabase secrets set JPHOUSE_SERVICE_ROLE_KEY="你的 service_role key"
-```
-
-然后部署：
-
-```bash
-supabase functions deploy jphouse-run
-```
-
-部署完成后，网站登录用户可以在 Mypage 里点击“手动执行 JPHOUSE”。
-
-当前 Edge Function 先生成数据报告，不生成图片。原因是 Supabase Edge Function 更适合轻量数据处理；图片生成仍然建议后续用 Supabase Storage + 独立图片 worker，或者继续用本地 worker 批量生成后同步网站。
+`supabase/functions/jphouse-run` 已删除，`supabase/config.toml` 也不再登记该函数。报告生成只走经认证的 FastAPI/worker 路径；不要执行旧的 deploy/secrets 命令。若未来重新引入，必须先有新的架构决定，并实现与 FastAPI 一致的 owner authorization、`consume_current_entitlement` 配额台账和回归验证。

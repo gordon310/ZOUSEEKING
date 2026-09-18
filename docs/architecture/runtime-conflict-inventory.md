@@ -7,7 +7,7 @@
 | Current component | Current role | ADR status | V1 rule | Exit condition |
 | --- | --- | --- | --- | --- |
 | `web/app.js` direct authenticated PostgREST and Edge fallback | legacy profile/query/report compatibility | frozen | 不新增私有读写 | FastAPI 等价接口验证并移除 caller |
-| `supabase/functions/jphouse-run/` | legacy regional report generator | frozen | 不加入会员、额度、账单、任务、授权或后台逻辑 | 清空/迁移 queue 并经批准下线函数 |
+| `supabase/functions/jphouse-run/` | retired legacy regional report generator | removed | 不再可寻址；若重新引入必须先纳入 FastAPI 等价授权与配额台账 | 新 ADR、配额回归与明确启用批准 |
 | `scripts/run_jphouse_worker.py` | local service-role REST report worker | frozen | 不加入 V1 worker handler | canonical worker 验证且 legacy queue 退役 |
 | `backend/app/main.py::run_generation_job` | in-process report executor | frozen | 不执行 V1 durable job | canonical queue/worker 接管报告生成 |
 | `backend/sql/` and `supabase/migrations/` | historical bootstrap vs canonical history | local + staging canonical / production pending | 只允许 `supabase/migrations/` 新增前向变更 | production 经独立备份、恢复、reviewed migration 和批准完成协调 |

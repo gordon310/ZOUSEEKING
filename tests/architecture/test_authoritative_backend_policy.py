@@ -28,7 +28,6 @@ def test_phase_one_release_manifest_matches_runtime_allowlist() -> None:
     assert policy["business_and_admin_operations"] == "demo_only_no_network_writes"
     assert policy["live_change_gate"] == "explicit_approval_required"
     assert policy["legacy_activation_gates"] == {
-        "edge_function": "JPHOUSE_LEGACY_EXECUTION_ENABLED=true",
         "local_worker": "ENABLE_FROZEN_JPHOUSE_WORKER=true",
         "in_process_fastapi_executor": "blocked_by_release_phase",
         "browser_private_postgrest": "blocked_by_demo_surface_network_boundary",
@@ -64,7 +63,6 @@ def test_manifest_selects_one_authoritative_path() -> None:
         ],
         "frozen_legacy_components": [
             "web/app.js:direct_private_supabase_reads_legacy_view",
-            "supabase/functions/jphouse-run:regional_report_edge_executor",
             "scripts/run_jphouse_worker.py:regional_report_rest_worker",
             "backend/app/main.py:in_process_regional_report_executor",
         ],

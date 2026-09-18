@@ -26,7 +26,9 @@ test("区域成交价统计成功态展示真实口径与出典", async ({ page 
       p25: 1263636.365, p75: 2646666.668, period: "2025Q1", asset_type: "公寓",
       sources: [{ name: "国土交通省 不動産情報ライブラリ", url: "https://www.reinfolib.mlit.go.jp/realEstatePrices/" }],
       license: { name: "PDL1.0" }, limitations: "参考信息", data_class: "scraped_aggregate",
-      rent_sale_ratio: { available: false, reason: "租金数据未授权" },
+      rent_reference: { rent_jpy_per_sqm_month: 1809, scope_label: "民営借家・借家(専用住宅)", survey_label: "令和5年(2023)", survey_year: 2023, geo_level: "city", geo_level_label: "市区町村", source_label: "令和5年住宅・土地統計調査 第122-4表", source_url: "https://www.e-stat.go.jp/", license_label: "e-Stat" },
+      monthly_rent_reference: { rent_jpy_per_sqm_month: 1260, observed_month: "2026-08", source_label: "小売物価統計調査(動向編) 2026年8月", source_url: "https://www.e-stat.go.jp/", license_label: "e-Stat" },
+      rent_to_price_ratio: { gross_value: 0.012, formula_label: "formula", numerator_label: "rent", denominator_label: "price", survey_label: "令和5年(2023)", geo_level: "city" },
   };
   await page.goto("/data-query.html");
   await page.evaluate(() => window.ZouAuthSession.write({ provider: "demo", username: "Member", email: "member@example.test", userId: "member-1" }));
@@ -45,7 +47,24 @@ test("区域成交价统计成功态展示真实口径与出典", async ({ page 
   await expect(statsResult).not.toContainText(/\d+\.\d{2,}/);
   await expect(page.locator("#regionStatsResult")).toContainText("出典");
   await expect(page.locator("#regionStatsResult")).toContainText("租售比");
+  await expect(statsResult).toContainText("租售比(毛) 约 1.2%");
+  await expect(statsResult).toContainText("官方家賃月度动向：1,260 円/㎡/月（2026-08・都市别口径）");
+  await expect(statsResult).toContainText("政府統計の総合窓口(e-Stat)(https://www.e-stat.go.jp/)(加工して作成)");
   await expect(page.locator("#regionStatsResult")).not.toContainText("scraped_aggregate");
+});
+
+test("区域成交价统计租金回落到都道府县时明确标注口径", async ({ page }) => {
+  await page.addInitScript(() => { window.ZOUSEEKING_API_BASE_URL = "https://api.test"; });
+  await page.goto("/data-query.html");
+  await page.evaluate(() => window.ZouAuthSession.write({ provider: "demo", username: "Member", email: "member@example.test", userId: "member-1" }));
+  await page.waitForFunction(() => document.body.classList.contains("auth-ready"));
+  await page.evaluate(() => window.fetch = async () => new Response(JSON.stringify({
+    status: "ok", sample_size: 5, mean_unit_price_jpy_per_sqm: 1200000, median_unit_price_jpy_per_sqm: 1200000, p25: 1000000, p75: 1400000,
+    period: "2025Q1", asset_type: "公寓", rent_reference: { rent_jpy_per_sqm_month: 1223, scope_label: "民営借家・借家(専用住宅)", survey_label: "令和5年(2023)", geo_level: "prefecture", geo_level_label: "都道府县" },
+    rent_to_price_ratio: { gross_value: 0.01223, geo_level: "prefecture" },
+  }), { status: 200, headers: { "Content-Type": "application/json" } }));
+  await page.evaluate(() => window.ZouRegionStats.load({ preventDefault() {} }));
+  await expect(page.locator("#regionStatsResult")).toContainText("按所在都道府县口径（该市区町村无官方数据）");
 });
 
 test("区域成交价统计四语言文案键完整且没有内部枚举", async ({ page }) => {

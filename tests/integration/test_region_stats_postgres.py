@@ -48,6 +48,16 @@ def region_stats_database():
                     values($1, $2, '东京都', '港区', $3, '中古マンション等', '公寓', $4, 100, $4, '2025Q1', 2025, '{}'::jsonb)""",
                     SOURCE_ID, f"region-stats-{index}", ward, 1000000 + index * 100000,
                 )
+            await conn.execute(
+                """insert into public.rent_reference_stats
+                (source_key, source_label, prefecture, city, ward, geo_level, scope_label,
+                 rent_jpy_per_sqm_month, rent_jpy_per_sqm_month_excl_zero, survey_year,
+                 survey_label, source_url, license_label, fetched_at)
+                values ('estat_housing_land_122_4', '令和5年住宅・土地統計調査 第122-4表',
+                        '东京都', '港区', '__not_subdivided__', 'city', '民営借家・借家(専用住宅)',
+                        1700, 1809, 2023, '令和5年(2023)',
+                        'https://www.e-stat.go.jp/', 'e-Stat利用規約（出典明記・加工して作成）', now())"""
+            )
         finally:
             await conn.close()
 
@@ -100,3 +110,29 @@ def test_real_postgres_region_stats_endpoint_degrades_when_options_file_is_unava
 
     assert response.status_code == 200
     assert response.json()["sample_size"] == 5
+
+
+def test_real_postgres_rent_value_is_read_again_after_database_update(region_stats_database):
+    async def exercise():
+        old_pool = db.pool
+        db.pool = await asyncpg.create_pool(region_stats_database, min_size=1, max_size=2)
+        try:
+            store = DbRegionStatsStore()
+            user = AuthUser(USER_ID, "region-stats@test.invalid", "Member")
+            before = await region_stats("东京都", "港区", "公寓", 2025, 1, None, user, store)
+            async with db.pool.acquire() as conn:
+                await conn.execute(
+                    """update public.rent_reference_stats
+                       set rent_jpy_per_sqm_month_excl_zero=1999
+                     where source_key='estat_housing_land_122_4' and prefecture='东京都' and city='港区'"""
+                )
+            after = await region_stats("东京都", "港区", "公寓", 2025, 1, None, user, store)
+            return before, after
+        finally:
+            await db.pool.close()
+            db.pool = old_pool
+
+    before, after = asyncio.run(exercise())
+    assert before["rent_reference"]["rent_jpy_per_sqm_month"] == 1809
+    assert after["rent_reference"]["rent_jpy_per_sqm_month"] == 1999
+    assert after["rent_to_price_ratio"]["gross_value"] != before["rent_to_price_ratio"]["gross_value"]

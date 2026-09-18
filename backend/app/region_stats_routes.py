@@ -55,6 +55,54 @@ class DbRegionStatsStore:
                 "data_class": "scraped_aggregate",
                 "limitations": "参考情報；非逐笔成交明细；区域口径=市区町村/区；㎡単価由官方总价除以官方面积计算。",
             })
+            rent_reference = await conn.fetchrow(
+                """select rent_jpy_per_sqm_month_excl_zero, scope_label, survey_label, survey_year,
+                          geo_level, source_label, source_url, license_label
+                   from public.rent_reference_stats
+                  where source_key='estat_housing_land_122_4' and prefecture=$1
+                    and ((city=$2 and (ward=$3 or ward='__not_subdivided__'))
+                         or (city='__not_subdivided__' and ward='__not_subdivided__'))
+                  order by case when city=$2 and ward=$3 then 0
+                                when city=$2 and ward='__not_subdivided__' then 1
+                                else 2 end, survey_year desc limit 1""",
+                prefecture, city, ward or "__not_subdivided__",
+            )
+            monthly_rent = await conn.fetchrow(
+                """select rent_jpy_per_sqm_month, observed_month, source_label, source_url, license_label
+                     from public.rent_reference_stats
+                    where source_key='estat_kouri_3001' and prefecture=$1 and city=$2
+                    order by observed_month desc nulls last limit 1""", prefecture, city,
+            )
+            if not monthly_rent and prefecture == "东京都":
+                monthly_rent = await conn.fetchrow(
+                    """select rent_jpy_per_sqm_month, observed_month, source_label, source_url, license_label
+                         from public.rent_reference_stats
+                        where source_key='estat_kouri_3001' and prefecture=$1 and city='东京23区'
+                        order by observed_month desc nulls last limit 1""", prefecture,
+                )
+            result["rent_reference"] = (
+                {
+                    "rent_jpy_per_sqm_month": float(rent_reference["rent_jpy_per_sqm_month_excl_zero"]),
+                    "scope_label": rent_reference["scope_label"], "survey_label": rent_reference["survey_label"],
+                    "survey_year": rent_reference["survey_year"], "geo_level": rent_reference["geo_level"],
+                    "geo_level_label": {"prefecture": "都道府県", "city": "市区町村", "ward": "区", "special_wards": "东京23区"}.get(rent_reference["geo_level"], rent_reference["geo_level"]),
+                    "source_label": rent_reference["source_label"], "source_url": rent_reference["source_url"],
+                    "license_label": rent_reference["license_label"],
+                } if rent_reference else None
+            )
+            result["monthly_rent_reference"] = (
+                {key: (float(value) if key == "rent_jpy_per_sqm_month" else value) for key, value in dict(monthly_rent).items()}
+                if monthly_rent else None
+            )
+            denominator = result.get("mean_unit_price_jpy_per_sqm")
+            result["rent_to_price_ratio"] = (
+                {"gross_value": 12 * float(rent_reference["rent_jpy_per_sqm_month_excl_zero"]) / float(denominator),
+                 "formula_label": "12 × 月租(円/㎡) ÷ ㎡単価(円/㎡)",
+                 "numerator_label": "官方家賃・民営借家・家賃0円を含まない",
+                 "denominator_label": "本市官方成交均值㎡単価", "survey_label": rent_reference["survey_label"],
+                 "geo_level": rent_reference["geo_level"]}
+                if rent_reference and denominator and float(denominator) > 0 else None
+            )
             if asset_type == "塔楼":
                 result["disclosure"] = {"code": TOWER_DISCLOSURE_CODE}
             return result

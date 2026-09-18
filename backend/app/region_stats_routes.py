@@ -15,7 +15,7 @@ from .region_names import normalize_region_stats_names
 router = APIRouter(prefix="/api/org", tags=["regional statistics"])
 TOWER_DISCLOSURE_CODE = "tower_merged_into_apartment"
 RENT_REFERENCE_122_4 = "estat_housing_land_122_4"
-RENT_REFERENCE_122_5 = "estate_housing_land_122_5"
+RENT_REFERENCE_122_5 = "estat_housing_land_122_5"
 STATS_ASSET_TYPES = frozenset({"塔楼", "公寓", "一户建", "独栋", "土地"})
 STORAGE_ASSET_TYPE_BY_STATS_ASSET_TYPE = {"塔楼": "公寓", "一户建": "独栋"}
 

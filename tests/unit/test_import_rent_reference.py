@@ -91,7 +91,7 @@ def test_122_5_parser_uses_dimension_headers_and_skips_missing_rent(tmp_path):
 
     rows, report = _MODULE.parse_housing_land_122_5_workbook(path)
 
-    assert _MODULE.HOUSING_122_5_SOURCE == "estate_housing_land_122_5"
+    assert _MODULE.HOUSING_122_5_SOURCE == "estat_housing_land_122_5"
     assert report.skipped == 1
     assert len(rows) == 2
     assert rows[0]["building_type"] == "総数"

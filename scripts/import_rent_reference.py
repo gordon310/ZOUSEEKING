@@ -22,7 +22,7 @@ HOUSING_URL = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=0000
 HOUSING_122_5_URL = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040210063&fileKind=0"
 KOURI_URL = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040506178&fileKind=0"
 HOUSING_SOURCE = "estat_housing_land_122_4"
-HOUSING_122_5_SOURCE = "estate_housing_land_122_5"
+HOUSING_122_5_SOURCE = "estat_housing_land_122_5"
 KOURI_SOURCE = "estat_kouri_3001"
 LICENSE_LABEL = "e-Stat利用規約（出典明記・加工して作成）"
 HOUSING_LABEL = "令和5年住宅・土地統計調査 第122-4表"
@@ -244,7 +244,7 @@ def _download(url: str, path: Path) -> Path:
 
 def parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source", choices=("estate_housing_land", "estate_housing_land_122_5", "kouri"), default=None)
+    parser.add_argument("--source", choices=("estate_housing_land", "estat_housing_land_122_5", "kouri"), default=None)
     parser.add_argument("--all", action="store_true")
     parser.add_argument("--file", type=Path, action="append", help="local XLSX; repeat for --all")
     parser.add_argument("--database-url", default=os.getenv("DATABASE_URL", ""))
@@ -254,16 +254,16 @@ def parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
-    selected = ["estate_housing_land", "estate_housing_land_122_5", "kouri"] if args.all or not args.source else [args.source]
+    selected = ["estate_housing_land", "estat_housing_land_122_5", "kouri"] if args.all or not args.source else [args.source]
     files = list(args.file or [])
     rows: list[dict[str, Any]] = []
     total = {"skipped": 0, "unmapped_prefecture": 0, "unmapped_city": 0}
     for source in selected:
-        url = {"estate_housing_land": HOUSING_URL, "estate_housing_land_122_5": HOUSING_122_5_URL, "kouri": KOURI_URL}[source]
+        url = {"estate_housing_land": HOUSING_URL, "estat_housing_land_122_5": HOUSING_122_5_URL, "kouri": KOURI_URL}[source]
         path = files.pop(0) if files else _download(url, Path("/tmp") / f"zouseeking-{source}.xlsx")
         parsed, report = (
             parse_housing_land_workbook(path) if source == "estate_housing_land"
-            else parse_housing_land_122_5_workbook(path) if source == "estate_housing_land_122_5"
+            else parse_housing_land_122_5_workbook(path) if source == "estat_housing_land_122_5"
             else parse_kouri_workbook(path)
         )
         rows.extend(parsed)

@@ -157,6 +157,35 @@ test("all locales provide non-empty copy and matching placeholders for every key
   }
 });
 
+test("region rent polish copy keeps four locales aligned without duplicated disclaimer placeholders", () => {
+  const expected = {
+    "regionStats.rentMethod": {
+      "zh-CN": "按官方家賃（{survey}・{scope}）与本市㎡均价计算",
+      "zh-Hant": "按官方家賃（{survey}・{scope}）與本市㎡均價計算",
+      en: "Calculated from official rent ({survey} · {scope}) and this city's mean price per sqm.",
+      ja: "公式賃料（{survey}・{scope}）と本市の㎡平均価格から算出。",
+    },
+    "regionStats.rentMethodFallback": {
+      "zh-CN": "按所在{geoLevelLabel}口径（该市区町村无官方数据）",
+      "zh-Hant": "按所在{geoLevelLabel}口徑（該市區町村無官方數據）",
+      en: "Uses the {geoLevelLabel} reference because no official municipality value is available.",
+      ja: "市区町村の公式値がないため、{geoLevelLabel}の基準を使用。",
+    },
+    "regionStats.rentDetailNote": {
+      "zh-CN": "说明 毛回报；不含管理费/修缮费/空置等费用",
+      "zh-Hant": "說明 毛回報；不含管理費/修繕費/空置等費用",
+      en: "Note: gross return; excludes management, repair, vacancy and other costs.",
+      ja: "説明: 表面利回り。管理費・修繕費・空室などは含みません。",
+    },
+  };
+  for (const [key, locales] of Object.entries(expected)) {
+    for (const [locale, value] of Object.entries(locales)) {
+      assert.equal(loadI18n({ search: `?lang=${locale}` }).t(key), value, `${key}: ${locale}`);
+    }
+  }
+  assert.deepEqual(Array.from(loadI18n().placeholders("zh-CN", "regionStats.rentDetailNote")), []);
+});
+
 test("zh-Hant keeps the same placeholders as zh-CN", () => {
   const i18n = loadI18n();
   for (const key of i18n.keys("zh-CN")) {

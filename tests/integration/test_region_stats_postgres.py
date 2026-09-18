@@ -126,6 +126,35 @@ def test_real_postgres_region_stats_endpoint_degrades_when_options_file_is_unava
     assert response.json()["sample_size"] == 5
 
 
+def test_real_postgres_frontend_asset_types_return_complete_200_responses(region_stats_database):
+    async def exercise():
+        old_pool = db.pool
+        db.pool = await asyncpg.create_pool(region_stats_database, min_size=1, max_size=2)
+        app.dependency_overrides[require_user] = lambda: AuthUser(USER_ID, "region-stats@test.invalid", "Member")
+        app.dependency_overrides[get_region_stats_store] = lambda: DbRegionStatsStore()
+        try:
+            transport = httpx.ASGITransport(app=app)
+            async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+                responses = []
+                for asset_type in ("塔楼", "公寓", "一户建"):
+                    responses.append(await client.get(
+                        "/api/org/region-stats",
+                        params={"prefecture": "东京都", "city": "港区", "asset_type": asset_type, "year": 2025, "quarter": 1},
+                    ))
+                return responses
+        finally:
+            app.dependency_overrides.clear()
+            await db.pool.close()
+            db.pool = old_pool
+
+    responses = asyncio.run(exercise())
+    assert [response.status_code for response in responses] == [200, 200, 200]
+    for response, asset_type in zip(responses, ("塔楼", "公寓", "一户建")):
+        payload = response.json()
+        assert payload["asset_type"] == asset_type
+        assert {"status", "sample_size", "period", "sources", "license", "data_class", "limitations"} <= payload.keys()
+
+
 def test_real_postgres_rent_value_is_read_again_after_database_update(region_stats_database):
     async def exercise():
         old_pool = db.pool

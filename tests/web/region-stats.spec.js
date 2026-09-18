@@ -124,6 +124,29 @@ test("塔楼统计显示口径说明且不泄露内部标识", async ({ page }) 
   await expect(page.locator("#regionStatsResult")).not.toContainText("tower_merged_into_apartment");
 });
 
+test("一户建统计把前端真实值送到后端并展示完整结果", async ({ page }) => {
+  await page.addInitScript(() => { window.ZOUSEEKING_API_BASE_URL = "https://api.test"; });
+  await page.goto("/data-query.html");
+  await page.evaluate(() => window.ZouAuthSession.write({ provider: "demo", username: "Member", email: "member@example.test", userId: "member-1" }));
+  await page.waitForFunction(() => document.body.classList.contains("auth-ready"));
+  await page.selectOption("#statsAssetType", "一户建");
+  await page.evaluate(() => {
+    window.fetch = async (url) => {
+      window.__lastRegionStatsUrl = String(url);
+      return new Response(JSON.stringify({
+        status: "ok", sample_size: 5, mean_unit_price_jpy_per_sqm: 300000,
+        median_unit_price_jpy_per_sqm: 280000, p25: 200000, p75: 400000,
+        period: "2025Q1", asset_type: "一户建", sources: [], license: { name: "PDL1.0" },
+        data_class: "scraped_aggregate", limitations: "参考信息",
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    };
+  });
+  await page.evaluate(() => window.ZouRegionStats.load({ preventDefault() {} }));
+  await expect.poll(() => page.evaluate(() => window.__lastRegionStatsUrl)).toContain("asset_type=%E4%B8%80%E6%88%B7%E5%BB%BA");
+  await expect(page.locator("#regionStatsResult")).toContainText("东京都 港区 · 一户建 · 2025年 Q1");
+  await expect(page.locator("#regionStatsResult")).toContainText("5 笔官方成交记录");
+});
+
 test("区域成交价统计将 403 显示为权限提示而不是暂时失败", async ({ page }) => {
   await page.addInitScript(() => { window.ZOUSEEKING_API_BASE_URL = "https://api.test"; });
   await page.goto("/data-query.html");

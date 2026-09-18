@@ -16,6 +16,8 @@ router = APIRouter(prefix="/api/org", tags=["regional statistics"])
 TOWER_DISCLOSURE_CODE = "tower_merged_into_apartment"
 RENT_REFERENCE_122_4 = "estat_housing_land_122_4"
 RENT_REFERENCE_122_5 = "estate_housing_land_122_5"
+STATS_ASSET_TYPES = frozenset({"塔楼", "公寓", "一户建", "独栋", "土地"})
+STORAGE_ASSET_TYPE_BY_STATS_ASSET_TYPE = {"塔楼": "公寓", "一户建": "独栋"}
 
 
 def normalize_stats_ward(ward: Optional[str]) -> Optional[str]:
@@ -70,7 +72,7 @@ class DbRegionStatsStore:
         )
 
     async def get(self, user: AuthUser, prefecture: str, city: str, ward: Optional[str], asset_type: str, period: str) -> dict[str, Any]:
-        query_asset_type = "公寓" if asset_type == "塔楼" else asset_type
+        query_asset_type = STORAGE_ASSET_TYPE_BY_STATS_ASSET_TYPE.get(asset_type, asset_type)
         async with get_pool().acquire() as conn:
             member = await conn.fetchval(
                 "select 1 from public.organization_members where user_id=$1 and status='active' limit 1", user.user_id
@@ -156,7 +158,7 @@ async def region_stats(
     user: AuthUser = Depends(require_user),
     store: RegionStatsStore = Depends(get_region_stats_store),
 ) -> dict[str, Any]:
-    if asset_type not in {"塔楼", "公寓", "独栋", "土地"}:
+    if asset_type not in STATS_ASSET_TYPES:
         raise HTTPException(status_code=400, detail="物件类型无效")
     period = f"{year}Q{quarter}"
     normalized_ward = normalize_stats_ward(ward)

@@ -1,4 +1,53 @@
+import json
+from pathlib import Path
+
+import pytest
+
+from backend.app.auth import AuthUser
 from backend.app.region_stats import aggregate_region_rows, map_asset_type
+from backend.app.region_stats_routes import region_stats
+
+
+def _frontend_stats_asset_types():
+    options_path = Path(__file__).parents[2] / "web" / "field-options.json"
+    return json.loads(options_path.read_text(encoding="utf-8"))["assetTypes"]
+
+
+class _AcceptingRegionStatsStore:
+    async def get(self, user, prefecture, city, ward, asset_type, period):
+        return {
+            "status": "insufficient_sample",
+            "sample_size": 0,
+            "period": period,
+            "asset_type": asset_type,
+            "rent_sale_ratio": {"available": False, "reason": "租金数据未授权"},
+        }
+
+
+@pytest.mark.asyncio
+async def test_every_static_frontend_stats_asset_type_passes_route_validation():
+    values = _frontend_stats_asset_types()
+    assert values
+
+    for value in values:
+        result = await region_stats(
+            "东京都", "港区", value, 2025, 1, None,
+            AuthUser(None, "member@example.test", "Member"),
+            _AcceptingRegionStatsStore(),
+        )
+        assert result["asset_type"] == value
+        assert result["period"] == "2025Q1"
+
+
+@pytest.mark.asyncio
+async def test_legacy_region_stats_asset_types_remain_accepted():
+    for value in ("独栋", "土地"):
+        result = await region_stats(
+            "东京都", "港区", value, 2025, 1, None,
+            AuthUser(None, "member@example.test", "Member"),
+            _AcceptingRegionStatsStore(),
+        )
+        assert result["asset_type"] == value
 
 
 def test_maps_mlits_kinds_to_explicit_product_types():

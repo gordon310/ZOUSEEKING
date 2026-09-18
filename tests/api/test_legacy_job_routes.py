@@ -83,13 +83,8 @@ class FakePool:
 
 def test_owner_can_start_pending_legacy_job_through_fastapi(monkeypatch):
     pool = FakePool(query_row())
-    scheduled: list[tuple] = []
-
-    async def fake_run_generation_job(*args):
-        scheduled.append(args)
 
     monkeypatch.setattr(main, "get_pool", lambda: pool)
-    monkeypatch.setattr(main, "run_generation_job", fake_run_generation_job)
     app.dependency_overrides[require_user] = lambda: AuthUser(OWNER_ID, "owner@example.com", "用户 A")
     try:
         response = TestClient(app).post(f"/api/jobs/{QUERY_ID}/run")
@@ -98,28 +93,13 @@ def test_owner_can_start_pending_legacy_job_through_fastapi(monkeypatch):
 
     assert response.status_code == 202
     assert response.json()["status"] == "running"
-    assert len(scheduled) == 1
-    assert scheduled[0][:3] == (str(JOB_ID), str(QUERY_ID), str(OWNER_ID))
-    assert scheduled[0][3].model_dump() == {
-        "prefecture": "大阪府",
-        "city": "大阪市",
-        "ward": "北区",
-        "asset_type": "塔楼",
-        "year": 2026,
-        "month": 8,
-        "username": "用户 A",
-    }
+    assert not any("run_generation_job" in query for query, _args in pool.connection.executed)
+    assert any("report_generation_outbox" in query for query, _args in pool.connection.executed)
 
 
 def test_other_user_cannot_start_legacy_job(monkeypatch):
     pool = FakePool(query_row())
-    scheduled: list[tuple] = []
-
-    async def fake_run_generation_job(*args):
-        scheduled.append(args)
-
     monkeypatch.setattr(main, "get_pool", lambda: pool)
-    monkeypatch.setattr(main, "run_generation_job", fake_run_generation_job)
     app.dependency_overrides[require_user] = lambda: AuthUser(OTHER_ID, "other@example.com", "用户 B")
     try:
         response = TestClient(app).post(f"/api/jobs/{QUERY_ID}/run")
@@ -127,4 +107,4 @@ def test_other_user_cannot_start_legacy_job(monkeypatch):
         app.dependency_overrides.clear()
 
     assert response.status_code == 404
-    assert scheduled == []
+    assert pool.connection.executed == []

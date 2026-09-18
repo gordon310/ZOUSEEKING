@@ -13,8 +13,6 @@
     "rest/v1/query_field_options:select"
   ],
   "frozen_legacy_components": [
-    "web/app.js:direct_private_supabase_reads_legacy_view",
-    "scripts/run_jphouse_worker.py:regional_report_rest_worker",
-    "backend/app/main.py:in_process_regional_report_executor"
+    "web/app.js:direct_private_supabase_reads_legacy_view"
   ]
 }

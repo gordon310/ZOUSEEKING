@@ -241,7 +241,7 @@ def client(fake_repository, fake_storage):
     async def fake_preview_quota(user, session_id):
         return {"status": "consumed", "period_key": "2026-08-25", "used": 1, "limit": 3, "remaining": 2}
     app.dependency_overrides[get_preview_quota] = lambda: fake_preview_quota
-    async def fake_report_pipeline(request, user_id, background_tasks):
+    async def fake_report_pipeline(request, user_id):
         return {"query_key": f"{user_id}::{request.prefecture}::{request.city}::{request.ward}::{request.asset_type}::{request.year}::{request.month}", "job_id": "test-job", "status": "pending", "cached": False, "title": "测试报告", "report": None}
     app.dependency_overrides[get_report_pipeline] = lambda: fake_report_pipeline
     yield TestClient(app)

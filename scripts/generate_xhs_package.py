@@ -16,6 +16,8 @@ LOGO_CANDIDATES = (
 LOGO = next((path for path in LOGO_CANDIDATES if path.is_file()), LOGO_CANDIDATES[0])
 FONT_REGULAR = "/System/Library/Fonts/STHeiti Light.ttc"
 FONT_BOLD = "/System/Library/Fonts/Hiragino Sans GB.ttc"
+FIELD_OPTIONS = ROOT / "web" / "field-options.json"
+UNSUBDIVIDED_WARDS = {"未細分", "未细分", "全部区", "__not_subdivided__"}
 
 
 def font(size: int, bold: bool = False):
@@ -234,10 +236,36 @@ def library_record(config, markdown):
         " ".join(record.get("hashtags", [])),
     ]
     record["search_text"] = " ".join(search_parts).lower()
+    validate_library_record(record)
     return record
 
 
+def validate_library_record(record):
+    """Fail generation before either library copy can contain an unusable row."""
+
+    required = ("prefecture", "city", "ward", "asset_type")
+    missing = [field for field in required if not str(record.get(field) or "").strip()]
+    if missing:
+        missing_label = "prefecture/city/ward" if any(field in missing for field in required[:3]) else "asset_type"
+        raise ValueError(f"library record missing required fields: {missing_label}")
+
+    options = json.loads(FIELD_OPTIONS.read_text(encoding="utf-8"))
+    prefecture = str(record["prefecture"]).strip()
+    city = str(record["city"]).strip()
+    ward = str(record["ward"]).strip()
+    asset_type = str(record["asset_type"]).strip()
+    if prefecture not in options.get("prefectures", []):
+        raise ValueError(f"library record prefecture is outside field-options: {prefecture}")
+    if city not in options.get("cities", {}).get(prefecture, []):
+        raise ValueError(f"library record city is outside field-options: {prefecture}::{city}")
+    if ward not in UNSUBDIVIDED_WARDS and ward not in options.get("wards", {}).get(f"{prefecture}::{city}", []):
+        raise ValueError(f"library record ward is outside field-options: {prefecture}::{city}::{ward}")
+    if asset_type not in options.get("assetTypes", []):
+        raise ValueError(f"library record asset_type is outside field-options: {asset_type}")
+
+
 def upsert_library_record(path: Path, record):
+    validate_library_record(record)
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         records = json.loads(path.read_text(encoding="utf-8"))
@@ -250,13 +278,25 @@ def upsert_library_record(path: Path, record):
 
 
 def sync_web_library(output_dir: Path, config, records):
+    for record in records:
+        validate_library_record(record)
     web_dir = ROOT / "web"
     web_dir.mkdir(exist_ok=True)
     web_images = web_dir / "library" / config["slug"] / "images"
     web_images.mkdir(parents=True, exist_ok=True)
     for name in ["01-cover-clean.png", "02-rental-all-layouts-clean.png", "03-sale-all-layouts-clean.png"]:
         shutil.copy2(output_dir / "images" / name, web_images / name)
-    (web_dir / "content-library.json").write_text(json.dumps(records, ensure_ascii=False, indent=2), encoding="utf-8")
+    write_web_library(records)
+
+
+def write_web_library(records):
+    for record in records:
+        validate_library_record(record)
+    web_dir = ROOT / "web"
+    web_dir.mkdir(exist_ok=True)
+    (web_dir / "content-library.json").write_text(
+        json.dumps(records, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
 
 def generate(config_path: Path, output_dir: Path):

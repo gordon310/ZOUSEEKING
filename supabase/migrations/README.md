@@ -41,6 +41,11 @@ Fresh install 固定按以下顺序执行：
 12. `20260902000100_staging_baseline_reconciliation.sql`
 13. `20260902000200_service_role_grant_portability.sql`
 
+新增的报告长任务 outbox migration 为 `20260918000400_report_generation_outbox.sql`。
+它是 additive-only：FastAPI 与 `queries`/`generation_jobs` 同事务写入，唯一 durable
+worker 以原子条件认领；service_role 是唯一写入角色，会员端只通过 FastAPI 读取既有
+job 状态。失败只保存安全分类码与脱敏文案，最多三次尝试，之后可由 API/运维安全重放。
+
 三条原有且已应用的 migration 保持原字节不变。特别是
 `20260828000100` 继续拥有 photo/location/address/project-name fields、constraints
 和 owner-scoped indexes。已应用 migration 文件不可修改；任何 remote 修复只能

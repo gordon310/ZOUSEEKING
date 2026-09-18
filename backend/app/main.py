@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 from uuid import UUID
 
-from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,6 +32,7 @@ from .jphouse_service import (
     query_title,
 )
 from .models import JobResponse, QueryRequest, QueryResponse
+from .report_worker import enqueue_report_outbox
 from .routes.health import router as health_router
 from .routes.intake import cleanup_expired_sessions, router as intake_router
 from .routes.renovation import router as renovation_router
@@ -701,12 +702,12 @@ async def run_generation_job(job_id: str, query_id: str, owner_user_id: str, req
                 """,
                 query_id,
             )
+        raise
 
 
 async def create_or_get_query_job(
     request: QueryRequest,
     user_id: str,
-    background_tasks: BackgroundTasks,
 ) -> dict[str, Any]:
     """Create or reuse the single report pipeline entry for one owner's query."""
 
@@ -766,7 +767,13 @@ async def create_or_get_query_job(
                     )
                     job_id = existing["existing_job_id"]
                     query_id = existing["existing_query_id"]
-                    should_schedule = True
+                    await enqueue_report_outbox(
+                        conn,
+                        generation_job_id=job_id,
+                        query_id=query_id,
+                        owner_user_id=user_id,
+                        request=request,
+                    )
                 else:
                     return {
                         "query_key": key,
@@ -777,8 +784,6 @@ async def create_or_get_query_job(
                         "report": None,
                     }
             else:
-                should_schedule = False
-
                 existing_query = await conn.fetchrow("select id from queries where query_key=$1", key)
                 if existing_query is None:
                     await consume_current_entitlement(
@@ -818,20 +823,23 @@ async def create_or_get_query_job(
                         "insert into generation_jobs(query_id, status, progress, current_step) values($1, 'pending', 5, '任务已创建') returning id",
                         query_id,
                     )
-                should_schedule = not job or job["status"] != "running"
-    if should_schedule:
-        background_tasks.add_task(run_generation_job, str(job_id), str(query_id), str(user_id), request)
+                await enqueue_report_outbox(
+                    conn,
+                    generation_job_id=job_id,
+                    query_id=query_id,
+                    owner_user_id=user_id,
+                    request=request,
+                )
     return {"query_key": key, "status": "pending", "cached": False, "title": title, "job_id": str(job_id), "report": None}
 
 
 @app.post("/api/query", response_model=QueryResponse)
 async def query_report(
     request: QueryRequest,
-    background_tasks: BackgroundTasks,
     user: AuthUser = Depends(require_user),
 ) -> QueryResponse:
     try:
-        result = await create_or_get_query_job(request, str(user.user_id), background_tasks)
+        result = await create_or_get_query_job(request, str(user.user_id))
     except QuotaExceeded:
         return JSONResponse(status_code=429, content={"error": {"code": "quota_exceeded", "message": "query quota exceeded"}})
     return QueryResponse(query_key=result["query_key"], status=result["status"], cached=result["cached"], title=result["title"], job_id=result["job_id"], report=result["report"], message="命中历史数据" if result["cached"] else "已创建生成任务")
@@ -840,7 +848,6 @@ async def query_report(
 @app.post("/api/jobs/{query_id}/run", response_model=JobResponse, status_code=202)
 async def run_legacy_job(
     query_id: str,
-    background_tasks: BackgroundTasks,
     user: AuthUser = Depends(require_user),
 ) -> JobResponse:
     """Start/restart the report job of a query (by query_id) through the authenticated API boundary."""
@@ -911,23 +918,22 @@ async def run_legacy_job(
             row["query_id"],
             user.user_id,
         )
-
-    request = QueryRequest(
-        prefecture=row["prefecture"],
-        city=row["city"],
-        ward=row["ward"] or "",
-        asset_type=row["asset_type"],
-        year=row["year"],
-        month=row["month"],
-        username=user.username,
-    )
-    background_tasks.add_task(
-        run_generation_job,
-        str(job_id),
-        str(row["query_id"]),
-        str(user.user_id),
-        request,
-    )
+        request = QueryRequest(
+            prefecture=row["prefecture"],
+            city=row["city"],
+            ward=row["ward"] or "",
+            asset_type=row["asset_type"],
+            year=row["year"],
+            month=row["month"],
+            username=user.username,
+        )
+        await enqueue_report_outbox(
+            conn,
+            generation_job_id=job_id,
+            query_id=row["query_id"],
+            owner_user_id=user.user_id,
+            request=request,
+        )
     return JobResponse(
         job_id=str(job_id),
         status="running",

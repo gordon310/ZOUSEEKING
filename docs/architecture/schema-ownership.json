@@ -46,7 +46,8 @@
     "20260916000500_mlit_transactions.sql",
     "20260918000100_rent_reference_stats.sql",
     "20260918000200_rent_reference_building_dimensions.sql",
-    "20260918000300_rent_reference_source_key_alignment.sql"
+    "20260918000300_rent_reference_source_key_alignment.sql",
+    "20260918000400_report_generation_outbox.sql"
   ],
   "legacy_sql_files": [
     "backend/sql/001_foundation_data_contract.sql",

@@ -79,10 +79,10 @@ def get_reverse_geocoder() -> GsiReverseGeocoder:
 
 
 def get_report_pipeline() -> Any:
-    async def start(request: QueryRequest, user_id: str, background_tasks: BackgroundTasks) -> dict[str, Any]:
+    async def start(request: QueryRequest, user_id: str) -> dict[str, Any]:
         from ..main import create_or_get_query_job
 
-        return await create_or_get_query_job(request, user_id, background_tasks)
+        return await create_or_get_query_job(request, user_id)
 
     return start
 
@@ -461,7 +461,7 @@ async def convert_session(
         username=user.username,
     )
     try:
-        pipeline = await report_pipeline(query_request, str(user.user_id), background_tasks)
+        pipeline = await report_pipeline(query_request, str(user.user_id))
     except QuotaExceeded as exc:
         raise _quota_http_exception(exc, action="convert") from exc
     return {

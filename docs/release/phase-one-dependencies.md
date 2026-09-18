@@ -50,7 +50,7 @@
 ## 5. 明确排除或冻结的依赖
 
 - `supabase/functions/jphouse-run`：默认 410；不是第一阶段运行时依赖。
-- `scripts/run_jphouse_worker.py`：默认在读取凭证前退出；不是第一阶段 worker。
+- 旧 `scripts/run_jphouse_worker.py`：已删除；第一阶段只保留 PostgreSQL report outbox worker。
 - FastAPI `BackgroundTasks` 区域报告执行器：release phase 阻断；不是 durable worker。
 - 浏览器 authenticated PostgREST：B/admin 网络边界阻断；不是业务 API。
 - 会员、计费、机构、额度、订阅、导出、任务、管理员写操作：只有 `synthetic_fixture` UI，不得配置真实 provider 或 secret。

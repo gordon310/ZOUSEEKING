@@ -223,8 +223,8 @@ def test_convert_starts_shared_report_pipeline_and_returns_query_key(
     )
     scheduled = []
 
-    async def fake_create_or_get_query_job(request, user_id, background_tasks):
-        scheduled.append((request, user_id, background_tasks))
+    async def fake_create_or_get_query_job(request, user_id):
+        scheduled.append((request, user_id))
         return {"query_key": f"{user_id}::大阪府::大阪市::北区::塔楼::2026::9", "job_id": "job-1"}
 
     client.app.dependency_overrides[get_report_pipeline] = lambda: fake_create_or_get_query_job
@@ -262,7 +262,7 @@ def test_convert_normalizes_english_asset_type_before_report_pipeline(client, se
     )
     scheduled = []
 
-    async def fake_create_or_get_query_job(request, user_id, background_tasks):
+    async def fake_create_or_get_query_job(request, user_id):
         scheduled.append(request)
         return {"query_key": f"{user_id}::东京都::涩谷区::未細分::公寓::2026::9", "job_id": "job-1"}
 
@@ -294,7 +294,7 @@ def test_convert_accepts_missing_ward_and_normalizes_it_for_the_pipeline(
     )
     scheduled = []
 
-    async def fake_create_or_get_query_job(request, user_id, background_tasks):
+    async def fake_create_or_get_query_job(request, user_id):
         scheduled.append(request)
         return {"query_key": f"{user_id}::东京都::涩谷区::未細分::公寓::2026::9", "job_id": "job-1"}
 

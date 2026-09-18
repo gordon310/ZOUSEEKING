@@ -80,9 +80,13 @@ staging 需要同时记录：实例数、uvicorn worker 数、每进程 pool 上
 
 ### 5. 任务队列与 worker
 
-`SyntheticJobQueue` 用容量 20、`reject` overflow policy 验证突发不会无限积压；现有 `scripts/run_jphouse_worker.py::claim_pending_job` 另有 conditional update 回归，确保两个 worker 不会同时 claim 同一 pending 行。
+`SyntheticJobQueue` 用容量 20、`reject` overflow policy 验证突发不会无限积压；新的
+`backend.app.report_worker.claim_next` 使用 PostgreSQL `FOR UPDATE SKIP LOCKED` 与
+单条 `UPDATE ... RETURNING`，真实库并发测试证明两个 worker 不会同时 claim 同一行。
 
-当前 `backend/app/main.py::query_report` 仍把长任务交给进程内 `BackgroundTasks`；这不是 durable queue，重启/休眠期间不能作为任务持久化保证。`scripts/run_jphouse_worker.py`、Edge Function 与 FastAPI executor 仍是竞争路径，ADR-0001 将它们标为冻结。故本次只报告风险，不改写业务队列：
+当前报告 API 在同一事务写入 `report_generation_outbox`，长任务由唯一 durable
+worker 执行；Edge Function 已退役，旧 REST worker 已删除。容量与 crash/restart
+演练仍需 deployment 级验证：
 
 - **Medium / Needs verification：** 在没有真实 profile、队列深度指标和 crash/restart 演练前，不能给 `BackgroundTasks` 赋予容量或可靠性 SLO。
 - **扩容阈值：** canonical durable worker 设计获批后，backlog > 80% 容量、最老任务年龄超过目标 SLA、连续重试或 DLQ 增长即暂停接收并扩 worker；必须有幂等、有限重试、失败分类和可监控的 DLQ。

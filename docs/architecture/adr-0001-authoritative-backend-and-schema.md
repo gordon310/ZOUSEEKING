@@ -17,7 +17,7 @@
 - `backend/app/routes/intake.py` 已使用 FastAPI 处理私有 intake。
 - `backend/app/auth.py` 在 API 边界验证 Supabase 身份。
 - `web/app.js` 仍保留 authenticated PostgREST 和 Edge 回退。
-- `supabase/functions/jphouse-run/index.ts`、`scripts/run_jphouse_worker.py` 和 `backend/app/main.py::run_generation_job` 重复执行区域报告。
+- `supabase/functions/jphouse-run/index.ts`、旧 `scripts/run_jphouse_worker.py` 和 `backend/app/main.py::run_generation_job` 曾重复执行区域报告；本阶段移除旧 REST worker，报告由 durable worker 唯一消费。
 - 2026-08-30 reconciliation 之前，`supabase/migrations/20260825000400_property_intake.sql` 依赖 `public.properties` 与 `public.residential_details`，但该目录没有更早的 migration 创建这些表；现已通过更早的 canonical baseline migration 补齐 fresh-install history。
 - 当前 Render 服务使用 FastAPI，数据库连接仍指向 Supabase staging；未来迁移 Render PostgreSQL 不是本 ADR 的即时操作。
 
@@ -112,10 +112,9 @@ reset、未经批准的 linked push 或 live SQL；M1 的 staging 授权不能�
 
 - `web/app.js:direct_private_supabase_reads_legacy_view`(Edge fallback 已移除,P2-1;直读仍在 frozen);
 - `supabase/functions/jphouse-run:regional_report_edge_executor`；
-- `scripts/run_jphouse_worker.py:regional_report_rest_worker`；
-- `backend/app/main.py:in_process_regional_report_executor`。
+- `backend/app/main.py:in_process_regional_report_executor` 已成为 durable worker 调用的唯一报告执行器；API 不再直接调度它。
 
-退出条件是：私有 web caller 已由 FastAPI 等价路径替代、legacy queue 已清空或迁移、唯一 durable worker 已验证、部署和下线操作已获明确批准。旧路径的存在不代表其适合新增功能或生产使用。
+退出条件是：私有 web caller 已由 FastAPI 等价路径替代、legacy queue 已清空或迁移、唯一 durable worker 已验证。旧 REST worker 已删除，删除的实现不可恢复；历史 job 由新 outbox forward migration 通过幂等键接管。
 
 ## 6. 被拒方案
 

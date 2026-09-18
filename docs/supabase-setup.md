@@ -182,31 +182,29 @@ Webhook 必须由 FastAPI 读取原始 request body，先验证 `Stripe-Signatur
 - Stripe Dashboard Customer Portal 的 payment method、invoice history、取消/计划更新配置，test-mode webhook delivery 和失败重试演练。
 - provider backup/restore、税费/收据、退款/取消和支付失败降级演练；任何 provider 或生产数据库操作都必须停在明确授权门槛。
 
-## 8. 本地运行 JPHOUSE worker（冻结兼容参考）
+## 8. 本地运行报告 durable worker
 
-以下 worker 不是 canonical durable worker，也不是当前 schema 建库命令。仅在
-已批准的 disposable/local 兼容环境使用；不得把它接入 staging/production 新功能。
-
-网站产生的新查询会进入 `generation_jobs`，需要 worker 消费队列。
+网站产生的新查询会在同一事务进入 `generation_jobs` 与
+`report_generation_outbox`，由唯一 PostgreSQL worker 消费队列。
 
 本地运行：
 
 ```bash
-cd /Users/gordonmac/GordonDev/JPPropDIs
-python3 scripts/run_jphouse_worker.py --limit 5
+REPORT_WORKER_ONCE=1 PYTHONPATH=. python3 scripts/run_report_worker.py
 ```
 
-脚本会隐藏提示输入 Supabase `service_role key`。不要把这个 key 写进网页或发到聊天里。
+worker 从 `DATABASE_URL` 读取数据库连接，不接收浏览器凭证。不要把数据库密码或
+service-role key 写进网页或发到聊天里。
 
 worker 会：
 
-1. 读取 `pending` 的 `generation_jobs`
-2. 按查询条件生成 JPHOUSE 报告
+1. 原子认领到期的 `report_generation_outbox` 行
+2. 按查询条件生成报告
 3. 写入 `property_reports`
-4. 更新 `queries.status = completed`
-5. 更新 `generation_jobs.status = completed`
+4. 幂等更新 `queries.status = completed`
+5. 更新 outbox 与 `generation_jobs.status = completed`
 
-注意：worker 会在本地生成图片到 `web/library/...`。如果新报告需要在线显示图片，还要把 `web/` 同步到 GitHub Pages。
+失败按依赖/永久错误分类，最多三次并使用有界退避；公开 API 只返回安全错误码和文案。
 
 ## 9. 旧 Edge Function（已退役）
 

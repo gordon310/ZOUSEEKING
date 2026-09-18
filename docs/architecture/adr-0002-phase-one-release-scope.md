@@ -18,11 +18,11 @@
 
 ## 2. 背景与审计证据
 
-上线前审计覆盖 `backend/app/`、`web/`、`supabase/functions/jphouse-run/`、`scripts/run_jphouse_worker.py`、`render.yaml`、迁移说明、ADR-0001、staging 进度和相关测试。
+上线前审计覆盖 `backend/app/`、`web/`、已退役的 `supabase/functions/jphouse-run/`、原 `scripts/run_jphouse_worker.py`、`render.yaml`、迁移说明、ADR-0001、staging 进度和相关测试。
 
 - `progress.md` 记录的 staging 闭环只使用 `synthetic_fixture`，已验证匿名会话、文字/PDF、字段确认和免费预览；没有真实账号、真实文件或真实房产资料验收。
 - B 端与管理员规格明确为静态本地演示；真实机构、支付、额度、导出、任务、后台 CRUD 和服务端授权均未实现。
-- `backend/app/main.py`、Edge Function 和 local worker 都能处理旧区域报告；`web/app.js` 还包含私有 PostgREST 与 Edge fallback，存在重复写入和执行所有权冲突。
+- 审计时 `backend/app/main.py`、Edge Function 和 local worker 曾都能处理旧区域报告；本次已移除 Edge/local worker 执行路径，报告由 PostgreSQL outbox worker 唯一消费，`web/app.js` 的私有 PostgREST 与 Edge fallback 仍是冻结风险。
 - `supabase/migrations/` 仍处于 `migration_baseline_status = reconciliation_required`；ADR-0001 已禁止在基线协调前扩展 V1 会员、支付和任务 migration。
 - 审计时 `render.yaml` 没有发布阶段，`web/config.js` 固定 staging Supabase 项目地址，B 端可通过浏览器配置或 `localStorage` 恢复旧远端路径。
 
@@ -56,8 +56,8 @@
 | --- | --- | --- | --- |
 | 浏览器私有 PostgREST 与 Edge fallback | frozen | B/admin 页面 `release-boundary.js` 仅允许同源 `/content-library.json` 与 `/field-options.json` GET；发布配置不固定 Supabase 项目 | 新 ADR、等价 FastAPI 接口和浏览器回归通过 |
 | `supabase/functions/jphouse-run` | removed | 仓库与 Supabase function 配置均不再登记 | 若重新引入，必须先有新 ADR、FastAPI 等价授权/配额与回归证据 |
-| `scripts/run_jphouse_worker.py` | frozen | `ENABLE_FROZEN_JPHOUSE_WORKER` 必须精确为 `true`，且先于凭证读取检查 | 仅经批准的恢复/迁移操作，记录输入、范围和回滚 |
-| FastAPI in-process regional executor | frozen | release allowlist 在 handler 与 `BackgroundTasks` 前阻断 | 由一个 durable worker 替代并另行验收 |
+| `scripts/run_jphouse_worker.py` | removed | 文件已删除；不再读取旧 worker 凭证或 REST 队列 | 若重新引入，必须先有新 ADR、授权、配额与回归证据 |
+| FastAPI in-process regional executor | worker-only implementation | API 不再用 `BackgroundTasks` 调度；仅由 `backend/app/report_worker.py` 调用共享执行函数 | durable worker、原子 claim、幂等、有限重试和真库并发证据 |
 | B 端与管理员按钮 | demo only | 浏览器级网络写阻断；只允许内存中 `synthetic_fixture` 状态 | 完成服务端数据模型、授权、审计和对应 ADR |
 
 环境变量不是操作授权。即使代码具有 break-glass 开关，任何 staging/production 激活仍须由人工确认确切环境、持续时间、数据范围、负责人和回滚步骤；本 ADR 不授权设置这些变量。

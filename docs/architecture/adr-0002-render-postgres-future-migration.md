@@ -48,7 +48,7 @@ Browser
 | Schema | `supabase/migrations/` 是唯一 forward history；启动时 legacy schema 仅允许 disposable local/dev/test compatibility。 | Render 目标不能靠启动初始化或替换连接串建库。 |
 | RLS | 现有 policies 使用 `auth.uid()`、Supabase roles 和 service-role 语义。 | 裸 Render PostgreSQL 不会自动提供 Supabase claim context、roles 或 helper。 |
 | Storage | `backend/app/intake/storage.py` 使用 Supabase service key 访问 private bucket。 | 数据库备份不包含对象；必须另行证明对象 checksum、保留期和恢复关联。 |
-| 任务 | 旧区域报告仍有 `BackgroundTasks`、Edge/local worker 和 FastAPI executor 竞争路径。 | 迁移期间的 backlog、重试、幂等和 rollback 不能靠 URL 切换解决。 |
+| 任务 | 区域报告现由 PostgreSQL outbox worker 消费；旧 `BackgroundTasks`、Edge/local worker 路径已退役。 | 迁移期间仍须迁移 backlog，并验证 claim、重试、幂等和 rollback，不能靠 URL 切换解决。 |
 
 当前 C21 容量 baseline 只覆盖本地 synthetic ASGI、pool、bounded queue 和静态
 inventory；它没有生产流量、真实 PostgreSQL saturation、Render cold start、CDN

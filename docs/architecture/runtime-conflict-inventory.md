@@ -8,8 +8,8 @@
 | --- | --- | --- | --- | --- |
 | `web/app.js` direct authenticated PostgREST and Edge fallback | legacy profile/query/report compatibility | frozen | 不新增私有读写 | FastAPI 等价接口验证并移除 caller |
 | `supabase/functions/jphouse-run/` | retired legacy regional report generator | removed | 不再可寻址；若重新引入必须先纳入 FastAPI 等价授权与配额台账 | 新 ADR、配额回归与明确启用批准 |
-| `scripts/run_jphouse_worker.py` | local service-role REST report worker | frozen | 不加入 V1 worker handler | canonical worker 验证且 legacy queue 退役 |
-| `backend/app/main.py::run_generation_job` | in-process report executor | frozen | 不执行 V1 durable job | canonical queue/worker 接管报告生成 |
+| `scripts/run_jphouse_worker.py` | local service-role REST report worker | removed | 不再寻址；实现已删除 | 新 `backend.app.report_worker` 接管 |
+| `backend/app/main.py::run_generation_job` | shared report executor called only by durable worker | active worker implementation | API 不直接调度；不新增第二执行器 | worker 运行证据与部署接线 |
 | `backend/sql/` and `supabase/migrations/` | historical bootstrap vs canonical history | local + staging canonical / production pending | 只允许 `supabase/migrations/` 新增前向变更 | production 经独立备份、恢复、reviewed migration 和批准完成协调 |
 | `docs/supabase-setup.md` | 混合历史 setup 和当前 staging 指引 | conflict documented | ADR-0001 优先 | 重叠工作区改动整合后更新 |
 | `docs/render-postgres-deploy.md` | deferred Render PostgreSQL option | defer; see [ADR-0002](adr-0002-render-postgres-future-migration.md) | 仅作非执行评估；禁止替换 connection string、创建 DB 或迁移数据 | 全部迁移门槛与独立线上变更批准均满足 |

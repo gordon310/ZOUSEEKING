@@ -168,7 +168,6 @@ test("zh-Hant uses 數據 for the region-stat data copy and localizes the report
   const i18n = loadI18n({ search: "?lang=zh-Hant" });
   assert.equal(i18n.t("regionStats.ratio"), "租售比：暫不可用（租金數據未授權）");
   assert.equal(i18n.t("regionStats.quartiles"), "主力成交價帶");
-  assert.equal(i18n.t("regionStats.middleHalf"), "低於此帶 = 相對便宜,高於此帶 = 相對偏貴(按官方成交四分位計算)");
   assert.equal(i18n.t("regionStats.meanVsMedian"), "均價 = 全部成交的平均值,高價房源會把均價拉高;中位數 = 成交價排序後取中間,更能代表典型行情。");
   assert.equal(i18n.t("regionStats.towerDisclosure").startsWith("官方數據未區分塔樓與公寓"), true);
   assert.equal(i18n.t("workspace.reportFooterVersion", "").includes("synthetic_fixture"), false);

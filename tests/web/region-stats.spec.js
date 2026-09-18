@@ -40,7 +40,7 @@ test("区域成交价统计成功态展示真实口径与出典", async ({ page 
   await expect(statsResult).toContainText("均价 约 179.5 万円/㎡");
   await expect(statsResult).toContainText("中位数 约 180.0 万円/㎡");
   await expect(statsResult).toContainText("主力成交价带 126.4 〜 264.7 万円/㎡");
-  await expect(statsResult).toContainText("低于此带 = 相对便宜,高于此带 = 相对偏贵(按官方成交四分位计算)");
+  await expect(statsResult).not.toContainText("低于此带 = 相对便宜,高于此带 = 相对偏贵(按官方成交四分位计算)");
   await expect(statsResult).toContainText("均价 = 全部成交的平均值,高价房源会把均价拉高;中位数 = 成交价排序后取中间,更能代表典型行情。");
   await expect(statsResult).toContainText("552 笔官方成交记录");
   await expect(statsResult).toContainText("精确值:均价 1,794,737 円/㎡ · 中位数 1,800,000 円/㎡ · 区间 1,263,636 〜 2,646,667 円/㎡");
@@ -48,7 +48,12 @@ test("区域成交价统计成功态展示真实口径与出典", async ({ page 
   await expect(page.locator("#regionStatsResult")).toContainText("出典");
   await expect(page.locator("#regionStatsResult")).toContainText("租售比");
   await expect(statsResult).toContainText("租售比(毛) 约 1.2%");
+  await expect(statsResult).toContainText("官方家賃 1,809 円/㎡/月（市区町村・令和5年(2023)）");
+  await expect(statsResult).toContainText("年家賃 21,708 円/㎡/年（1,809 × 12）");
+  await expect(statsResult).toContainText("㎡均价 1,794,737 円/㎡（官方成交均值・552 笔）");
+  await expect(statsResult).toContainText("计算式 21,708 ÷ 1,794,737 = 1.2%");
   await expect(statsResult).toContainText("官方家賃月度动向：1,260 円/㎡/月（2026-08・都市别口径）");
+  await expect(statsResult).toContainText("说明 毛回报；不含管理费/修缮费/空置等费用；家賃基准为 令和5年(2023) 官方调查");
   await expect(statsResult).toContainText("政府統計の総合窓口(e-Stat)(https://www.e-stat.go.jp/)(加工して作成)");
   await expect(page.locator("#regionStatsResult")).not.toContainText("scraped_aggregate");
 });
@@ -65,6 +70,7 @@ test("区域成交价统计租金回落到都道府县时明确标注口径", as
   }), { status: 200, headers: { "Content-Type": "application/json" } }));
   await page.evaluate(() => window.ZouRegionStats.load({ preventDefault() {} }));
   await expect(page.locator("#regionStatsResult")).toContainText("按所在都道府县口径（该市区町村无官方数据）");
+  await expect(page.locator("#regionStatsResult")).toContainText("官方家賃 1,223 円/㎡/月（都道府县・令和5年(2023)）");
 });
 
 test("区域成交价统计四语言文案键完整且没有内部枚举", async ({ page }) => {
@@ -84,6 +90,7 @@ test("区域成交价统计四语言文案键完整且没有内部枚举", async
     }
   }
   expect(locales["zh-Hant"]["regionStats.insufficient"]["zh-Hant"]).toContain("數據");
+  expect(locales["zh-CN"]["regionStats.rentDetailFormula"]["zh-CN"]).toContain("{annualRent}");
 });
 
 test("区域成交价统计样本不足态不显示数字", async ({ page }) => {

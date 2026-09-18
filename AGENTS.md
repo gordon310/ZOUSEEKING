@@ -44,7 +44,7 @@ manual CSV or external aggregate page
 member query
   -> Supabase tables or legacy FastAPI endpoint
   -> generation job
-  -> local worker or FastAPI background task
+  -> report outbox claimed atomically by the report worker
   -> property report
   -> member workspace and analysis view
 ```
@@ -232,7 +232,7 @@ environment, with the ownership boundary kept explicit and regression-tested:
 Treat the remaining items as risks to resolve, not patterns to copy:
 - Quota enforcement for the audited user actions is now server-owned and atomic: `/api/query` and report generation use `consume_current_entitlement` (`backend/app/main.py:356-363,784-791`), analysis uses it (`backend/app/analysis/routes.py:212-224`), personal and organization exports use it (`backend/app/exports/routes.py:217-236`, `backend/app/org/routes.py:504-513`), and intake preview/convert use the same query entitlement (`backend/app/routes/intake.py:90-102,390-408,411-466`). The retired Edge Function that did not write the ledger has been deleted; if that path is ever reintroduced, it still requires the same quota hardening before enablement.
 - Verified, scraped, modeled, and synthetic data lack a mandatory shared provenance contract.
-- The analysis page now reads structured location/asset fields with a single tested legacy-title parser; 3 of 6 current content-library records still lack prefecture/city/ward fields, and the library still lacks a multi-month trend dataset.
+- The analysis page now reads structured location/asset fields with a single tested legacy-title parser; every current content-library record carries prefecture/city/ward, and the library still lacks a multi-month trend dataset.
 - FastAPI, Supabase direct REST, and local worker flows still overlap and disagree; the retired Edge Function has been removed.
 - SQL scripts are used as mutable schema setup rather than a single versioned migration history.
 - There are no automated tests, CI gates, restore drills, or production observability standards in the repository.

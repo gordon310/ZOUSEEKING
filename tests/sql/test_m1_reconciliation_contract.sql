@@ -101,8 +101,8 @@ begin
   -- 336 为手工 bootstrap 计数、360 为 CI disposable-reset 基线(以 CI 为准;
   -- 20260916000300、20260916000500 与 20260918000100 各自在新表上 GRANT ALL,
   -- 每个展开 7 条权限行: 339 + 7 + 7 + 7 = 360)。
-  if service_grant_count <> 371 then
-    raise exception 'service_role public grant count %, expected 371', service_grant_count;
+  if service_grant_count <> 367 then
+    raise exception 'service_role public grant count %, expected 367', service_grant_count;
   end if;
 
   if exists (

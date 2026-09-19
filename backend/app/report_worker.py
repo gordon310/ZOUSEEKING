@@ -6,6 +6,7 @@ import asyncio
 import json
 import logging
 import os
+import signal
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
@@ -19,7 +20,6 @@ from .models import QueryRequest
 
 logger = logging.getLogger(__name__)
 MAX_ATTEMPTS = 3
-LEASE_SECONDS = 900
 BACKOFF_SECONDS = (5, 30, 300)
 
 
@@ -32,6 +32,7 @@ class ClaimedReport:
     payload: dict[str, Any]
     attempts: int
     max_attempts: int
+    lease_expired: bool
 
 
 @dataclass(frozen=True)
@@ -44,12 +45,12 @@ class Failure:
 def claim_sql() -> str:
     return """
     with candidate as (
-      select id
+      select id, status as previous_status
       from public.report_generation_outbox
       where attempts < max_attempts
         and (
           (status in ('pending', 'retryable') and next_attempt_at <= now())
-          or (status = 'running' and claimed_at < now() - make_interval(secs => $1))
+          or (status = 'running' and claimed_at < now() - interval '15 minutes')
         )
       order by created_at asc, id asc
       for update skip locked
@@ -64,7 +65,8 @@ def claim_sql() -> str:
      from candidate
      where outbox.id = candidate.id
     returning outbox.id, outbox.generation_job_id, outbox.query_id,
-              outbox.claim_token, outbox.payload, outbox.attempts, outbox.max_attempts
+              outbox.claim_token, outbox.payload, outbox.attempts, outbox.max_attempts,
+              candidate.previous_status
     """
 
 
@@ -103,7 +105,7 @@ async def enqueue_report_outbox(
 
 async def claim_next(pool: asyncpg.Pool) -> ClaimedReport | None:
     async with pool.acquire() as conn:
-        row = await conn.fetchrow(claim_sql(), LEASE_SECONDS)
+        row = await conn.fetchrow(claim_sql())
     if row is None:
         return None
     raw_payload = row["payload"] or {}
@@ -116,6 +118,7 @@ async def claim_next(pool: asyncpg.Pool) -> ClaimedReport | None:
         payload=payload,
         attempts=row["attempts"],
         max_attempts=row["max_attempts"],
+        lease_expired=row["previous_status"] == "running",
     )
 
 
@@ -150,6 +153,12 @@ def classify_failure(error: BaseException) -> Failure:
 async def record_failure(pool: asyncpg.Pool, claim: ClaimedReport, failure: Failure) -> str:
     retry = failure.retryable and claim.attempts < claim.max_attempts
     status = "retryable" if retry else "failed"
+    if claim.lease_expired and status == "failed":
+        failure = Failure(
+            "worker_lease_expired",
+            False,
+            "报告生成任务租约已过期，已停止重试。",
+        )
     delay = backoff_seconds(claim.attempts)
     async with pool.acquire() as conn:
         async with conn.transaction():
@@ -223,16 +232,49 @@ async def process_once(pool: asyncpg.Pool | None = None) -> dict[str, Any] | Non
     return {"job_id": str(claim.generation_job_id), "status": "completed"}
 
 
-async def run_worker(*, once: bool = False, poll_seconds: float = 1.0) -> None:
+async def run_worker(
+    *, once: bool = False, poll_seconds: float = 1.0, stop_event: asyncio.Event | None = None
+) -> None:
     pool = get_pool()
     while True:
+        if stop_event is not None and stop_event.is_set():
+            return
         result = await process_once(pool)
         if once or result is not None:
             if once:
                 return
         if result is None:
-            await asyncio.sleep(poll_seconds)
+            if stop_event is None:
+                await asyncio.sleep(poll_seconds)
+            else:
+                try:
+                    await asyncio.wait_for(stop_event.wait(), timeout=poll_seconds)
+                except asyncio.TimeoutError:
+                    pass
+
+
+async def _main() -> None:
+    from .db import close, connect
+
+    stop_event = asyncio.Event()
+    loop = asyncio.get_running_loop()
+    for shutdown_signal in (signal.SIGTERM, signal.SIGINT):
+        loop.add_signal_handler(shutdown_signal, stop_event.set)
+    await connect()
+    try:
+        await run_worker(once=os.environ.get("REPORT_WORKER_ONCE") == "1", stop_event=stop_event)
+    finally:
+        for shutdown_signal in (signal.SIGTERM, signal.SIGINT):
+            loop.remove_signal_handler(shutdown_signal)
+        await close()
+
+
+def main() -> None:
+    try:
+        asyncio.run(_main())
+    except KeyboardInterrupt:
+        return
 
 
 if __name__ == "__main__":
-    asyncio.run(run_worker(once=os.environ.get("REPORT_WORKER_ONCE") == "1"))
+    main()

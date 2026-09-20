@@ -440,6 +440,21 @@
 - **仍待 Gordon 拍板(未变)**:① M1 两个收敛单元(报告生成入 durable worker / `app.js` legacy 直读退役)是否派工 ② 4 行历史僵尸报告清理(需批准;不批亦会自愈)③ 迁移台账 C4 口径 ④ 未部署冻结件(Edge 函数 / `run_jphouse_worker.py`)删除 vs 长期冻结 ⑤ 本班次(job `ab373f6bd99d`)改绑 P2 或停用。
 - **红线**:零代码改动、零 DB 写、零部署、零删除、未触凭据与冻结字段、未改 migration;本班仅文档 + commit/push。
 
+## 后台页签标签与实时数据不一致修复 + durable worker 线上闭环复核(2026-09-20 晨班,本 BOT)
+
+- **班前实测**:工作树干净、`main == origin/main == 83e0fcd`;仓库内无 `codex exec` 进程 → 不判「进行中」;Release Gate `83e0fcd` **success**。P1 清单自 09-07 闭环,但本班抓到 P1 单元④(后台管理真实数据)残留的一处**用户可见缺口**并修复。
+- **09-19 报告的生产缺陷已闭环(本班实测)**:`deploy-report-worker-1` Up 22h 且 **RestartCount=0**;api 容器内 `/tmp/stopgap_worker.py` 已不存在;线上 checkout HEAD=`83e0fcd`。**端到端证据(生产库只读探针)**:outbox 两行均 completed,第 2 行 enqueue `2026-09-19T02:15:17Z` → claimed +1.0s → completed +0.94s、`attempts=1`、`last_error_code=null`,**发生在修复部署之后** → durable worker 在线上真实取走并跑完任务(此前只能证明容器 Up)。
+- **生产库只读实测**:`generation_jobs` completed 15 / failed 3、**pending=0 / running=0**;`report_generation_outbox` 全表 2 行(completed);**「pending 或 running 且无 outbox 行」= 0 条**;`property_reports` full_report = 4。
+- **D4 结论修正(代码级缺口真实存在,当前零影响)**:`report_worker.py` 只认领 outbox 行,而 `main.py:243-256` `cached_report_action()` 对 `pending/running` 返回 `wait`(既不入队也不执行)→ 一旦存在「无 outbox 行的 pending/running 历史 job」将永久卡死;ADR-0001 第 117 行「历史 job 由新 outbox forward migration 通过幂等键接管」与实际迁移(`20260918000400` 仅建表,无回填 INSERT)不符。**实测当前 0 条受影响行**,故为潜在缺口而非现网故障。
+- **本班修复的缺陷**:`web/admin.html:94/95` 的「质量审核」「服务派单」页签仍挂静态标签「待后端接入」,而二者实时模式**都读取真实后台**(`admin.js:1018-1036` → `/api/admin/collection/runs?status=failed`;`admin.js:1200-1273` → `/api/admin/service/tasks`;后端 `backend/app/admin/routes.py:590,608,616`),且仅 `#collectionTabNote`(采集任务)在实时模式被隐藏(`admin.js:1608`);顶栏实时说明三语(`i18n.js:526 / 1397 / 2268`)还写着「审核 / 派单仍为演示域(对应后端未实现)」= 对运营人员的不实陈述。
+- **改动(4 文件,+15/−8;派工 Codex 执行,遵 09-13「开发归 Codex」分工)**:① `web/admin.html` 给两个页签标签补 id;② `web/js/admin.js` `applyModeChrome()` 实时模式一并隐藏这两个标签;③ `web/js/i18n.js` 的 `admin.fixtureLive` / `admin.fixtureLiveHeading` 三语改写为「采集任务/质量审核/服务派单三页签实时读取真实后台,分别按 data_ops、member_ops+super_admin 门控」——**只改值,未增删键**(避免触发 i18n 键数基线);④ `tests/web/admin-live-degrade.spec.js` 新增 3 条断言(实时模式不得出现「待后端接入」、顶栏不得出现「演示域」、须出现「读取真实后台」正表述)。
+- **验证(本机实跑)**:`backend/.venv/bin/python -m pytest tests/unit tests/architecture -q` → **422 passed / 88 skipped**;`node --check web/js/admin.js` / `web/js/i18n.js` OK;`playwright test admin-live-degrade.spec.js` → 新增 3 条断言**通过**;`i18n-runtime.spec.js` 1 passed。Codex 沙箱内 Python 有 1 例端口绑定失败、Playwright 无法起本地服务(该两项属 NOT_EXECUTED,由本班补跑)。
+- **⚠️ 预存在 flaky(非本次改动引入,已对照实测)**:`tests/web/admin-live-degrade.spec.js:660` `expect(roleListGets).toBeGreaterThanOrEqual(3)`(实测收到 2)。对照实验:clean main 单跑该例 **3/3 失败**、全文件跑 **失败/通过/失败**;带本次改动全文件同样 **失败/通过/失败** → 既有竞态,CI 未复现;建议按「响应级断言 + 报告型诊断」整改(归 Codex,单独单元)。
+- **⚠️ 新增观察(本班实测,未修)**:报告 worker **无任何日志输出**——`backend/app/report_worker.py` 及 `scripts/run_report_worker.py` 均无 `logging.basicConfig`,生产 `docker logs deploy-report-worker-1` 为空 → 认领/失败/租约回收全部不可观测(AGENTS 要求结构化日志 + job 关联 ID)。当前"健康"只能靠 outbox 表的行状态判断;应派 Codex 补结构化日志。
+- **commit**:`d5bd9e7`(4 文件,+15/−8),已 push origin/main。
+- **仍待 Gordon 拍板(更新)**:① **D4 口径二选一**:(a) 补一份 forward 回填迁移(outbox 幂等接管存量 job),(b) 改 ADR-0001 文字 + 保留「存量 running/pending 需人工 requeue」操作口径(推荐 b,当前 0 条受影响);② M1 单元②`web/app.js` 直读 Supabase(实测 7 处 `supabaseUserFetch`/`supabaseReportToRecord` 仍在)是否派 Codex;③ worker 结构化日志 + `roleListGets` flaky 整改是否同批派工;④ 4 行历史僵尸报告清理(需批准);⑤ 迁移台账 C4 口径;⑥ 本班次(job `ab373f6bd99d`)改绑 P2 或停用(P1 已无剩余单元,已连续多日只做发现类工作)。
+- **红线**:零 DB 写入或对象变更、零部署、未触凭据与冻结字段、无删除操作、未改 migration;线上仅只读核查(`docker ps/inspect/logs`、`git log`),生产库**仅只读 SELECT 探针**(经 api 容器内一次性脚本,读 DATABASE_URL)。
+
 ## Last updated
 
-2026-09-18
+2026-09-20

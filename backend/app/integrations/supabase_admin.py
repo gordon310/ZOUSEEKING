@@ -35,16 +35,10 @@ class SupabaseAdmin:
             raise SupabaseAdminError("missing_request_access_token", retryable=False)
         await self._request("/auth/v1/logout?scope=global", method="POST", bearer=access_token)
 
-    async def anonymize_user(self, user_id: UUID) -> None:
+    async def delete_user(self, user_id: UUID) -> None:
         await self._request(
             f"/auth/v1/admin/users/{user_id}",
-            method="PUT",
-            payload={
-                "email": f"deleted+{user_id}@invalid",
-                "phone": "",
-                "user_metadata": {"username": "", "name": "", "display_name": "", "deleted_account": True},
-                "ban_duration": "876000h",
-            },
+            method="DELETE",
         )
 
     async def _request(self, path: str, *, method: str, bearer: str | None = None, payload: Mapping[str, object] | None = None) -> None:

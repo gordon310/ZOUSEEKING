@@ -47,7 +47,10 @@
     "20260918000100_rent_reference_stats.sql",
     "20260918000200_rent_reference_building_dimensions.sql",
     "20260918000300_rent_reference_source_key_alignment.sql",
-    "20260918000400_report_generation_outbox.sql"
+    "20260918000400_report_generation_outbox.sql",
+    "20260920000100_usage_events_anonymization_allowance.sql",
+    "20260920000200_member_read_security_invoker_views.sql",
+    "20260920000300_account_deletion_request_auth_anonymization.sql"
   ],
   "legacy_sql_files": [
     "backend/sql/001_foundation_data_contract.sql",

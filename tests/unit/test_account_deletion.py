@@ -28,6 +28,15 @@ class FakeConnection:
     def __init__(self):
         self.calls = []
         self.existing = None
+        self.usage_event = {
+            "actor_user_id": USER.user_id,
+            "scope_key": f"user:{USER.user_id}",
+            "usage_kind": "query",
+            "operation": "consume",
+            "units": 1,
+            "period_key": "2026-09",
+            "created_at": NOW,
+        }
         self.inserted = {
             "id": UUID("00000000-0000-0000-0000-000000000099"),
             "status": "pending",
@@ -57,6 +66,10 @@ class FakeConnection:
         self.calls.append(("execute", query, args))
         return "UPDATE 1"
 
+    def anonymize_usage_events_for_deleted_auth_user(self, user_id):
+        if self.usage_event["actor_user_id"] == user_id:
+            self.usage_event["actor_user_id"] = None
+
 
 class FakePool:
     def __init__(self):
@@ -76,8 +89,10 @@ class FakePool:
 
 
 class FakeAuthAdmin:
-    def __init__(self):
+    def __init__(self, connection=None):
         self.calls = []
+        self.connection = connection
+        self.deleted_users = set()
 
     def is_configured(self):
         return True
@@ -85,14 +100,16 @@ class FakeAuthAdmin:
     async def revoke_all_sessions(self, user_id, access_token):
         self.calls.append(("revoke", user_id, access_token))
 
-    async def anonymize_user(self, user_id):
-        self.calls.append(("anonymize", user_id))
+    async def delete_user(self, user_id):
+        self.calls.append(("delete", user_id))
+        self.deleted_users.add(user_id)
+        self.connection.anonymize_usage_events_for_deleted_auth_user(user_id)
 
 
 @pytest.mark.asyncio
-async def test_submit_registers_then_revokes_and_anonymizes_and_completes():
+async def test_submit_deletes_auth_user_and_retains_anonymized_usage_event():
     pool = FakePool()
-    admin = FakeAuthAdmin()
+    admin = FakeAuthAdmin(pool.connection)
     executor = ControlledDeletionExecutor(pool=pool, auth_admin=admin)
 
     receipt = await executor.submit(USER, requested_at=NOW)
@@ -103,7 +120,25 @@ async def test_submit_registers_then_revokes_and_anonymizes_and_completes():
         "acknowledgement_due", "access_restriction_due", "primary_data_deletion_due",
         "backup_expiry_due",
     }
-    assert admin.calls == [("revoke", USER.user_id, USER.access_token), ("anonymize", USER.user_id)]
+    assert admin.calls == [("revoke", USER.user_id, USER.access_token), ("delete", USER.user_id)]
+    assert USER.user_id in admin.deleted_users
+    assert pool.connection.usage_event == {
+        "actor_user_id": None,
+        "scope_key": f"user:{USER.user_id}",
+        "usage_kind": "query",
+        "operation": "consume",
+        "units": 1,
+        "period_key": "2026-09",
+        "created_at": NOW,
+    }
+    delete_call_index = admin.calls.index(("delete", USER.user_id))
+    database_cleanup_index = next(
+        index
+        for index, call in enumerate(pool.connection.calls)
+        if call[0] == "execute" and "delete from public.queries" in call[1]
+    )
+    assert database_cleanup_index < len(pool.connection.calls)
+    assert delete_call_index == 1
     assert any("status='completed'" in call[1] for call in pool.connection.calls if call[0] == "fetchrow")
 
 
@@ -111,7 +146,7 @@ async def test_submit_registers_then_revokes_and_anonymizes_and_completes():
 async def test_submit_is_idempotent_for_existing_completed_request():
     pool = FakePool()
     pool.connection.existing = dict(pool.connection.inserted, status="completed")
-    admin = FakeAuthAdmin()
+    admin = FakeAuthAdmin(pool.connection)
     executor = ControlledDeletionExecutor(pool=pool, auth_admin=admin)
 
     receipt = await executor.submit(USER, requested_at=NOW)

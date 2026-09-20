@@ -20,6 +20,24 @@ begin
   ) then
     raise exception 'account deletion idempotency index is missing';
   end if;
+  if exists (
+    select 1
+    from pg_attribute
+    where attrelid = 'public.account_deletion_requests'::regclass
+      and attname = 'user_id'
+      and attnotnull
+  ) then
+    raise exception 'account deletion ledger user_id must allow Auth-delete anonymization';
+  end if;
+  if not exists (
+    select 1
+    from pg_constraint
+    where conrelid = 'public.account_deletion_requests'::regclass
+      and conname = 'account_deletion_requests_user_id_fkey'
+      and confdeltype = 'n'
+  ) then
+    raise exception 'account deletion ledger must set user_id null on Auth delete';
+  end if;
   if not exists (
     select 1 from pg_policies
     where schemaname = 'public'

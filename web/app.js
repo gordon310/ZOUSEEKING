@@ -723,9 +723,9 @@ function supabaseStoredReportToRecord(report) {
 }
 
 async function loadRemoteReports() {
-  if (!hasSupabase()) return;
+  if (!hasSupabaseSession()) return;
   try {
-    const rows = await supabaseFetch("/property_reports?select=*&order=created_at.desc&limit=300");
+    const rows = await supabaseUserFetch("/member_property_reports?select=*&order=created_at.desc&limit=300");
     (rows || []).forEach((row) => upsertRuntimeRecord(supabaseStoredReportToRecord(row)));
   } catch {
     // Static library is enough for the page to work; remote reports are a bonus.
@@ -862,7 +862,7 @@ async function loadMyPage() {
   }
   state.myTasks =
     (await supabaseUserFetch(
-      `/queries?select=*,generation_jobs(id,status,progress,current_step,error_message,created_at)&owner_user_id=eq.${encodeURIComponent(state.session.userId)}&order=created_at.desc&limit=10`,
+      "/member_queries?select=*&order=created_at.desc&limit=10",
     )) || [];
   state.myPageLoaded = true;
 }
@@ -879,7 +879,7 @@ async function ensureUserProfile() {
     return;
   }
   const userId = encodeURIComponent(state.session.userId);
-  const rows = await supabaseUserFetch(`/user_profiles?select=*&user_id=eq.${userId}&limit=1`);
+  const rows = await supabaseUserFetch(`/member_profiles?select=*&user_id=eq.${userId}&limit=1`);
   if (rows?.[0]) {
     state.profile = rows[0];
     state.profileLoaded = true;
@@ -1346,7 +1346,7 @@ async function viewReportByQueryKey(key) {
   try {
     const report = canUseAuthenticatedBackend()
       ? await apiFetch(`/api/reports/${encodeURIComponent(key)}`)
-      : (await supabaseUserFetch(`/property_reports?select=*&query_key=eq.${encodeURIComponent(key)}&limit=1`))?.[0];
+      : (await supabaseUserFetch(`/member_property_reports?select=*&query_key=eq.${encodeURIComponent(key)}&limit=1`))?.[0];
     if (!report) {
       setMessage("这条还没有生成结果，先点手动执行 JPHOUSE。", "error");
       return;

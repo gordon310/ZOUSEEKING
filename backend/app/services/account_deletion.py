@@ -47,10 +47,13 @@ class ControlledDeletionExecutor:
         stage = "auth_revoke_failed"
         try:
             await self.auth_admin.revoke_all_sessions(user.user_id, user.access_token)
-            stage = "auth_anonymization_failed"
-            await self.auth_admin.anonymize_user(user.user_id)
             stage = "database_anonymization_failed"
             await self._anonymize_database(pool, user.user_id)
+            # Delete the Auth identity only after application-owned rows have
+            # been removed or de-identified. The usage_events FK then performs
+            # its narrowly permitted actor_user_id -> NULL anonymization.
+            stage = "auth_deletion_failed"
+            await self.auth_admin.delete_user(user.user_id)
             row = await self._complete(pool, request_id)
             return self._receipt(row)
         except (SupabaseAdminError, AccountDeletionExecutionError):

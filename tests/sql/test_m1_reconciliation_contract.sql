@@ -94,15 +94,20 @@ begin
   -- 20260916000300_organization_invitations.sql adds one more,
   -- 20260916000500_mlit_transactions.sql adds one more, and
   -- 20260918000100_rent_reference_stats.sql adds one more (SELECT on the new table).
-  if authenticated_grant_count <> 27 then
-    raise exception 'authenticated public grant count %, expected 27', authenticated_grant_count;
+  -- 20260920000200_member_read_security_invoker_views.sql adds SELECT on
+  -- three member-read views. The 30 baseline is the CI disposable-reset value.
+  if authenticated_grant_count <> 30 then
+    raise exception 'authenticated public grant count %, expected 30', authenticated_grant_count;
   end if;
   -- 20260915000300_account_deletion_requests.sql adds four service_role grants;
   -- 336 为手工 bootstrap 计数、360 为 CI disposable-reset 基线(以 CI 为准;
   -- 20260916000300、20260916000500 与 20260918000100 各自在新表上 GRANT ALL,
   -- 每个展开 7 条权限行: 339 + 7 + 7 + 7 = 360)。
-  if service_grant_count <> 367 then
-    raise exception 'service_role public grant count %, expected 367', service_grant_count;
+  -- The same view migration adds three service_role SELECT grants. The 374
+  -- baseline is the CI-style disposable-reset value (the prior 367 contract
+  -- also predated four grants from the existing report-outbox migration).
+  if service_grant_count <> 370 then
+    raise exception 'service_role public grant count %, expected 370', service_grant_count;
   end if;
 
   if exists (

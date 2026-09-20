@@ -192,6 +192,12 @@ jobs:
       - name: Run usage ledger SQL assertions
         continue-on-error: true
         run: python3 scripts/ci/release_evidence.py record --name sql-usage --output ci-results/sql-usage.json -- psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/sql/test_v1_usage_ledger.sql
+      - name: Run usage-event deletion anonymization assertions
+        continue-on-error: true
+        run: python3 scripts/ci/release_evidence.py record --name sql-usage-anonymization --output ci-results/sql-usage-anonymization.json -- psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/sql/test_usage_events_anonymization.sql
+      - name: Run member-read view RLS assertions
+        continue-on-error: true
+        run: python3 scripts/ci/release_evidence.py record --name sql-member-read-views --output ci-results/sql-member-read-views.json -- psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/security/test_rls_member_read_views.sql
       - name: Run service tasks SQL assertions
         continue-on-error: true
         run: python3 scripts/ci/release_evidence.py record --name sql-service-tasks --output ci-results/sql-service-tasks.json -- psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/sql/test_v1_service_tasks_contacts.sql

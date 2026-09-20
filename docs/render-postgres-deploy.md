@@ -12,7 +12,8 @@ GitHub Pages / Render Static Site
 
 根目录 [`render.yaml`](../render.yaml) 目前只声明
 `zouseeking-api-staging` 和 `zouseeking-web-staging`，并设置
-`ENVIRONMENT=staging`、`INIT_SCHEMA=false`、`DATABASE_URL sync: false`。
+`ENVIRONMENT=staging`、`DATABASE_URL sync: false`。应用启动不提供 schema 初始化
+开关，也不执行 DDL；schema 只能由 `supabase/migrations/` 的审核后迁移变更。
 其中没有 `databases:`；因此 **Blueprint 不会创建 PostgreSQL**，也不能把未来评估
 示例当作当前资源清单。staging 不等于 production。
 

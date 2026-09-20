@@ -56,9 +56,9 @@ python3 scripts/check_schema_ownership.py
 npm run check:schema-ownership
 ```
 
-当前 `migration_baseline_status = canonical_staging_reconciled_production_pending`。
-禁止 linked repair、staging reset、production reset 或未经批准的 `supabase db push`；
-M1 staging 授权不包含会员、计费、任务、后台 migration 或 production 操作。
+当前 `migration_baseline_status = canonical_staging_reconciled_production_reconciled`。
+仓库的 47 个 migration 与已记录的 production `schema_migrations` 47 条一致，最大
+version 均为 `20260920000300`；以两个 version 集合的双向差集为空判定已对齐。禁止 linked repair、staging reset、production reset 或未经批准的 `supabase db push`。
 
 现在已内置完整日本行政区划字段库：
 

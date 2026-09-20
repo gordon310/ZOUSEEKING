@@ -25,7 +25,7 @@ def test_supabase_runbook_keeps_billing_and_provider_rollout_gates_explicit() ->
     text = (ROOT / "docs/supabase-setup.md").read_text(encoding="utf-8")
 
     required = (
-        "migration_baseline_status = canonical_staging_reconciled_production_pending",
+        "migration_baseline_status = canonical_staging_reconciled_production_reconciled",
         "禁止 linked repair、staging reset、production reset 或未经批准的 `supabase db push`",
         "webhook",
         "Customer Portal",

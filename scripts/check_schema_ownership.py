@@ -18,7 +18,7 @@ from typing import Any
 
 MIGRATION_NAME = re.compile(r"^(?P<timestamp>\d{14})_[a-z0-9][a-z0-9_]*\.sql$")
 EXPECTED_CANONICAL_HISTORY = "supabase/migrations"
-EXPECTED_BASELINE_STATUS = "canonical_staging_reconciled_production_pending"
+EXPECTED_BASELINE_STATUS = "canonical_staging_reconciled_production_reconciled"
 REQUIRED_PROHIBITIONS = {
     "edit_applied_migration",
     "delete_restore_package",
@@ -38,6 +38,30 @@ def _relative_sql_files(root: Path, directory: str) -> list[str]:
 def _load_manifest(root: Path) -> dict[str, Any]:
     path = root / "docs/architecture/schema-ownership.json"
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _runtime_legacy_sql_reference_errors(root: Path) -> list[str]:
+    """Find executable runtime source that names a legacy SQL file."""
+
+    reference = re.compile(
+        r"backend\s*/\s*sql\s*/|(?:['\"]backend['\"])\s*/\s*(?:['\"]sql['\"])",
+        re.IGNORECASE,
+    )
+    source_paths: list[Path] = []
+    for relative in ("backend/app", "scripts"):
+        directory = root / relative
+        if directory.is_dir():
+            source_paths.extend(
+                path for path in directory.rglob("*") if path.suffix in {".py", ".js", ".mjs"}
+            )
+    violations: list[str] = []
+    for path in sorted(source_paths):
+        if path.resolve() == Path(__file__).resolve():
+            continue
+        for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+            if reference.search(line):
+                violations.append(f"{path.relative_to(root).as_posix()}:{line_number}")
+    return violations
 
 
 def audit(root: Path) -> tuple[dict[str, Any], list[str]]:
@@ -85,6 +109,13 @@ def audit(root: Path) -> tuple[dict[str, Any], list[str]]:
     if len(timestamps) != len(set(timestamps)):
         errors.append("forward migration timestamps must be unique")
 
+    runtime_legacy_sql_references = _runtime_legacy_sql_reference_errors(root)
+    if runtime_legacy_sql_references:
+        errors.append(
+            "runtime code must not reference legacy backend/sql files: "
+            f"{runtime_legacy_sql_references!r}"
+        )
+
     legacy_files = _relative_sql_files(root, "backend/sql")
     expected_legacy = sorted(manifest.get("legacy_sql_files", []))
     if legacy_files != expected_legacy:
@@ -124,6 +155,7 @@ def audit(root: Path) -> tuple[dict[str, Any], list[str]]:
         "migration_baseline_status": baseline_status,
         "forward_migration_files": [Path(path).name for path in migration_files],
         "legacy_sql_files": legacy_files,
+        "runtime_legacy_sql_references": runtime_legacy_sql_references,
         "required_documentation": required_docs,
         "errors": errors,
     }

@@ -78,7 +78,7 @@ migration history。仓库 canonical history 已从空库重建；获批 staging
 later-ID reconciliation、恢复和运行验收，当前状态为：
 
 ```text
-migration_baseline_status = canonical_staging_reconciled_production_pending
+migration_baseline_status = canonical_staging_reconciled_production_reconciled
 ```
 
 已完成项包括：
@@ -94,9 +94,9 @@ migration_baseline_status = canonical_staging_reconciled_production_pending
 8. 完成 staging 逻辑备份隔离恢复、四身份 RLS、Auth 生命周期和私有 Storage
    行为验收并清理全部合成 fixture。
 
-这不代表 production 已协调。禁止 migration repair、staging reset、production
-reset、未经批准的 linked push 或 live SQL；M1 的 staging 授权不能自动扩展到后续
-业务 migration 或 production。
+记录的 production ledger 已与 canonical history 对齐；这不授权 migration repair、
+staging/production reset、未经批准的 linked push 或 live SQL，也不自动扩展任何后续
+业务 migration 的权限。
 
 `backend/sql/` 只作为历史 bootstrap/reference，不是新的 migration 路径。
 
@@ -160,5 +160,5 @@ Supabase；随后 push 更晚的 `20260902000100`。CI 在 Supabase CLI `2.115.0
 未执行 repair。四身份数据库 RLS、Auth signup/confirm/recovery/
 refresh/logout/delete，以及 private Storage worker upload/download/delete/restore 均
 通过，fixture 清理后 Auth users、业务行和 Storage objects 均为 0。现状更新为
-`migration_baseline_status = canonical_staging_reconciled_production_pending`；不代表
+`migration_baseline_status = canonical_staging_reconciled_production_reconciled`；不代表
 production 已协调。

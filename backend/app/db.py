@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 
 import asyncpg
 
 
 DATABASE_URL = os.getenv("DATABASE_URL", "")
-ROOT = Path(__file__).resolve().parents[2]
-SCHEMA_PATH = ROOT / "backend" / "sql" / "schema.sql"
 
 pool: asyncpg.Pool | None = None
 
@@ -31,9 +28,3 @@ def get_pool() -> asyncpg.Pool:
     if pool is None:
         raise RuntimeError("Database pool is not initialized")
     return pool
-
-
-async def init_schema() -> None:
-    sql = SCHEMA_PATH.read_text(encoding="utf-8")
-    async with get_pool().acquire() as conn:
-        await conn.execute(sql)

@@ -30,11 +30,24 @@ class SchemaOwnershipAuditTest(unittest.TestCase):
         self.assertEqual(report["canonical_forward_history"], "supabase/migrations")
         self.assertEqual(
             report["migration_baseline_status"],
-            "canonical_staging_reconciled_production_pending",
+            "canonical_staging_reconciled_production_reconciled",
         )
         self.assertEqual(len(report["forward_migration_files"]), 47)
         self.assertEqual(len(report["legacy_sql_files"]), 8)
         self.assertEqual(report["errors"], [])
+
+    def test_audit_rejects_runtime_references_to_legacy_sql(self) -> None:
+        target = ROOT / "scripts" / "_schema_ownership_negative_fixture.py"
+        target.write_text(
+            'LEGACY_SCHEMA = "backend/sql/schema.sql"\n', encoding="utf-8"
+        )
+        try:
+            result = self.run_audit()
+        finally:
+            target.unlink(missing_ok=True)
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("runtime code must not reference legacy backend/sql", result.stdout)
 
     def test_npm_command_runs_the_same_offline_audit(self) -> None:
         result = subprocess.run(

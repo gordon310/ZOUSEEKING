@@ -151,7 +151,7 @@ monthly_total = workspace + API/worker + Postgres + storage
 
 | 条件 | 当前状态 |
 | --- | --- |
-| 当前仅为 `canonical_staging_reconciled_production_pending`，没有 production baseline/restore 证据 | **BLOCKED** |
+| `canonical_staging_reconciled_production_reconciled` 已记录 ledger 对齐，但缺少 Render PostgreSQL 迁移所需的独立 backup/restore 证据 | **BLOCKED** |
 | Auth issuer、用户映射、token/revocation/reset/MFA 未书面确定并测试 | **BLOCKED** |
 | `auth.uid()`/claim、grants、owner/RLS 四身份矩阵未通过 | **BLOCKED** |
 | DB 与 Storage 的备份、恢复、checksum、retention 和删除关联未演练 | **BLOCKED** |

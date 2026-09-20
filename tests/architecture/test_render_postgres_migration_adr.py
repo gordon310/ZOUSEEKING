@@ -29,7 +29,7 @@ def test_render_postgres_adr_covers_requested_decision_axes_and_gates() -> None:
         "成本",
         "停机窗口",
         "不迁移条件",
-        "canonical_staging_reconciled_production_pending",
+        "canonical_staging_reconciled_production_reconciled",
         "live_write_approval=required",
         "production_reset=forbidden",
         "staging 不等于 production",
@@ -63,6 +63,6 @@ def test_current_render_config_remains_staging_without_database_resource() -> No
 
     assert "zouseeking-api-staging" in text
     assert "ENVIRONMENT" in text and "staging" in text
-    assert "INIT_SCHEMA" in text and 'value: "false"' in text
+    assert "INIT_SCHEMA" not in text
     assert "DATABASE_URL" in text and "sync: false" in text
     assert "databases:" not in text

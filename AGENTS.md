@@ -25,7 +25,7 @@ The product is still converging on its final architecture. It currently combines
 - `data/content_library.json`: canonical local content-library copy used by generation scripts.
 - `web/`: static member website, analysis UI, copied content library, and generated media.
 - `backend/app/`: FastAPI and asyncpg implementation.
-- `backend/sql/`: legacy FastAPI schema and Supabase-oriented schema scripts.
+- `backend/sql/`: frozen historical reference/support SQL, never an application or migration execution source.
 - The retired `supabase/functions/jphouse-run/` report executor has been removed; report generation is owned by the authenticated FastAPI/worker path.
 - `docs/`: setup, deployment, data dictionary, and content workflow documentation.
 
@@ -93,13 +93,13 @@ The Supabase and FastAPI paths are competing implementations, not interchangeabl
 ## Database rules
 
 - PostgreSQL/Supabase is the intended shared datastore. SQLite assumptions do not apply.
-- The current `backend/sql/schema.sql` and `backend/sql/supabase_schema.sql` conflict. Treat schema ownership as unresolved until an architecture decision selects one migration history.
+- `supabase/migrations/` is the sole canonical forward history. `backend/sql/` is historical reference only; `scripts/check_schema_ownership.py` fails if runtime code names a legacy SQL file or the tracked manifest diverges.
 - Do not edit an already-applied SQL migration in place. Add a forward migration and use expand/backfill/switch/contract for destructive changes.
 - Every table needs a primary key. Relationships, uniqueness, status ranges, month ranges, ownership, and other invariants belong in database constraints.
 - Add an index only for a traced query. Consider tenant or owner scope first in composite indexes.
 - Claim background jobs atomically. A `select pending` followed by an unrelated `update running` is not safe with multiple workers.
 - Use transactions for dependent writes. Perform external side effects after commit or through an outbox/queue design.
-- Never run schema initialization on ordinary application startup in production.
+- Application startup must never initialize schema or execute DDL in any environment; apply reviewed schema changes only through `supabase/migrations/`.
 - Database changes require a backup/restore plan, rollback or forward-fix plan, and verification query.
 
 ## Backend and worker rules
@@ -234,7 +234,7 @@ Treat the remaining items as risks to resolve, not patterns to copy:
 - Verified, scraped, modeled, and synthetic data lack a mandatory shared provenance contract.
 - The analysis page now reads structured location/asset fields with a single tested legacy-title parser; every current content-library record carries prefecture/city/ward, and the library still lacks a multi-month trend dataset.
 - FastAPI, Supabase direct REST, and local worker flows still overlap and disagree; the retired Edge Function has been removed.
-- SQL scripts are used as mutable schema setup rather than a single versioned migration history.
+- Schema ownership is finalized: only versioned `supabase/migrations/` files may change schema, and `scripts/check_schema_ownership.py` enforces the boundary and manifest baseline.
 - There are no automated tests, CI gates, restore drills, or production observability standards in the repository.
 
 Do not state that the project is secure, production-ready, or statistically representative until these blockers are remediated and verified.

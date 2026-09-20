@@ -83,7 +83,7 @@ def test_setup_docs_record_the_offline_auth_and_deletion_boundary():
         assert "privacy-2026-08" in text
         assert "/api/account/deletion-request" in text
         assert "no account data was changed" in text
-        assert "migration_baseline_status = canonical_staging_reconciled_production_pending" in text
+        assert "migration_baseline_status = canonical_staging_reconciled_production_reconciled" in text
         assert "不发送" in text or "不会发送" in text
 
     assert "Auth Admin" in supabase_setup

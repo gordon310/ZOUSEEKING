@@ -48,7 +48,7 @@ def test_staging_reconciliation_closes_m1_without_opening_production_gate():
     assert statuses["production_reset"] == "forbidden"
     assert (
         statuses["migration_baseline_status"]
-        == "canonical_staging_reconciled_production_pending"
+        == "canonical_staging_reconciled_production_reconciled"
     )
 
 

@@ -13,15 +13,17 @@ def test_repository_policy_requires_release_boundary_files() -> None:
     assert check_policy(ROOT) == []
 
 
-def test_repository_policy_rejects_staging_schema_initialization(tmp_path: Path) -> None:
-    (tmp_path / "render.yaml").write_text(
-        "      - key: INIT_SCHEMA\n        value: \"true\"\n",
+def test_repository_policy_requires_migration_ownership_status(tmp_path: Path) -> None:
+    migration_readme = tmp_path / "supabase/migrations"
+    migration_readme.mkdir(parents=True)
+    (migration_readme / "README.md").write_text(
+        "migration_baseline_status = canonical_staging_reconciled_production_pending\n",
         encoding="utf-8",
     )
 
     violations = check_policy(tmp_path)
 
-    assert "staging render service enables INIT_SCHEMA" in violations
+    assert "migration policy missing marker: migration_baseline_status = canonical_staging_reconciled_production_reconciled" in violations
 
 
 def test_workflow_has_all_required_triggers_jobs_and_commands() -> None:

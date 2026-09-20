@@ -48,7 +48,7 @@ python3 -m http.server 8787 -d web
 
 `supabase/migrations/` 是唯一允许新增的 forward migration history。
 `backend/sql/` 仅保留历史 bootstrap、恢复、生成或比对材料，不能拼接成新的建库入口。
-当前 `migration_baseline_status = canonical_staging_reconciled_production_pending`。
+当前 `migration_baseline_status = canonical_staging_reconciled_production_reconciled`。
 2026-09-02 已在获批 staging 完成 later-ID reconciliation、逻辑备份/隔离恢复、
 四身份 RLS、Auth 生命周期和私有 Storage 验收；production 仍未执行或批准。
 

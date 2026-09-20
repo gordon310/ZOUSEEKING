@@ -60,14 +60,11 @@ def check_policy(repo: Path) -> list[str]:
     if migration_policy.is_file():
         migration_text = migration_policy.read_text(encoding="utf-8")
         for marker in (
-            "migration_baseline_status = canonical_staging_reconciled_production_pending",
+            "migration_baseline_status = canonical_staging_reconciled_production_reconciled",
             "禁止 migration repair、staging reset、production reset",
         ):
             if marker not in migration_text:
                 violations.append(f"migration policy missing marker: {marker}")
-    render_path = repo / "render.yaml"
-    if render_path.is_file() and "INIT_SCHEMA\n        value: \"true\"" in render_path.read_text(encoding="utf-8"):
-        violations.append("staging render service enables INIT_SCHEMA")
     return sorted(violations)
 
 

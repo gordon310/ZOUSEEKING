@@ -19,7 +19,7 @@ from fastapi.responses import JSONResponse, Response
 from urllib.parse import quote
 from html import escape
 
-from .db import close, connect, get_pool, init_schema
+from .db import close, connect, get_pool
 from .auth import AuthUser, optional_user, require_user
 from .intake import storage as intake_storage
 from .intake.market_engine import build_sale_report, load_snapshots, match_snapshot
@@ -60,24 +60,15 @@ ALLOWED_ORIGINS = [
     ).split(",")
     if origin.strip()
 ]
-SCHEMA_INIT_ENVIRONMENTS = {"local", "development", "test"}
 MARKET_SOURCE_CACHE_TTL_SECONDS = 60.0
 _market_source_cache: tuple[str, float] | None = None
 _market_source_cache_lock: asyncio.Lock | None = None
 logger = logging.getLogger(__name__)
 
 
-def should_init_schema() -> bool:
-    requested = os.getenv("INIT_SCHEMA", "false").strip().lower() == "true"
-    environment = os.getenv("ENVIRONMENT", "").strip().lower()
-    return requested and environment in SCHEMA_INIT_ENVIRONMENTS
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await connect()
-    if should_init_schema():
-        await init_schema()
     await cleanup_expired_sessions(IntakeRepository(get_pool()), intake_storage)
     yield
     await close()

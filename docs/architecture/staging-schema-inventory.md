@@ -3,7 +3,7 @@
 ## Current status after M1（2026-09-02）
 
 - `inventory_status=complete`
-- `migration_baseline_status=canonical_staging_reconciled_production_pending`
+- `migration_baseline_status=canonical_staging_reconciled_production_reconciled`
 - `staging_reconciliation=pass`
 - `production_inventory=not_executed`
 - 最终计数：22 public tables、300 columns、75 indexes、16 policies、0 张 RLS

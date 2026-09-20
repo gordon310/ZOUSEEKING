@@ -12,7 +12,7 @@ staging_storage_object_restore=pass_synthetic
 provider_physical_backup=not_available_free
 migration_forward_fix=pass_20260902000100_and_20260902000200_staging_only
 production_restore=not_authorized
-migration_baseline_status=canonical_staging_reconciled_production_pending
+migration_baseline_status=canonical_staging_reconciled_production_reconciled
 ```
 
 本 runbook 记录离线工具、验收标准，以及 2026-09-02 已获授权的 staging M1
@@ -280,5 +280,5 @@ python3 scripts/database_recovery.py validate-record "$JPP_RECOVERY_REPORT"
   批准相应费用和隔离恢复演练。
 - provider clone 上的 extensions、webhooks、Realtime、network restrictions 和费用
   处置未验证；当前逻辑恢复证据不覆盖这些 provider settings。
-- `migration_baseline_status=canonical_staging_reconciled_production_pending`；M1
+- `migration_baseline_status=canonical_staging_reconciled_production_reconciled`；M1
   staging pass 不代表 production-ready。

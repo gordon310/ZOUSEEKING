@@ -1060,7 +1060,7 @@ I've read all 19 pages and 14 JS modules. Here's the complete technical specific
 # 小象房产套件 · 数据层与数据库 schema/RLS 技术说明
 
 > 托管 Supabase 项目 ref `fnogxuytbabxmqousifh`（新加坡区）。迁移目录 `supabase/migrations/` 是**唯一前向迁移历史**（`supabase/migrations/README.md:3`；`docs/architecture/schema-ownership-audit.md:12`）。
-> 基线状态：`canonical_staging_reconciled_production_pending`（`supabase/migrations/README.md:13`；`docs/architecture/schema-ownership.json:5`）。
+> 基线状态：`canonical_staging_reconciled_production_reconciled`（`supabase/migrations/README.md:13`；`docs/architecture/schema-ownership.json:5`）。
 
 ---
 

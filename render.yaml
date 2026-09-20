@@ -14,8 +14,6 @@ services:
         value: staging
       - key: RELEASE_PHASE
         value: consumer_active
-      - key: INIT_SCHEMA
-        value: "false"
       - key: APP_VERSION
         value: staging
       - key: ALLOWED_ORIGINS

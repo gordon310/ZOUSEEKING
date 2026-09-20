@@ -10,7 +10,7 @@
 assertions；获批 staging 已通过 later-ID reconciliation 与运行验收：
 
 ```text
-migration_baseline_status = canonical_staging_reconciled_production_pending
+migration_baseline_status = canonical_staging_reconciled_production_reconciled
 staging_m1_acceptance = pass
 future_live_write_approval = required
 production_reset = forbidden

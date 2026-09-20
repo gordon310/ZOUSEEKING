@@ -37,7 +37,7 @@ staging_rls_auth_storage=pass
 provider_physical_backup=not_available_free
 future_live_write_approval=required
 production_reset=forbidden
-migration_baseline_status=canonical_staging_reconciled_production_pending
+migration_baseline_status=canonical_staging_reconciled_production_reconciled
 ```
 
 `backup_restore=pass` 是 Supabase Free 可执行的 roles/schema/data/history 完整逻辑

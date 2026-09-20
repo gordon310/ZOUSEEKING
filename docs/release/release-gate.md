@@ -5,7 +5,7 @@
 ## 状态契约
 
 `release_tag = 〔发布标签:待确认〕` 必须在发布证据中替换为本次候选发布的真实标签或版本；未记录标签时不得作出发布决定。
-当前数据库基线状态为 `migration_baseline_status = canonical_staging_reconciled_production_pending`；在生产 reconciliation 完成前不得将该状态写成已发布或已迁移。
+当前数据库基线状态为 `migration_baseline_status = canonical_staging_reconciled_production_reconciled`；此状态来自仓库 47 个 migration 与已记录 production ledger 47 条、最大 version `20260920000300` 且双向差集为空。它不放宽其他发布门槛。
 
 每个检查的状态必须来自真实命令：
 

@@ -2,7 +2,7 @@
   "schema_version": 1,
   "audit_document": "docs/architecture/schema-ownership-audit.md",
   "canonical_forward_history": "supabase/migrations",
-  "migration_baseline_status": "canonical_staging_reconciled_production_pending",
+  "migration_baseline_status": "canonical_staging_reconciled_production_reconciled",
   "forward_migration_files": [
     "20260824000100_legacy_schema_baseline.sql",
     "20260824000200_foundation_data_contract.sql",
@@ -77,7 +77,7 @@
     },
     "backend/sql/schema.sql": {
       "disposition": "legacy_non_supabase_bootstrap",
-      "note": "disposable local/development/test compatibility only"
+      "note": "retired bootstrap reference; never execute from application startup"
     },
     "backend/sql/supabase_field_options.sql": {
       "disposition": "generated_support_sql",

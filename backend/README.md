@@ -26,13 +26,11 @@ python3 scripts/check_schema_ownership.py
 npm run check:schema-ownership
 ```
 
-The canonical history and the approved staging reconciliation have passed;
-the gate is now `canonical_staging_reconciled_production_pending`. Do not use
-`supabase migration repair`, a staging/production reset, or an unapproved
-linked push. `INIT_SCHEMA=true` is retained only for disposable
-`local`/`development`/`test` compatibility with the legacy
-`backend/sql/schema.sql`; it does not apply `supabase/migrations/` and must not
-be used as a staging or production setup command.
+The canonical history and the recorded production reconciliation are aligned:
+`canonical_staging_reconciled_production_reconciled`. Application startup never
+creates tables or executes DDL. Do not use `supabase migration repair`, a
+staging/production reset, or an unapproved linked push; apply reviewed forward
+migrations through the canonical workflow.
 
 Health checks:
 
@@ -48,7 +46,7 @@ curl http://127.0.0.1:8000/health/ready
 - 注册同意由前端在提交边界写入 Supabase Auth metadata（版本与 UTC ISO 时间）；当前 legacy localStorage 回退仅供演示，不能作为 production 认证或同意证据。
 - `/recover`、`/logout` 和密码更新仍由 Supabase Auth 负责；FastAPI 不接收密码、refresh token 或客服正文。登录、注册和找回密码文案必须保持账户枚举安全。
 
-`migration_baseline_status = canonical_staging_reconciled_production_pending`；M1 已用
+`migration_baseline_status = canonical_staging_reconciled_production_reconciled`；M1 已用
 合成 staging 账号验证 Auth Admin 删除、RLS/Storage 与清理，但没有接通本应用的
 删除执行器、发送通知或执行生产部署。运营主体、客服邮箱、近期重新认证、持续清理器和删除
 执行器不硬删 `auth.users`，因为 `usage_events.actor_user_id` 通过外键保留审计关联，且
@@ -62,7 +60,7 @@ curl http://127.0.0.1:8000/health/ready
 - `SUPABASE_URL`: Supabase project URL used to verify bearer tokens
 - `SUPABASE_ANON_KEY`: Supabase anon key used only for Auth token verification
 - `ALLOWED_ORIGINS`: `https://gordon310.github.io,http://127.0.0.1:8790,http://localhost:8790`
-- `INIT_SCHEMA`: `false` in staging; apply reviewed forward migrations through the canonical migration workflow
+- Schema changes: apply reviewed forward migrations through the canonical migration workflow; startup does not execute DDL
 - `ENVIRONMENT`: `staging`
 - `APP_VERSION`: deployed build identifier
 - `INTERNAL_DIAGNOSTICS_TOKEN`: optional secret for provenance metadata diagnostics

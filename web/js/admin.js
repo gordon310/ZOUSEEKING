@@ -64,6 +64,8 @@
   const roleNoteInput = document.querySelector("#roleGrantNote");
   const roleGrantBtn = document.querySelector("#roleGrantBtn");
   const collectionTabNote = document.querySelector("#collectionTabNote");
+  const qualityTabNote = document.querySelector("#qualityTabNote");
+  const serviceTabNote = document.querySelector("#serviceTabNote");
   const collectionCount = document.querySelector("#collectionCount");
   const collectionPanelNote = document.querySelector("#collectionPanelNote");
   const collectionStatus = document.querySelector("#collectionStatus");
@@ -1606,6 +1608,8 @@
       return;
     }
     if (collectionTabNote) collectionTabNote.hidden = true;
+    if (qualityTabNote) qualityTabNote.hidden = true;
+    if (serviceTabNote) serviceTabNote.hidden = true;
     setText(
       fixtureTag,
       t(

@@ -313,6 +313,9 @@ test("reads /api/admin/* with a Bearer token when configured; 403 degrades visib
     const mode = await page.evaluate(() => window.ZouAdminMode?.live);
     expect(mode).toBe(true);
     await expect(page.locator("#adminFixtureLabel")).toContainText("真实后台");
+    await expect(page.locator(".admin-tab-note:visible")).toHaveCount(0);
+    await expect(page.locator("#adminFixtureLabel")).not.toContainText("演示域");
+    await expect(page.locator("#adminFixtureLabel")).toContainText("质量审核页签读取真实后台");
 
     // Members tab: real rows render; the /me gate reports member_ops so the
     // suspend button is enabled (real status write, not a pending stub).

@@ -455,6 +455,22 @@
 - **仍待 Gordon 拍板(更新)**:① **D4 口径二选一**:(a) 补一份 forward 回填迁移(outbox 幂等接管存量 job),(b) 改 ADR-0001 文字 + 保留「存量 running/pending 需人工 requeue」操作口径(推荐 b,当前 0 条受影响);② M1 单元②`web/app.js` 直读 Supabase(实测 7 处 `supabaseUserFetch`/`supabaseReportToRecord` 仍在)是否派 Codex;③ worker 结构化日志 + `roleListGets` flaky 整改是否同批派工;④ 4 行历史僵尸报告清理(需批准);⑤ 迁移台账 C4 口径;⑥ 本班次(job `ab373f6bd99d`)改绑 P2 或停用(P1 已无剩余单元,已连续多日只做发现类工作)。
 - **红线**:零 DB 写入或对象变更、零部署、未触凭据与冻结字段、无删除操作、未改 migration;线上仅只读核查(`docker ps/inspect/logs`、`git log`),生产库**仅只读 SELECT 探针**(经 api 容器内一次性脚本,读 DATABASE_URL)。
 
+## 孤儿 provenance 批次已入库 + CI 红→绿复位 · P1 仍无剩余单元(2026-09-22 晨班,本 BOT)
+
+- **班前实测(07:30)**:工作树**干净**、`main == origin/main == 45da5a2`、`git rev-list --count origin/main..main = 0`;仓库内**无 `codex exec` 进程** → 按「未提交改动 / 上次输出进行中」判据**不判进行中**,本班可开工。
+- **09-21 班次「进行中」的孤儿改动已闭环(本班实测,首次通报)**:09-21 班次因工作树有 20 改 + 6 新(+538/−49、静置 ~17.5h 的 Codex 孤儿批次)只报「进行中」并给出 3 个选项;此后该批次由 Codex 会话自行收尾入库,现态:
+  - `371f26d`(09-21 18:19)**feat(provenance): enforce one shared provenance contract end to end**——33 文件;新增 `backend/app/services/provenance.py`、`docs/data-provenance-contract.md`、`20260920000400_dataset_provenance_contract.sql`、`20260920000500_sources_license_provenance.sql`,并接线 region-stats / analysis / exports / 报告写入 / 前端展示,资源版本 → r60。
+  - `45da5a2`(09-22 07:12)**fix(provenance): backfill existing dataset metadata and stub the provenance spec**——4 文件 +106/−8;新增 `20260921000100_backfill_dataset_provenance.sql`(幂等,仅 `data_class is null` 行回填 `retrieved_at/imported_at`、`source_period/trade_quarter`、官方 class/rights/limitations 文本;**刻意不动 `data_class` 自身**)。
+- **⚠️ 上一批曾造成生产故障(已修复,证据取自 45da5a2 提交信息 + 本班 CI 复核)**:provenance 列只加不回填 → 任何**有数据的区域统计查询**违反契约断言、生产对 `GET /api/org/region-stats` 返回 **HTTP 500**;且 source class 变更后报告写入触发 `property_reports` vs source 守卫。`20260921000100` 回填后该缺口关闭。
+- **CI 红→绿(本班实测,gate 级证据)**:`371f26d` 的 Release Gate **红**(run `35588172707`,唯一红 job = **Playwright checks**;Python / Node / SQL-RLS / Repository policy / Supply-chain / Release evidence 六 job 绿);`45da5a2` **绿**(run `35666834186` / `35666833902`,2026-09-21T23:16Z)→ **当前 HEAD 处于门禁绿灯状态**,红链未延续。
+- **本班自证(全部本地/线上只读实跑)**:`compileall` OK;`node --check` `web/app.js` / `web/js/admin.js` / `web/js/i18n.js` OK;`backend/.venv/bin/python -m pytest tests/unit tests/architecture -q` → **429 passed / 88 skipped**;两侧内容库 SHA-256 一致(`6c5896fc…`,6 条);**无部署漂移**(本地 `web/*.html` = 线上 `?v=20260917-r60`,`deploy/frontend-version.txt` 同值);`api.zoubeacon.com/health/ready` → ready/database ok;`zoubeacon.app` 200、`platform.zoubeacon.com/admin.html` 200。
+- **09-20 白天两批已入库且 CI 绿(补记,此前 progress.md 未记)**:`e48a819`(身份删除可用 + 会员读取改走 RLS 视图)、`01c7669`(退役 legacy bootstrap 路径、强制单一 schema 所有权)——两次 Release Gate 均 `success`。
+- **P1 复核结论(未变)**:P1 清单自 09-07 工程闭环;本班按「后台管理真实数据接通」口径复查 `backend/app/**` 与 `web/js/**`,`admin` 端点族(member/audit/orders+refunds/collection+sources/pricing/overview/service-tasks/internal-roles/member-status)与前端数据源**零 fixture 残留**(唯一 `synthetic_fixture` 命中是免费预览的**合规声明**)→ **P1 无剩余单元**。
+- **遗留项实测复核(均未修,归 Codex / 待拍板)**:① M1 单元② `web/app.js` 内 `supabaseUserFetch`/`supabaseReportToRecord` **8 处命中仍在**(legacy 直读 Supabase 未退役);② `backend/app/report_worker.py:21,229` 已有 `logger`,但全仓**无 `logging.basicConfig`**(`scripts/run_report_worker.py` 亦然)→ 认领/完成事件仍不可观测,结构化日志缺口未闭环;③ `tests/web/admin-live-degrade.spec.js:660` `expect(roleListGets).toBeGreaterThanOrEqual(3)` **flaky 未整改**(09-20 已定性:clean main 亦 3/3 失败,CI 未复现)。
+- **本班动作**:仅 `progress.md` 文档追加(+1 节),已 commit + push `origin/main`;未复验生产 region-stats 输出(需登录凭据 → **超本班边界**,按提交信息自报为准)。
+- **待 Gordon 拍板(更新后全量)**:① **D4 口径二选一**:(a) 补 forward 回填迁移接管存量 job,(b) 改 ADR-0001 文字 + 保留「存量 running/pending 需人工 requeue」操作口径(推荐 b,当前 0 条受影响行);② M1 单元② `app.js` legacy 直读退役是否派 Codex;③ worker 结构化日志 + `roleListGets` flaky 整改是否同批派工(本班新增证据:logger 已存在但 root logger 未配置);④ 4 行历史僵尸报告清理(需批准);⑤ 迁移台账 C4 口径;⑥ 未部署冻结件(Edge 函数 / `run_jphouse_worker.py`)删除 vs 长期冻结;⑦ **本班次(job `ab373f6bd99d`)改绑 P2 或停用**——P1 已连续多日只能做发现类工作。
+- **红线**:零 DB 写入或对象变更、零部署、未触凭据与冻结字段、**未新增/未修改任何 migration**、无删除操作;线上仅只读 GET 探测与 `gh run` 查询。
+
 ## Last updated
 
-2026-09-20
+2026-09-22

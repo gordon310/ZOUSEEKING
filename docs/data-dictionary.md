@@ -16,6 +16,21 @@
 | `verified_on` | `2026-08-23` | 人工核验日期 |
 | `rights_confirmed` | `yes` | 仅 `yes` 可进入发布流程 |
 
+## 统一发布来源契约
+
+所有发布统计与数据响应使用唯一契约定义
+[`data-provenance-contract.md`](data-provenance-contract.md)。除既有数值与
+单位字段外，响应必须携带 `data_class`、`source_url`、`retrieved_at`、
+`source_period`、`transformation_version`、`rights_status`、
+`rights_confirmed`、`sample_size`、`aggregation_method`、
+`missing_value_policy` 和 `limitations`。类别仅为
+`verified_observation`、`scraped_aggregate`、`modeled_estimate`、
+`synthetic_fixture`；不得新增本地变体。
+
+`public.sources.license` 是来源登记行提供的许可或复用标签；区域统计
+直接读取该字段，不得以 UI 文案或代码默认值代替。历史来源若缺值，发布
+契约必须报缺项而不是编造标签。
+
 可选字段如 `layout`、`station`、`walk_minutes`、`floor`、`built_year` 可用于后续细分分析。
 
 测试或版式演示数据应增加 `is_synthetic=yes`，并与人工核验的真实数据分文件保存，不得作为真实市场数据发布。
@@ -47,7 +62,7 @@
 
 | 元数据 | 说明 |
 | --- | --- |
-| `data_class` | `verified_observation`、`scraped_aggregate`、`modeled_estimate`、`synthetic_fixture` 或 `user_submitted` |
+| `data_class` | `verified_observation`、`scraped_aggregate`、`modeled_estimate` 或 `synthetic_fixture`；`user_submitted` 是来源权限状态，不是发布数据类别 |
 | `source_id` | 来源登记表中的来源 ID |
 | `observed_at` | 数据观察或提交时间 |
 | `confidence` | `high`、`medium`、`low` 或 `unreviewed` |

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import json
+from datetime import datetime, timezone
 from uuid import UUID
 
 import asyncpg
@@ -40,35 +42,59 @@ def region_stats_database():
             await conn.execute("insert into auth.users(id, email) values($1, $2)", USER_ID, "region-stats@test.invalid")
             org_id = await conn.fetchval("insert into public.organizations(name, created_by_user_id) values('Stats Test', $1) returning id", USER_ID)
             await conn.execute("insert into public.organization_members(organization_id, user_id, role) values($1, $2, 'member')", org_id, USER_ID)
+            await conn.execute(
+                """update public.sources
+                   set name='regional statistics fixture source', source_type='government_open_data',
+                       url='https://example.test/region-stats-fixture', permission_status='rights_confirmed',
+                       update_frequency='quarterly', parser_version='test', source_period='2025Q1',
+                       limitations='Fixture source limitation.', license='Fixture source license.',
+                       data_class='verified_observation', observed_at=$2,
+                       transformation_version='mlit-fixture-2025Q1'
+                   where id=$1""",
+                SOURCE_ID, datetime(2025, 4, 1, tzinfo=timezone.utc),
+            )
             for index, ward in enumerate(("麻布", "麻布", "麻布", "麻布", "麻布", "赤坂")):
                 await conn.execute(
                     """insert into public.mlit_transactions
                     (source_id, source_record_key, prefecture, city, ward, asset_kind, asset_type,
-                     price_jpy, area_sqm, unit_price_jpy_per_sqm, trade_quarter, trade_year, raw)
-                    values($1, $2, '东京都', '港区', $3, '中古マンション等', '公寓', $4, 100, $4, '2025Q1', 2025, '{}'::jsonb)""",
+                     price_jpy, area_sqm, unit_price_jpy_per_sqm, trade_quarter, trade_year, raw,
+                     data_class, source_url, retrieved_at, source_period, transformation_version,
+                     rights_status, rights_confirmed, limitations, missing_value_policy)
+                    values($1, $2, '东京都', '港区', $3, '中古マンション等', '公寓', $4, 100, $4, '2025Q1', 2025, '{}'::jsonb,
+                           'verified_observation', 'https://example.test/region-stats-fixture', $5, '2025Q1',
+                           'mlit-fixture-2025Q1', 'rights_confirmed', 'yes', 'Fixture transaction limitation.',
+                           'exclude_missing_or_nonpositive_unit_price')""",
                     SOURCE_ID, f"region-stats-{index}", ward, 1000000 + index * 100000,
+                    datetime(2025, 4, 1, tzinfo=timezone.utc),
                 )
             await conn.execute(
                 """insert into public.rent_reference_stats
                 (source_key, source_label, prefecture, city, ward, geo_level, scope_label,
                  rent_jpy_per_sqm_month, rent_jpy_per_sqm_month_excl_zero, survey_year,
-                 survey_label, source_url, license_label, fetched_at)
+                 survey_label, source_url, license_label, fetched_at, data_class, retrieved_at,
+                 source_period, transformation_version, rights_status, rights_confirmed, limitations,
+                 missing_value_policy)
                 values ('estat_housing_land_122_4', '令和5年住宅・土地統計調査 第122-4表',
                         '东京都', '港区', '__not_subdivided__', 'city', '民営借家・借家(専用住宅)',
                         1700, 1809, 2023, '令和5年(2023)',
-                        'https://www.e-stat.go.jp/', 'e-Stat利用規約（出典明記・加工して作成）', now())"""
+                        'https://www.e-stat.go.jp/', 'e-Stat利用規約（出典明記・加工して作成）', now(),
+                        'verified_observation', now(), '2023', 'estat-fixture-2023', 'rights_confirmed', 'yes',
+                        'Fixture rent limitation.', 'exclude_zero_rent')"""
             )
             await conn.execute(
                 """insert into public.rent_reference_stats
                 (source_key, source_label, prefecture, city, ward, geo_level, scope_label,
                  building_type, structure_type, rent_jpy_per_sqm_month,
                  rent_jpy_per_sqm_month_excl_zero, survey_year, survey_label,
-                 source_url, license_label, fetched_at)
+                 source_url, license_label, fetched_at, data_class, retrieved_at, source_period,
+                 transformation_version, rights_status, rights_confirmed, limitations, missing_value_policy)
                 values ('estat_housing_land_122_5', '令和5年住宅・土地統計調査 第122-5表',
                         '东京都', '港区', '__not_subdivided__', 'city',
                         '借家(専用住宅)・共同住宅・非木造', '共同住宅', '非木造',
                         2100, 2111, 2023, '令和5年(2023)',
-                        'https://www.e-stat.go.jp/', 'e-Stat利用規約（出典明記・加工して作成）', now())"""
+                        'https://www.e-stat.go.jp/', 'e-Stat利用規約（出典明記・加工して作成）', now(),
+                        'verified_observation', now(), '2023', 'estat-fixture-2023', 'rights_confirmed', 'yes',
+                        'Fixture rent limitation.', 'exclude_zero_rent')"""
             )
         finally:
             await conn.close()
@@ -153,7 +179,12 @@ def test_real_postgres_frontend_asset_types_return_complete_200_responses(region
     for response, asset_type in zip(responses, ("塔楼", "公寓", "一户建")):
         payload = response.json()
         assert payload["asset_type"] == asset_type
-        assert {"status", "sample_size", "period", "sources", "license", "data_class", "limitations"} <= payload.keys()
+        assert {"status", "sample_size", "period", "sources", "license"} <= payload.keys()
+        if payload["sample_size"] == 0:
+            assert payload["status"] == "insufficient_sample"
+            assert {"data_class", "source_url", "retrieved_at", "source_period"}.isdisjoint(payload)
+        else:
+            assert {"data_class", "source_url", "retrieved_at", "source_period", "limitations"} <= payload.keys()
 
 
 def test_real_postgres_rent_value_is_read_again_after_database_update(region_stats_database):
@@ -180,3 +211,73 @@ def test_real_postgres_rent_value_is_read_again_after_database_update(region_sta
     assert before["rent_reference"]["rent_jpy_per_sqm_month"] == 2111
     assert after["rent_reference"]["rent_jpy_per_sqm_month"] == 1999
     assert after["rent_to_price_ratio"]["gross_value"] != before["rent_to_price_ratio"]["gross_value"]
+
+
+def test_region_stats_provenance_is_re_read_from_database_after_update(region_stats_database):
+    """Changing supporting records must change the next published envelope.
+
+    This fails if the response falls back to the former placeholder
+    ``database_imported_at`` or a hard-coded transformation version.
+    """
+    source_id = UUID("8ec49fe2-0ae0-4529-a44d-813548ab7980")
+    original_retrieved_at = datetime(2026, 9, 10, 1, 2, 3, tzinfo=timezone.utc)
+    changed_retrieved_at = datetime(2026, 9, 19, 4, 5, 6, tzinfo=timezone.utc)
+    original_version = "mlit-import-2026-09-10"
+    changed_version = "mlit-import-provenance-canary-2026-09-19"
+
+    async def exercise():
+        old_pool = db.pool
+        db.pool = await asyncpg.create_pool(region_stats_database, min_size=1, max_size=2)
+        try:
+            async with db.pool.acquire() as conn:
+                await conn.execute(
+                    """insert into public.sources
+                       (id, name, source_type, url, permission_status, update_frequency, parser_version,
+                        source_period, limitations, license, data_class, observed_at, transformation_version)
+                       values ($1, 'provenance canary source', 'government_open_data',
+                               'https://example.test/provenance-canary', 'rights_confirmed', 'quarterly', 'test',
+                               '2025Q1', 'Database-backed limitation canary.', 'Database-backed license canary.',
+                               'verified_observation', $2, $3)""",
+                    source_id, original_retrieved_at, original_version,
+                )
+                await conn.execute(
+                    """insert into public.mlit_transactions
+                       (source_id, source_record_key, prefecture, city, ward, asset_kind, asset_type,
+                        price_jpy, area_sqm, unit_price_jpy_per_sqm, trade_quarter, trade_year, raw,
+                        data_class, source_url, retrieved_at, source_period, transformation_version,
+                        rights_status, rights_confirmed, limitations, missing_value_policy)
+                       values ($1, 'provenance-canary-1', '大阪府', '大阪市', '北区', '中古マンション等', '公寓',
+                               900000, 100, 9000, '2025Q1', 2025, '{}'::jsonb,
+                               'verified_observation', 'https://example.test/provenance-canary', $2, '2025Q1', $3,
+                               'rights_confirmed', 'yes', 'Transaction fallback limitation.',
+                               'exclude_missing_or_nonpositive_unit_price')""",
+                    source_id, original_retrieved_at, original_version,
+                )
+            store = DbRegionStatsStore()
+            user = AuthUser(USER_ID, "region-stats@test.invalid", "Member")
+            before = await region_stats("大阪府", "大阪市", "公寓", 2025, 1, "北区", user, store)
+            async with db.pool.acquire() as conn:
+                await conn.execute(
+                    "update public.mlit_transactions set retrieved_at=$1 where source_id=$2",
+                    changed_retrieved_at, source_id,
+                )
+                await conn.execute(
+                    "update public.sources set transformation_version=$1 where id=$2",
+                    changed_version, source_id,
+                )
+            after = await region_stats("大阪府", "大阪市", "公寓", 2025, 1, "北区", user, store)
+            print("provenance-before", before["retrieved_at"], before["transformation_version"])
+            print("provenance-after", after["retrieved_at"], after["transformation_version"])
+            return before, after
+        finally:
+            await db.pool.close()
+            db.pool = old_pool
+
+    before, after = asyncio.run(exercise())
+    assert before["retrieved_at"] == original_retrieved_at
+    assert before["transformation_version"] == original_version
+    assert after["retrieved_at"] == changed_retrieved_at
+    assert after["transformation_version"] == changed_version
+    assert after["license"]["name"] == "Database-backed license canary."
+    assert after["limitations"] == "Database-backed limitation canary."
+    assert "database_imported_at" not in json.dumps(after, default=str)

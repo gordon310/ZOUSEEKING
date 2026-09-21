@@ -24,7 +24,8 @@ from ..usage.ledger import QuotaExceeded
 UTC_PLUS_8 = timezone(timedelta(hours=8), name="UTC+08:00")
 CSV_COLUMNS = (
     "query_key", "title", "prefecture", "city", "ward", "asset_type",
-    "year", "month", "query_status", "publish_month", "summary",
+    "year", "month", "query_status", "publish_month", "summary", "data_class",
+    "source_period", "observed_at", "transformation_version", "limitations", "data_sources",
 )
 
 
@@ -89,7 +90,8 @@ class DbExportStore:
                 """
                 select q.id, q.query_key, q.prefecture, q.city, q.ward, q.asset_type,
                        q.year, q.month, q.status as query_status, pr.title,
-                       pr.publish_month, pr.summary
+                       pr.publish_month, pr.summary, pr.data_class::text as data_class, pr.source_period,
+                       pr.observed_at, pr.transformation_version, pr.limitations, pr.data_sources
                 from public.queries q
                 join public.property_reports pr on pr.query_id = q.id
                 where q.owner_user_id=$1 and q.id = any($2::uuid[])
@@ -105,7 +107,8 @@ class DbExportStore:
             """
             select q.id, q.query_key, q.prefecture, q.city, q.ward, q.asset_type,
                    q.year, q.month, q.status as query_status, pr.title,
-                   pr.publish_month, pr.summary
+                   pr.publish_month, pr.summary, pr.data_class::text as data_class, pr.source_period,
+                   pr.observed_at, pr.transformation_version, pr.limitations, pr.data_sources
             from public.queries q
             join public.property_reports pr on pr.query_id = q.id
             where q.owner_user_id=$1
@@ -129,6 +132,10 @@ class DbExportStore:
                 "query_status": row["query_status"],
                 "publish_month": row["publish_month"],
                 "summary": summary if isinstance(summary, str) else json.dumps(summary or {}, ensure_ascii=False, sort_keys=True),
+                "data_class": row.get("data_class", ""), "source_period": row.get("source_period", ""),
+                "observed_at": _iso(row.get("observed_at")), "transformation_version": row.get("transformation_version", ""),
+                "limitations": row.get("limitations", ""),
+                "data_sources": row.get("data_sources") if isinstance(row.get("data_sources"), str) else json.dumps(row.get("data_sources") or [], ensure_ascii=False, sort_keys=True),
             })
         return result
 

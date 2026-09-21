@@ -10,6 +10,49 @@ from urllib.parse import urlparse
 
 ALLOWED_PERMISSION_STATUSES = {"verified", "user_submitted", "pending", "denied", "unverified"}
 
+# The only authoritative vocabulary and response contract for published
+# property statistics. Other modules import this instead of declaring variants.
+DATA_CLASSES = frozenset({
+    "verified_observation", "scraped_aggregate", "modeled_estimate", "synthetic_fixture",
+})
+REQUIRED_STATISTIC_FIELDS = (
+    "data_class", "source_url", "retrieved_at", "source_period",
+    "transformation_version", "rights_status", "rights_confirmed",
+    "sample_size", "aggregation_method", "missing_value_policy",
+    "limitations", "unit",
+)
+
+
+def assert_statistic_provenance(response: dict[str, object]) -> None:
+    """Raise a precise development/test error when a published metric is incomplete."""
+
+    missing = [field for field in REQUIRED_STATISTIC_FIELDS if response.get(field) in (None, "", [], {})]
+    if response.get("data_class") not in DATA_CLASSES and "data_class" not in missing:
+        raise ValueError(f"provenance contract invalid data_class: {response.get('data_class')!r}")
+    if missing:
+        raise ValueError("provenance contract missing: " + ", ".join(missing))
+    if response["rights_confirmed"] not in {"yes", "no", "not_applicable"}:
+        raise ValueError("provenance contract invalid rights_confirmed")
+
+
+def statistic_provenance(
+    *, data_class: str, source_url: str, retrieved_at: object, source_period: str,
+    transformation_version: str, rights_status: str, rights_confirmed: str,
+    sample_size: int, aggregation_method: str, missing_value_policy: str,
+    limitations: str, unit: str,
+) -> dict[str, object]:
+    """Build and validate the canonical metadata envelope for a metric response."""
+
+    result = {
+        "data_class": data_class, "source_url": source_url, "retrieved_at": retrieved_at,
+        "source_period": source_period, "transformation_version": transformation_version,
+        "rights_status": rights_status, "rights_confirmed": rights_confirmed,
+        "sample_size": sample_size, "aggregation_method": aggregation_method,
+        "missing_value_policy": missing_value_policy, "limitations": limitations, "unit": unit,
+    }
+    assert_statistic_provenance(result)
+    return result
+
 
 @dataclass(frozen=True)
 class Source:

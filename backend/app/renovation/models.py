@@ -143,6 +143,17 @@ class RenovationEstimateResponse(RenovationModel):
     analysis_id: str
     status: Literal["completed"]
     data_class: Literal["modeled_estimate"]
+    source_url: str
+    retrieved_at: str
+    source_period: str
+    transformation_version: str
+    rights_status: str
+    rights_confirmed: Literal["yes", "no", "not_applicable"]
+    sample_size: int
+    aggregation_method: str
+    missing_value_policy: str
+    limitations: List[str]
+    unit: Literal["JPY"]
     currency: Literal["JPY"]
     tax_basis: Literal["approximate"]
     price_snapshot_version: str
@@ -152,5 +163,4 @@ class RenovationEstimateResponse(RenovationModel):
     assumptions: List[str]
     excluded_items: List[str]
     sources: List[PriceSource]
-    limitations: List[str]
     confidence: Confidence

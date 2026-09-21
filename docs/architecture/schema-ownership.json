@@ -50,7 +50,9 @@
     "20260918000400_report_generation_outbox.sql",
     "20260920000100_usage_events_anonymization_allowance.sql",
     "20260920000200_member_read_security_invoker_views.sql",
-    "20260920000300_account_deletion_request_auth_anonymization.sql"
+    "20260920000300_account_deletion_request_auth_anonymization.sql",
+    "20260920000400_dataset_provenance_contract.sql",
+    "20260920000500_sources_license_provenance.sql"
   ],
   "legacy_sql_files": [
     "backend/sql/001_foundation_data_contract.sql",

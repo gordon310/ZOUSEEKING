@@ -365,7 +365,7 @@ def row_to_report(row: Any) -> dict[str, Any]:
             return json.loads(value)
         return value
 
-    return {
+    result = {
         "query_key": _row_get(row, "query_key"),
         "slug": row["slug"],
         "title": row["title"],
@@ -383,6 +383,19 @@ def row_to_report(row: Any) -> dict[str, Any]:
         "raw_record": json_value("raw_record", {}),
         "unlocked": True,
     }
+    result.update({
+        "data_class": _row_get(row, "data_class", "synthetic_fixture"),
+        "source_url": next((item.get("url") for item in result["data_sources"] if isinstance(item, dict) and item.get("url")), "fixture://report-source-missing"),
+        "retrieved_at": _row_get(row, "observed_at", _row_get(row, "created_at")),
+        "source_period": _row_get(row, "source_period", result["publish_month"]),
+        "transformation_version": _row_get(row, "transformation_version", "report-v1"),
+        "rights_status": "rights_confirmed" if _row_get(row, "data_class") else "not_applicable",
+        "rights_confirmed": "yes" if _row_get(row, "data_class") else "not_applicable",
+        "sample_size": len(result["sale"]), "aggregation_method": "source_report",
+        "missing_value_policy": "not_applicable_to_source_report",
+        "limitations": _row_get(row, "limitations", "Source report limitations are unavailable."), "unit": "JPY",
+    })
+    return result
 
 
 def public_report_from_row(row: Any, query_key: str) -> dict[str, Any]:
@@ -420,6 +433,18 @@ def public_report_from_row(row: Any, query_key: str) -> dict[str, Any]:
         value = _row_get(row, name)
         if value is not None:
             result[name] = value
+    result.update({
+        "data_class": _row_get(row, "data_class", "synthetic_fixture"),
+        "source_url": next((item.get("url") for item in result["data_sources"] if isinstance(item, dict) and item.get("url")), "fixture://report-source-missing"),
+        "retrieved_at": _row_get(row, "observed_at", _row_get(row, "created_at")),
+        "source_period": _row_get(row, "source_period", result["publish_month"]),
+        "transformation_version": _row_get(row, "transformation_version", "report-v1"),
+        "rights_status": "rights_confirmed" if _row_get(row, "data_class") else "not_applicable",
+        "rights_confirmed": "yes" if _row_get(row, "data_class") else "not_applicable",
+        "sample_size": 0, "aggregation_method": "source_report",
+        "missing_value_policy": "not_applicable_to_locked_metadata",
+        "limitations": _row_get(row, "limitations", "Source report limitations are unavailable."), "unit": "JPY",
+    })
     return result
 
 

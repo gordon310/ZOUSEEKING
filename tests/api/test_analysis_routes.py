@@ -27,11 +27,17 @@ class FakeAnalysisStore:
             "status": "ok",
             "metric": request.metric,
             "layout": request.layout,
-            "sample_count": 2,
+            "sample_count": 2, "sample_size": 2,
             "period": {"from": "2026-08", "to": "2026-08"},
             "points": [{"month": "2026-08", "value": 6_000_000.0, "sample_count": 2}],
             "source_class": ["scraped_aggregate"],
             "sources": [{"name": "licensed source", "url": "https://example.test"}],
+            "data_class": "scraped_aggregate", "source_url": "https://example.test",
+            "retrieved_at": "2026-09-20T00:00:00+00:00", "source_period": "2026-08",
+            "transformation_version": "analysis-aggregation-v1", "rights_status": "rights_confirmed",
+            "rights_confirmed": "yes", "aggregation_method": "arithmetic_mean",
+            "missing_value_policy": "exclude_missing_or_nonpositive_numeric_values",
+            "limitations": "Aggregate of licensed report records.", "unit": "JPY",
             "quota": {"used": 1, "limit": 5, "remaining": 4, "period": "2026-08"},
         }
 
@@ -64,4 +70,3 @@ def test_analysis_quota_is_explicit() -> None:
         app.dependency_overrides.clear()
     assert response.status_code == 429
     assert response.json() == {"error": {"code": "quota_exceeded", "message": "analysis quota exceeded"}}
-

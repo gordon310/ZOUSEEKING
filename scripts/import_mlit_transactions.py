@@ -32,6 +32,11 @@ XIT001_URL = os.getenv("MLIT_XIT001_URL", "https://www.reinfolib.mlit.go.jp/ex-a
 DEFAULT_PREFECTURES = ("13", "27", "15")
 DEFAULT_YEARS = (2025, 2026)
 QUARTER_RE = re.compile(r"^(\d{4})年第([1-4])四半期$")
+# This names the stable normalizer algorithm, not an individual download;
+# increment it when normalization rules change.
+TRANSFORMATION_VERSION = "mlit-xit001-normalizer-v1"
+SOURCE_URL = "https://www.reinfolib.mlit.go.jp/realEstatePrices/"
+LIMITATIONS = "Official closed-transaction observations; exclude incomplete or nonpositive price and area fields."
 
 
 def decode_xit001_response(payload: bytes, content_encoding: str, *, status_code: int = 200) -> dict[str, Any]:
@@ -125,6 +130,15 @@ def normalize_xit001_row(
         "layout": str(row.get("FloorPlan") or "").strip() or None,
         "raw": raw,
         "imported_at": imported_at,
+        "data_class": "verified_observation",
+        "source_url": SOURCE_URL,
+        "retrieved_at": imported_at,
+        "source_period": quarter[1],
+        "transformation_version": TRANSFORMATION_VERSION,
+        "rights_status": "rights_confirmed",
+        "rights_confirmed": "yes",
+        "limitations": LIMITATIONS,
+        "missing_value_policy": "exclude_missing_or_nonpositive_price_or_area",
     }
 
 
@@ -191,6 +205,15 @@ def normalize_row(
         "layout": (row.get("間取り") or "").strip() or None,
         "raw": raw,
         "imported_at": imported_at,
+        "data_class": "verified_observation",
+        "source_url": SOURCE_URL,
+        "retrieved_at": imported_at,
+        "source_period": quarter[1],
+        "transformation_version": TRANSFORMATION_VERSION,
+        "rights_status": "rights_confirmed",
+        "rights_confirmed": "yes",
+        "limitations": LIMITATIONS,
+        "missing_value_policy": "exclude_missing_or_nonpositive_price_or_area",
     }
 
 
@@ -239,6 +262,15 @@ MLIT_COLUMNS = (
     "layout",
     "raw",
     "imported_at",
+    "data_class",
+    "source_url",
+    "retrieved_at",
+    "source_period",
+    "transformation_version",
+    "rights_status",
+    "rights_confirmed",
+    "limitations",
+    "missing_value_policy",
 )
 
 
@@ -291,7 +323,16 @@ async def upsert_rows(database_url: str, rows: list[dict[str, Any]], *, chunk_si
             distance_minutes smallint,
             layout text,
             raw text not null,
-            imported_at timestamptz not null
+            imported_at timestamptz not null,
+            data_class text not null,
+            source_url text not null,
+            retrieved_at timestamptz not null,
+            source_period text not null,
+            transformation_version text not null,
+            rights_status text not null,
+            rights_confirmed text not null,
+            limitations text not null,
+            missing_value_policy text not null
         ) on commit preserve rows""")
         inserted = 0
         updated = 0
@@ -308,10 +349,13 @@ async def upsert_rows(database_url: str, rows: list[dict[str, Any]], *, chunk_si
             counts = await conn.fetchrow("""with upserted as (
                     insert into public.mlit_transactions
                         (source_id,source_record_key,prefecture,city,ward,asset_kind,asset_type,price_jpy,area_sqm,
-                         unit_price_jpy_per_sqm,trade_quarter,trade_year,nearest_station,distance_minutes,layout,raw,imported_at)
+                         unit_price_jpy_per_sqm,trade_quarter,trade_year,nearest_station,distance_minutes,layout,raw,imported_at,
+                         data_class,source_url,retrieved_at,source_period,transformation_version,rights_status,rights_confirmed,
+                         limitations,missing_value_policy)
                     select source_id,source_record_key,prefecture,city,ward,asset_kind,asset_type,price_jpy,area_sqm,
                            unit_price_jpy_per_sqm,trade_quarter,trade_year,nearest_station,distance_minutes,layout,
-                           raw::jsonb,imported_at
+                           raw::jsonb,imported_at,data_class::public.data_class,source_url,retrieved_at,source_period,
+                           transformation_version,rights_status,rights_confirmed,limitations,missing_value_policy
                     from _mlit_transactions_import
                     on conflict (source_id,source_record_key) do update set
                         prefecture=excluded.prefecture,
@@ -319,13 +363,31 @@ async def upsert_rows(database_url: str, rows: list[dict[str, Any]], *, chunk_si
                         ward=excluded.ward,
                         asset_type=excluded.asset_type,
                         layout=excluded.layout,
-                        raw=excluded.raw
+                        raw=excluded.raw,
+                        data_class=excluded.data_class,
+                        source_url=excluded.source_url,
+                        retrieved_at=excluded.retrieved_at,
+                        source_period=excluded.source_period,
+                        transformation_version=excluded.transformation_version,
+                        rights_status=excluded.rights_status,
+                        rights_confirmed=excluded.rights_confirmed,
+                        limitations=excluded.limitations,
+                        missing_value_policy=excluded.missing_value_policy
                     where public.mlit_transactions.prefecture is distinct from excluded.prefecture
                        or public.mlit_transactions.city is distinct from excluded.city
                        or public.mlit_transactions.ward is distinct from excluded.ward
                        or public.mlit_transactions.asset_type is distinct from excluded.asset_type
                        or public.mlit_transactions.layout is distinct from excluded.layout
                        or public.mlit_transactions.raw is distinct from excluded.raw
+                       or public.mlit_transactions.data_class is distinct from excluded.data_class
+                       or public.mlit_transactions.source_url is distinct from excluded.source_url
+                       or public.mlit_transactions.retrieved_at is distinct from excluded.retrieved_at
+                       or public.mlit_transactions.source_period is distinct from excluded.source_period
+                       or public.mlit_transactions.transformation_version is distinct from excluded.transformation_version
+                       or public.mlit_transactions.rights_status is distinct from excluded.rights_status
+                       or public.mlit_transactions.rights_confirmed is distinct from excluded.rights_confirmed
+                       or public.mlit_transactions.limitations is distinct from excluded.limitations
+                       or public.mlit_transactions.missing_value_policy is distinct from excluded.missing_value_policy
                     returning (xmax = 0) as inserted
                 ) select count(*) filter (where inserted) as inserted,
                          count(*) filter (where not inserted) as updated

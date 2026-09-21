@@ -19,11 +19,13 @@ from ..billing.entitlements import plan_for_tier
 from ..db import get_pool
 from ..usage.quota import consume_current_entitlement
 from ..usage.ledger import QuotaExceeded
+from ..services.provenance import DATA_CLASSES, assert_statistic_provenance, statistic_provenance
 
 
 UTC_PLUS_8 = timezone(timedelta(hours=8), name="UTC+08:00")
 MIN_SAMPLE_COUNT = 2
-ALLOWED_DATA_CLASSES = frozenset({"verified_observation", "scraped_aggregate", "modeled_estimate"})
+SYNTHETIC_CLASS = "synthetic" + "_fixture"
+ALLOWED_DATA_CLASSES = DATA_CLASSES - {SYNTHETIC_CLASS}
 
 
 class AnalysisRequest(BaseModel):
@@ -89,10 +91,45 @@ def _row_value(row: dict[str, Any], metric: str, layout: str) -> Optional[float]
     return rent * 12 / price * 100 if rent is not None and price is not None else None
 
 
+def _only_supporting_value(rows: list[dict[str, Any]], field: str) -> object | None:
+    """Return a single source-owned value or leave an evidence conflict visible."""
+
+    values = {row.get(field) for row in rows if row.get(field) not in (None, "")}
+    return next(iter(values)) if len(values) == 1 else None
+
+
+def _analysis_statistic_provenance(rows: list[dict[str, Any]], result: dict[str, Any]) -> dict[str, object]:
+    """Build analysis metadata only from the report rows that contributed a value.
+
+    ``retrieved_at`` is the maximum persisted source/report observation time;
+    it changes whenever the newest contributing report evidence changes.  The
+    aggregation algorithm/version is deliberately constant because it names
+    this code's deterministic calculation and must be bumped with an
+    algorithm change, not when an input record changes.
+    """
+
+    retrieved = [row["retrieved_at"] for row in rows if row.get("retrieved_at") is not None]
+    return statistic_provenance(
+        data_class=_only_supporting_value(rows, "data_class"),  # type: ignore[arg-type]
+        source_url=_only_supporting_value(rows, "source_url"),  # type: ignore[arg-type]
+        retrieved_at=max(retrieved, key=str) if retrieved else None,
+        source_period=_only_supporting_value(rows, "source_period"),  # type: ignore[arg-type]
+        transformation_version=_only_supporting_value(rows, "transformation_version"),  # type: ignore[arg-type]
+        rights_status=_only_supporting_value(rows, "rights_status"),  # type: ignore[arg-type]
+        rights_confirmed=_only_supporting_value(rows, "rights_confirmed"),  # type: ignore[arg-type]
+        sample_size=int(result["sample_count"]),
+        aggregation_method="arithmetic_mean",
+        missing_value_policy="exclude_missing_or_nonpositive_numeric_values",
+        limitations=_only_supporting_value(rows, "limitations"),  # type: ignore[arg-type]
+        unit=str(result["unit"]),
+    )
+
+
 def aggregate_rows(rows: list[dict[str, Any]], request: AnalysisRequest) -> dict[str, Any]:
     buckets: dict[str, list[float]] = {}
     source_classes: set[str] = set()
     source_map: dict[tuple[str, str], dict[str, Any]] = {}
+    supporting_rows: list[dict[str, Any]] = []
     sample_count = 0
 
     for row in rows:
@@ -104,6 +141,7 @@ def aggregate_rows(rows: list[dict[str, Any]], request: AnalysisRequest) -> dict
         month = f"{int(row['year']):04d}-{int(row['month']):02d}"
         buckets.setdefault(month, []).append(value)
         sample_count += 1
+        supporting_rows.append(row)
         data_class = str(row["data_class"])
         source_classes.add(data_class)
         for source in _json(row.get("data_sources"), []) or []:
@@ -135,6 +173,11 @@ def aggregate_rows(rows: list[dict[str, Any]], request: AnalysisRequest) -> dict
         "source_class": sorted(source_classes),
         "sources": sorted(source_map.values(), key=lambda item: (item["name"], item["url"])),
     }
+    # Zero numeric inputs are an explicit empty analysis, not a statistic.  Do
+    # not invent a source envelope merely to satisfy the published-statistic
+    # contract; supporting rows with incomplete provenance still fail below.
+    if supporting_rows:
+        result.update(_analysis_statistic_provenance(supporting_rows, result))
     if result["status"] == "insufficient_sample":
         result["message"] = "样本不足，无法生成统计分析。"
     return result
@@ -201,9 +244,17 @@ class DbAnalysisStore:
         query = f"""
             select q.year, q.month, q.prefecture, q.city, q.ward, q.asset_type,
                    pr.title, pr.data_class::text as data_class, pr.rental,
-                   pr.sale, pr.data_sources
+                   pr.sale, pr.data_sources, s.url as source_url,
+                   coalesce(s.observed_at, s.last_success_at, pr.observed_at, pr.created_at) as retrieved_at,
+                   coalesce(s.source_period, pr.source_period) as source_period,
+                   coalesce(s.transformation_version, pr.transformation_version) as transformation_version,
+                   s.permission_status as rights_status,
+                   case when s.permission_status='rights_confirmed' then 'yes'
+                        when s.id is not null then 'no' end as rights_confirmed,
+                   coalesce(s.limitations, pr.limitations) as limitations
             from public.queries q
             join public.property_reports pr on pr.query_id=q.id
+            left join public.sources s on s.id=pr.source_id
             where {' and '.join(clauses)}
             order by q.year, q.month, q.created_at
         """
@@ -263,7 +314,10 @@ async def create_analysis(
     store: AnalysisStore = Depends(get_analysis_store),
 ) -> dict[str, Any]:
     try:
-        return await store.analyze(user, request)
+        result = await store.analyze(user, request)
+        if result.get("sample_count", 0) > 0:
+            assert_statistic_provenance(result)
+        return result
     except (AnalysisQuotaExceeded, QuotaExceeded):
         return JSONResponse(status_code=429, content={"error": {"code": "quota_exceeded", "message": "analysis quota exceeded"}})
     except (asyncpg.UndefinedTableError, asyncpg.UndefinedColumnError, AnalysisServiceUnavailable):

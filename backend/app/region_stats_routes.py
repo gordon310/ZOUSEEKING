@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional, Protocol
+from typing import Any, Iterable, Optional, Protocol
 
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -11,6 +11,7 @@ from .auth import AuthUser, require_user
 from .db import get_pool
 from .region_stats import aggregate_region_rows
 from .region_names import normalize_region_stats_names
+from .services.provenance import assert_statistic_provenance, statistic_provenance
 
 router = APIRouter(prefix="/api/org", tags=["regional statistics"])
 TOWER_DISCLOSURE_CODE = "tower_merged_into_apartment"
@@ -23,6 +24,54 @@ STORAGE_ASSET_TYPE_BY_STATS_ASSET_TYPE = {"塔楼": "公寓", "一户建": "独�
 def normalize_stats_ward(ward: Optional[str]) -> Optional[str]:
     value = (ward or "").strip()
     return None if value in {"", "__not_subdivided__"} else value
+
+
+def _only_database_value(values: Iterable[object]) -> object | None:
+    """Return an unambiguous database value, otherwise expose a contract gap.
+
+    A regional aggregate can cover many transactions.  Categorical provenance
+    is publishable only when all populated supporting rows agree; choosing an
+    arbitrary row would turn mixed evidence into a false single-source claim.
+    """
+    unique = {value for value in values if value not in (None, "")}
+    return next(iter(unique)) if len(unique) == 1 else None
+
+
+def _region_statistic_provenance(rows: list[dict[str, Any]]) -> dict[str, object]:
+    """Aggregate provenance from the exact transaction rows used for a metric.
+
+    Source-owned values take precedence for categorical fields.  Retrieval time
+    is the maximum actual transaction retrieval/import or source observation/
+    success time, so it truthfully represents the newest supporting evidence.
+    """
+    def source_first(source_field: str, transaction_field: str) -> object | None:
+        source_value = _only_database_value(row.get(source_field) for row in rows)
+        return source_value if source_value is not None else _only_database_value(
+            row.get(transaction_field) for row in rows
+        )
+
+    # A transaction's retrieval timestamp is the evidence for that exact row.
+    # Only legacy rows without it fall back to their import/source observation
+    # timestamp; mixing both would let a later database import obscure a real
+    # source retrieval time.
+    retrieved_candidates = [
+        row.get("retrieved_at") or row.get("imported_at") or row.get("source_observed_at")
+        for row in rows
+        if row.get("retrieved_at") or row.get("imported_at") or row.get("source_observed_at")
+    ]
+    return {
+        "data_class": source_first("source_data_class", "data_class"),
+        "source_url": source_first("source_url", "transaction_source_url"),
+        "retrieved_at": max(retrieved_candidates) if retrieved_candidates else None,
+        "source_period": source_first("source_period", "transaction_source_period"),
+        "transformation_version": source_first("source_transformation_version", "transformation_version"),
+        "rights_status": source_first("source_permission_status", "rights_status"),
+        # ``sources`` has no rights_confirmed column; this is the transaction
+        # evidence field and must agree across all rows in the aggregate.
+        "rights_confirmed": _only_database_value(row.get("rights_confirmed") for row in rows),
+        "limitations": source_first("source_limitations", "transaction_limitations"),
+        "license": _only_database_value(row.get("source_license") for row in rows),
+    }
 
 
 class RegionStatsStore(Protocol):
@@ -79,27 +128,49 @@ class DbRegionStatsStore:
             )
             if not member:
                 raise HTTPException(status_code=403, detail="机构成员权限不足")
-            rows = await conn.fetch(
-                """select unit_price_jpy_per_sqm from public.mlit_transactions
-                   where prefecture=$1 and city=$2 and asset_type=$3
-                     and trade_quarter=$4 and ($5::text is null or ward=$5)
-                   order by id""",
+            rows = [dict(row) for row in await conn.fetch(
+                """select t.unit_price_jpy_per_sqm, t.data_class::text as data_class,
+                          t.source_url as transaction_source_url, t.retrieved_at, t.imported_at,
+                          t.source_period as transaction_source_period, t.transformation_version,
+                          t.rights_status, t.rights_confirmed, t.limitations as transaction_limitations,
+                          s.id::text as source_id, s.name as source_name, s.url as source_url,
+                          s.data_class::text as source_data_class, s.permission_status as source_permission_status,
+                          s.observed_at as source_observed_at, s.last_success_at as source_last_success_at,
+                          s.source_period, s.transformation_version as source_transformation_version,
+                          s.limitations as source_limitations, s.license as source_license
+                   from public.mlit_transactions t
+                   left join public.sources s on s.id=t.source_id
+                   where t.prefecture=$1 and t.city=$2 and t.asset_type=$3
+                     and t.trade_quarter=$4 and ($5::text is null or t.ward=$5)
+                   order by t.id""",
                 prefecture, city, query_asset_type, period, ward,
-            )
-            result = aggregate_region_rows([dict(row) for row in rows], asset_type=asset_type, period=period)
-            source = await conn.fetchrow(
-                """select s.id::text as id, s.name, s.url, s.permission_status, s.source_type
-                   from public.sources s join public.mlit_transactions t on t.source_id=s.id
-                   where t.prefecture=$1 and t.city=$2 and t.asset_type=$3 and t.trade_quarter=$4
-                   limit 1""", prefecture, city, query_asset_type, period,
-            )
+            )]
+            result = aggregate_region_rows(rows, asset_type=asset_type, period=period)
+            provenance = _region_statistic_provenance(rows) if result["sample_size"] > 0 else None
+            sources = {
+                (row["source_id"], row["source_name"], row["source_url"])
+                for row in rows if row.get("source_id") and row.get("source_url")
+            }
             result.update({
                 "ward": ward,
-                "sources": [{"id": source["id"], "name": source["name"], "url": source["url"]}] if source else [],
-                "license": {"name": "PDL1.0", "attribution": "出典:不動産情報ライブラリ（国土交通省）"},
-                "data_class": "scraped_aggregate",
-                "limitations": "参考情報；非逐笔成交明细；区域口径=市区町村/区；㎡単価由官方总价除以官方面积计算。",
+                "sources": [
+                    {"id": source_id, "name": source_name, "url": source_url}
+                    for source_id, source_name, source_url in sorted(sources)
+                ],
+                "license": {"name": provenance["license"]} if provenance else {},
             })
+            if provenance:
+                result.update(statistic_provenance(
+                    data_class=provenance["data_class"], source_url=provenance["source_url"],
+                    retrieved_at=provenance["retrieved_at"], source_period=provenance["source_period"],
+                    transformation_version=provenance["transformation_version"], rights_status=provenance["rights_status"],
+                    rights_confirmed=provenance["rights_confirmed"], sample_size=int(result["sample_size"]),
+                    # These three constants describe this deterministic calculation,
+                    # not source evidence.  Change them when its algorithm changes.
+                    aggregation_method="mean_median_quartiles",
+                    missing_value_policy="exclude_missing_or_nonpositive_unit_price",
+                    limitations=provenance["limitations"], unit="JPY/sqm",
+                ))
             rent_reference = await self._rent_reference(conn, prefecture, city, ward, asset_type)
             monthly_rent = await conn.fetchrow(
                 """select city, rent_jpy_per_sqm_month, observed_month, source_label, source_url, license_label
@@ -169,4 +240,6 @@ async def region_stats(
     result["ward"] = normalized_ward
     if asset_type == "塔楼":
         result["disclosure"] = {"code": TOWER_DISCLOSURE_CODE}
+    if result.get("sample_size", 0) > 0:
+        assert_statistic_provenance(result)
     return result

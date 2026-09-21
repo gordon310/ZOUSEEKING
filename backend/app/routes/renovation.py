@@ -17,6 +17,7 @@ from ..renovation.models import (
     RenovationUploadManifest,
 )
 from ..renovation.pricing import build_estimate
+from ..services.provenance import assert_statistic_provenance
 from ..renovation.vision import VisionInput, VisionProviderUnavailable, get_vision_provider
 from .intake import _enforce_rate_limit, get_intake_repository
 
@@ -41,7 +42,9 @@ async def create_estimate(
     repository: Any = Depends(get_intake_repository),
 ) -> Dict[str, object]:
     await _enforce_rate_limit(repository, request, "renovation_estimate", 30, scope="renovation")
-    return build_estimate(payload)
+    result = build_estimate(payload)
+    assert_statistic_provenance(result)
+    return result
 
 
 @router.post("/analyses", response_model=RenovationEstimateResponse)

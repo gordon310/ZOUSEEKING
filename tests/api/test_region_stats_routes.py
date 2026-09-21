@@ -20,7 +20,12 @@ class Store:
             "p25": 200000, "p75": 400000, "distribution": [], "period": period,
             "asset_type": asset_type, "sources": [{"id": "source", "name": "MLIT", "url": "https://www.reinfolib.mlit.go.jp/realEstatePrices/"}],
             "license": {"name": "PDL1.0", "attribution": "出典:不動産情報ライブラリ（国土交通省）"},
-            "limitations": "参考信息", "data_class": "scraped_aggregate",
+            "limitations": "参考信息", "data_class": "verified_observation",
+            "source_url": "https://www.reinfolib.mlit.go.jp/realEstatePrices/",
+            "retrieved_at": "2026-09-20T00:00:00+00:00", "source_period": period,
+            "transformation_version": "region-stats-v1", "rights_status": "rights_confirmed",
+            "rights_confirmed": "yes", "aggregation_method": "mean_median_quartiles",
+            "missing_value_policy": "exclude_missing_or_nonpositive_unit_price", "unit": "JPY/sqm",
             "rent_sale_ratio": {"available": False, "reason": "租金数据未授权"},
         }
 
@@ -71,6 +76,32 @@ def test_region_stats_returns_numeric_server_contract():
     assert response.json()["mean_unit_price_jpy_per_sqm"] == 310000
     assert response.json()["rent_sale_ratio"]["available"] is False
     assert "organization_members" not in response.text
+
+
+def test_region_stats_returns_an_explicit_empty_result_without_fabricated_provenance():
+    class NoDataStore:
+        async def get(self, user, prefecture, city, ward, asset_type, period):
+            return {
+                "status": "insufficient_sample", "sample_size": 0, "period": period,
+                "asset_type": asset_type, "sources": [], "license": {},
+                "rent_sale_ratio": {"available": False, "reason": "没有可用成交样本"},
+            }
+
+    app.dependency_overrides[require_user] = lambda: AuthUser(USER, "hidden@example.com", "Member")
+    app.dependency_overrides[get_region_stats_store] = NoDataStore
+    try:
+        response = TestClient(app).get(
+            "/api/org/region-stats",
+            params={"prefecture": "北海道", "city": "不存在市", "asset_type": "公寓", "year": 2025, "quarter": 1},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "insufficient_sample"
+    assert payload["sample_size"] == 0
+    assert {"data_class", "source_url", "retrieved_at", "source_period"}.isdisjoint(payload)
 
 
 @pytest.mark.parametrize("ward", [None, "", "   ", "__not_subdivided__"])

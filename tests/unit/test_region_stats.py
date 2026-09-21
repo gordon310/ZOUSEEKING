@@ -21,6 +21,13 @@ class _AcceptingRegionStatsStore:
             "period": period,
             "asset_type": asset_type,
             "rent_sale_ratio": {"available": False, "reason": "租金数据未授权"},
+            "data_class": "verified_observation",
+            "source_url": "https://www.reinfolib.mlit.go.jp/realEstatePrices/",
+            "retrieved_at": "2026-09-20T00:00:00+00:00", "source_period": period,
+            "transformation_version": "region-stats-v1", "rights_status": "rights_confirmed",
+            "rights_confirmed": "yes", "aggregation_method": "mean_median_quartiles",
+            "missing_value_policy": "exclude_missing_or_nonpositive_unit_price",
+            "limitations": "Official aggregate; insufficient sample.", "unit": "JPY/sqm",
         }
 
 

@@ -38,8 +38,10 @@ def mlit_database_url():
 async def _rowwise_upsert(database_url, rows):
     query = """insert into public.mlit_transactions
         (source_id,source_record_key,prefecture,city,ward,asset_kind,asset_type,price_jpy,area_sqm,
-         unit_price_jpy_per_sqm,trade_quarter,trade_year,nearest_station,distance_minutes,layout,raw,imported_at)
-        values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+         unit_price_jpy_per_sqm,trade_quarter,trade_year,nearest_station,distance_minutes,layout,raw,imported_at,
+         data_class,source_url,retrieved_at,source_period,transformation_version,rights_status,rights_confirmed,
+         limitations,missing_value_policy)
+        values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18::public.data_class,$19,$20,$21,$22,$23,$24,$25,$26)
         on conflict (source_id,source_record_key) do nothing
         returning 1"""
     conn = await asyncpg.connect(database_url)

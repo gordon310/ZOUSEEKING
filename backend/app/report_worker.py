@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import signal
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
@@ -16,6 +17,7 @@ import asyncpg
 
 from .db import get_pool
 from .models import QueryRequest
+from .worker_logging import log_event
 
 
 logger = logging.getLogger(__name__)
@@ -211,7 +213,26 @@ async def process_once(pool: asyncpg.Pool | None = None) -> dict[str, Any] | Non
     claim = await claim_next(pool)
     if claim is None:
         return None
+    log_event(
+        logger,
+        "report_claimed",
+        outbox_id=str(claim.outbox_id),
+        job_id=str(claim.generation_job_id),
+        query_id=str(claim.query_id),
+        attempts=claim.attempts,
+        lease_expired=claim.lease_expired,
+    )
+    if claim.lease_expired:
+        log_event(
+            logger,
+            "report_lease_reclaimed",
+            outbox_id=str(claim.outbox_id),
+            job_id=str(claim.generation_job_id),
+            query_id=str(claim.query_id),
+            attempts=claim.attempts,
+        )
     request = QueryRequest(**{key: value for key, value in claim.payload.items() if key != "owner_user_id"})
+    started_at = time.perf_counter()
     try:
         # The API never calls this function.  Importing lazily keeps the report
         # engine in one implementation while avoiding an app/worker cycle.
@@ -226,9 +247,22 @@ async def process_once(pool: asyncpg.Pool | None = None) -> dict[str, Any] | Non
     except Exception as exc:
         failure = classify_failure(exc)
         status = await record_failure(pool, claim, failure)
-        logger.exception("report worker execution failed", extra={"error_code": failure.code})
+        log_event(
+            logger,
+            "report_failed",
+            job_id=str(claim.generation_job_id),
+            error_code=failure.code,
+            retryable=failure.retryable,
+            error_type=type(exc).__name__,
+        )
         return {"job_id": str(claim.generation_job_id), "status": status, "code": failure.code}
     await complete_claim(pool, claim)
+    log_event(
+        logger,
+        "report_completed",
+        job_id=str(claim.generation_job_id),
+        duration_ms=int((time.perf_counter() - started_at) * 1000),
+    )
     return {"job_id": str(claim.generation_job_id), "status": "completed"}
 
 

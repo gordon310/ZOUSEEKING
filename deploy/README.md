@@ -106,6 +106,34 @@ docker compose -f deploy/docker-compose.prod.yml logs --tail=200 api worker sche
 curl -fsS https://api.zoubeacon.com/health/ready
 ```
 
+## Read-only observability timer
+
+`deploy/observability-check.sh` checks only Compose state, API health and
+read-only PostgreSQL queue/freshness queries. It exits non-zero for a missing
+`api`/`report-worker`/`nginx`, failed health endpoint, any failed outbox row,
+running outbox row leased for over 15 minutes, or due pending row. It prints
+the latest `usage_events.created_at` and `property_reports.created_at` as
+freshness evidence; freshness age thresholds are deliberately not invented.
+
+Install only after an operator has reviewed the production paths and database
+credential scope; this change does not install anything on a host:
+
+```bash
+sudo install -d -o ubuntu -g ubuntu -m 755 /var/log/zouseeking /etc/zouseeking
+sudo install -o ubuntu -g ubuntu -m 600 /dev/null /etc/zouseeking/observability.env
+sudoedit /etc/zouseeking/observability.env  # DATABASE_URL=... (read-only role preferred)
+sudo install -o root -g root -m 755 deploy/observability-check.sh /opt/zouseeking/deploy/observability-check.sh
+sudo cp deploy/systemd/observability-check.{service,timer} /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now observability-check.timer
+sudo systemctl start observability-check.service
+sudo tail -n 100 /var/log/zouseeking/observability.log
+```
+
+The timer runs every 15 minutes and appends stdout/stderr to
+`/var/log/zouseeking/observability.log`. A non-zero run is an alert for
+operators to inspect; the script never repairs, requeues, or deletes rows.
+
 SSL is terminated through Cloudflare using Full (strict) mode and the existing
 Cloudflare Origin Certificate mounted from `/opt/zoubeacon/certs`. Do not run
 `certbot` on this machine.

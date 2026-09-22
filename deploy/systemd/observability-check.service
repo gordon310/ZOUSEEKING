@@ -1,0 +1,12 @@
+[Unit]
+Description=Zou Seeking House read-only observability check
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/zouseeking
+EnvironmentFile=/etc/zouseeking/observability.env
+ExecStart=/opt/zouseeking/deploy/observability-check.sh
+StandardOutput=append:/var/log/zouseeking/observability.log
+StandardError=append:/var/log/zouseeking/observability.log

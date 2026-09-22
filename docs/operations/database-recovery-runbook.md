@@ -1,5 +1,20 @@
 # Provider backup、隔离恢复与 migration forward-fix runbook
 
+## 可重复本地逻辑恢复演练（2026-09-22）
+
+`scripts/restore_drill.py` 是本机 Supabase 栈的可重复演练入口。它的边界是明确的：源 `DATABASE_URL` 仅用于 `pg_dump` 和以 `default_transaction_read_only=on` 运行的计数/catalog/migration 查询；写入只发生在脚本新建、finally 中删除的 `jpp_restore_*` 临时库。为恢复 public 表的外键，目标会创建只含 UUID 的 `auth.users` 临时桩；不会导出 Auth profile、token 或其他 Auth 数据。
+
+在发布前、每月一次，以及每次迁移应用后运行一次。仅可在本机/隔离 loopback 目标运行：
+
+```bash
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres \
+  PYTHONPATH=. backend/.venv/bin/python scripts/restore_drill.py
+```
+
+脚本导出 public 与 `supabase_migrations`，恢复到一次性 target，比较 `mlit_transactions`、`rent_reference_stats`、`queries`、`property_reports`、`usage_events`、`usage_quotas`、`report_generation_outbox` 的行数、约束和 RLS policy，并比较全部 migration version 集合。任一导出、恢复、比较或清理失败都会输出诊断并非 0 退出（清理失败也必须按 incident 处理）。
+
+生产演练需要单独人工批准、可用且已验证的备份、记录好的恢复目标/负责人，以及非业务高峰维护窗口；禁止把源生产库作为 restore target。失败时立即停止发布和后续 migration，保留不含敏感行的错误摘要与 migration/catalog 差异；由负责人用一个**新且更晚**的 forward-fix migration 做 expand/backfill/switch/contract，再对同一备份的隔离 target 重跑演练。不得修改已应用 migration、`migration repair`、或原地恢复生产。
+
 ## 当前门槛
 
 ```text

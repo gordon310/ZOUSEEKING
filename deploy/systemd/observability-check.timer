@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Zou Seeking House observability every 15 minutes
+
+[Timer]
+OnCalendar=*:0/15
+Persistent=true
+Unit=observability-check.service
+
+[Install]
+WantedBy=timers.target

@@ -40,6 +40,7 @@ python3 -m pip check
 python3 scripts/ci/secret_scan.py --repo .
 python3 scripts/ci/check_release_policy.py
 python3 scripts/check_post_launch_review.py
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres python3 scripts/restore_drill.py
 git diff --check
 ```
 
@@ -99,3 +100,6 @@ python3 scripts/ci/release_evidence.py evidence --results-dir ci-results --outpu
 2. SQL reset 或生产迁移前置检查失败时停止后续 migration、部署和流量切换，保留 SQLSTATE/错误摘要。
 3. 修复后重新跑完整 gate，不只重跑单个 job。
 4. 只有离线检查全部 `PASS` 且外部/人工门槛闭合，才能交给负责人作 Go/No-Go 决策；这仍需保留可恢复发布窗口。
+
+本地恢复演练的边界、频率和失败处理见
+[`../operations/database-recovery-runbook.md`](../operations/database-recovery-runbook.md)。它只对源库做逻辑导出和只读比较，并只写入随后删除的 `jpp_restore_*` 临时库；不能替代经批准的生产恢复。

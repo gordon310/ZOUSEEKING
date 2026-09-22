@@ -131,6 +131,19 @@ async def test_xit001_local_http_to_local_postgres_is_idempotent_and_queryable(m
                     org_id,
                     USER_ID,
                 )
+                await conn.execute(
+                    "update public.user_profiles set membership_tier='b_data_pro', audience='b' where user_id=$1",
+                    USER_ID,
+                )
+                await conn.execute(
+                    """insert into public.pricing_plans
+                       (plan_code, name, monthly_query_limit, monthly_report_quota, subscription_slots, export_rows_monthly, audience)
+                       values ('b_data_pro', 'Fixture B Data Pro', 500, 0, 10, 10000, 'b')"""
+                )
+                await conn.execute(
+                    """insert into public.plan_entitlements(plan_code, metric, limit_units, period, active)
+                       values ('b_data_pro', 'stats_query', 100, 'month', true)"""
+                )
             finally:
                 await conn.close()
             pool = await asyncpg.create_pool(target_url, min_size=1, max_size=1)

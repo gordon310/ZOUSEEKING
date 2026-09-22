@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 from datetime import datetime, timezone
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import asyncpg
 import httpx
@@ -17,6 +17,7 @@ from backend.app.main import app
 from backend.app.region_stats_routes import DbRegionStatsStore, get_region_stats_store, region_stats, region_stats_trend
 from backend.app.services.provenance import REQUIRED_STATISTIC_FIELDS
 from backend.app.auth import require_user
+from backend.app.usage.quota import current_period_key
 from tests.support.pg_bootstrap import (
     bootstrap_and_migrate,
     configured_database_url,
@@ -183,7 +184,9 @@ def test_real_postgres_trend_response_is_chronological_provenance_complete_and_m
             response = await region_stats_trend("夹具都道府县", "夹具市", "公寓", "夹具区", None, None, user, DbRegionStatsStore())
             async with db.pool.acquire() as conn:
                 usage_events = await conn.fetchval(
-                    "select count(*) from public.usage_events where actor_user_id=$1 and usage_kind='stats_query' and operation='consume'", USER_ID
+                    """select count(*) from public.usage_events
+                       where actor_user_id=$1 and usage_kind='stats_query' and operation='consume'
+                         and idempotency_key like 'region-trend:%'""", USER_ID
                 )
             return response, usage_events
         finally:
@@ -201,6 +204,119 @@ def test_real_postgres_trend_response_is_chronological_provenance_complete_and_m
         assert set(REQUIRED_STATISTIC_FIELDS) <= item.keys()
         assert item["data_class"] == "synthetic_fixture"
         assert item["source_url"] == "https://fixtures.invalid/region-trend"
+
+
+def test_real_postgres_single_and_trend_reject_the_same_unconfigured_stats_quota(region_stats_database):
+    """No subscription plus no entitlement is rejected equally by both paths."""
+    user_id = uuid4()
+
+    async def exercise():
+        old_pool = db.pool
+        db.pool = await asyncpg.create_pool(region_stats_database, min_size=1, max_size=2)
+        app.dependency_overrides[require_user] = lambda: AuthUser(user_id, "unconfigured@test.invalid", "Member")
+        app.dependency_overrides[get_region_stats_store] = lambda: DbRegionStatsStore()
+        try:
+            async with db.pool.acquire() as conn:
+                await conn.execute("insert into auth.users(id, email) values($1, $2)", user_id, "unconfigured@test.invalid")
+                org_id = await conn.fetchval(
+                    "insert into public.organizations(name, created_by_user_id) values('Unconfigured quota', $1) returning id", user_id
+                )
+                await conn.execute(
+                    "insert into public.organization_members(organization_id, user_id, role) values($1, $2, 'member')", org_id, user_id
+                )
+            transport = httpx.ASGITransport(app=app)
+            async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+                single = await client.get("/api/org/region-stats", params={"prefecture": "东京都", "city": "港区", "asset_type": "公寓", "year": 2025, "quarter": 1})
+                trend = await client.get("/api/org/region-stats/trend", params={"prefecture": "东京都", "city": "港区", "asset_type": "公寓"})
+            return single, trend
+        finally:
+            app.dependency_overrides.clear()
+            await db.pool.close()
+            db.pool = old_pool
+
+    single, trend = asyncio.run(exercise())
+    assert single.status_code == trend.status_code == 429
+    assert single.json() == trend.json() == {"error": {"code": "quota_exceeded", "message": "统计额度已用尽。"}}
+
+
+def test_real_postgres_single_and_trend_each_record_a_stats_query_consumption(region_stats_database):
+    """Both allowed paths consume one auditable stats_query unit."""
+    user_id = uuid4()
+
+    async def exercise():
+        old_pool = db.pool
+        db.pool = await asyncpg.create_pool(region_stats_database, min_size=1, max_size=2)
+        app.dependency_overrides[require_user] = lambda: AuthUser(user_id, "metered@test.invalid", "Member")
+        app.dependency_overrides[get_region_stats_store] = lambda: DbRegionStatsStore()
+        try:
+            async with db.pool.acquire() as conn:
+                await conn.execute("insert into auth.users(id, email) values($1, $2)", user_id, "metered@test.invalid")
+                await conn.execute("update public.user_profiles set membership_tier='b_data_pro', audience='b' where user_id=$1", user_id)
+                org_id = await conn.fetchval(
+                    "insert into public.organizations(name, created_by_user_id) values('Metered quota', $1) returning id", user_id
+                )
+                await conn.execute(
+                    "insert into public.organization_members(organization_id, user_id, role) values($1, $2, 'member')", org_id, user_id
+                )
+            transport = httpx.ASGITransport(app=app)
+            async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+                single = await client.get("/api/org/region-stats", params={"prefecture": "东京都", "city": "港区", "asset_type": "公寓", "year": 2025, "quarter": 1})
+                trend = await client.get("/api/org/region-stats/trend", params={"prefecture": "东京都", "city": "港区", "asset_type": "公寓"})
+            async with db.pool.acquire() as conn:
+                events = await conn.fetch(
+                    "select usage_kind, operation, units from public.usage_events where actor_user_id=$1 order by created_at", user_id
+                )
+            return single, trend, [dict(event) for event in events]
+        finally:
+            app.dependency_overrides.clear()
+            await db.pool.close()
+            db.pool = old_pool
+
+    single, trend, events = asyncio.run(exercise())
+    assert single.status_code == trend.status_code == 200
+    assert events == [
+        {"usage_kind": "stats_query", "operation": "consume", "units": 1},
+        {"usage_kind": "stats_query", "operation": "consume", "units": 1},
+    ]
+
+
+def test_real_postgres_single_and_trend_reject_the_same_exhausted_stats_quota(region_stats_database):
+    """A fully consumed quota produces the same public 429 response on both paths."""
+    user_id = uuid4()
+
+    async def exercise():
+        old_pool = db.pool
+        db.pool = await asyncpg.create_pool(region_stats_database, min_size=1, max_size=2)
+        app.dependency_overrides[require_user] = lambda: AuthUser(user_id, "exhausted@test.invalid", "Member")
+        app.dependency_overrides[get_region_stats_store] = lambda: DbRegionStatsStore()
+        try:
+            async with db.pool.acquire() as conn:
+                await conn.execute("insert into auth.users(id, email) values($1, $2)", user_id, "exhausted@test.invalid")
+                await conn.execute("update public.user_profiles set membership_tier='b_data_pro', audience='b' where user_id=$1", user_id)
+                org_id = await conn.fetchval(
+                    "insert into public.organizations(name, created_by_user_id) values('Exhausted quota', $1) returning id", user_id
+                )
+                await conn.execute(
+                    "insert into public.organization_members(organization_id, user_id, role) values($1, $2, 'member')", org_id, user_id
+                )
+                await conn.execute(
+                    """insert into public.usage_quotas(scope_key, usage_kind, period_key, limit_units, consumed_units)
+                       values($1, 'stats_query', $2, 100, 100)""",
+                    f"user:{user_id}", current_period_key(datetime.now(timezone.utc), "month"),
+                )
+            transport = httpx.ASGITransport(app=app)
+            async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+                single = await client.get("/api/org/region-stats", params={"prefecture": "东京都", "city": "港区", "asset_type": "公寓", "year": 2025, "quarter": 1})
+                trend = await client.get("/api/org/region-stats/trend", params={"prefecture": "东京都", "city": "港区", "asset_type": "公寓"})
+            return single, trend
+        finally:
+            app.dependency_overrides.clear()
+            await db.pool.close()
+            db.pool = old_pool
+
+    single, trend = asyncio.run(exercise())
+    assert single.status_code == trend.status_code == 429
+    assert single.json() == trend.json() == {"error": {"code": "quota_exceeded", "message": "统计额度已用尽。"}}
 
 
 def test_real_postgres_region_stats_endpoint_degrades_when_options_file_is_unavailable(region_stats_database, monkeypatch, tmp_path):

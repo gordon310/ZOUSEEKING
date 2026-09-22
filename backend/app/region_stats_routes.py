@@ -33,6 +33,27 @@ def normalize_stats_ward(ward: Optional[str]) -> Optional[str]:
     return None if value in {"", "__not_subdivided__"} else value
 
 
+async def _consume_stats_query(
+    conn: asyncpg.Connection,
+    *,
+    user: AuthUser,
+    request_type: str,
+    request_shape: dict[str, object],
+) -> None:
+    """Apply the one server-owned stats-query meter for every stats endpoint."""
+    fingerprint = hashlib.sha256(
+        json.dumps(request_shape, sort_keys=True, ensure_ascii=False).encode()
+    ).hexdigest()
+    await consume_current_entitlement(
+        conn,
+        user=user,
+        metric="stats_query",
+        units=1,
+        idempotency_key=f"{request_type}:{fingerprint}",
+        fingerprint=fingerprint,
+    )
+
+
 def _only_database_value(values: Iterable[object]) -> object | None:
     """Return an unambiguous database value, otherwise expose a contract gap.
 
@@ -155,6 +176,16 @@ class DbRegionStatsStore:
         query_asset_type = STORAGE_ASSET_TYPE_BY_STATS_ASSET_TYPE.get(asset_type, asset_type)
         async with get_pool().acquire() as conn:
             await self._require_active_member(conn, user)
+            async with conn.transaction():
+                await _consume_stats_query(
+                    conn,
+                    user=user,
+                    request_type="region-stats",
+                    request_shape={
+                        "prefecture": prefecture, "city": city, "ward": ward,
+                        "asset_type": asset_type, "period": period,
+                    },
+                )
             rows = [dict(row) for row in await conn.fetch(
                 """select t.unit_price_jpy_per_sqm, t.data_class::text as data_class,
                           t.source_url as transaction_source_url, t.retrieved_at, t.imported_at,
@@ -247,17 +278,17 @@ class DbRegionStatsStore:
         """Return a quota-metered, chronology-sorted series without filling gaps."""
 
         query_asset_type = STORAGE_ASSET_TYPE_BY_STATS_ASSET_TYPE.get(asset_type, asset_type)
-        request_shape = {
-            "prefecture": prefecture, "city": city, "ward": ward, "asset_type": asset_type,
-            "from_period": from_period, "to_period": to_period,
-        }
-        fingerprint = hashlib.sha256(json.dumps(request_shape, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
         async with get_pool().acquire() as conn:
             async with conn.transaction():
                 await self._require_active_member(conn, user)
-                await consume_current_entitlement(
-                    conn, user=user, metric="stats_query", units=1,
-                    idempotency_key=f"region-trend:{fingerprint}", fingerprint=fingerprint,
+                await _consume_stats_query(
+                    conn,
+                    user=user,
+                    request_type="region-trend",
+                    request_shape={
+                        "prefecture": prefecture, "city": city, "ward": ward,
+                        "asset_type": asset_type, "from_period": from_period, "to_period": to_period,
+                    },
                 )
                 rows = [dict(row) for row in await conn.fetch(
                     """select t.unit_price_jpy_per_sqm, t.data_class::text as data_class,
@@ -349,7 +380,10 @@ async def region_stats(
     normalized_prefecture, normalized_city, normalized_ward = normalize_region_stats_names(
         prefecture, city, normalized_ward
     )
-    result = await store.get(user, normalized_prefecture, normalized_city, normalized_ward, asset_type, period)
+    try:
+        result = await store.get(user, normalized_prefecture, normalized_city, normalized_ward, asset_type, period)
+    except QuotaExceeded:
+        return JSONResponse(status_code=429, content={"error": {"code": "quota_exceeded", "message": "统计额度已用尽。"}})
     result["ward"] = normalized_ward
     if asset_type == "塔楼":
         result["disclosure"] = {"code": TOWER_DISCLOSURE_CODE}

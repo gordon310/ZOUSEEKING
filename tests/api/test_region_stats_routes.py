@@ -244,11 +244,23 @@ def test_db_region_stats_returns_city_from_the_monthly_rent_row(monkeypatch):
         async def __aexit__(self, exc_type, exc, tb):
             return False
 
+    class Transaction:
+        async def __aenter__(self):
+            return None
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+    Connection.transaction = lambda self: Transaction()
+
     class Pool:
         def acquire(self):
             return Acquire()
 
     monkeypatch.setattr("backend.app.region_stats_routes.get_pool", lambda: Pool())
+    async def consume_stats_query(*args, **kwargs):
+        return None
+    monkeypatch.setattr("backend.app.region_stats_routes._consume_stats_query", consume_stats_query)
     result = __import__("asyncio").run(
         DbRegionStatsStore().get(AuthUser(USER, "member@example.test", "Member"), "东京都", "港区", None, "公寓", "2025Q1")
     )

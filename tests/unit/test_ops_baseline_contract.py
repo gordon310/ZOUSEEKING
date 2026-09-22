@@ -38,3 +38,29 @@ def test_observability_check_has_required_read_only_contract() -> None:
     assert "deploy-api-1" in script
     assert "asyncpg" in script
     assert not re.search(r"(?<![A-Za-z0-9_])psql(?:\s|\")", script)
+
+
+def _compose_service_block(compose: str, name: str) -> str:
+    start = compose.index(f"\n  {name}:\n")
+    rest = compose[start + 1 :]
+    match = re.search(r"\n  [A-Za-z_]", rest)
+    assert match, f"could not delimit the {name} service block"
+    return rest[: match.start()]
+
+
+def test_compose_scheduler_runs_collection_qa_sweep_with_snapshot_mount() -> None:
+    compose = (ROOT / "deploy/docker-compose.prod.yml").read_text(encoding="utf-8")
+    block = _compose_service_block(compose, "scheduler")
+
+    assert "collection_scheduler.py" in block
+    assert "collection_sweep.py" in block
+    assert "account_retention_sweeper.py --limit 50" in block
+    # The QA sweep reads snapshot files under data/collected; the scheduler must
+    # mount the same host directory the worker writes them into.
+    assert "../data/collected:/app/data/collected" in block
+    # A non-zero sweep exit must surface as an operator-visible alert line
+    # instead of silently ending the loop.
+    assert "collection_sweep_abnormal" in block
+
+    readme = (ROOT / "deploy/README.md").read_text(encoding="utf-8")
+    assert "collection_sweep.py" in readme

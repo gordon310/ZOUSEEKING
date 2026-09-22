@@ -54,7 +54,15 @@ services:
       dockerfile: deploy/Dockerfile.backend
     env_file: .env
     restart: unless-stopped
-    command: ["sh", "-c", "while true; do python /app/scripts/collection_scheduler.py; python /app/scripts/account_retention_sweeper.py --limit 50; sleep 3600; done"]
+    # The collected-data mount is what lets the QA sweep read the snapshot files
+    # it verifies; without it the hash check can only report missing files.
+    volumes:
+      - ../data/collected:/app/data/collected
+    # One hourly loop, three steps: feed due sources, run the collection QA sweep
+    # (recover stale running rows + verify snapshot hashes), then the
+    # account-retention sweep. The sweep exits 1 on abnormal state; the loop
+    # prints one alert line and keeps going, so alerting never stops feeding.
+    command: ["sh", "-c", "while true; do python /app/scripts/collection_scheduler.py; python /app/scripts/collection_sweep.py || echo 'collection_sweep_abnormal exit=1' >&2; python /app/scripts/account_retention_sweeper.py --limit 50; sleep 3600; done"]
 
   nginx:
     image: nginx:alpine

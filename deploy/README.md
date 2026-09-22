@@ -74,11 +74,23 @@ proxies `api.zoubeacon.com` to the API container. The worker runs with
 then finish the in-flight round and exit successfully. Docker's
 `restart: unless-stopped` is retained only as a crash-recovery fallback, not as
 the normal polling cycle. Use `--loop N` where `N > 0` for an intentional,
-finite N-round command. The scheduler performs one feed pass and one
-account-retention sweep hourly. The retention sweep runs
-`python /app/scripts/account_retention_sweeper.py --limit 50` on each scheduler
-loop: it records only the fact that a provider-backup retention deadline has
-passed and does not modify the provider backup.
+finite N-round command. The scheduler runs one hourly loop with three steps, in
+order: a feed pass (`python /app/scripts/collection_scheduler.py`), the
+collection QA sweep
+(`python /app/scripts/collection_sweep.py`), and the account-retention sweep
+(`python /app/scripts/account_retention_sweeper.py --limit 50`). The QA sweep
+recovers collection runs stuck in `running` past its stale window by flipping
+them to `failed` with an explanatory `error_message` and an
+`admin.collection.run_swept` audit row, then verifies the recorded snapshot
+hashes of the most recent succeeded jphouse runs against the snapshot files. It
+exits non-zero when it finds stale runs or a failed hash check; the loop prints
+one `collection_sweep_abnormal exit=1` line to stderr and continues, so the
+alert is visible in `docker compose logs scheduler` and never stops feeding or
+retention. The scheduler service therefore mounts
+`../data/collected:/app/data/collected`; without that mount the hash check can
+only report missing snapshot files. The retention sweep records only the fact
+that a provider-backup retention deadline has passed and does not modify the
+provider backup.
 
 ## Rollback
 

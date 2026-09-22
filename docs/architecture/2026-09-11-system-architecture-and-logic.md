@@ -1357,7 +1357,7 @@ runner 抛 `worker.CollectionRunError` 带稳定 `code`(`jphouse_runners.py:40-4
 | `scripts/build_licensed_aggregate.py` | 只保留授权字段生成聚合快照 | `data/collected/*` → `data/collected_licensed/*`,打印 filtered 字段 | 人工(采集前/合规节点) |
 | `scripts/collection_scheduler.py` | 投料:把 due 源入队 | DB `collection_runs` → JSONL 决策 | 定时(compose `scheduler` 每小时) |
 | `scripts/collection_worker.py` | 认领并执行单轮、有限 N 轮或常驻轮 | DB `collection_runs` → JSONL 结果 | 常驻(compose `worker` loop 0, interval 10s) |
-| `scripts/collection_sweep.py` | 僵死恢复 + 快照 hash QA | DB + 磁盘快照 → JSONL,异常退 1 | 定时/cron 告警(未见于 compose) |
+| `scripts/collection_sweep.py` | 僵死恢复 + 快照 hash QA | DB + 磁盘快照 → JSONL,异常退 1 | 定时(compose `scheduler` 每小时;异常退 1 → scheduler 日志 `collection_sweep_abnormal`) |
 | `scripts/run_jphouse_worker.py` | 旧 Supabase `generation_jobs` 本地生成 worker | Supabase 队列 → `configs/jphouse_worker/`、`data/output/…`、`web/…`、`property_reports` | 人工 **break-glass**:需 `ENABLE_FROZEN_JPHOUSE_WORKER=true`(`:316`) |
 | `scripts/generate_xhs_package.py` | 由 JSON 模板生成小红书图包 + 内容库 | config json → `data/output/<slug>/`(封面/租赁/买卖 PNG、`data_detail.md`)、`data/content_library.json`、`web/content-library.json`、`web/library/<slug>/images/` | 被 3 个 build 脚本 + worker 内部 `generate()` 调用;亦可 CLI(`:294-299`) |
 | `scripts/render_social_cards.py` | 特定 minato 报告社媒卡(数据硬编码) | 无外部输入 → `data/output/minato_tower_report/images/*.png` | 人工;无 CLI(`:7-12`) |
@@ -1395,7 +1395,7 @@ CI 仅调用 `scripts/ci/` 三个脚本(`.github/workflows/release-gate.yml` 中
 | `api` | 由 Dockerfile.build 构建 | `env_file: .env`、`restart: unless-stopped`、volume `../data/collected:/app/data/collected`、`expose 8000`(`:6-15`) |
 | `jpsskill` | **profile `ai`**(opt-in) | build `/opt/jppskill`、`env_file: ./jpsskill.env`、`expose 8100`、volume `/opt/jppskill-data:/app/data`;默认不启动(`:17-27`) |
 | `worker` | 同镜像 | `command: collection_worker.py --loop 0 --interval 10`、volume `../data/collected`(`:29-39`) |
-| `scheduler` | 同镜像 | `command: sh -c "while true; do collection_scheduler.py; sleep 3600; done"`(`:39-45`) |
+| `scheduler` | 同镜像 | `command: sh -c "while true; do collection_scheduler.py; collection_sweep.py || echo 'collection_sweep_abnormal exit=1' >&2; account_retention_sweeper.py --limit 50; sleep 3600; done"`、volume `../data/collected`（`:51-62`） |
 | `nginx` | `nginx:alpine` | ports `80:80,443:443`;volumes `../web:…/html-site:ro`、`/opt/zoubeacon/web:…/html-corp:ro`、`/opt/zoubeacon/certs:…/certs:ro`、**单文件** `./nginx/default.conf:…/conf.d/default.conf:ro`;`depends_on: api`(`:47-59`) |
 
 注释说明:该 compose 在 runbook 切换步骤后用,替换旧的 `zoubeacon-nginx` 单容器;`data/collected` bind mount 跨重启持久化采集产物(`:1-4`)。worker/scheduler 未映射端口,走内部网络。
@@ -1443,7 +1443,7 @@ CI 仅调用 `scripts/ci/` 三个脚本(`.github/workflows/release-gate.yml` 中
 2. **快照会内嵌未授权 SUUMO 来源 URL**:config `data_sources` 仍写 suumo.jp/tochidai.info(`build_jphouse_23ku.py:207-218`),runner 原样写入快照 `source_urls`(`jphouse_runners.py:270-279`)。licensed 过滤只去数值字段,不清理 URL,存在合规暴露面。
 3. **授权 gate 未接线**:scheduler 不读 `collection_sources.rights_confirmed/enabled`(`scheduler.py:161-195`),当前「授权」靠人工 flag + 人工执行 `build_licensed_aggregate.py` 保证。live 抓取明确未启用(`jphouse_runners.py:33-38`)。
 4. **`run_jphouse_worker.py` 是冻结旧路径**:需显式 `ENABLE_FROZEN_JPHOUSE_WORKER=true` 才能跑,且其 `config_from_query` 用**估算模型/硬编码系数**(`base_factor`、`0.0423` 汇率),非采集数据,与 AGENTS「modeled_estimate 不得当市场事实」相关(`run_jphouse_worker.py:316-319, 80-100, 196`)。
-5. **`scheduler` 在 compose 里每小时一跑,worker 认领轮询 60×10s**,而 sweeper(`collection_sweep.py`)不在 compose 服务列表内 → 僵死恢复/哈希 QA 需另行 cron 部署(「是否已配 cron」未确认;compose 无对应服务)。
+5. **`scheduler` 在 compose 里每小时一跑,worker 认领轮询 60×10s**;sweeper(`collection_sweep.py`)已于 2026-09-23 接入同一 scheduler 小时循环(僵死恢复 + 快照 hash QA),并为该服务补 `../data/collected` bind mount 以读取快照文件。异常退 1 → scheduler 日志单行 `collection_sweep_abnormal`,不中断投料与 retention 步进。
 6. **`INIT_SCHEMA` 非生产建表路径**:仅 local/dev/test 生效(`main.py:43-50`);生产建 schema 走 Supabase migration,勿依赖启动。
 7. **`.app` 全域 HSTS 预载**:无有效证书=硬失败,证书须先行且 `.com`/`.app` 同步(`lightsail-deployment-design.md:20, 91`)。Cloudflare Full(strict),勿运行 certbot。
 8. **两域名同 root**:`.app`(C 端)与 `platform`(B 端)共用 `html-site`,仅根页重写不同,构建产物未拆分(设计 §2 已列为 M6 建议项,`lightsail-deployment-design.md:36`)。

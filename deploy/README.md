@@ -115,6 +115,37 @@ running outbox row leased for over 15 minutes, or due pending row. It prints
 the latest `usage_events.created_at` and `property_reports.created_at` as
 freshness evidence; freshness age thresholds are deliberately not invented.
 
+The production probe deliberately crosses the same boundaries that are
+available on the host:
+
+- Health uses `curl` against the public readiness URL
+  `https://api.zoubeacon.com/health/ready` by default. Override it with
+  `API_HEALTH_URL` only when the public endpoint changes. The Compose `api`
+  service uses `expose: 8000`, which is reachable to Compose peers but does not
+  publish host `127.0.0.1:8000`; a host-local readiness probe therefore fails.
+- Database metrics run with `docker exec deploy-api-1 python -c ...` and the
+  API image's `asyncpg`, with `default_transaction_read_only = on` asserted
+  before each `SELECT`. The host intentionally need not install `psql`. If the
+  production Compose project gives the API container another name, set
+  `API_CONTAINER` in the environment file to that container name.
+
+`observability-check.service` has a required
+`EnvironmentFile=/etc/zouseeking/observability.env`. systemd refuses to start
+the service with `Failed to load environment files` when it is missing, so
+create it before enabling or manually starting the timer. It must contain a
+`DATABASE_URL` accepted by the API container; include optional overrides only
+when needed:
+
+```dotenv
+DATABASE_URL=postgresql://read_only_role:...@database-host:5432/postgres
+# API_HEALTH_URL=https://api.zoubeacon.com/health/ready
+# API_CONTAINER=deploy-api-1
+```
+
+Use a database role restricted to reads where available. The script also
+enforces a read-only session, but that is defense in depth rather than a
+replacement for database permissions.
+
 Install only after an operator has reviewed the production paths and database
 credential scope; this change does not install anything on a host:
 

@@ -5,7 +5,8 @@ set -u -o pipefail
 DEPLOY_DIR="${DEPLOY_DIR:-/opt/zouseeking}"
 COMPOSE_FILE="${COMPOSE_FILE:-deploy/docker-compose.prod.yml}"
 DATABASE_URL="${DATABASE_URL:?DATABASE_URL is required}"
-API_HEALTH_URL="${API_HEALTH_URL:-http://127.0.0.1:8000/health/ready}"
+API_HEALTH_URL="${API_HEALTH_URL:-https://api.zoubeacon.com/health/ready}"
+API_CONTAINER="${API_CONTAINER:-deploy-api-1}"
 EXPECTED_SERVICES="${JPP_OBSERVABILITY_SERVICES:-api report-worker nginx}"
 failed=0
 summary=()
@@ -28,12 +29,38 @@ if ! health="$(curl --fail --silent --show-error --max-time 10 "$API_HEALTH_URL"
   problem "api_health_failed:$health"
 fi
 
-sql="select 'failed=' || count(*) from public.report_generation_outbox where status='failed';
-select 'zombie_running=' || count(*) from public.report_generation_outbox where status='running' and claimed_at < now() - interval '15 minutes';
-select 'pending_due=' || count(*) from public.report_generation_outbox where status='pending' and next_attempt_at <= now();
-select 'usage_events_latest=' || coalesce(max(created_at)::text, 'never') from public.usage_events;
-select 'reports_latest=' || coalesce(max(created_at)::text, 'never') from public.property_reports;"
-if ! metrics="$(PGOPTIONS='-c default_transaction_read_only=on' psql "$DATABASE_URL" -X -q -At -v ON_ERROR_STOP=1 -c "BEGIN READ ONLY; $sql COMMIT;" 2>&1)"; then
+read -r -d '' DATABASE_METRICS_PYTHON <<'PYTHON' || true
+import asyncio
+import os
+
+import asyncpg
+
+
+QUERIES = (
+    ("failed", "select count(*) from public.report_generation_outbox where status='failed'"),
+    ("zombie_running", "select count(*) from public.report_generation_outbox where status='running' and claimed_at < now() - interval '15 minutes'"),
+    ("pending_due", "select count(*) from public.report_generation_outbox where status='pending' and next_attempt_at <= now()"),
+    ("usage_events_latest", "select coalesce(max(created_at)::text, 'never') from public.usage_events"),
+    ("reports_latest", "select coalesce(max(created_at)::text, 'never') from public.property_reports"),
+)
+
+
+async def main() -> None:
+    connection = await asyncpg.connect(os.environ["DATABASE_URL"])
+    try:
+        await connection.execute("set default_transaction_read_only = on")
+        if await connection.fetchval("show transaction_read_only") != "on":
+            raise RuntimeError("database connection did not enter read-only mode")
+        for key, query in QUERIES:
+            print(f"{key}={await connection.fetchval(query)}")
+    finally:
+        await connection.close()
+
+
+asyncio.run(main())
+PYTHON
+
+if ! metrics="$(docker exec -e DATABASE_URL "$API_CONTAINER" python -c "$DATABASE_METRICS_PYTHON" 2>&1)"; then
   problem "database_read_failed:$metrics"
 else
   printf '%s\n' "$metrics"

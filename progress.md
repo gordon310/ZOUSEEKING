@@ -486,6 +486,25 @@
 - **待 Gordon 拍板(更新)**:① D4 口径二选一(推荐 b);② M1 单元② `app.js` legacy 直读退役是否派 Codex(**8 处命中仍在**);③ ~~worker 结构化日志~~ **本班已闭环**,剩 `tests/web/admin-live-degrade.spec.js:660` `roleListGets` flaky 是否派工;④ 4 行历史僵尸报告清理;⑤ 迁移台账 C4 口径;⑥ 未部署冻结件删除 vs 长期冻结;⑦ 本班次(job `ab373f6bd99d`)改绑 P2 或停用。
 - **红线**:零 DB 写入或对象变更、零部署、未触凭据与冻结字段、**未新增/未修改任何 migration**、无删除操作;线上仅只读 GET 探测与 `gh run` 查询(未复验前端静态资源版本号)。
 
+## 采集 QA sweeper 接入生产调度(2026-09-23 晨班,本 BOT,第二个「补代码缺口」单元)
+
+- **班前实测(07:30)**:工作树干净、`main == origin/main == fd13974`、`git rev-list --count origin/main..main = 0 / 0`;仓库内**无 `codex exec` 进程**(仅 ChatGPT 桌面端自身的 Codex 辅助进程,不误杀)、写活动止于 09-22 23:20(fd13974)→ 按「未提交改动 / 上次输出进行中」判据**不判进行中**,本班可开工。
+- **补记(09-22 夜班后仍有两推,progress.md 此前未记)**:`1c88a66`(22:54,**fix(ops): make the observability check runnable on the production host**,3 文件)、`fd13974`(23:20,**fix(worker): run the collection worker continuously instead of restarting every ten minutes**,5 文件:compose worker 改 `--loop 0 --interval 10` + deploy/README + 架构文档 + `tests/unit/test_collection_worker_entrypoint.py`);两者 Release Gate 均 **success**(`fd13974` run `35746612842`)。
+- **单元选择**:P1 清单 09-07 已闭环、本班复查仍无剩余单元 → 按「遗留项纪律」从仓库自己的未闭合记录里取**有界可验证**的一步:把**已存在但从未被任何生产表面调用**的采集 QA sweeper 接进 compose 的 scheduler 小时循环。依据:`docs/architecture/2026-09-11-system-architecture-and-logic.md:1360`(脚本清单表「未见于 compose」)与 `:1446` 未闭合问题第 5 条。
+- **风险本体(为什么这不是可选优化)**:`scripts/collection_sweep.py` 的两个看门狗(① 僵死 `running` 回收 → `failed` + `admin.collection.run_swept` 审计行;② 最近 200 条成功 jphouse 运行的快照 hash QA)在 compose 里**没有任何运行时** → worker 崩在中间留下的 `running` 行永不回收,而投料器对「存在 in-flight 行」的源判 `in_flight` 跳过(`scheduler.py:27-37` 决策表)→ 该区县族**永久退出周更节奏**(sweeper docstring 原话:worker wedges a whole config family out of the weekly cadence)。本班只读探针实测当前受影响行 **0 条** ⇒ 潜在缺口,非现网故障。
+- **改动(4 文件,+55/−9;派工 Codex 执行、Hermes 验收;commit `578d9ea`,已 push `origin/main`)**:
+  - `deploy/docker-compose.prod.yml`:scheduler 小时循环由两步改三步 —— 投料 `collection_scheduler.py` → **`collection_sweep.py`(非零退出时打印单行 `collection_sweep_abnormal exit=1` 到 stderr,不中断循环)** → `account_retention_sweeper.py --limit 50`;并给该服务补 `../data/collected:/app/data/collected` bind mount(hash QA 要读快照文件;此前只有 api/worker/report-worker 挂载,无挂载时 QA 只能报 file_missing)。
+  - `deploy/README.md`:调度段落改写为「三步 + 告警行 + 为什么必须挂载」,保留 retention 段原文。
+  - `docs/architecture/2026-09-11-system-architecture-and-logic.md`:三处事实同步(`:1360` 脚本清单表、`:1398` compose 服务表、`:1446` 坑清单第 5 条由「未接线」改为「已接入 + 挂载 + 告警行」)。
+  - `tests/unit/test_ops_baseline_contract.py`:新增静态契约测试(按缩进切出 `scheduler` 服务块 → 断言三步脚本齐全、挂载存在、告警标记存在,再断言 README 提到该脚本)。**纯静态:不 import yaml(CI 未声明 pyyaml,venv 里那份是传递依赖)、不连库**。
+- **验证证据(本班实跑,全部本机)**:
+  - PyYAML 解析 compose 通过(`services` = api/jpsskill/nginx/report-worker/scheduler/worker),`sh -n` 对循环命令 rc=0,抽出三步脚本清单正确;
+  - `backend/.venv/bin/python -m pytest tests/unit/test_ops_baseline_contract.py -q` → **3 passed**;`pytest tests/unit tests/architecture -q` → **438 passed / 91 skipped / 0 failed**;`compileall -q backend scripts src` → OK;`git diff --check` 干净;
+  - **真实 CLI 证据**:`collection_sweep.py --dry-run` 对本地 PG(`127.0.0.1:54322`)→ **exit 0 且无输出**(无僵死行、无可核快照),对不可达库(`127.0.0.1:1`)→ **exit 1 + ConnectionRefusedError**(对照证明好库确实连上并查过);只读探针:`collection_runs` 全表 0 行、`running`=0、audit `admin.collection.run_swept`=0;告警分支片段单独实跑输出 `collection_sweep_abnormal exit=1`。
+- **生效条件(超本班红线,本班未执行)**:需在生产 `/opt/zouseeking` 执行 `git pull --ff-only && docker compose -f deploy/docker-compose.prod.yml up -d scheduler` 才算接线到位;本班**零部署、零 DB 写**。另:本机**已无 Lightsail 私钥**(`~/.ssh` 仅剩 `coolzou_prod_ed25519`;`ubuntu@52.221.7.33` publickey denied;`coolzou-prod` 上无 `/opt/zouseeking`)→ 生产实况无法从本机核验,「生产主机是否已另有等价 host cron」**仍未确认**;即便两者并存也不冲突(sweeper 用 `for update skip locked`,二次 sweep 幂等 noop)。
+- **待 Gordon 拍板(更新后全量)**:① D4 口径二选一(推荐 b:改 ADR-0001 文字,当前 0 条受影响行);② M1 单元② `app.js` legacy 直读退役是否派 Codex(**8 处命中仍在**);③ `tests/web/admin-live-degrade.spec.js:660` `roleListGets` flaky 是否派工(09-20 已定性:clean main 亦 3/3 失败、CI 未复现);④ 4 行历史僵尸报告清理(需批准);⑤ 迁移台账 C4 口径;⑥ 未部署冻结件(Edge 函数 / `run_jphouse_worker.py`)删除 vs 长期冻结;⑦ 本班次(job `ab373f6bd99d`)改绑 P2 或停用;⑧ **本班新增**:生产 scheduler 生效需一次部署批准(一行命令,见上,可与其他待部署项合并)。
+- **红线**:零 DB 写入或对象变更、零部署、未触凭据与冻结字段、**未新增/未修改任何 migration**、无删除操作;生产侧仅只读探测(本地 supabase 栈只读探针 + 不可达库对照 + `gh run` 查询)。
+
 ## Last updated
 
-2026-09-22
+2026-09-23

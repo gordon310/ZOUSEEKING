@@ -1298,7 +1298,7 @@ Intake（2026-08-25）：`analysis_sessions`（`token_hash` unique）→ 1:N `pr
   - `_normalize_outcome`:必须返回 `CollectionOutcome`;`rows` 强制 int 且 ≥0;`snapshot_hash` 必须 64 位小写 hex,否则按 runner 失败处理(防止非法值卡死 run 行)(`worker.py:245-276`)。
   - `_write_terminal_state`:一个事务内 `update … where id=$1 and status='running'`(带守卫)+ 插 `audit_events`;若行已不是 `running`(被操作员取消),写为 no-op 返回 False(`worker.py:293-335`)。
   - 成功 → `succeeded` + `rows_collected` + `snapshot_hash` + `completed_at`,审计 `admin.collection.run_succeeded`;失败 → `failed` + `error_message`(截断 2000 字)+ `completed_at`,审计 `admin.collection.run_failed`;未捕获异常也转 `failed`(run 永不悬在 `running`)(`worker.py:384-435`)。`ERROR_MESSAGE_LIMIT=2000`(`worker.py:73`);审计 summary 只带 `code`,不含异常栈(`worker.py:418-423`)。取消竞态时报告 `status='cancelled'`(`worker.py:398-400, 425-427`)。
-- CLI:`scripts/collection_worker.py`,默认单轮,`--loop N --interval S` 轮询;输出 JSONL(无 PII/异常栈)(`scripts/collection_worker.py:31-49, 52-92`)。compose 以 `--loop 60 --interval 10` 运行。
+- CLI:`scripts/collection_worker.py`,默认单轮,`--loop N --interval S`（`N > 0`）有限轮询,或 `--loop 0 --interval S` 常驻轮询直到 SIGTERM/SIGINT;信号只在当前轮结束后退出。输出 JSONL(无 PII/异常栈)。compose 以 `--loop 0 --interval 10` 运行，`restart: unless-stopped` 仅作异常退出兜底。
 
 ### 1.5 runner 的输入/输出、快照与 sha256
 `backend/app/collection/jphouse_runners.py`:
@@ -1356,7 +1356,7 @@ runner 抛 `worker.CollectionRunError` 带稳定 `code`(`jphouse_runners.py:40-4
 | `scripts/build_jphouse_yokohama_wards.py` | 同上,横滨市区 | 活网 → `configs/jphouse_yokohama_wards/`、`data/collected/jphouse_yokohama_wards_sources.json` | 人工(`:163-214`) |
 | `scripts/build_licensed_aggregate.py` | 只保留授权字段生成聚合快照 | `data/collected/*` → `data/collected_licensed/*`,打印 filtered 字段 | 人工(采集前/合规节点) |
 | `scripts/collection_scheduler.py` | 投料:把 due 源入队 | DB `collection_runs` → JSONL 决策 | 定时(compose `scheduler` 每小时) |
-| `scripts/collection_worker.py` | 认领并执行 1/N 轮 | DB `collection_runs` → JSONL 结果 | 定时(compose `worker` loop 60×10s) |
+| `scripts/collection_worker.py` | 认领并执行单轮、有限 N 轮或常驻轮 | DB `collection_runs` → JSONL 结果 | 常驻(compose `worker` loop 0, interval 10s) |
 | `scripts/collection_sweep.py` | 僵死恢复 + 快照 hash QA | DB + 磁盘快照 → JSONL,异常退 1 | 定时/cron 告警(未见于 compose) |
 | `scripts/run_jphouse_worker.py` | 旧 Supabase `generation_jobs` 本地生成 worker | Supabase 队列 → `configs/jphouse_worker/`、`data/output/…`、`web/…`、`property_reports` | 人工 **break-glass**:需 `ENABLE_FROZEN_JPHOUSE_WORKER=true`(`:316`) |
 | `scripts/generate_xhs_package.py` | 由 JSON 模板生成小红书图包 + 内容库 | config json → `data/output/<slug>/`(封面/租赁/买卖 PNG、`data_detail.md`)、`data/content_library.json`、`web/content-library.json`、`web/library/<slug>/images/` | 被 3 个 build 脚本 + worker 内部 `generate()` 调用;亦可 CLI(`:294-299`) |
@@ -1394,7 +1394,7 @@ CI 仅调用 `scripts/ci/` 三个脚本(`.github/workflows/release-gate.yml` 中
 |---|---|---|
 | `api` | 由 Dockerfile.build 构建 | `env_file: .env`、`restart: unless-stopped`、volume `../data/collected:/app/data/collected`、`expose 8000`(`:6-15`) |
 | `jpsskill` | **profile `ai`**(opt-in) | build `/opt/jppskill`、`env_file: ./jpsskill.env`、`expose 8100`、volume `/opt/jppskill-data:/app/data`;默认不启动(`:17-27`) |
-| `worker` | 同镜像 | `command: collection_worker.py --loop 60 --interval 10`、volume `../data/collected`(`:29-37`) |
+| `worker` | 同镜像 | `command: collection_worker.py --loop 0 --interval 10`、volume `../data/collected`(`:29-39`) |
 | `scheduler` | 同镜像 | `command: sh -c "while true; do collection_scheduler.py; sleep 3600; done"`(`:39-45`) |
 | `nginx` | `nginx:alpine` | ports `80:80,443:443`;volumes `../web:…/html-site:ro`、`/opt/zoubeacon/web:…/html-corp:ro`、`/opt/zoubeacon/certs:…/certs:ro`、**单文件** `./nginx/default.conf:…/conf.d/default.conf:ro`;`depends_on: api`(`:47-59`) |
 

@@ -34,7 +34,9 @@ services:
     restart: unless-stopped
     volumes:
       - ../data/collected:/app/data/collected
-    command: ["python", "/app/scripts/collection_worker.py", "--loop", "60", "--interval", "10"]
+    # --loop 0 is the service's intentional steady state. restart remains a
+    # crash-recovery fallback, not the normal way to begin another poll cycle.
+    command: ["python", "/app/scripts/collection_worker.py", "--loop", "0", "--interval", "10"]
 
   report-worker:
     build:

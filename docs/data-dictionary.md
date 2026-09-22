@@ -54,6 +54,22 @@
 
 `monthly_metrics.csv` 会按区域、租售、`listing`/`closed`、数据类别、单位和币种分组，输出每月样本量、中位数、期间、聚合方法、来源/快照 hash、趋势资格与限制。`modeled_estimate` 不进入事实指标；趋势不足时只显示明确的 `trend_insufficient_periods` 或 `trend_insufficient_sample`，不能称为趋势。来源 URL 本身不等于授权，当前 placeholder registry 仍为 `pending`。
 
+## 机构区域成交价多期趋势
+
+`GET /api/org/region-stats/trend` 以 `prefecture`、`city`、可选 `ward`、
+`asset_type` 取数，并可用 `from_period` / `to_period` 限定 `YYYYQ1` 至
+`YYYYQ4` 的闭区间（最长 24 期；未指定时读取所有可用期）。接口仅供活动
+机构成员使用，且在同一数据库事务中消费 `stats_query` 配额。
+
+响应的 `periods` 只包含至少 5 个有效正数单价样本的期次，并按解析后的
+`(year, quarter)` 时间顺序排列；不会插值或补造缺失期。每一项含均值、中位数、
+`p25`、`p75`、`sample_size`、单位，以及统一发布来源契约的全部 12 字段。
+`excluded_periods` 逐项说明样本不足或其他排除原因。只有 `period_count >= 2`
+且 `comparability.consistent=true` 时 `status` 才为 `ok` 并可称为趋势；不足时
+返回 `insufficient_periods` 的明确 no-data 响应，不附造假的 provenance。若单位、
+资产定义、数据类别、聚合方法或缺失值政策不一致，`comparability` 会列出
+`inconsistent_dimensions`，并返回 `incomparable_periods`，前端不得画趋势图。
+
 ## 第一阶段项目数据契约
 
 第一阶段的项目主表使用 `project_type` 区分：`residential`（住宅）、`new_build`（预售/新建项目）和 `commercial_investment`（商业项目投资）。三类项目共享区域、项目身份、面积、价格、来源和可信度字段；类型专属字段分别存放在 `residential_details`、`new_build_details` 和 `commercial_investment_details`。

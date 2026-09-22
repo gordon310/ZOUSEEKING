@@ -5,6 +5,7 @@ import pytest
 from backend.app.auth import AuthUser, require_user
 from backend.app.main import app
 from backend.app.region_stats_routes import DbRegionStatsStore, get_region_stats_store
+from backend.app.services.provenance import REQUIRED_STATISTIC_FIELDS
 from fastapi.testclient import TestClient
 
 USER = UUID("00000000-0000-0000-0000-000000000030")
@@ -43,6 +44,68 @@ class CapturingStore(Store):
         if asset_type == "塔楼":
             result["disclosure"] = {"code": "tower_merged_into_apartment"}
         return result
+
+
+class TrendStore(Store):
+    def __init__(self):
+        self.calls = []
+
+    async def get_trend(self, user, prefecture, city, ward, asset_type, from_period, to_period):
+        self.calls.append((prefecture, city, ward, asset_type, from_period, to_period))
+        period = self.calls[-1][-2] or "2025Q4"
+        metric = await self.get(user, prefecture, city, ward, asset_type, period)
+        next_metric = dict(metric, period="2026Q1", source_period="2026Q1")
+        return {
+            "status": "ok", "period_count": 2, "asset_type": asset_type, "ward": ward,
+            "periods": [metric, next_metric], "excluded_periods": [],
+            "comparability": {"consistent": True, "dimensions": {"unit": "JPY/sqm", "asset_type": asset_type}},
+        }
+
+
+def test_region_stats_trend_normalizes_filters_and_each_period_has_provenance_contract():
+    store = TrendStore()
+    app.dependency_overrides[require_user] = lambda: AuthUser(USER, "hidden@example.com", "Member")
+    app.dependency_overrides[get_region_stats_store] = lambda: store
+    try:
+        response = TestClient(app).get(
+            "/api/org/region-stats/trend",
+            params={"prefecture": "東京都", "city": "港区", "ward": "麻布", "asset_type": "公寓", "from_period": "2025Q4", "to_period": "2026Q1"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert store.calls == [("东京都", "港区", "麻布", "公寓", "2025Q4", "2026Q1")]
+    assert [period["period"] for period in payload["periods"]] == ["2025Q4", "2026Q1"]
+    for period in payload["periods"]:
+        assert set(REQUIRED_STATISTIC_FIELDS) <= period.keys()
+
+
+def test_region_stats_trend_returns_explicit_no_data_without_provenance_when_only_one_period():
+    class OnePeriodStore:
+        async def get_trend(self, *args):
+            return {
+                "status": "insufficient_periods", "period_count": 1, "asset_type": "公寓", "ward": None,
+                "periods": [], "excluded_periods": [{"period": "2025Q1", "reason": "only_one_comparable_period", "sample_size": 5}],
+                "comparability": {"consistent": True, "dimensions": {"unit": "JPY/sqm", "asset_type": "公寓"}},
+            }
+
+    app.dependency_overrides[require_user] = lambda: AuthUser(USER, "hidden@example.com", "Member")
+    app.dependency_overrides[get_region_stats_store] = OnePeriodStore
+    try:
+        response = TestClient(app).get(
+            "/api/org/region-stats/trend",
+            params={"prefecture": "东京都", "city": "港区", "asset_type": "公寓"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "insufficient_periods"
+    assert payload["period_count"] == 1
+    assert payload["periods"] == []
 
 
 def test_region_stats_normalizes_japanese_region_names_before_store_call():

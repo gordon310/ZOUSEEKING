@@ -3,16 +3,21 @@
 from __future__ import annotations
 
 import re
+import hashlib
+import json
 from typing import Any, Iterable, Optional, Protocol
 
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import JSONResponse
 
 from .auth import AuthUser, require_user
 from .db import get_pool
-from .region_stats import aggregate_region_rows
+from .region_stats import aggregate_region_rows, aggregate_region_trend_rows, parse_trade_quarter
 from .region_names import normalize_region_stats_names
 from .services.provenance import assert_statistic_provenance, statistic_provenance
+from .usage.ledger import QuotaExceeded
+from .usage.quota import consume_current_entitlement
 
 router = APIRouter(prefix="/api/org", tags=["regional statistics"])
 TOWER_DISCLOSURE_CODE = "tower_merged_into_apartment"
@@ -20,6 +25,7 @@ RENT_REFERENCE_122_4 = "estat_housing_land_122_4"
 RENT_REFERENCE_122_5 = "estat_housing_land_122_5"
 STATS_ASSET_TYPES = frozenset({"塔楼", "公寓", "一户建", "独栋", "土地"})
 STORAGE_ASSET_TYPE_BY_STATS_ASSET_TYPE = {"塔楼": "公寓", "一户建": "独栋"}
+MAX_TREND_PERIODS = 24
 
 
 def normalize_stats_ward(ward: Optional[str]) -> Optional[str]:
@@ -89,9 +95,21 @@ def _region_statistic_provenance(rows: list[dict[str, Any]]) -> dict[str, object
 
 class RegionStatsStore(Protocol):
     async def get(self, user: AuthUser, prefecture: str, city: str, ward: Optional[str], asset_type: str, period: str) -> dict[str, Any]: ...
+    async def get_trend(
+        self, user: AuthUser, prefecture: str, city: str, ward: Optional[str], asset_type: str,
+        from_period: Optional[str], to_period: Optional[str],
+    ) -> dict[str, Any]: ...
 
 
 class DbRegionStatsStore:
+    @staticmethod
+    async def _require_active_member(conn: asyncpg.Connection, user: AuthUser) -> None:
+        member = await conn.fetchval(
+            "select 1 from public.organization_members where user_id=$1 and status='active' limit 1", user.user_id
+        )
+        if not member:
+            raise HTTPException(status_code=403, detail="机构成员权限不足")
+
     @staticmethod
     async def _rent_reference(conn: asyncpg.Connection, prefecture: str, city: str, ward: Optional[str], asset_type: str):
         preferred_dimensions = {
@@ -136,11 +154,7 @@ class DbRegionStatsStore:
     async def get(self, user: AuthUser, prefecture: str, city: str, ward: Optional[str], asset_type: str, period: str) -> dict[str, Any]:
         query_asset_type = STORAGE_ASSET_TYPE_BY_STATS_ASSET_TYPE.get(asset_type, asset_type)
         async with get_pool().acquire() as conn:
-            member = await conn.fetchval(
-                "select 1 from public.organization_members where user_id=$1 and status='active' limit 1", user.user_id
-            )
-            if not member:
-                raise HTTPException(status_code=403, detail="机构成员权限不足")
+            await self._require_active_member(conn, user)
             rows = [dict(row) for row in await conn.fetch(
                 """select t.unit_price_jpy_per_sqm, t.data_class::text as data_class,
                           t.source_url as transaction_source_url, t.retrieved_at, t.imported_at,
@@ -226,6 +240,92 @@ class DbRegionStatsStore:
                 result["disclosure"] = {"code": TOWER_DISCLOSURE_CODE}
             return result
 
+    async def get_trend(
+        self, user: AuthUser, prefecture: str, city: str, ward: Optional[str], asset_type: str,
+        from_period: Optional[str], to_period: Optional[str],
+    ) -> dict[str, Any]:
+        """Return a quota-metered, chronology-sorted series without filling gaps."""
+
+        query_asset_type = STORAGE_ASSET_TYPE_BY_STATS_ASSET_TYPE.get(asset_type, asset_type)
+        request_shape = {
+            "prefecture": prefecture, "city": city, "ward": ward, "asset_type": asset_type,
+            "from_period": from_period, "to_period": to_period,
+        }
+        fingerprint = hashlib.sha256(json.dumps(request_shape, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+        async with get_pool().acquire() as conn:
+            async with conn.transaction():
+                await self._require_active_member(conn, user)
+                await consume_current_entitlement(
+                    conn, user=user, metric="stats_query", units=1,
+                    idempotency_key=f"region-trend:{fingerprint}", fingerprint=fingerprint,
+                )
+                rows = [dict(row) for row in await conn.fetch(
+                    """select t.unit_price_jpy_per_sqm, t.data_class::text as data_class,
+                              t.source_url as transaction_source_url, t.retrieved_at, t.imported_at,
+                              t.trade_quarter, t.source_period as transaction_source_period, t.transformation_version,
+                              t.rights_status, t.rights_confirmed, t.limitations as transaction_limitations,
+                              s.id::text as source_id, s.name as source_name, s.url as source_url,
+                              s.data_class::text as source_data_class, s.permission_status as source_permission_status,
+                              s.observed_at as source_observed_at, s.source_period,
+                              s.transformation_version as source_transformation_version,
+                              s.limitations as source_limitations, s.license as source_license
+                       from public.mlit_transactions t
+                       left join public.sources s on s.id=t.source_id
+                       where t.prefecture=$1 and t.city=$2 and t.asset_type=$3
+                         and ($4::text is null or t.ward=$4)
+                       order by t.id""",
+                    prefecture, city, query_asset_type, ward,
+                )]
+
+        from_key = parse_trade_quarter(from_period) if from_period else None
+        to_key = parse_trade_quarter(to_period) if to_period else None
+        filtered_rows = [
+            row for row in rows
+            if (key := parse_trade_quarter(row.get("trade_quarter"))) is not None
+            and (from_key is None or key >= from_key) and (to_key is None or key <= to_key)
+        ]
+        result = aggregate_region_trend_rows(filtered_rows, asset_type=asset_type)
+        result.update({"asset_type": asset_type, "prefecture": prefecture, "city": city, "ward": ward})
+        if result["status"] != "ok":
+            result["comparability"] = {"consistent": True, "inconsistent_dimensions": [], "dimensions": {"asset_type": asset_type, "unit": "JPY/sqm"}}
+            return result
+
+        dimensions: dict[str, set[object]] = {key: set() for key in ("asset_type", "unit", "data_class", "aggregation_method", "missing_value_policy")}
+        periods: list[dict[str, Any]] = []
+        for aggregate in result["periods"]:
+            supporting_rows = aggregate.pop("_supporting_rows")
+            provenance = _region_statistic_provenance(supporting_rows)
+            aggregate.update(statistic_provenance(
+                data_class=provenance["data_class"], source_url=provenance["source_url"],
+                retrieved_at=provenance["retrieved_at"], source_period=provenance["source_period"],
+                transformation_version=provenance["transformation_version"], rights_status=provenance["rights_status"],
+                rights_confirmed=provenance["rights_confirmed"], sample_size=int(aggregate["sample_size"]),
+                aggregation_method="mean_median_quartiles",
+                missing_value_policy="exclude_missing_or_nonpositive_unit_price",
+                limitations=provenance["limitations"], unit="JPY/sqm",
+            ))
+            aggregate["sources"] = [
+                {"id": source_id, "name": source_name, "url": source_url}
+                for source_id, source_name, source_url in sorted({
+                    (row["source_id"], row["source_name"], row["source_url"])
+                    for row in supporting_rows if row.get("source_id") and row.get("source_url")
+                })
+            ]
+            assert_statistic_provenance(aggregate)
+            for key in dimensions:
+                dimensions[key].add(aggregate[key])
+            periods.append(aggregate)
+        inconsistent = sorted(key for key, values in dimensions.items() if len(values) != 1)
+        result["periods"] = periods
+        result["comparability"] = {
+            "consistent": not inconsistent,
+            "inconsistent_dimensions": inconsistent,
+            "dimensions": {key: sorted(map(str, values)) for key, values in dimensions.items()},
+        }
+        if inconsistent:
+            result["status"] = "incomparable_periods"
+        return result
+
 
 def get_region_stats_store() -> RegionStatsStore:
     return DbRegionStatsStore()
@@ -255,4 +355,39 @@ async def region_stats(
         result["disclosure"] = {"code": TOWER_DISCLOSURE_CODE}
     if result.get("sample_size", 0) > 0:
         assert_statistic_provenance(result)
+    return result
+
+
+@router.get("/region-stats/trend")
+async def region_stats_trend(
+    prefecture: str = Query(..., min_length=1, max_length=80),
+    city: str = Query(..., min_length=1, max_length=80),
+    asset_type: str = Query(..., min_length=1, max_length=20),
+    ward: Optional[str] = Query(default=None, max_length=80),
+    from_period: Optional[str] = Query(default=None, max_length=6),
+    to_period: Optional[str] = Query(default=None, max_length=6),
+    user: AuthUser = Depends(require_user),
+    store: RegionStatsStore = Depends(get_region_stats_store),
+) -> dict[str, Any]:
+    if asset_type not in STATS_ASSET_TYPES:
+        raise HTTPException(status_code=400, detail="物件类型无效")
+    from_key = parse_trade_quarter(from_period) if from_period else None
+    to_key = parse_trade_quarter(to_period) if to_period else None
+    if (from_period and from_key is None) or (to_period and to_key is None):
+        raise HTTPException(status_code=400, detail="期次必须为YYYYQ1至YYYYQ4")
+    if from_key and to_key:
+        if from_key > to_key:
+            raise HTTPException(status_code=400, detail="起始期次不得晚于结束期次")
+        if (to_key[0] - from_key[0]) * 4 + to_key[1] - from_key[1] + 1 > MAX_TREND_PERIODS:
+            raise HTTPException(status_code=400, detail=f"期次范围不得超过{MAX_TREND_PERIODS}期")
+    normalized_ward = normalize_stats_ward(ward)
+    normalized_prefecture, normalized_city, normalized_ward = normalize_region_stats_names(prefecture, city, normalized_ward)
+    try:
+        result = await store.get_trend(
+            user, normalized_prefecture, normalized_city, normalized_ward, asset_type, from_period, to_period
+        )
+    except QuotaExceeded:
+        return JSONResponse(status_code=429, content={"error": {"code": "quota_exceeded", "message": "统计额度已用尽。"}})
+    for period in result.get("periods", []):
+        assert_statistic_provenance(period)
     return result

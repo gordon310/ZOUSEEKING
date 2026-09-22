@@ -198,6 +198,25 @@ test("region rent polish copy keeps four locales aligned without duplicated disc
   assert.deepEqual(Array.from(loadI18n().placeholders("zh-CN", "regionStats.rentDetailNote")), []);
 });
 
+test("region trend copy is complete in all four locales with matching placeholders", () => {
+  const keys = [
+    "regionStats.modeSingle", "regionStats.modeTrend", "regionStats.trendSummary",
+    "regionStats.trendTableCaption", "regionStats.trendPeriod", "regionStats.trendPeriodValue", "regionStats.trendMean",
+    "regionStats.trendMedian", "regionStats.trendBand", "regionStats.trendSamples",
+    "regionStats.trendSource", "regionStats.trendInsufficientPeriods", "regionStats.trendIncomparable",
+  ];
+  const baseline = loadI18n({ search: "?lang=zh-CN" });
+  for (const key of keys) {
+    const expected = Array.from(baseline.placeholders("zh-CN", key));
+    for (const locale of ["zh-CN", "zh-Hant", "en", "ja"]) {
+      const i18n = loadI18n({ search: `?lang=${locale}` });
+      assert.ok(Object.prototype.hasOwnProperty.call(i18n.additionalI18n, key), `dynamic key: ${key}`);
+      assert.notEqual(i18n.t(key), key, `${locale}: ${key}`);
+      assert.deepEqual(Array.from(i18n.placeholders(locale, key)), expected, `${locale}: ${key}`);
+    }
+  }
+});
+
 test("zh-Hant keeps the same placeholders as zh-CN", () => {
   const i18n = loadI18n();
   for (const key of i18n.keys("zh-CN")) {

@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from backend.app.auth import AuthUser
-from backend.app.region_stats import aggregate_region_rows, map_asset_type
+from backend.app.region_stats import aggregate_region_rows, aggregate_region_trend_rows, map_asset_type
 from backend.app.region_stats_routes import region_stats
 
 
@@ -111,3 +111,27 @@ def test_mean_and_percentiles_share_the_same_valid_positive_source_values():
 def test_rent_sale_ratio_is_explicitly_unavailable():
     result = aggregate_region_rows([], asset_type="公寓", period="2025Q1")
     assert result["rent_sale_ratio"] == {"available": False, "reason": "租金数据未授权"}
+
+
+def test_trend_orders_quarters_by_parsed_year_and_quarter_and_excludes_small_samples():
+    rows = []
+    for period, base, count in (("2025Q4", 400_000, 5), ("2026Q1", 500_000, 5), ("2024Q4", 300_000, 4)):
+        rows.extend({"trade_quarter": period, "unit_price_jpy_per_sqm": base + index} for index in range(count))
+
+    result = aggregate_region_trend_rows(rows, asset_type="公寓")
+
+    assert result["status"] == "ok"
+    assert [item["period"] for item in result["periods"]] == ["2025Q4", "2026Q1"]
+    assert result["period_count"] == 2
+    assert result["excluded_periods"] == [{"period": "2024Q4", "reason": "insufficient_sample", "sample_size": 4}]
+
+
+def test_trend_with_fewer_than_two_valid_periods_returns_explicit_no_data():
+    rows = [{"trade_quarter": "2025Q1", "unit_price_jpy_per_sqm": 100_000 + index} for index in range(5)]
+
+    result = aggregate_region_trend_rows(rows, asset_type="公寓")
+
+    assert result["status"] == "insufficient_periods"
+    assert result["period_count"] == 1
+    assert result["periods"] == []
+    assert result["excluded_periods"] == [{"period": "2025Q1", "reason": "only_one_comparable_period", "sample_size": 5}]

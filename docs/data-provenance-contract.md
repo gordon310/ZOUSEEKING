@@ -19,7 +19,9 @@ an actual source URL, retrieval/verification time, source period,
 transformation version, and rights status. The authorized manual-data path
 requires `rights_confirmed=yes`.
 
-The enforcement points are `DbRegionStatsStore` and `/api/org/region-stats`,
+The enforcement points are `DbRegionStatsStore` and `/api/org/region-stats`
+(including `/api/org/region-stats/trend`, where every accepted period is
+validated independently),
 `aggregate_rows` and `/api/analysis`, report serialization, the renovation
 estimate response model, and CSV export rows. `tests/api/test_provenance_endpoint_contract.py`
 iterates the region-statistics and analysis responses; the contract unit test

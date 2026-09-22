@@ -1826,7 +1826,7 @@ function render() {
   renderRegionStats();
 }
 
-const regionStatsState = { loading: false, result: null, error: "" };
+const regionStatsState = { loading: false, result: null, error: "", mode: "single" };
 const REGION_STATS_ERROR_KEYS = Object.freeze({
   org_forbidden: "regionStats.forbidden",
   not_found: "regionStats.notFound",
@@ -1840,7 +1840,7 @@ function renderRegionStats() {
   const loggedIn = isLoggedIn();
   form.querySelectorAll("button, select, input").forEach((el) => { el.disabled = !loggedIn || regionStatsState.loading; });
   if (!loggedIn) { result.innerHTML = `<p>${escapeHtml(uiText("regionStats.login", "登录后读取机构统计。"))}</p>`; return; }
-  if (regionStatsState.loading) { result.innerHTML = `<p>${escapeHtml(uiText("regionStats.loading", "正在读取统计……"))}</p>`; return; }
+  if (regionStatsState.loading) { result.innerHTML = `<p>${escapeHtml(uiText(regionStatsState.mode === "trend" ? "regionStats.trendLoading" : "regionStats.loading"))}</p>`; return; }
   if (regionStatsState.error) {
     const errorKey = REGION_STATS_ERROR_KEYS[regionStatsState.error];
     const fallback = regionStatsState.error === "org_forbidden"
@@ -1855,6 +1855,7 @@ function renderRegionStats() {
   }
   const data = regionStatsState.result;
   if (!data) return;
+  if (regionStatsState.mode === "trend") { renderRegionStatsTrend(result, data); return; }
   if (data.status === "insufficient_sample") { result.innerHTML = `<p>${escapeHtml(uiText("regionStats.insufficient", "本季度该地区官方成交记录不足 5 笔，暂不显示统计数值。"))}</p>`; return; }
   const exactYen = (value) => Math.round(Number(value)).toLocaleString("en-US");
   const tenThousands = (value) => (Number(value) / 10000).toFixed(1);
@@ -1896,16 +1897,47 @@ function renderRegionStats() {
   result.innerHTML = `${disclosure}<p class="stats-context">${escapeHtml(context)}</p><div class="stats-summary"><strong>${escapeHtml(uiText("regionStats.mean", "均价"))} ${escapeHtml(uiText("regionStats.approx", "约"))} ${escapeHtml(tenThousands(data.mean_unit_price_jpy_per_sqm))} 万円/㎡</strong><small>${escapeHtml(uiText("regionStats.medianValue", "中位数"))} ${escapeHtml(uiText("regionStats.approx", "约"))} ${escapeHtml(tenThousands(data.median_unit_price_jpy_per_sqm))} 万円/㎡</small><small>${escapeHtml(uiText("regionStats.meanVsMedian", "均价 = 全部成交的平均值,高价房源会把均价拉高;中位数 = 成交价排序后取中间,更能代表典型行情。"))}</small></div><div class="stat-grid"><div class="stat-card"><strong>${escapeHtml(uiText("regionStats.quartiles", "主力成交价带"))} ${escapeHtml(tenThousands(data.p25))} 〜 ${escapeHtml(tenThousands(data.p75))} 万円/㎡</strong></div><div class="stat-card"><strong>${data.sample_size} ${escapeHtml(uiText("regionStats.officialRecords", "笔官方成交记录"))}</strong></div></div><p class="stats-exact">${escapeHtml(exact)}</p><p data-testid="region-stats-provenance">${escapeHtml(provenanceLine)}</p>${rentText}${rent && rentRatio ? "" : `<p>${escapeHtml(data.monthly_rent_reference?.source_url || "")}</p>`}<p>${escapeHtml(data.limitations || "")}</p>`;
 }
 
+function renderRegionStatsTrend(result, data) {
+  if (data.status === "insufficient_periods") {
+    result.innerHTML = `<p>${escapeHtml(uiText("regionStats.trendInsufficientPeriods"))}</p>`;
+    return;
+  }
+  if (data.status === "incomparable_periods" || data.comparability?.consistent === false) {
+    const dimensions = (data.comparability?.inconsistent_dimensions || []).join(", ");
+    result.innerHTML = `<p>${escapeHtml(formatUiText("regionStats.trendIncomparable", "", { dimensions }))}</p>`;
+    return;
+  }
+  const periods = Array.isArray(data.periods) ? data.periods : [];
+  if (data.status !== "ok" || periods.length < 2) {
+    result.innerHTML = `<p>${escapeHtml(uiText("regionStats.trendInsufficientPeriods"))}</p>`;
+    return;
+  }
+  const exactYen = (value) => Math.round(Number(value)).toLocaleString("en-US");
+  const formatPeriod = (value) => {
+    const match = String(value || "").match(/^(\d{4})Q([1-4])$/);
+    return match ? formatUiText("regionStats.trendPeriodValue", "", { year: match[1], quarter: match[2] }) : String(value || "");
+  };
+  const rows = periods.map((item) => `<tr><th scope="row">${escapeHtml(formatPeriod(item.period))}</th><td>${escapeHtml(exactYen(item.mean_unit_price_jpy_per_sqm))}</td><td>${escapeHtml(exactYen(item.median_unit_price_jpy_per_sqm))}</td><td>${escapeHtml(`${exactYen(item.p25)} 〜 ${exactYen(item.p75)}`)}</td><td>${escapeHtml(item.sample_size)}</td><td>${escapeHtml((item.sources || []).map((source) => source.name || source.url).filter(Boolean).join(" · ") || item.source_url || "")}</td></tr>`).join("");
+  const excluded = (data.excluded_periods || []).map((item) => `${formatPeriod(item.period)} (${item.reason}, ${item.sample_size})`).join(" · ");
+  const summary = formatUiText("regionStats.trendSummary", "", { count: data.period_count, unit: periods[0].unit || "JPY/sqm" });
+  result.innerHTML = `<p data-testid="region-stats-trend-summary">${escapeHtml(summary)}</p><table class="compare-table" data-testid="region-stats-trend-table"><caption>${escapeHtml(uiText("regionStats.trendTableCaption"))}</caption><thead><tr><th scope="col">${escapeHtml(uiText("regionStats.trendPeriod"))}</th><th scope="col">${escapeHtml(uiText("regionStats.trendMean"))}</th><th scope="col">${escapeHtml(uiText("regionStats.trendMedian"))}</th><th scope="col">${escapeHtml(uiText("regionStats.trendBand"))}</th><th scope="col">${escapeHtml(uiText("regionStats.trendSamples"))}</th><th scope="col">${escapeHtml(uiText("regionStats.trendSource"))}</th></tr></thead><tbody>${rows}</tbody></table>${excluded ? `<p>${escapeHtml(formatUiText("regionStats.trendExcluded", "", { periods: excluded }))}</p>` : ""}`;
+}
+
 async function loadRegionStats(event) {
   event?.preventDefault();
   if (!isLoggedIn()) { renderRegionStats(); return; }
+  regionStatsState.mode = document.querySelector("input[name=statsMode]:checked")?.value || "single";
   regionStatsState.loading = true; regionStatsState.error = ""; renderRegionStats();
   const params = new URLSearchParams({
     prefecture: $("#statsPrefecture").value, city: $("#statsCity").value,
     ward: $("#statsWard").value, asset_type: $("#statsAssetType").value,
     year: $("#statsYear").value, quarter: $("#statsQuarter").value,
   });
-  try { regionStatsState.result = await apiFetch(`/api/org/region-stats?${params}`); }
+  try {
+    const endpoint = regionStatsState.mode === "trend" ? "/api/org/region-stats/trend" : "/api/org/region-stats";
+    if (regionStatsState.mode === "trend") { params.delete("year"); params.delete("quarter"); }
+    regionStatsState.result = await apiFetch(`${endpoint}?${params}`);
+  }
   catch (error) {
     regionStatsState.result = null;
     regionStatsState.error = REGION_STATS_ERROR_KEYS[error.code]

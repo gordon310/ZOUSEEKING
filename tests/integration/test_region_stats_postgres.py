@@ -46,7 +46,8 @@ def region_stats_database():
                 """update public.sources
                    set name='regional statistics fixture source', source_type='government_open_data',
                        url='https://example.test/region-stats-fixture', permission_status='rights_confirmed',
-                       update_frequency='quarterly', parser_version='test', source_period='2025Q1',
+                       update_frequency='quarterly', parser_version='test',
+                       source_period='source registry entry verified 2026-09-15',
                        limitations='Fixture source limitation.', license='Fixture source license.',
                        data_class='verified_observation', observed_at=$2,
                        transformation_version='mlit-fixture-2025Q1'
@@ -125,6 +126,10 @@ def test_real_postgres_ward_normalization_and_filtering(region_stats_database):
     assert results[1]["sample_size"] == results[0]["sample_size"]
     assert results[0]["rent_reference"]["source_key"] == "estat_housing_land_122_5"
     assert results[0]["rent_reference"]["rent_jpy_per_sqm_month"] == 2111
+    # The supporting source row contains registry prose; the metric must expose
+    # the actual period of its transaction rows instead.
+    assert results[0]["source_period"] == "2025Q1"
+    assert "source registry entry verified" not in results[0]["source_period"]
 
 
 def test_real_postgres_region_stats_endpoint_degrades_when_options_file_is_unavailable(region_stats_database, monkeypatch, tmp_path):

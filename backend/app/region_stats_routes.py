@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any, Iterable, Optional, Protocol
 
 import asyncpg
@@ -50,6 +51,16 @@ def _region_statistic_provenance(rows: list[dict[str, Any]]) -> dict[str, object
             row.get(transaction_field) for row in rows
         )
 
+    def source_period_fallback() -> object | None:
+        """Use source metadata only when it declares an actual period."""
+        source_period = _only_database_value(row.get("source_period") for row in rows)
+        if isinstance(source_period, str) and re.fullmatch(
+            r"\d{4}(?:Q[1-4]|-(?:0[1-9]|1[0-2])(?:-(?:0[1-9]|[12]\d|3[01]))?)?",
+            source_period,
+        ):
+            return source_period
+        return None
+
     # A transaction's retrieval timestamp is the evidence for that exact row.
     # Only legacy rows without it fall back to their import/source observation
     # timestamp; mixing both would let a later database import obscure a real
@@ -63,7 +74,9 @@ def _region_statistic_provenance(rows: list[dict[str, Any]]) -> dict[str, object
         "data_class": source_first("source_data_class", "data_class"),
         "source_url": source_first("source_url", "transaction_source_url"),
         "retrieved_at": max(retrieved_candidates) if retrieved_candidates else None,
-        "source_period": source_first("source_period", "transaction_source_period"),
+        # This metric is derived from transaction rows, so expose their actual
+        # trade period rather than registry/review prose from the source row.
+        "source_period": _only_database_value(row.get("trade_quarter") for row in rows) or source_period_fallback(),
         "transformation_version": source_first("source_transformation_version", "transformation_version"),
         "rights_status": source_first("source_permission_status", "rights_status"),
         # ``sources`` has no rights_confirmed column; this is the transaction
@@ -131,7 +144,7 @@ class DbRegionStatsStore:
             rows = [dict(row) for row in await conn.fetch(
                 """select t.unit_price_jpy_per_sqm, t.data_class::text as data_class,
                           t.source_url as transaction_source_url, t.retrieved_at, t.imported_at,
-                          t.source_period as transaction_source_period, t.transformation_version,
+                          t.trade_quarter, t.source_period as transaction_source_period, t.transformation_version,
                           t.rights_status, t.rights_confirmed, t.limitations as transaction_limitations,
                           s.id::text as source_id, s.name as source_name, s.url as source_url,
                           s.data_class::text as source_data_class, s.permission_status as source_permission_status,

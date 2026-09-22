@@ -563,7 +563,11 @@ async def save_report(query_id: str, owner_user_id: str, report: dict[str, Any])
                report_status, data_class, source_id, source_period, observed_at, transformation_version, report_version, limitations)
             values
               ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11::jsonb, $12::jsonb, $13::jsonb, $14::jsonb,
-               $15, $16::public.data_class, $17, $18, $19, $20, $21, $22)
+               $15,
+               case when $16::uuid is null then null
+                    else (select data_class from public.sources where id=$16::uuid)
+               end,
+               $16, $17, $18, $19, $20, $21)
             on conflict (query_id) do update set
               query_key = excluded.query_key,
               slug = excluded.slug,
@@ -602,7 +606,6 @@ async def save_report(query_id: str, owner_user_id: str, report: dict[str, Any])
             json.dumps(report["data_sources"], ensure_ascii=False),
             json.dumps(report["raw_record"], ensure_ascii=False),
             report["report_status"],
-            report.get("data_class"),
             report.get("source_id"),
             report.get("source_period"),
             report.get("observed_at"),
@@ -632,7 +635,6 @@ async def run_generation_job(job_id: str, query_id: str, owner_user_id: str, req
                 source_id = await resolve_market_source_id(conn)
             report.update(
                 report_status=report_status_for_report(has_snapshot=True),
-                data_class="scraped_aggregate",
                 source_id=source_id,
                 source_period=snapshot.sale_period or f"{request.year}-{request.month:02d}",
                 observed_at=datetime.now(timezone.utc),

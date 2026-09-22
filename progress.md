@@ -471,6 +471,21 @@
 - **待 Gordon 拍板(更新后全量)**:① **D4 口径二选一**:(a) 补 forward 回填迁移接管存量 job,(b) 改 ADR-0001 文字 + 保留「存量 running/pending 需人工 requeue」操作口径(推荐 b,当前 0 条受影响行);② M1 单元② `app.js` legacy 直读退役是否派 Codex;③ worker 结构化日志 + `roleListGets` flaky 整改是否同批派工(本班新增证据:logger 已存在但 root logger 未配置);④ 4 行历史僵尸报告清理(需批准);⑤ 迁移台账 C4 口径;⑥ 未部署冻结件(Edge 函数 / `run_jphouse_worker.py`)删除 vs 长期冻结;⑦ **本班次(job `ab373f6bd99d`)改绑 P2 或停用**——P1 已连续多日只能做发现类工作。
 - **红线**:零 DB 写入或对象变更、零部署、未触凭据与冻结字段、**未新增/未修改任何 migration**、无删除操作;线上仅只读 GET 探测与 `gh run` 查询。
 
+## 报告 worker 结构化日志闭环(2026-09-22 夜班,本 BOT,首个「补代码缺口」单元)
+
+- **班前实测(20:31)**:工作树干净、`main == origin/main == e735e2e`、`git rev-list --count origin/main..main = 0`;仓库内**无 `codex exec` 进程**、写活动止于 20:08(e735e2e 收尾)→ 按「未提交改动 / 上次输出进行中」判据**不判进行中**,本班可开工。Release Gate `e735e2e` **success**(run `35725532547`,七 job 全绿)。
+- **单元选择**:P1 清单 09-07 已闭环、本班复查仍无剩余单元 → 按「遗留项纪律」从 09-22 晨班待办清单③里取**有界可验证**的一步执行:**报告 outbox worker 的结构化日志**(AGENTS「Backend and worker rules」明令结构化日志 + job 关联 ID;实测全仓零 `logging.basicConfig`,worker 认领/完成事件无任何输出,生产 `docker logs deploy-report-worker-1` 为空)。
+- **改动(4 文件,+239/−3,派工 Codex 执行、Hermes 验收;commit `0440640`)**:
+  - 新增 `backend/app/worker_logging.py`:`configure_logging(service)` 幂等(靠 handler 标记,不叠加)、stdout **每行一个 JSON**、级别取 `LOG_LEVEL` 默认 INFO;`log_event()` 统一入口。
+  - `backend/app/report_worker.py`:认领记 `report_claimed`(outbox_id/job_id/query_id/attempts/lease_expired),租约到期认领另记 `report_lease_reclaimed`,完成记 `report_completed`(含 `duration_ms`),失败记 `report_failed`(`error_code`/`retryable`/**异常类名**;**不含异常原文与堆栈**);**无任务可领时不记日志**(防轮询刷屏);SQL/重试/退避/状态流转零改动。
+  - `scripts/run_report_worker.py`:运行前 `configure_logging`,启动/退出各记一条;并补 repo root 的 `sys.path`,使任务卡里的直接运行命令真能起进程(原写法依赖 cwd/PYTHONPATH)。
+  - 新增 `tests/unit/test_report_worker_logging.py`(不连库):幂等(handler 数不变)、逐行 `json.loads`、顶层字段齐全、异常原文不泄漏(`"secret"` 不出现在输出)、`process_once` 失败分支产出 `report_failed`(fake pool + 打桩)。
+- **验证证据(本班实跑)**:`backend/.venv/bin/python -m pytest tests/unit tests/architecture -q` → **437 passed / 88 skipped**(较晨班 429 增 8,即新用例);无库全量 `pytest -q` → **633 passed / 106 skipped / 0 failed**;`PYTHONPYCACHEPREFIX=/tmp/... compileall -q backend scripts src` OK;`node --check web/app.js`、`web/js/admin.js` OK;`check_schema_ownership.py --json` exit 0;`check_release_policy.py` PASS;`git diff --check` 干净;**真实进程演示**(`REPORT_WORKER_ONCE=1 DATABASE_URL=postgresql://127.0.0.1:1/none`)输出 `{"ts":…,"level":"INFO","service":"report-worker","event":"worker_started"}` 与 `…worker_stopped`,随后在不可达库上按预期失败。
+- **已知取舍(需运维口径确认,非缺陷)**:失败事件不再输出 traceback(原 `logger.exception` 已替换为分类事件)→ 排障根因靠 `error_code` + 异常类名;若要求保留完整堆栈,应另立单元(可落文件而非 stdout)。
+- **顺带只读核查**:两侧内容库 SHA-256 一致(`6c5896fc…`,6 条);`api.zoubeacon.com/health/ready` → `ready/database ok`;`zoubeacon.app` / `www` / `zoubeacon.com` / `platform.zoubeacon.com/admin.html` 均 200(首轮探测出现 000 为瞬时抖动,复测恢复;**无部署漂移**未复验版本号)。
+- **待 Gordon 拍板(更新)**:① D4 口径二选一(推荐 b);② M1 单元② `app.js` legacy 直读退役是否派 Codex(**8 处命中仍在**);③ ~~worker 结构化日志~~ **本班已闭环**,剩 `tests/web/admin-live-degrade.spec.js:660` `roleListGets` flaky 是否派工;④ 4 行历史僵尸报告清理;⑤ 迁移台账 C4 口径;⑥ 未部署冻结件删除 vs 长期冻结;⑦ 本班次(job `ab373f6bd99d`)改绑 P2 或停用。
+- **红线**:零 DB 写入或对象变更、零部署、未触凭据与冻结字段、**未新增/未修改任何 migration**、无删除操作;线上仅只读 GET 探测与 `gh run` 查询(未复验前端静态资源版本号)。
+
 ## Last updated
 
 2026-09-22

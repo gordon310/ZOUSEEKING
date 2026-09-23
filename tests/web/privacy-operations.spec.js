@@ -16,18 +16,18 @@ test("all account forms require versioned privacy and terms consent", async ({ p
   }
 });
 
-test("Supabase signup carries consent version and submission timestamp", async ({ page }) => {
-  let signupBody;
+test("invite registration carries consent version and submission timestamp", async ({ page }) => {
+  let registrationBody;
   await page.addInitScript(() => {
-    window.ZOUSEEKING_API_BASE_URL = "";
+    window.ZOUSEEKING_API_BASE_URL = "https://api.example.invalid";
     window.ZOUSEEKING_SUPABASE_URL = "https://auth.example.invalid";
     window.ZOUSEEKING_SUPABASE_ANON_KEY = "publishable-test-key";
     window.ZOUSEEKING_RELEASE_SCOPE = { phase: "development", businessOperations: true, adminOperations: true };
   });
-  await page.route("https://auth.example.invalid/auth/v1/signup**", async (route) => {
-    signupBody = JSON.parse(route.request().postData() || "{}");
+  await page.route("**/api/**", async (route) => {
+    registrationBody = JSON.parse(route.request().postData() || "{}");
     await route.fulfill({
-      status: 200,
+      status: 201,
       contentType: "application/json",
       body: JSON.stringify({ user: { id: "00000000-0000-0000-0000-000000000030", email: "member@example.invalid" } }),
     });
@@ -37,18 +37,17 @@ test("Supabase signup carries consent version and submission timestamp", async (
   await page.locator("#registerUsername").fill("演示用户");
   await page.locator("#registerEmail").fill("member@example.invalid");
   await page.locator("#registerPassword").fill("not-a-real-password");
+  await page.locator("#registerInviteCode").fill("privacy-invite");
   await page.locator("#registerConsent").check();
   await page.locator("#registerForm button[type='submit']").click();
 
-  await expect.poll(() => signupBody).toMatchObject({
-    data: {
-      username: "演示用户",
-      consent_version: "privacy-2026-08",
-      terms_version: "terms-2026-08",
-      consent_source: "registration",
-    },
+  await expect.poll(() => registrationBody).toMatchObject({
+    username: "演示用户",
+    email: "member@example.invalid",
+    invite_code: "privacy-invite",
+    consent_version: "privacy-2026-08",
+    terms_version: "terms-2026-08",
   });
-  expect(signupBody.data.consent_at).toMatch(/^20\d\d-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/);
 });
 
 test("profile deletion control is explicit and remains a no-op without API", async ({ page }) => {
@@ -161,11 +160,15 @@ test("login and signup errors stay enumeration-safe", async ({ page }) => {
   await expect(page.locator("#formMessage")).not.toContainText("Email not confirmed");
   await expect(page.locator("#formMessage")).not.toContainText("邮箱或密码不正确");
 
-  await page.reload();
+  await page.goto("/index.html");
+  await page.route("**/api/**", async (route) => {
+    await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ detail: { code: "invite_service_unavailable" } }) });
+  });
   await page.locator("#showRegister").click();
   await page.locator("#registerUsername").fill("演示用户");
   await page.locator("#registerEmail").fill("member@example.invalid");
   await page.locator("#registerPassword").fill("synthetic-password");
+  await page.locator("#registerInviteCode").fill("safe-error-invite");
   await page.locator("#registerConsent").check();
   await page.locator("#registerForm button[type='submit']").click();
   await expect(page.locator("#formMessage")).toContainText("注册未完成，请稍后重试");

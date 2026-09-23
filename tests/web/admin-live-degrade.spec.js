@@ -165,6 +165,10 @@ function collectErrors(page, { ignoreNetworkStatus = false } = {}) {
     if (ignoreNetworkStatus && /^Failed to load resource: the server responded with a status of (4\d\d|5\d\d)/.test(text)) return;
     errors.push(`console: ${text}`);
   });
+  page.route("**/api/**", (route) => {
+    if (new URL(route.request().url()).pathname.startsWith("/api/admin/")) return route.fallback();
+    return route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+  });
   return errors;
 }
 
@@ -305,6 +309,7 @@ test("reads /api/admin/* with a Bearer token when configured; 403 degrades visib
         await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_PRICING) });
         return;
       }
+      if (url.pathname === "/api/admin/invite-codes" && request.method() === "GET") return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ items: [] }) });
       await route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
     });
 
@@ -448,6 +453,7 @@ test("reads /api/admin/* with a Bearer token when configured; 403 degrades visib
         await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_PRICING) });
         return;
       }
+      if (path === "/api/admin/invite-codes" && method === "GET") return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ items: [] }) });
       await route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
     });
 
@@ -618,6 +624,7 @@ test("reads /api/admin/* with a Bearer token when configured; 403 degrades visib
         await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_PRICING) });
         return;
       }
+      if (path === "/api/admin/invite-codes" && method === "GET") return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ items: [] }) });
       await route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
     });
 
@@ -715,6 +722,7 @@ test("reads /api/admin/* with a Bearer token when configured; 403 degrades visib
         await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_PRICING) });
         return;
       }
+      if (path === "/api/admin/invite-codes" && method === "GET") return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ items: [] }) });
       await route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
     });
 
@@ -816,6 +824,7 @@ test("collection tab as data_ops lists real runs and enqueues through the API", 
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_PRICING) });
       return;
     }
+    if (path === "/api/admin/invite-codes" && method === "GET") return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ items: [] }) });
     await route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
   });
 
@@ -915,6 +924,7 @@ test("collection tab as non-data_ops shows the role hint and never fetches runs"
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_PRICING) });
       return;
     }
+    if (path === "/api/admin/invite-codes" && method === "GET") return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ items: [] }) });
     await route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
   });
 

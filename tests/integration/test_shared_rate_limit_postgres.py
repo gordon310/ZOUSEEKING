@@ -8,11 +8,16 @@ import asyncpg
 import pytest
 
 from backend.app.rate_limit import consume_shared_rate_limit
+from tests.support.pg_bootstrap import configured_database_url, require_postgres_or_skip
+
+
+BASE_URL = configured_database_url("SHARED_RATE_LIMIT_TEST_DATABASE_URL")
 
 
 @pytest.mark.asyncio
 async def test_two_independent_postgres_connections_share_one_rate_limit_window() -> None:
-    database_url = os.environ.get("TEST_DATABASE_URL") or os.environ["DATABASE_URL"]
+    await require_postgres_or_skip(BASE_URL)
+    database_url = BASE_URL
     subject = "f" * 64
     action = "integration_shared_limit"
     now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)

@@ -17,16 +17,18 @@ async function blockSupabase(page) {
 test("注册在认证服务不可达时不创建本地密码凭据", async ({ page }) => {
   await page.addInitScript(UNREACHABLE_SUPABASE);
   await blockSupabase(page);
-  await page.goto("/data-query.html");
+  await page.route("**/api/**", (route) => route.abort());
+  await page.goto("/index.html");
   await page.getByRole("button", { name: "注册" }).click();
   await page.locator("#registerConsent").check();
   await page.getByLabel("用户名").fill("local-only-user");
   await page.locator("#registerEmail").fill("local-only@example.com");
   await page.locator("#registerPassword").fill("Correct Horse Battery Staple");
-  await page.getByRole("button", { name: "注册并登录" }).click();
+  await page.locator("#registerInviteCode").fill("test-invite");
+  await page.getByRole("button", { name: /凭邀请码注册|注册并登录/ }).click();
 
   await expect(page.locator("#formMessage")).toContainText("注册服务暂时无法连接");
-  await expect(page).toHaveURL(/data-query\.html/);
+  await expect(page).toHaveURL(/index\.html/);
   expect(await page.evaluate(() => localStorage.getItem("zou_house_users"))).toBeNull();
   expect(await page.evaluate(() => localStorage.getItem("zou_house_session"))).toBeNull();
 });

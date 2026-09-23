@@ -110,6 +110,14 @@ Render static site 的实际 `Cache-Control`、`ETag`、`Age`、`Content-Encodin
 
 ## 审计 verdict
 
+## Invited launch baseline and budget boundary
+
+The machine-readable invited-scope baseline is [`invited-scope-capacity-baseline-2026-09-23.json`](invited-scope-capacity-baseline-2026-09-23.json). It deliberately models only 10–20 invited users, Tokyo 23 wards and Osaka City, and the single-purchase risk-screening report. Its first-month query, report, export, statistics-call and storage figures are formulas from stated assumptions, not observed provider capacity or production traffic.
+
+No numeric first-month budget has been supplied. The JSON therefore reports `pending_user_budget` instead of inventing a zero-cost claim from the low-cost/self-host assumption. Before any production authorization, record the user's budget, collect scoped staging/provider measurements, and compare those measurements to this baseline.
+
+Production deployment and rollback thresholds derive from the existing synthetic guardrails: pause invited traffic growth for three windows with p95 above 250ms, p99 above 500ms, error rate above 1%, DB acquire p95 above 150ms, or outbox backlog above 80% capacity. The user decides rollback or an authorized capacity change; this document does not authorize either action.
+
 - **FastAPI liveness / synthetic pool / bounded queue：** 本地模型 `SHIP`，只表示探针和边界可运行。
 - **静态交付：** `FIX`，最大 logo 文件超提议预算。
 - **任务执行可靠性：** `FIX / Needs verification`，进程内 `BackgroundTasks` 和多条 legacy executor 路径没有可证明的 durable queue 容量。

@@ -21,6 +21,9 @@ def test_validate_library_record_requires_structured_location_and_vocab() -> Non
         "city": "新潟市",
         "ward": "未細分",
         "asset_type": "塔楼",
+        "data_class": "synthetic_fixture",
+        "source_id": "synthetic_fixture:test",
+        "source_url": "local://test/synthetic-fixture",
     }
 
     generator.validate_library_record(record)

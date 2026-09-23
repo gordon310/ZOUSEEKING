@@ -67,7 +67,7 @@ begin
       'commercial_investment_details', 'evidences', 'analysis_metrics',
       'risk_findings', 'policy_documents', 'product_events',
       'analysis_sessions', 'project_inputs', 'project_field_evidence',
-      'project_fields', 'free_previews', 'intake_rate_limits'
+      'project_fields', 'free_previews', 'intake_rate_limits', 'shared_rate_limits'
     ])
     and not c.relrowsecurity;
 
@@ -107,9 +107,10 @@ begin
   -- baseline is the CI-style disposable-reset value (the prior 367 contract
   -- also predated four grants from the existing report-outbox migration).
   -- The CI disposable baseline is 374 before the invite migration; its two
-  -- GRANT ALL table lines expand to 14 privilege rows, giving 388.
-  if service_grant_count <> 388 then
-    raise exception 'service_role public grant count %, expected 388', service_grant_count;
+  -- GRANT ALL on shared_rate_limits adds seven privilege rows after the invite
+  -- baseline, giving 395.
+  if service_grant_count <> 395 then
+    raise exception 'service_role public grant count %, expected 395', service_grant_count;
   end if;
 
   if exists (

@@ -19,6 +19,9 @@ def test_canonical_and_web_libraries_have_six_vocab_checked_records() -> None:
     assert len(canonical) == 6
     for record in canonical:
         assert all(record.get(field) for field in ("prefecture", "city", "ward", "asset_type"))
+        assert record["data_class"] == "synthetic_fixture"
+        assert record["source_id"].startswith("synthetic_fixture:")
+        assert record["source_url"].startswith("local://")
         assert record["prefecture"] in OPTIONS["prefectures"]
         assert record["city"] in OPTIONS["cities"][record["prefecture"]]
         assert record["asset_type"] in OPTIONS["assetTypes"]

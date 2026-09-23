@@ -5,6 +5,7 @@ from uuid import UUID
 import pytest
 
 from backend.app.invites import InviteCodeError, normalize_invite_code
+from backend.app.rate_limit import abuse_subject_hash
 
 
 def test_normalize_invite_code_is_case_insensitive_and_trimmed() -> None:
@@ -31,3 +32,10 @@ def test_existing_account_path_is_not_an_invite_gate() -> None:
 
     assert "login" not in INVITE_REQUIRED_OPERATIONS
     assert "existing_account" not in INVITE_REQUIRED_OPERATIONS
+
+
+def test_registration_abuse_subject_uses_a_salted_non_reversible_hash(monkeypatch) -> None:
+    monkeypatch.setenv("ABUSE_HASH_SALT", "test-secret")
+    digest = abuse_subject_hash("registration", "203.0.113.7")
+    assert digest != "203.0.113.7"
+    assert len(digest) == 64

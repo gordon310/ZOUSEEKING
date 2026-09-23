@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-23",
+  "scope": {
+    "invited_users": {"minimum": 10, "maximum": 20},
+    "geographies": ["东京23区", "大阪市"],
+    "product": "风险筛查报告 single purchase only"
+  },
+  "assumptions": {
+    "queries_per_invited_user_first_month": 2,
+    "report_generations_per_query": 1,
+    "exports_per_report": 0,
+    "statistics_calls_per_query": 3,
+    "stored_report_bytes_per_generation": 204800,
+    "cost_model": "low-cost/self-host; no provider budget figure was supplied by the user"
+  },
+  "first_month": {
+    "expected": {
+      "queries": {"minimum": 20, "maximum": 40, "formula": "invited_users * queries_per_invited_user_first_month"},
+      "reports": {"minimum": 20, "maximum": 40, "formula": "queries * report_generations_per_query"},
+      "exports": {"minimum": 0, "maximum": 0, "formula": "reports * exports_per_report; exports are out of invited launch scope"},
+      "statistics_calls": {"minimum": 60, "maximum": 120, "formula": "queries * statistics_calls_per_query"},
+      "storage_increment_bytes": {"minimum": 4096000, "maximum": 8192000, "formula": "reports * stored_report_bytes_per_generation"}
+    }
+  },
+  "budget_comparison": {
+    "status": "pending_user_budget",
+    "provided_budget_jpy": null,
+    "comparison": "NOT_COMPARABLE: no numeric first-month budget was provided; do not infer one from a self-host assumption.",
+    "decision_rule": "Before production authorization, enter a numeric budget and compare it to measured staging/provider costs for this exact scope."
+  },
+  "deployment_rollback_thresholds": {
+    "source": "docs/operations/staging-capacity-validation.md",
+    "derive_after_staging_measurement": ["p95 greater than 250ms for three windows", "p99 greater than 500ms for three windows", "error rate greater than 1 percent", "database acquire p95 greater than 150ms", "outbox backlog greater than 80 percent capacity"],
+    "action": "stop increasing invited traffic; user decides rollback or authorized capacity change"
+  },
+  "production_contacted": false,
+  "status": "local_planning_baseline_not_production_evidence"
+}

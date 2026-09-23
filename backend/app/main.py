@@ -51,6 +51,7 @@ from .service_routes import router as service_router
 from .routes.invites import router as invite_router
 from .usage.ledger import QuotaExceeded
 from .usage.quota import consume_current_entitlement
+from .rate_limit import RateLimitStoreUnavailable, abuse_subject_hash, configured_limit, consume_shared_rate_limit
 
 
 ALLOWED_ORIGINS = [
@@ -853,11 +854,24 @@ async def create_or_get_query_job(
     return {"query_key": key, "status": "pending", "cached": False, "title": title, "job_id": str(job_id), "report": None}
 
 
+async def enforce_query_rate_limit(user_id: UUID) -> None:
+    try:
+        subject_hash = abuse_subject_hash("query", str(user_id))
+        limit = configured_limit("QUERY_RATE_LIMIT_PER_HOUR", 20)
+        async with get_pool().acquire() as conn:
+            count = await consume_shared_rate_limit(conn, subject_hash, "member_query", limit, datetime.now(timezone.utc))
+    except RateLimitStoreUnavailable as exc:
+        raise HTTPException(status_code=503, detail={"code": "rate_limit_unavailable"}) from exc
+    if count is None:
+        raise HTTPException(status_code=429, detail={"code": "rate_limited"}, headers={"Retry-After": "3600"})
+
+
 @app.post("/api/query", response_model=QueryResponse)
 async def query_report(
     request: QueryRequest,
     user: AuthUser = Depends(require_user),
 ) -> QueryResponse:
+    await enforce_query_rate_limit(user.user_id)
     try:
         result = await create_or_get_query_job(request, str(user.user_id))
     except QuotaExceeded:

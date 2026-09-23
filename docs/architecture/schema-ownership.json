@@ -56,7 +56,8 @@
     "20260921000100_backfill_dataset_provenance.sql",
     "20260922000100_mlit_source_class_and_report_relabel.sql",
     "20260923000100_invite_only_consumer_gate.sql",
-    "20260923000200_invite_reservation_error_states.sql"
+    "20260923000200_invite_reservation_error_states.sql",
+    "20260923000300_shared_rate_limits.sql"
   ],
   "legacy_sql_files": [
     "backend/sql/001_foundation_data_contract.sql",

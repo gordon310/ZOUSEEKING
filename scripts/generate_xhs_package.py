@@ -213,12 +213,15 @@ def library_record(config, markdown):
         "asset_type": asset_type,
         "layouts": layouts,
         "status": config.get("status", "generated"),
+        "data_class": "synthetic_fixture",
+        "source_id": "synthetic_fixture:jphouse_worker",
+        "source_url": "local://jphouse-worker/synthetic-fixture",
         "summary": config["summary"],
         "rental": rental_rows,
         "sale": sale_rows,
         "markdown": markdown,
         "hashtags": config.get("hashtags", []),
-        "data_sources": config.get("data_sources", []),
+        "data_sources": [{"id": "synthetic_fixture:jphouse_worker", "name": "JPHOUSE synthetic fixture generator", "url": "local://jphouse-worker/synthetic-fixture", "usage": "Non-market example; never a verified observation or market statistic."}],
         "images": [
             f"library/{config['slug']}/images/01-cover-clean.png",
             f"library/{config['slug']}/images/02-rental-all-layouts-clean.png",
@@ -243,7 +246,7 @@ def library_record(config, markdown):
 def validate_library_record(record):
     """Fail generation before either library copy can contain an unusable row."""
 
-    required = ("prefecture", "city", "ward", "asset_type")
+    required = ("prefecture", "city", "ward", "asset_type", "data_class", "source_id", "source_url")
     missing = [field for field in required if not str(record.get(field) or "").strip()]
     if missing:
         missing_label = "prefecture/city/ward" if any(field in missing for field in required[:3]) else "asset_type"

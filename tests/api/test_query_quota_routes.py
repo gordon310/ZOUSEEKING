@@ -13,6 +13,9 @@ def test_query_quota_exhaustion_is_returned_as_429(monkeypatch) -> None:
         raise QuotaExceeded("full")
 
     monkeypatch.setattr(main, "create_or_get_query_job", exhausted)
+    async def allowed(_user_id):
+        return None
+    monkeypatch.setattr(main, "enforce_query_rate_limit", allowed)
     from backend.app.main import app
 
     app.dependency_overrides[require_user] = lambda: AuthUser(
@@ -37,6 +40,9 @@ def test_query_does_not_use_request_body_username_as_owner(monkeypatch) -> None:
         return {"query_key": "q", "status": "pending", "cached": False, "title": "q", "job_id": "j", "report": None}
 
     monkeypatch.setattr(main, "create_or_get_query_job", fake)
+    async def allowed(_user_id):
+        return None
+    monkeypatch.setattr(main, "enforce_query_rate_limit", allowed)
     from backend.app.main import app
     app.dependency_overrides[require_user] = lambda: main.AuthUser(
         UUID("00000000-0000-0000-0000-000000000030"), "real@example.com", "Real"
@@ -50,3 +56,23 @@ def test_query_does_not_use_request_body_username_as_owner(monkeypatch) -> None:
         app.dependency_overrides.clear()
     assert response.status_code == 200
     assert captured == {"user_id": "00000000-0000-0000-0000-000000000030", "username": "attacker"}
+
+
+def test_query_shared_rate_limit_rejects_before_creating_a_job(monkeypatch) -> None:
+    async def limited(_user_id):
+        raise main.HTTPException(status_code=429, detail={"code": "rate_limited"})
+
+    monkeypatch.setattr(main, "enforce_query_rate_limit", limited)
+    app = main.app
+    app.dependency_overrides[require_user] = lambda: main.AuthUser(
+        UUID("00000000-0000-0000-0000-000000000030"), "real@example.com", "Real"
+    )
+    try:
+        response = TestClient(app).post(
+            "/api/query",
+            json={"prefecture": "大阪府", "city": "大阪市", "asset_type": "塔楼", "year": 2026, "month": 9},
+        )
+    finally:
+        app.dependency_overrides.clear()
+    assert response.status_code == 429
+    assert response.json()["detail"]["code"] == "rate_limited"

@@ -520,6 +520,22 @@
 - **其它仍待拍板(未变)**:① D4 口径二选一(推荐 b,当前 0 条受影响行);② M1 单元② legacy 直读退役是否派 Codex(坐标见上);③ `tests/web/admin-live-degrade.spec.js:666` `roleListGets` flaky 是否派工(clean main 亦复现、CI 未复现);④ 4 行历史僵尸报告清理(需批准);⑤ 迁移台账 C4 口径;⑥ 未部署冻结件(Edge 函数 / `run_jphouse_worker.py`)删除 vs 长期冻结;⑦ 本班次(job `ab373f6bd99d`)改绑 P2 或停用;⑧ 生产 scheduler(09-23 晨班)与本班新增的部署项可合并为一次部署批准。
 - **红线**:零 DB 写入或对象变更、零部署、未触凭据与冻结字段、**未新增/未修改任何 migration**、无删除操作;线上仅只读 GET 探测(`/health/ready`、站点首页、admin 页均 200)与 `gh run`/artifact 读取。
 
+## G3 Go/No-Go 清单对齐 10-07 口径 + 生产侧三项红灯实测(2026-09-24 晨班,本 BOT,第四个「补缺口」单元)
+
+- **班前实测(07:30)**:工作树干净、`main == origin/main == 252b661`、`git rev-list --count origin/main..main = 0`;仓库内**无 `codex exec` 进程**(仅 ChatGPT 桌面端辅助进程)、写活动止于 09-23 12:47(`252b661`)→ 按判据**不判进行中**。Release Gate `252b661` **success**(run `35862699493`,七 job)。
+- **单元选择**:P1 清单 09-07 已闭环 → 按「遗留项纪律」取**当前里程碑窗口(09-23~09-26)自己的交付物 G3「Go/No-Go 缺口清单」**。原清单编制于 09-21,口径 = ADR-0002「C-only intake preview」,与 09-23 用户拍板的新范围(C 端 + 后台同时上线、邀请制试运行、10-07 硬出口)**不符** → 本班做 10-07 口径逐项判定 + 生产侧实测。
+- **本节新增的生产侧实测(只读,首次落地)**:
+  - **① 迁移台账对齐**:管理 API 只读实测 **生产已登记 50 / 仓库 54**;待应用 4 条 —— `20260921000100`(provenance 回填)、`20260923000100`(邀请门)、`20260923000200`(邀请错误态)、`20260923000300`(共享限流)。
+  - **② 邀请制准入在生产尚未生效(红灯)**:`invite_codes`/`invite_redemptions` **仅**定义于上述两条未应用迁移 → **生产不存在邀请码表**;且管理 API 实测 `disable_signup=false` → 生产**仍开放公共注册**。09-23 台账把「邀请制准入 + 试运行标识」记为 ✅,其证据取自真库、**不是生产**;生产侧不成立。
+  - **③ 生产后台 API 边界**:未鉴权 `GET /api/admin/{overview,collection/runs,service/tasks}` 均返回 **401**(非 503「admin 未配置」)→ 鉴权边界生效;但 401 早于 `ADMIN_ENABLED` 门,**该门在生产 `deploy/.env` 而本机不可读 → 值仍未知**;后台与 C 端同时上线前必核。
+  - **④ 前端部署漂移确认**:线上资源 `?v=20260917-r61`,仓库 `deploy/frontend-version.txt = 20260923-r63` → 生产前端 ≈ `99e33ce`(09-22),**落后 16 个提交**(invite 注册前端、四语试运行标识、静态瘦身、后台页签修复均未上线)。
+- **交付物(2 文件,纯文档)**:① `docs/release/go-no-go-checklist-2026-10-07.md` 追加《2026-09-24 范围对齐复核》——A 生产实测事实 7 条 / B **C01–C14 逐项 10-07 判定(✅3 · 🟡7 · 🔴4)** / C 10-07 阻断链 7 步(部署批次 → 注册门顺序 → C04/C05 生产证据 → C13 smoke → C07/C08/C09 → C02/C10/C11 → C14 授权)/ D 实测命令与输出;② `docs/release/launch-readiness-log.md` 补 4 行 09-24 事实,并修正「待闭合」清单(G2-ENG 工程侧已闭合、G3 已完成复核、新增部署批次项)。
+- **关键判定变化(供 09-27~09-30 的 G4 终检使用,原清单已过期)**:① C07 旧口径「worker 保持关闭到 C14」**不适用**(生产 worker 已常驻);② C08 旧要求的 `render.production.yaml` 等与实际 Lightsail Compose 架构不符 → 应改为 Lightsail 生产配置合同;③ C09 **收窄**:`rate_limit.py` + `docs/operations/oncall.md` 已落地,`pip-audit`/`npm-audit` 已入 gate 必填,仍缺 `observability.py`/`timeouts.py`/`docs/production-reliability.md`;④ C11 静态预算问题已由 r63 瘦身消除(最大文件 246,943 B < 524,288 B),仅缺用户预算/SLO 数值;⑤ C02 冲突方向**反转**:`release_scope.py:68` 已把 `ADMIN_API_CONTRACT` 并入 `PHASE_ONE_API_CONTRACT`,新范围下 allowlist 方向与业务一致 → **应收窄的是 ADR 文字**(需用户重批)。
+- **本轮自证(实跑)**:`pytest tests/unit tests/architecture -q` → **457 passed / 91 skipped**;`compileall -q backend scripts src` OK;`node --check web/app.js` OK;`git diff --check` 干净;两侧内容库 SHA-256 一致(`301cf824…`,各 6 条全 `synthetic_fixture`);`zoubeacon.app` 200、`platform.zoubeacon.com/admin.html` 200、`/health/ready` = ready/database ok。
+- **commit**:`<本班>`,已 push `origin/main`。
+- **待 Gordon 拍板(编号,推荐置顶)**:① **一次部署批次**(应用 4 条迁移 + 上 r63 前端 + 切注册门;顺序不可颠倒,否则无人能注册)—— 10-07 前最大且唯一的「工程侧就绪、生产侧未生效」缺口;② **C02:ADR-0002 重批为「C 端 + 后台」**;③ 是否派 Codex 补 C07/C08/C09 合同与可观测缺口 + C13 staging smoke 证据包;④ C04 provider 备份/Storage 恢复的项目与成本批准;⑤ 4 行历史僵尸报告清理;⑥ 迁移台账 C4 口径;⑦ 未部署冻结件(Edge 函数 / `run_jphouse_worker.py`)删除 vs 长期冻结;⑧ 本班次(job `ab373f6bd99d`)改绑 P2 或停用。
+- **红线**:零 DB 写入或对象变更、零部署、未触凭据与冻结字段、**未新增/未修改任何 migration**、无删除操作;生产侧仅**只读 GET 探测**与 Supabase **Management API 只读查询**(未登录任何用户/管理员凭据,未读回任何密钥值)。
+
 ## Last updated
 
-2026-09-23
+2026-09-24

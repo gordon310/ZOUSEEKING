@@ -43,3 +43,76 @@
 ## 本轮命令结果
 
 完整命令和输出（包含一次错误的 Node test 调用、并将本机密钥脱敏）见 [`/tmp/zouseeking-googate-details.md`](/tmp/zouseeking-googate-details.md)。关键实跑结果为：focused Python 65 passed/6 skipped、release/policy batch 56 passed、Playwright scope 2 passed、恢复演练 PASS；这些只构成离线/本机证据，绝不构成 production evidence。
+
+---
+
+# 2026-09-24 范围对齐复核(Web-first 10-07 口径)
+
+> 本节由晨班 BOT 追加。原表 C01–C14 编制于 2026-09-21,当时首发范围 = ADR-0002 的「C-only intake preview」。
+> 用户已于 **2026-09-23** 拍板改为「C 端 + 后台管理平台同时上线、邀请制试运行、硬出口 **2026-10-07**」
+> (依据 `docs/superpowers/plans/2026-09-23-web-first-launch-14d.md`)。原表作为历史快照保留,
+> **10-07 前的判定以本节为准**;结论口径:✅ 已闭合维持 / 🟡 收窄或需一次动作 / 🔴 阻断 10-07。
+
+## A. 生产侧实测事实(本轮只读实测;命令见 §D)
+
+| # | 事实 | 实测结果 | 含义 |
+|---|---|---|---|
+| A1 | 生产迁移台账 | 生产已登记 **50** 条 / 仓库 **54** 条 | 缺 4 条:`20260921000100`(provenance 回填)、`20260923000100`(邀请门)、`20260923000200`(邀请错误态)、`20260923000300`(共享限流) |
+| A2 | 邀请表是否存在于生产 | `invite_codes` / `invite_redemptions` **仅**在 `20260923000100`、`20260923000200` 中定义,而这两条未应用 | **生产不存在邀请码表** → 「邀请制准入」在生产**尚未生效**;09-23 台账的 ✅ 证据取自真库,非生产 |
+| A3 | 生产注册门 | Management API:`disable_signup=**false**`、`mailer_autoconfirm=false` | 生产仍开放**公共注册**,与「邀请制试运行」口径直接冲突(AGENTS:Consumer pre-release registration is invitation-only) |
+| A4 | 生产后台 API | 未鉴权 `GET /api/admin/overview`、`/api/admin/collection/runs`、`/api/admin/service/tasks` 均返回 **401**(非 503) | 鉴权边界生效;但 401 早于 `ADMIN_ENABLED` 门 → **该门的值仍未知**(compose 无此变量,值在生产 `deploy/.env`,本机不可读) |
+| A5 | 前端部署漂移 | 线上 `?v=20260917-r61`,仓库 `deploy/frontend-version.txt` = `20260923-r63` | 生产前端 ≈ `99e33ce`(09-22),**落后 16 个提交**:invite 注册前端、四语试运行标识、静态瘦身、后台页签修复均未上线 |
+| A6 | 服务健康 | `zoubeacon.app` 200、`platform.zoubeacon.com/admin.html` 200、`/health/ready` = `ready/database ok` | 服务可用;不代表新范围已生效 |
+| A7 | CI | `252b661` Release Gate **success**(七 job,run 35862699493) | C12 的「每次提交绿」持续成立 |
+
+## B. C01–C14 对 10-07 的判定
+
+| 项 | 判定 | 依据 / 下一步 | 负责人 |
+|---|---|---|---|
+| C01 | ✅ 维持 | 工作树干净、`main == origin/main == 252b661`、无未跟踪残留;按 2026-09-04 决策 **main 即唯一权威分支**(不另建 release branch),发布时记录 commit SHA + 前端版本号即可 | Hermes |
+| C02 | 🔴 阻断(需决策) | ADR-0002 仍写 C-only,而 `backend/app/release_scope.py:68` 已把 `ADMIN_API_CONTRACT` 并入 `PHASE_ONE_API_CONTRACT`。新范围下 **allowlist 方向与业务一致,应收窄的是 ADR 文字而非 allowlist**;需用户重批 ADR-0002 为「C 端 + 后台」 | 用户 + Codex |
+| C03 | 🟡 重验条件已触发 | 仓库新增 4 条迁移 → 台账「新增迁移时」触发;09-22 `restore_drill.py`(50 版本)证据已过期。本轮已用 Management API 只读核对台账(50/54),需重跑 drill | Codex |
+| C04 | 🔴 阻断 | provider 物理备份/PITR 与私有 Storage 恢复**均无证据**;需用户批准项目、成本上限、停机窗口 | 用户 + Codex |
+| C05 | 🟡 需一次生产复验 | 数据库四身份有 09-20 生产证据;Storage 四角色仅 09-02 staging 证据;生产 Auth 生命周期未复验 | 用户(授权) + Codex |
+| C06 | ✅ 闭合 | 实测两副本各 **6** 条、全部 `synthetic_fixture`、SHA-256 一致(`301cf824…`);非 synthetic 违规 0 | Hermes |
+| C07 | 🟡 缺合同 + 缺演练 | 生产 worker 已常驻 → **旧口径「worker 保持关闭到 C14」不再适用**;`docs/architecture/report-job-queue-contract.md` 实测缺失;缺并发/崩溃/replay 演练证据 | Codex |
+| C08 | 🟡 口径改写 | 旧要求的 `render.production.yaml`、`backend/app/supabase_config.py`、`docs/production-readiness.md` 实测缺失且与实际架构(Lightsail Compose)不符 → 改为 Lightsail 生产配置合同;secret scan 已 PASS | Codex |
+| C09 | 🟡 收窄 | `backend/app/rate_limit.py` 与 `docs/operations/oncall.md` **已落地**;`pip-audit`/`npm-audit` 已是 gate 必填;**仍缺** `observability.py`、`timeouts.py`、`docs/production-reliability.md` | Codex |
+| C10 | 🟡 待用户 | 隐私/删除链路代码与测试在;法务/运营签署未完成;受控删除演练未做 | 用户(法务) + Codex |
+| C11 | 🟡 仅缺数值 | 09-23 已落「受邀范围」机器可读基线;**静态预算问题已消除**(最大文件 945,771 → 246,943 B < 524,288 B);缺用户提供的预算/SLO 数值 | 用户 |
+| C12 | ✅ 收窄满足 | 每次 push 均有 gate 绿证据(`252b661` 七 job);依赖审计已纳入必填。剩「候选 commit artifact checksum 归档」一次性动作 | Hermes |
+| C13 | 🔴 阻断 | `docs/release/phase-one-staging-evidence.json`、`scripts/staging_synthetic_smoke.py` 实测**缺失** → staging candidate smoke 无载体 | Codex + 用户(授权) |
+| C14 | 🔴 阻断 | `production-go-live-approval.json` = `BLOCK / NOT AUTHORIZED`;旧口径「B/admin/convert/付费保持关闭」与新范围**矛盾**(新:后台同时上线、付费=单次购买) | 用户 |
+
+## C. 10-07 阻断链(按执行顺序)
+
+1. **一次部署批次(需用户批准)**:`git pull --ff-only` → 应用 4 条待应用迁移 → `docker compose -f deploy/docker-compose.prod.yml up -d --build nginx api worker report-worker scheduler`。验收:前端版本 = `20260923-r63`、生产迁移台账 54/54。
+2. **同批处理注册门(顺序不可颠倒)**:迁移应用后**先**确认邀请端点可用,**再**把 `disable_signup` 切 `true`;否则会出现「公共注册已关、邀请注册不可用 = 无人能注册」。验收:非邀请注册被拒、邀请码注册成功。
+3. **C04/C05 生产证据(需授权 + 成本上限)**:provider 备份或 clone + 私有 Storage 恢复 + 四身份复验(禁止 SSH,禁止把本机结果当生产证据)。
+4. **C13 staging candidate smoke 证据包**(Codex 0.5–1 天 + staging 授权)。
+5. **C07/C08/C09 收窄后的合同与可观测缺口**(Codex 2–4 天)。
+6. **C02 ADR 重批(用户)+ C10/C11 用户数值**。
+7. **C14 逐项授权**:六位 owner、批准时间、回滚 smoke、30 分钟/24h 观察窗。
+
+## D. 本轮实测命令与输出(证据)
+
+```text
+git status --porcelain                              → 空(工作树干净)
+git rev-list --count origin/main..main              → 0 ;HEAD = 252b661
+gh run list --limit 6                               → 252b661 Release Gate success (run 35862699493)
+backend/.venv/bin/python -m pytest tests/unit tests/architecture -q → 457 passed / 91 skipped
+backend/.venv/bin/python -m compileall -q backend scripts src        → OK
+node --check web/app.js                             → OK ;git diff --check → 干净
+shasum -a 256 data/content_library.json web/content-library.json     → 301cf824…(两份一致,各 34,641 B)
+ls supabase/migrations/*.sql | wc -l                → 54
+GET api.supabase.com/v1/projects/fnogxuytbabxmqousifh/database/migrations → 200,50 条,最新 20260922000100
+GET api.supabase.com/v1/projects/…/config/auth      → disable_signup=false ;mailer_autoconfirm=false
+curl -w '%{http_code}' api.zoubeacon.com/api/admin/{overview,collection/runs,service/tasks} → 401 / 401 / 401
+curl api.zoubeacon.com/health/ready                 → {"status":"ready","database":"ok"}
+curl zoubeacon.app                                  → 200(资源 ?v=20260917-r61);platform.zoubeacon.com/admin.html → 200
+实测缺失(ls 返回 No such file):backend/app/{observability,timeouts,supabase_config}.py、
+docs/production-{readiness,reliability}.md、docs/architecture/report-job-queue-contract.md、
+docs/release/phase-one-staging-evidence.json、scripts/{audit_provenance,staging_synthetic_smoke}.py、render.production.yaml
+```
+
+> 未做:任何 DB 写入、迁移应用、部署、DNS/凭据变更、删除;生产侧仅上述只读 GET 探测(未使用任何用户或管理员凭据登录)。

@@ -505,6 +505,21 @@
 - **待 Gordon 拍板(更新后全量)**:① D4 口径二选一(推荐 b:改 ADR-0001 文字,当前 0 条受影响行);② M1 单元② `app.js` legacy 直读退役是否派 Codex(**8 处命中仍在**);③ `tests/web/admin-live-degrade.spec.js:660` `roleListGets` flaky 是否派工(09-20 已定性:clean main 亦 3/3 失败、CI 未复现);④ 4 行历史僵尸报告清理(需批准);⑤ 迁移台账 C4 口径;⑥ 未部署冻结件(Edge 函数 / `run_jphouse_worker.py`)删除 vs 长期冻结;⑦ 本班次(job `ab373f6bd99d`)改绑 P2 或停用;⑧ **本班新增**:生产 scheduler 生效需一次部署批准(一行命令,见上,可与其他待部署项合并)。
 - **红线**:零 DB 写入或对象变更、零部署、未触凭据与冻结字段、**未新增/未修改任何 migration**、无删除操作;生产侧仅只读探测(本地 supabase 栈只读探针 + 不可达库对照 + `gh run` 查询)。
 
+## Release Gate 完整性补齐(web 资源新鲜度 + 两条未强制的 SQL 检查)(2026-09-23 夜班,本 BOT,第三个「补代码缺口」单元)
+
+- **班前实测(20:31)**:工作树干净、`main == origin/main == 5f44053`、`git rev-list --count origin/main..main = 0`;仓库内**无 `codex exec` 进程**、写活动止于 17:50 → 按判据**不判进行中**。Release Gate `5f44053` **success**(run `35845259342`,七 job 全绿)。P1 清单 09-07 已闭环 → 按「遗留项纪律」从当天白天批次新引入的表面里取有界单元。
+- **单元选择**:09-23 白天 `1f7b19c` 把前端资源改成「可读源 `web-source/` + 构建产物 `web/`(terser/lightningcss 压缩)」,并已提供 `npm run check:web-assets`(`--check` 逐字节比对),**但 Release Gate 从未运行它**;顺带审计整个 workflow 又抓到同类第二处:**两条 SQL 检查被跑、被记录,却不在任何必填列表里**。两处都是「跑但不拦」,与当天 `5f44053` 修的 `sql-invite-gate` 属同一缺陷类。
+- **改动(4 文件,+约 60 行;派工 Codex 执行、Hermes 验收;commit `0d30d81`,已 push `origin/main`)**:
+  - `.github/workflows/release-gate.yml`:node job 新增步骤 `Verify generated web assets are fresh` → `record --name web-assets-fresh -- npm run check:web-assets`,并把 `web-assets-fresh` 同时加入该 job 的 `validate --required` 与顶层 `REQUIRED_CHECKS`;sql-rls job 的 `--required` 追加 `sql-usage-anonymization,sql-member-read-views`(此前二者只记录不拦截),顶层同步 → **44 → 46 条,与 workflow 实际记录的 46 个检查一一对应**。
+  - `tests/architecture/test_release_gate_contract.py`:新增常驻守护测试 `test_workflow_requires_every_recorded_check`(纯 `re`),断言「workflow 中每个 `--name` 记录的检查都必须出现在顶层 `REQUIRED_CHECKS` 行**且**出现在某个 `--required` 列表里」→ 以后新增检查若漏挂必填,CI 直接红;既有 marker 测试补 3 项并加 `text.count("web-assets-fresh") >= 3`。
+  - `AGENTS.md`「Documentation and generated files」段落:标注 `web/app.js`、`web/js/*.js`、`web/*.css` 是 `web-source/` 的**生成产物**(禁手改;改源后 `npm run build:web-assets` 重建、`npm run check:web-assets` 校验),补上 AGENTS 自身「生成物必须标明来源」的要求。
+  - `docs/release/release-gate.md`:本地 gate 命令清单补 `npm run check:web-assets`。
+- **验证证据(本班实跑 + CI artifact 硬证据)**:`pytest tests/architecture/test_release_gate_contract.py -q` **7 passed**;`pytest tests/unit tests/architecture -q` **457 passed / 91 skipped**;无库全量 `pytest -q` **654 passed / 110 skipped**;`npm run check:web-assets` **exit 0**(约 11s,当前 `web/` 与源一致);`check_release_policy.py` **PASS**;`compileall` OK;`git diff --check` 干净;workflow 经 PyYAML 解析通过(7 job),自写审计脚本输出「记录名 46 = 必填 46,差集为空」。**CI:`0d30d81` Release Gate `35862193719` success(七 job,3 分钟)**;artifact 复核:`release-gate-node/web-assets-fresh.json` = **PASS / exit 0 / 13.4s**(证明新门禁在 runner 上真跑通,`npm ci` 提供的 terser/lightningcss 可用),`release-gate-sql-rls/` 内 `sql-usage-anonymization.json` 与 `sql-member-read-views.json` 均 **PASS / exit 0**(补进必填后仍未红)。
+- **新发现(超本班边界,未处置):生产前端部署漂移** —— 线上 `zoubeacon.app` 引用资源版本 `?v=20260917-r61`,仓库 `deploy/frontend-version.txt` = **`20260923-r63`**:今日的静态资源瘦身(总量 2,366,624 → 1,240,939 B)、invite-only 注册前端、四语预发布标识**均未上生产**。生效需一次部署(超红线):生产 `/opt/zouseeking` 执行 `git pull --ff-only && docker compose -f deploy/docker-compose.prod.yml up -d --build nginx api`;另今日新增 3 个 migration(`20260923000100` invite-only 门、`000200` invite 错误态、`000300` shared rate limits)同样未应用生产,按上线顺序应与前端同批。
+- **口径修正(供决策)**:M1 单元②「`app.js` legacy 直读退役」的整改坐标应落在 **`web-source/app.js`**(实测 8 处 `supabaseUserFetch`/`supabaseReportToRecord` 仍在)并重建产物;直接改 `web/app.js` 现在等于改生成物,下次构建即被覆盖。
+- **其它仍待拍板(未变)**:① D4 口径二选一(推荐 b,当前 0 条受影响行);② M1 单元② legacy 直读退役是否派 Codex(坐标见上);③ `tests/web/admin-live-degrade.spec.js:666` `roleListGets` flaky 是否派工(clean main 亦复现、CI 未复现);④ 4 行历史僵尸报告清理(需批准);⑤ 迁移台账 C4 口径;⑥ 未部署冻结件(Edge 函数 / `run_jphouse_worker.py`)删除 vs 长期冻结;⑦ 本班次(job `ab373f6bd99d`)改绑 P2 或停用;⑧ 生产 scheduler(09-23 晨班)与本班新增的部署项可合并为一次部署批准。
+- **红线**:零 DB 写入或对象变更、零部署、未触凭据与冻结字段、**未新增/未修改任何 migration**、无删除操作;线上仅只读 GET 探测(`/health/ready`、站点首页、admin 页均 200)与 `gh run`/artifact 读取。
+
 ## Last updated
 
 2026-09-23

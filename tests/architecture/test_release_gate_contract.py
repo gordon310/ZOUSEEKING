@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import re
 from pathlib import Path
 
 from scripts.ci.check_release_policy import check_policy
@@ -44,6 +46,9 @@ def test_workflow_has_all_required_triggers_jobs_and_commands() -> None:
         "python -m pytest -q",
         "node --check web/app.js",
         "node --test tests/edge/jphouse-run-authority.test.mjs",
+        "npm run check:web-assets",
+        "--name web-assets-fresh",
+        "node-syntax,node-edge,web-assets-fresh",
         "npm run test:web -- --workers=1",
         "npx supabase db reset --local",
         "tests/sql/test_foundation_schema.sql",
@@ -61,6 +66,47 @@ def test_workflow_has_all_required_triggers_jobs_and_commands() -> None:
     ):
         assert marker in text
     assert text.count("sql-account-retention") >= 3
+    assert text.count("web-assets-fresh") >= 3
+
+
+def test_workflow_requires_every_recorded_check() -> None:
+    text = WORKFLOW.read_text(encoding="utf-8")
+    recorded_checks = set(re.findall(r"--name ([a-z0-9-]+)", text))
+    required_checks_line = next(
+        line for line in text.splitlines() if line.startswith("  REQUIRED_CHECKS:")
+    )
+    required_checks = set(required_checks_line.split('"')[1].split(","))
+    job_required_checks = {
+        check
+        for line in text.splitlines()
+        if " --required " in line
+        for check in line.split("--required ", 1)[1].split(",")
+    }
+
+    missing_from_required_checks = recorded_checks - required_checks
+    assert missing_from_required_checks == set(), missing_from_required_checks
+
+    missing_from_job_required_checks = recorded_checks - job_required_checks
+    assert missing_from_job_required_checks == set(), missing_from_job_required_checks
+
+
+def test_workflow_gates_generated_web_assets() -> None:
+    text = WORKFLOW.read_text(encoding="utf-8")
+    for marker in (
+        "npm run check:web-assets",
+        "--name web-assets-fresh",
+        "node-syntax,node-edge,web-assets-fresh",
+    ):
+        assert marker in text
+
+    required_checks = next(
+        line for line in text.splitlines() if line.startswith("  REQUIRED_CHECKS:")
+    )
+    assert "web-assets-fresh" in required_checks
+
+    package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
+    assert "check:web-assets" in package["scripts"]
+    assert "build:web-assets" in package["scripts"]
 
 
 def test_workflow_forbids_live_mutations_and_external_pass_claims() -> None:

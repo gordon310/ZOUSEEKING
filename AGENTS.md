@@ -141,6 +141,7 @@ The Supabase and FastAPI paths are competing implementations, not interchangeabl
 
 - Documentation is part of the product. Run every command you add to a README or runbook.
 - Mark generated files and their source. Do not manually edit `web/content-library.json`, generated report folders, or generated images when a script owns them.
+- `web/` 下的 `app.js`、`web/js/*.js`、`web/*.css` 是由 `web-source/` 经 `npm run build:web-assets` 生成的产物；禁止手工编辑这些生成文件；修改可读源后必须重建，并用 `npm run check:web-assets` 校验一致性（Release Gate 的 `web-assets-fresh` 检查已把它设为门禁）。
 - `data/content_library.json` and `web/content-library.json` currently duplicate the same content. Update them through the owning generation/sync workflow and verify their hashes match when both are expected to be identical.
 - Keep generated outputs out of architectural decisions. Read source scripts and schemas before judging behavior from generated files.
 - Do not add machine-specific absolute paths to shared documentation or commands.

@@ -34,6 +34,7 @@
 python3 -m pytest -q
 node --check web/app.js
 node --check playwright.config.js
+npm run check:web-assets
 node --test tests/edge/jphouse-run-authority.test.mjs
 PYTHONPYCACHEPREFIX=/tmp/jp-property-pycache python3 -m compileall -q backend scripts src
 python3 -m pip check

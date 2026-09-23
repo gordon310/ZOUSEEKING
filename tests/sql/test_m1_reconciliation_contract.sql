@@ -103,14 +103,14 @@ begin
   -- 336 为手工 bootstrap 计数、360 为 CI disposable-reset 基线(以 CI 为准;
   -- 20260916000300、20260916000500 与 20260918000100 各自在新表上 GRANT ALL,
   -- 每个展开 7 条权限行: 339 + 7 + 7 + 7 = 360)。
-  -- The same view migration adds three service_role SELECT grants. The 374
-  -- baseline is the CI-style disposable-reset value (the prior 367 contract
-  -- also predated four grants from the existing report-outbox migration).
-  -- The CI disposable baseline is 374 before the invite migration; its two
-  -- GRANT ALL on shared_rate_limits adds seven privilege rows after the invite
-  -- baseline, giving 395.
-  if service_grant_count <> 395 then
-    raise exception 'service_role public grant count %, expected 395', service_grant_count;
+  -- The same view migration adds three service_role SELECT grants. The actual
+  -- CI-style disposable-reset baseline before the invite migration is 370.
+  -- 20260923000100 grants ALL on each of the two server-only invite tables
+  -- (+14); 20260923000300 grants ALL on shared_rate_limits (+7), yielding
+  -- the strict fresh-reset baseline of 391. Keep this exact: any grant added
+  -- or removed by a future migration must update this contract deliberately.
+  if service_grant_count <> 391 then
+    raise exception 'service_role public grant count %, expected 391', service_grant_count;
   end if;
 
   if exists (

@@ -1,5 +1,38 @@
 # Provider backup、隔离恢复与 migration forward-fix runbook
 
+## 备份与恢复（自建每日逻辑备份）
+
+每日 03:10 JST 的 `zouseeking-backup.timer` 在 03:30 的 MLIT refresh 前执行
+`scripts/backup_database.py`。它使用容器化 PostgreSQL 客户端导出 custom-format
+dump，并写出同名 manifest；未配置完整 S3 兼容对象存储环境时，明确进入本地保留模式。
+本地默认目录为 `/var/backups/zouseeking`、默认保留 14 天；远端保留由已批准的 bucket
+lifecycle 配置执行，脚本绝不删除远端对象。
+
+在发版前、每次 migration 应用后和定期恢复演练时，先手动创建一个 backup：
+
+```bash
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres \
+BACKUP_LOCAL_DIR=/tmp/zouseeking-backups \
+PYTHONPATH=. backend/.venv/bin/python scripts/backup_database.py
+```
+
+随后必须针对该产物做一次真实隔离恢复，而不是重新导出源库：
+
+```bash
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres \
+PYTHONPATH=. backend/.venv/bin/python scripts/restore_drill.py \
+  --backup-manifest /tmp/zouseeking-backups/zouseeking-<timestamp>.manifest.json
+```
+
+该演练先断言 archive SHA-256 与 manifest 一致，再恢复到一次性
+`jpp_restore_*` 数据库，断言七张关键表行数和完整 migration version 集合与 manifest
+一致，最后清理目标库。任何一步失败均非零退出；不得将不完整演练记作通过。
+
+生产运行前置条件：人工批准、已验证的备份与恢复负责人、避开业务高峰、源库使用只读
+backup role、restore target 必须隔离且绝不能是生产库。失败时停止发版和后续 migration，
+保留不含敏感数据的错误摘要与 manifest/hash，排查并用一个新的 forward-only migration
+执行 expand/backfill/switch/contract；禁止修改已应用 migration 或原地恢复生产。
+
 ## 可重复本地逻辑恢复演练（2026-09-22）
 
 `scripts/restore_drill.py` 是本机 Supabase 栈的可重复演练入口。它的边界是明确的：源 `DATABASE_URL` 仅用于 `pg_dump` 和以 `default_transaction_read_only=on` 运行的计数/catalog/migration 查询；写入只发生在脚本新建、finally 中删除的 `jpp_restore_*` 临时库。为恢复 public 表的外键，目标会创建只含 UUID 的 `auth.users` 临时桩；不会导出 Auth profile、token 或其他 Auth 数据。

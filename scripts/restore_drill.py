@@ -8,6 +8,8 @@ database on the same loopback server, which is removed in ``finally``.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import os
 import re
 import secrets
@@ -34,6 +36,41 @@ UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]
 
 class DrillError(RuntimeError):
     pass
+
+
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def load_backup_manifest(path: Path, archive: Path | None = None) -> tuple[Path, dict[str, int], tuple[str, ...]]:
+    """Load a backup manifest and verify the referenced custom archive hash."""
+
+    try:
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise DrillError(f"backup manifest cannot be read: {exc}") from exc
+    artifact = manifest.get("artifact") if isinstance(manifest, dict) else None
+    counts = manifest.get("table_row_counts") if isinstance(manifest, dict) else None
+    migrations = manifest.get("migration_versions") if isinstance(manifest, dict) else None
+    if not isinstance(manifest, dict) or manifest.get("manifest_version") != 1 or manifest.get("format") != "postgres_custom":
+        raise DrillError("backup manifest has an unsupported format or version")
+    if not isinstance(artifact, dict) or not isinstance(artifact.get("filename"), str) or not isinstance(artifact.get("sha256"), str):
+        raise DrillError("backup manifest is missing artifact filename or SHA-256")
+    if archive is None:
+        archive = path.parent / artifact["filename"]
+    if not archive.is_file() or archive.name != artifact["filename"]:
+        raise DrillError("backup archive is missing or does not match manifest filename")
+    if file_sha256(archive) != artifact["sha256"]:
+        raise DrillError("backup archive SHA-256 does not match manifest")
+    if not isinstance(counts, dict) or set(counts) != set(TABLES) or any(not isinstance(value, int) or value < 0 for value in counts.values()):
+        raise DrillError("backup manifest does not contain valid required table row counts")
+    if not isinstance(migrations, list) or not migrations or any(not isinstance(value, str) or not value for value in migrations):
+        raise DrillError("backup manifest does not contain migration versions")
+    return archive, counts, tuple(migrations)
 
 
 def pg_environment(url: str, *, database: str | None = None) -> dict[str, str]:
@@ -77,6 +114,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Export a local source read-only, restore it to a disposable target, compare catalog/counts, then clean up.")
     parser.add_argument("--database-url", default=os.environ.get("DATABASE_URL"), help="loopback source URL; source is read-only")
     parser.add_argument("--target-database", help="optional disposable jpp_restore_* database name")
+    parser.add_argument("--backup-manifest", type=Path, help="JSON manifest from backup_database.py; restores its checksum-verified archive")
+    parser.add_argument("--backup-archive", type=Path, help="optional archive path when it is not next to the manifest")
     args = parser.parse_args(argv)
     if not args.database_url:
         parser.error("--database-url or DATABASE_URL is required")
@@ -89,14 +128,20 @@ def main(argv: list[str] | None = None) -> int:
     try:
         print("SOURCE_READ_ONLY export and inventory started")
         source = inventory(source_env)
+        manifest_counts: dict[str, int] | None = None
+        manifest_migrations: tuple[str, ...] | None = None
         with tempfile.TemporaryDirectory(prefix="jpp-restore-drill-") as temp:
-            archive = Path(temp) / "source.dump"
-            # The drill intentionally scopes the artifact to application data plus
-            # the migration ledger.  Provider-managed auth/realtime internals have
-            # their own recovery procedures and cannot be restored by an ordinary
-            # PostgreSQL role on the local Supabase stack.
-            run(["pg_dump", "--format=custom", "--no-owner", "--no-acl", "--schema=public", "--schema=supabase_migrations", "--file", str(archive)], source_env, label="logical export")
-            print(f"EXPORT_OK artifact_bytes={archive.stat().st_size}")
+            if args.backup_manifest:
+                archive, manifest_counts, manifest_migrations = load_backup_manifest(args.backup_manifest, args.backup_archive)
+                print(f"BACKUP_MANIFEST_OK archive={archive} sha256_verified=true")
+            else:
+                archive = Path(temp) / "source.dump"
+                # The drill intentionally scopes the artifact to application data plus
+                # the migration ledger.  Provider-managed auth/realtime internals have
+                # their own recovery procedures and cannot be restored by an ordinary
+                # PostgreSQL role on the local Supabase stack.
+                run(["pg_dump", "--format=custom", "--no-owner", "--no-acl", "--schema=public", "--schema=supabase_migrations", "--file", str(archive)], source_env, label="logical export")
+                print(f"EXPORT_OK artifact_bytes={archive.stat().st_size}")
             run(["createdb", "--template=template0", target], maintenance_env, label="create disposable target")
             created = True
             print(f"RESTORE_TARGET_CREATED database={target}")
@@ -120,10 +165,20 @@ def main(argv: list[str] | None = None) -> int:
             run(["pg_restore", "--use-list", str(restore_list), "--exit-on-error", "--no-owner", "--no-acl", "--dbname", target, str(archive)], maintenance_env, label="restore")
             print("RESTORE_OK")
             restored = inventory(pg_environment(args.database_url, database=target))
-            mismatches = [key for key in source if source[key] != restored.get(key)]
+            if manifest_counts is not None and manifest_migrations is not None:
+                mismatches = [
+                    f"count:{table}"
+                    for table in TABLES
+                    if restored.get(f"count:{table}") != (str(manifest_counts[table]),)
+                ]
+                if restored["migrations"] != manifest_migrations:
+                    mismatches.append("migrations")
+            else:
+                mismatches = [key for key in source if source[key] != restored.get(key)]
             if mismatches:
                 raise DrillError("restore assertion mismatch: " + ", ".join(mismatches))
-            print(f"ASSERTIONS_OK tables={len(TABLES)} migration_versions={len(source['migrations'])}")
+            migration_count = len(manifest_migrations) if manifest_migrations is not None else len(source["migrations"])
+            print(f"ASSERTIONS_OK tables={len(TABLES)} migration_versions={migration_count}")
         return 0
     except DrillError as exc:
         print(f"RESTORE_DRILL_FAILED {exc}", file=sys.stderr)

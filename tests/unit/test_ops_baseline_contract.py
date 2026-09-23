@@ -21,6 +21,7 @@ def test_restore_drill_help_describes_source_read_only_and_disposable_target() -
     assert result.returncode == 0
     assert "read-only" in result.stdout
     assert "disposable" in result.stdout
+    assert "manifest" in result.stdout
 
 
 def test_observability_check_has_required_read_only_contract() -> None:
@@ -37,6 +38,9 @@ def test_observability_check_has_required_read_only_contract() -> None:
     assert "docker exec" in script
     assert "deploy-api-1" in script
     assert "asyncpg" in script
+    assert "backup_artifact" in script
+    assert "BACKUP_FRESHNESS_HOURS" in script
+    assert "OBSERVABILITY_ALERT" in script
     assert not re.search(r"(?<![A-Za-z0-9_])psql(?:\s|\")", script)
 
 
@@ -64,3 +68,16 @@ def test_compose_scheduler_runs_collection_qa_sweep_with_snapshot_mount() -> Non
 
     readme = (ROOT / "deploy/README.md").read_text(encoding="utf-8")
     assert "collection_sweep.py" in readme
+
+
+def test_backup_units_require_their_environment_file_and_run_before_mlit_refresh() -> None:
+    service = (ROOT / "deploy/systemd/zouseeking-backup.service").read_text(encoding="utf-8")
+    timer = (ROOT / "deploy/systemd/zouseeking-backup.timer").read_text(encoding="utf-8")
+    readme = (ROOT / "deploy/README.md").read_text(encoding="utf-8")
+
+    assert "EnvironmentFile=/etc/zouseeking/backup.env" in service
+    assert "backup_database.py" in service
+    assert "03:10:00 Asia/Tokyo" in timer
+    assert "03:30" in (ROOT / "deploy/systemd/mlit-refresh.timer").read_text(encoding="utf-8")
+    assert "backup.env" in readme
+    assert "BACKUP_S3_BUCKET" in readme

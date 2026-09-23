@@ -181,6 +181,70 @@ The timer runs every 15 minutes and appends stdout/stderr to
 `/var/log/zouseeking/observability.log`. A non-zero run is an alert for
 operators to inspect; the script never repairs, requeues, or deletes rows.
 
+It also checks the newest database backup manifest and its paired dump. The
+default threshold is 36 hours (`BACKUP_FRESHNESS_HOURS=36`). When S3-compatible
+settings are absent it checks `BACKUP_LOCAL_DIR` (default
+`/var/backups/zouseeking`); otherwise it lists the configured object-store
+prefix. This remains a read-only check and preserves the `OBSERVABILITY_ALERT`
+plus non-zero-exit contract when an artifact is missing or stale.
+
+## Daily database backup
+
+`scripts/backup_database.py` makes a PostgreSQL custom-format logical dump
+with a sidecar `manifest.json`. PostgreSQL queries and `pg_dump` run in a
+short-lived PostgreSQL client container, so the host does not need `psql`.
+The manifest records creation time, artifact size, SHA-256, all migration
+versions, row counts for the seven recovery-critical tables, server and tool
+versions. It retains local artifacts for 14 days by default.
+
+Create the required environment file before enabling the service. A missing
+`EnvironmentFile` makes systemd fail with `Failed to load environment files`;
+the unit deliberately does not mark it optional. Keep this file mode 600 and
+never put its contents in Git:
+
+```bash
+sudo install -d -o ubuntu -g ubuntu -m 755 /var/backups/zouseeking /etc/zouseeking /var/log/zouseeking
+sudo install -o ubuntu -g ubuntu -m 600 /dev/null /etc/zouseeking/backup.env
+sudoedit /etc/zouseeking/backup.env
+```
+
+The environment file requires `DATABASE_URL` and may select the local retention
+directory and retention duration:
+
+```dotenv
+DATABASE_URL=postgresql://backup_read_role:...@database-host:5432/postgres
+BACKUP_LOCAL_DIR=/var/backups/zouseeking
+BACKUP_RETENTION_DAYS=14
+# BACKUP_PG_CLIENT_IMAGE=postgres:17
+```
+
+For S3-compatible upload, set every one of the following in the same file:
+`BACKUP_S3_BUCKET`, `BACKUP_S3_ENDPOINT`, `BACKUP_S3_REGION`,
+`BACKUP_S3_ACCESS_KEY_ID`, and `BACKUP_S3_SECRET_ACCESS_KEY`. Optionally set
+`BACKUP_S3_PREFIX=zouseeking/database`. If any required setting is absent, the
+script explicitly reports local-retention mode and does not make an object-store
+request. Configure the bucket lifecycle policy outside this repository for the
+approved remote retention period; the script never deletes remote objects.
+
+Install only after the operator has approved the host paths and database role:
+
+```bash
+cd /opt/zouseeking
+sudo chown root:root /opt/zouseeking/scripts/backup_database.py
+sudo chmod 755 /opt/zouseeking/scripts/backup_database.py
+sudo cp deploy/systemd/zouseeking-backup.{service,timer} /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now zouseeking-backup.timer
+sudo systemctl start zouseeking-backup.service
+sudo tail -n 100 /var/log/zouseeking/backup.log
+```
+
+The timer fires daily at 03:10 JST, before the existing 03:30 JST MLIT refresh.
+Run the backup once before a release and after each applied migration, then run
+the isolated restore drill from the operations runbook against that exact
+manifest. Disable the timer with
+`sudo systemctl disable --now zouseeking-backup.timer` if the host is retired.
+
 SSL is terminated through Cloudflare using Full (strict) mode and the existing
 Cloudflare Origin Certificate mounted from `/opt/zoubeacon/certs`. Do not run
 `certbot` on this machine.

@@ -1,0 +1,16 @@
+[Unit]
+Description=Create ZOUSEEKING PostgreSQL logical backup and manifest
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/zouseeking
+EnvironmentFile=/etc/zouseeking/backup.env
+ExecStart=/opt/zouseeking/backend/.venv/bin/python /opt/zouseeking/scripts/backup_database.py
+NoNewPrivileges=true
+PrivateTmp=true
+StandardOutput=append:/var/log/zouseeking/backup.log
+StandardError=append:/var/log/zouseeking/backup.log

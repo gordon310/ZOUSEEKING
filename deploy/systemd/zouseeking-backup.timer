@@ -1,0 +1,10 @@
+[Unit]
+Description=Run ZOUSEEKING PostgreSQL backup daily before MLIT refresh
+
+[Timer]
+OnCalendar=*-*-* 03:10:00 Asia/Tokyo
+Persistent=true
+Unit=zouseeking-backup.service
+
+[Install]
+WantedBy=timers.target

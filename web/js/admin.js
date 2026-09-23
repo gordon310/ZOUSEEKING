@@ -63,6 +63,10 @@
   const roleExpires = document.querySelector("#roleExpires");
   const roleNoteInput = document.querySelector("#roleGrantNote");
   const roleGrantBtn = document.querySelector("#roleGrantBtn");
+  const inviteList = document.querySelector("#inviteList");
+  const inviteCount = document.querySelector("#inviteCount");
+  const inviteStatus = document.querySelector("#inviteStatus");
+  const inviteCreateBtn = document.querySelector("#inviteCreateBtn");
   const collectionTabNote = document.querySelector("#collectionTabNote");
   const qualityTabNote = document.querySelector("#qualityTabNote");
   const serviceTabNote = document.querySelector("#serviceTabNote");
@@ -110,6 +114,7 @@
   const detailAuditMeta = document.querySelector("#adminDetailAuditMeta");
   const t = (key, fallback = "") =>
     window.ZouI18n && typeof window.ZouI18n.t === "function" ? window.ZouI18n.t(key, fallback) : fallback;
+  const escapeInviteCell = (value) => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 
   const MEMBERS_COLSPAN = 9;
 
@@ -140,6 +145,19 @@
   function setGlobalNotice(text) {
     setText(notice, text);
   }
+
+  async function loadInviteCodes() {
+    if (!isLive || !inviteList) return;
+    try {
+      const payload = await api.listInviteCodes(); const rows = Array.isArray(payload?.items) ? payload.items : [];
+      setText(inviteCount, `${rows.length}`);
+      inviteList.innerHTML = rows.length ? rows.map((row) => `<tr><td><code>${escapeInviteCell(row.code)}</code></td><td>${escapeInviteCell(row.label) || "—"}</td><td>${Number(row.used_count) || 0}${row.max_uses == null ? " / ∞" : ` / ${Number(row.max_uses) || 0}`}</td><td>${escapeInviteCell(row.expires_at) || "—"}</td><td>${row.enabled ? "启用" : "停用"}</td><td><button class="admin-action" data-invite-id="${escapeInviteCell(row.id)}" data-invite-enabled="${row.enabled ? "0" : "1"}">${row.enabled ? "停用" : "启用"}</button></td></tr>`).join("") : '<tr><td colspan="6"><div class="admin-empty">暂无邀请码。</div></td></tr>';
+      inviteList.querySelectorAll("[data-invite-id]").forEach((button) => button.addEventListener("click", async () => { await api.setInviteCodeStatus(button.dataset.inviteId, button.dataset.inviteEnabled === "1"); await loadInviteCodes(); }));
+    } catch (error) { setStatus(inviteStatus, apiErrorMessage(error, "需要 member_ops / super_admin。"), "error"); }
+  }
+  inviteCreateBtn?.addEventListener("click", async () => {
+    try { const created = await api.createInviteCodes({ label: document.querySelector("#inviteLabel").value, note: document.querySelector("#inviteNote").value || undefined, max_uses: Number(document.querySelector("#inviteMaxUses").value) || undefined, expires_at: document.querySelector("#inviteExpires").value || undefined, quantity: Number(document.querySelector("#inviteQuantity").value) || 1 }); setStatus(inviteStatus, `已生成：${(created.items || []).map((x) => x.code).join(", ")}`, "info"); await loadInviteCodes(); } catch (error) { setStatus(inviteStatus, apiErrorMessage(error), "error"); }
+  });
 
   function setMemberNotice(text) {
     setText(memberNotice, text);
@@ -1689,6 +1707,7 @@
     loadOverviewKpis();
     submitPricingWrites();
     loadPricing();
+    loadInviteCodes();
   } else {
     renderDemoMembers();
   }

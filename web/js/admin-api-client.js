@@ -87,6 +87,9 @@
     getPricing() {
       return request("/api/admin/pricing");
     },
+    listInviteCodes() { return request("/api/admin/invite-codes"); },
+    createInviteCodes(body) { return request("/api/admin/invite-codes", { method: "POST", body }); },
+    setInviteCodeStatus(inviteCodeId, enabled) { return request(`/api/admin/invite-codes/${encodeURIComponent(inviteCodeId)}/status`, { method: "POST", body: { enabled } }); },
     createPricingPrice(body) {
       return request("/api/admin/pricing/prices", { method: "POST", body });
     },

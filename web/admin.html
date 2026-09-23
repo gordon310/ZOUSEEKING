@@ -98,6 +98,7 @@
           <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="finance" data-i18n="admin.tabFinance">财务管理</button>
           <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="pricing" data-i18n="admin.tabPricing">定价与套餐</button>
           <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="roles" data-i18n="admin.tabRoles">内部角色</button>
+          <button class="admin-tab" type="button" role="tab" aria-selected="false" data-admin-tab="invites">邀请码</button>
         </div>
         <label class="admin-status-filter">
           状态
@@ -449,6 +450,18 @@
             <div class="admin-table-wrap"><table class="admin-table"><caption data-i18n="admin.pricingRegions">区域映射</caption><thead><tr><th>Region</th><th>Currency</th><th>Active</th></tr></thead><tbody id="pricingRegionList"></tbody></table></div>
             <div class="admin-table-wrap"><table class="admin-table"><caption data-i18n="admin.pricingPlans">套餐</caption><thead><tr><th>Plan</th><th>名称</th><th>Audience</th><th>状态</th><th>版本</th></tr></thead><tbody id="pricingPlanList"></tbody></table></div>
             <div class="admin-table-wrap"><table class="admin-table"><caption data-i18n="admin.pricingEntitlements">套餐权益（含历史）</caption><thead><tr><th>Plan</th><th>Metric</th><th>周期</th><th>上限</th><th>状态</th><th>生效时间</th></tr></thead><tbody id="pricingEntitlementList"></tbody></table></div>
+          </section>
+
+          <section class="admin-panel" id="invites" data-admin-section="invites">
+            <div class="admin-panel-heading"><div><p class="eyebrow">INVITE CODES</p><h2>邀请码</h2></div><span class="admin-panel-count" id="inviteCount">—</span></div>
+            <p class="admin-panel-note">仅 member_ops / super_admin 可生成、查看用量或停用邀请码；代码只在创建时显示一次。</p>
+            <p class="admin-live-status" id="inviteStatus" aria-live="polite"></p>
+            <div class="member-toolbar">
+              <label>标签<input id="inviteLabel" maxlength="160" required /></label><label>备注<input id="inviteNote" maxlength="500" /></label>
+              <label>最大使用次数（空=不限）<input id="inviteMaxUses" type="number" min="1" /></label><label>失效时间<input id="inviteExpires" type="datetime-local" /></label>
+              <label>数量<input id="inviteQuantity" type="number" min="1" max="100" value="1" /></label><button class="admin-action" id="inviteCreateBtn" type="button">生成邀请码</button>
+            </div>
+            <div class="admin-table-wrap"><table class="admin-table"><caption>邀请码用量与失效时间</caption><thead><tr><th>代码</th><th>标签</th><th>用量</th><th>失效时间</th><th>状态</th><th>操作</th></tr></thead><tbody id="inviteList"><tr><td colspan="6"><div class="admin-empty">需登录具有后台权限的账户。</div></td></tr></tbody></table></div>
           </section>
 
           <section class="admin-panel" id="roles" data-admin-section="roles">

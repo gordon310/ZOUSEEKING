@@ -2,6 +2,21 @@
 
 ## Layout and prerequisites
 
+## Pre-release invitation gate
+
+Consumer registration uses invitation codes. A `member_ops` or `super_admin`
+operator creates a code in `web/admin.html` (label, optional use limit, expiry,
+and batch quantity), gives the displayed code to an approved trial user, and
+can disable it in the same table. Disabling stops only new redemptions: it
+never disables an existing account.
+
+The FastAPI service needs `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
+Production must disable GoTrue public signup, configure Auth email-confirmation
+delivery for Admin-created users, apply the reviewed forward migrations, and
+rate-limit the endpoint. Never put a service-role credential in static web
+configuration. To recover an incomplete registration, disable the old code if
+needed and issue a new one; completed users keep ordinary login/reset access.
+
 Clone this repository to `/opt/zouseeking`. The production Compose file is
 `/opt/zouseeking/deploy/docker-compose.prod.yml`; Compose resolves its relative
 volume paths from the `deploy/` directory, so `../web` mounts the repository's

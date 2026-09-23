@@ -54,6 +54,8 @@ addresses or other member data.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import secrets
+import json
 from typing import Any, Optional
 from uuid import UUID
 
@@ -61,6 +63,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from ..auth import AuthUser  # noqa: F401  (documented dependency)
+from ..db import get_pool
 from ..org.routes import _invitation_email
 from .auth import (
     DATA_OPS,
@@ -177,6 +180,18 @@ class OrganizationCreateRequest(BaseModel):
     owner_email: Optional[str] = None
 
 
+class InviteCodeCreateRequest(BaseModel):
+    label: str
+    note: Optional[str] = None
+    max_uses: Optional[int] = None
+    expires_at: Optional[str] = None
+    quantity: int = 1
+
+
+class InviteCodeStatusRequest(BaseModel):
+    enabled: bool
+
+
 def _role_or_400(role: Optional[str]) -> str:
     """Validate against the DB CHECK vocabulary (six values)."""
     value = (role or "").strip()
@@ -224,6 +239,43 @@ def _expires_at_or_400(value: Optional[str]) -> Optional[datetime]:
     if parsed <= datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="过期时间必须是未来时间")
     return parsed
+
+
+@router.get("/invite-codes")
+async def list_invite_codes(principal: AdminPrincipal = Depends(require_admin_role(MEMBER_OPS, SUPER_ADMIN))) -> dict[str, Any]:
+    async with get_pool().acquire() as conn:
+        rows = await conn.fetch("""select id,code,label,note,max_uses,used_count,expires_at,enabled,created_at,last_used_at
+                                   from public.invite_codes order by created_at desc limit 500""")
+    return {"items": [dict(row) for row in rows]}
+
+
+@router.post("/invite-codes", status_code=201)
+async def create_invite_codes(body: InviteCodeCreateRequest, principal: AdminPrincipal = Depends(require_admin_role(MEMBER_OPS, SUPER_ADMIN))) -> dict[str, Any]:
+    label = body.label.strip()
+    if not label or len(label) > 160 or not 1 <= body.quantity <= 100 or body.max_uses is not None and body.max_uses <= 0:
+        raise HTTPException(status_code=400, detail="邀请码参数无效")
+    expires_at = _expires_at_or_400(body.expires_at)
+    codes = [f"zou-{secrets.token_urlsafe(12).lower()}"[:128] for _ in range(body.quantity)]
+    async with get_pool().acquire() as conn:
+        async with conn.transaction():
+            rows = []
+            for code in codes:
+                rows.append(await conn.fetchrow("""insert into public.invite_codes(code,label,note,max_uses,expires_at,created_by)
+                    values($1,$2,$3,$4,$5,$6) returning id,code,label,max_uses,expires_at,enabled,used_count""", code, label, body.note, body.max_uses, expires_at, principal.user.user_id))
+            await conn.execute("insert into public.audit_events(actor_user_id,action,target_type,target_id,summary) values($1,'admin.invite_codes.created','invite_code_batch',$2,$3::jsonb)", principal.user.user_id, str(rows[0]["id"]), json.dumps({"quantity": len(rows), "label": label}, ensure_ascii=False))
+    return {"items": [dict(row) for row in rows]}
+
+
+@router.post("/invite-codes/{invite_code_id}/status")
+async def set_invite_code_status(invite_code_id: str, body: InviteCodeStatusRequest, principal: AdminPrincipal = Depends(require_admin_role(MEMBER_OPS, SUPER_ADMIN))) -> dict[str, Any]:
+    try: code_id = UUID(invite_code_id)
+    except ValueError as exc: raise HTTPException(status_code=400, detail="无效的邀请码标识") from exc
+    async with get_pool().acquire() as conn:
+        async with conn.transaction():
+            row = await conn.fetchrow("update public.invite_codes set enabled=$2 where id=$1 returning id,enabled,code", code_id, body.enabled)
+            if row is None: raise HTTPException(status_code=404, detail="邀请码不存在")
+            await conn.execute("insert into public.audit_events(actor_user_id,action,target_type,target_id,summary) values($1,'admin.invite_code.status_changed','invite_code',$2,$3::jsonb)", principal.user.user_id, str(code_id), json.dumps({"enabled": body.enabled}, ensure_ascii=False))
+    return dict(row)
 
 
 def _page_params(

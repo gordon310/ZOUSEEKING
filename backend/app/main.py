@@ -48,6 +48,7 @@ from .analysis.routes import router as analysis_router
 from .region_stats_routes import router as region_stats_router
 from .org.routes import router as org_router
 from .service_routes import router as service_router
+from .routes.invites import router as invite_router
 from .usage.ledger import QuotaExceeded
 from .usage.quota import consume_current_entitlement
 
@@ -151,6 +152,7 @@ app.include_router(analysis_router)
 app.include_router(region_stats_router)
 app.include_router(org_router)
 app.include_router(service_router)
+app.include_router(invite_router)
 app.include_router(admin_router)
 app.include_router(privacy_router)
 app.include_router(recognition_router)

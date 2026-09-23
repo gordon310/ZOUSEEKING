@@ -2001,9 +2001,10 @@ async function register(event) {
   const username = $("#registerUsername").value.trim();
   const email = $("#registerEmail").value.trim();
   const password = $("#registerPassword").value;
+  const inviteCode = $("#registerInviteCode").value.trim();
   const submitButton = $("#registerForm button[type='submit']");
 
-  if (!username || !email || !password) {
+  if (!username || !email || !password || !inviteCode) {
     setMessage("用户名、邮件、密码都要填。小象不挑食，但不能空盘。", "error");
     return;
   }
@@ -2012,8 +2013,8 @@ async function register(event) {
     return;
   }
 
-  if (!hasSupabase()) {
-    setMessage("账户服务还未配置，暂时无法注册；没有保存密码。", "error");
+  if (!API_BASE_URL) {
+    setMessage(uiText("account.inviteUnavailable", "受邀注册服务尚未配置。"), "error");
     return;
   }
   const consent = readRegistrationConsent();
@@ -2021,62 +2022,29 @@ async function register(event) {
 
   try {
     submitButton.disabled = true;
-    setMessage("正在注册，小象在 Supabase 门口排队……");
-    const signupAudience = document.body?.dataset.audience ||
-      (window.location.hostname === "platform.zoubeacon.com" ? "b" : "c");
-    const data = await supabaseAuthFetch(`/signup?redirect_to=${encodeURIComponent(appRedirectUrl())}`, {
+    setMessage(uiText("account.inviteRequired", "正在验证邀请码……"));
+    const data = await apiFetch("/api/auth/invite-register", {
       method: "POST",
       body: JSON.stringify({
-        email,
-        password,
-        data: {
-          audience: signupAudience === "b" ? "b" : "c",
-          username,
-          consent_version: consent.consentVersion,
-          consent_at: consent.consentAt,
-          terms_version: consent.termsVersion,
-          consent_source: "registration",
-        },
+        email, password, username, invite_code: inviteCode,
+        consent_version: consent.consentVersion, terms_version: consent.termsVersion,
       }),
     });
-    if (!data?.access_token) {
-      const identities = Array.isArray(data?.identities)
-        ? data.identities
-        : Array.isArray(data?.user?.identities)
-          ? data.user.identities
-          : null;
-      if (Array.isArray(identities) && identities.length === 0) {
-        clearEmailVerification();
-        showMode("login");
-        setMessage(uiText("account.registerDuplicate", "该邮箱已注册，请直接登录。"), "error");
-      } else if (Array.isArray(identities) && identities.length > 0) {
-        showEmailVerification(email, "register");
-        setMessage("");
-      } else {
-        clearEmailVerification();
-        setMessage(uiText("account.registerUnavailable", "注册未完成，请稍后重试。"), "error");
-      }
-      return;
-    }
-    const session = sessionFromAuth(data, { username, email });
-    if (!session.accessToken || !session.userId || !session.email) {
-      const error = new Error("auth_signup_session_invalid");
-      error.code = "auth_signup_session_invalid";
-      throw error;
-    }
     $("#registerForm").reset();
-    state.query = "";
-    state.queryOptions = null;
-    state.page = 1;
-    state.selectedId = "";
-    saveSession(session);
-    await ensureUserProfile();
-    await loadMyPage();
-    setMessage(uiText("account.registerSuccess", "注册成功，已登录。可以搜房了。"), "success");
-    history.replaceState(null, "", appRedirectUrl());
-    render();
+    showMode("login");
+    setMessage(uiText("account.inviteRegistrationCreated", "账户已创建；请完成邮箱确认后登录。"), "success");
   } catch (error) {
-    if (error?.status === 429 || error?.code === "over_email_send_rate_limit") {
+    if (error?.code === "invite_code_exhausted") {
+      setMessage(uiText("account.inviteExhausted", "邀请码已用尽。"), "error");
+    } else if (error?.code === "invite_code_expired") {
+      setMessage(uiText("account.inviteExpired", "邀请码已过期。"), "error");
+    } else if (error?.code === "invite_code_disabled") {
+      setMessage(uiText("account.inviteDisabled", "邀请码已停用。"), "error");
+    } else if (error?.code === "invite_code_invalid" || error?.code === "invite_code_unavailable" || error?.status === 403) {
+      setMessage(uiText("account.inviteInvalid", "邀请码无效、已停用或已过期。"), "error");
+    } else if (error?.code === "account_already_exists" || error?.status === 409) {
+      showMode("login"); setMessage(uiText("account.registerDuplicate", "该邮箱已注册，请直接登录。"), "error");
+    } else if (error?.status === 429 || error?.code === "over_email_send_rate_limit") {
       clearEmailVerification();
       setMessage(uiText("account.registerRateLimited", "邮件发送过于频繁，请稍后再试。"), "error");
     } else if (error?.code === "user_already_exists" || error?.code === "email_exists" || error?.status === 422) {

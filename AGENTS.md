@@ -83,6 +83,8 @@ The Supabase and FastAPI paths are competing implementations, not interchangeabl
 
 ## Member and account requirements
 
+- Consumer pre-release registration is invitation-only. `invite_codes` and `invite_redemptions` are service-role-only tables; browser code must use the FastAPI invite-registration boundary, never direct Auth public signup or table reads. Existing accounts, administrators, and organization members remain outside this gate.
+
 - Registration must define email-confirmation behavior, password policy, duplicate-account behavior, and anti-automation controls.
 - Provide password reset, logout/revocation, account deletion, and privacy/terms consent before treating the member system as complete.
 - Use uniform responses for login, signup, and password reset where account enumeration is possible.

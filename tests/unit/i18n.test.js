@@ -116,6 +116,19 @@ test("all supported locales have the same key set", () => {
   }
 });
 
+test("invite-only and pre-release labels are complete in all four consumer locales", () => {
+  const required = [
+    "account.inviteCode", "account.inviteRequired", "account.inviteInvalid",
+    "account.inviteExhausted", "account.inviteExpired", "account.inviteDisabled",
+    "trial.badge", "trial.provenance",
+  ];
+  for (const locale of ["zh-CN", "zh-Hant", "en", "ja"]) {
+    const i18n = loadI18n({ search: `?lang=${locale}` });
+    for (const key of required) assert.notEqual(i18n.t(key), key, `${locale}: ${key}`);
+    assert.doesNotMatch(i18n.t("trial.badge"), /资料查詢|資料查詢/);
+  }
+});
+
 test("every dynamic dictionary entry declares all four locales", () => {
   const source = fs.readFileSync("web/js/i18n.js", "utf8").replace(
     "const ADDITIONAL_I18N = {",

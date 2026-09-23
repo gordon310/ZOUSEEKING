@@ -106,8 +106,10 @@ begin
   -- The same view migration adds three service_role SELECT grants. The 374
   -- baseline is the CI-style disposable-reset value (the prior 367 contract
   -- also predated four grants from the existing report-outbox migration).
-  if service_grant_count <> 370 then
-    raise exception 'service_role public grant count %, expected 370', service_grant_count;
+  -- The CI disposable baseline is 374 before the invite migration; its two
+  -- GRANT ALL table lines expand to 14 privilege rows, giving 388.
+  if service_grant_count <> 388 then
+    raise exception 'service_role public grant count %, expected 388', service_grant_count;
   end if;
 
   if exists (

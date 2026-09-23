@@ -81,12 +81,13 @@
           <label><span data-i18n="account.username">用户名</span><input id="registerUsername" type="text" placeholder="比如：Gordon" data-i18n-placeholder="account.usernamePlaceholder" autocomplete="nickname" /></label>
           <label><span data-i18n="account.email">邮箱</span><input id="registerEmail" type="email" placeholder="name@example.com" autocomplete="email" /></label>
           <label><span data-i18n="account.password">密码</span><input id="registerPassword" type="password" placeholder="请输入密码" data-i18n-placeholder="account.passwordShortPlaceholder" autocomplete="new-password" /></label>
+          <label><span data-i18n="account.inviteCode">邀请码</span><input id="registerInviteCode" type="text" autocomplete="off" required data-i18n-placeholder="account.inviteCodePlaceholder" /></label>
           <p class="field-help password-rule" data-i18n="account.passwordRule">密码规则：6–128 位，不能包含控制字符</p>
           <label class="consent-check">
             <input id="registerConsent" type="checkbox" required />
             <span><span data-i18n="account.consentPrefix">我已阅读并同意</span> <a href="privacy.html" target="_blank" rel="noopener" data-i18n="account.privacyPolicy">隐私政策</a> <span data-i18n="account.consentAnd">和</span> <a href="terms.html" target="_blank" rel="noopener" data-i18n="account.terms">服务条款</a>。</span>
           </label>
-          <button type="submit" data-i18n="account.registerAndLogin">注册并登录</button>
+          <button type="submit" data-i18n="account.registerAndLogin">凭邀请码注册</button>
         </form>
 
         <form class="account-form hidden" id="forgotPasswordForm">
@@ -96,6 +97,7 @@
 
         <p class="form-message" id="formMessage"></p>
       </section>
+      <p class="business-provenance-note" data-i18n="trial.badge">试运行数据</p>
 
       <section class="latest-panel business-latest-panel">
         <div class="section-title">

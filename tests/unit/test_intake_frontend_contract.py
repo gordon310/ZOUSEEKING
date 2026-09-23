@@ -1,9 +1,9 @@
 from pathlib import Path
 
 
-SOURCE = (Path(__file__).parents[2] / "web" / "js" / "property-intake.js").read_text(encoding="utf-8")
-RECOGNITION_SOURCE = (Path(__file__).parents[2] / "web" / "js" / "recognition.js").read_text(encoding="utf-8")
-REPORT_SOURCE = (Path(__file__).parents[2] / "web" / "js" / "report-page.js").read_text(encoding="utf-8")
+SOURCE = (Path(__file__).parents[2] / "web-source" / "js" / "property-intake.js").read_text(encoding="utf-8")
+RECOGNITION_SOURCE = (Path(__file__).parents[2] / "web-source" / "js" / "recognition.js").read_text(encoding="utf-8")
+REPORT_SOURCE = (Path(__file__).parents[2] / "web-source" / "js" / "report-page.js").read_text(encoding="utf-8")
 
 
 def test_frontend_uses_not_subdivided_option_for_cities_without_wards():

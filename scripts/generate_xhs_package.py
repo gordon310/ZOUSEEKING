@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 LOGO_CANDIDATES = (
     ROOT / "logoELE.png",
     ROOT / "assets" / "logoELE.png",
-    ROOT / "web" / "assets" / "logoELE.png",
+    ROOT / "web" / "assets" / "icon-512.png",
 )
 LOGO = next((path for path in LOGO_CANDIDATES if path.is_file()), LOGO_CANDIDATES[0])
 FONT_REGULAR = "/System/Library/Fonts/STHeiti Light.ttc"

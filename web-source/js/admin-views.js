@@ -1,0 +1,575 @@
+(() => {
+  // Presentation helpers for the admin page: demo fixture data, HTML row
+  // builders for live /api/admin/* payloads, status/format label maps and the
+  // shared pager markup. Pure string/DOM-free logic so admin.js stays a thin
+  // controller (AGENTS frontend rule: no single growing controller file).
+  //
+  // Every server-provided value goes through escape() before it is placed into
+  // HTML strings. Live data is never mixed into the demo fixtures.
+
+  const t = (key, fallback = "") => {
+    const i18n = window.ZouI18n;
+    return i18n && typeof i18n.t === "function" ? i18n.t(key, fallback) : fallback;
+  };
+  const interp = (text, params = {}) => String(text).replace(/\{(\w+)\}/g, (match, key) =>
+    Object.prototype.hasOwnProperty.call(params, key) ? String(params[key]) : match,
+  );
+
+  function escape(value) {
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function shortId(value, length = 8) {
+    const text = String(value ?? "");
+    return text.length > length ? `${text.slice(0, length)}…` : text || "—";
+  }
+
+  function fmtDateTime(iso) {
+    if (!iso) return "—";
+    return String(iso).slice(0, 19).replace("T", " ");
+  }
+
+  // payment_orders.refunds store amount_minor. Convert using ISO 4217 minor
+  // exponents for well-known currencies; anything unknown is shown as raw minor
+  // units with an explicit suffix so the number is never silently scaled.
+  const CURRENCY_EXPONENTS = {
+    JPY: 0, KRW: 0, VND: 0, ISK: 0, CLP: 0,
+    USD: 2, EUR: 2, CNY: 2, GBP: 2, HKD: 2, SGD: 2, AUD: 2, CAD: 2, CHF: 2,
+    NZD: 2, SEK: 2, NOK: 2, DKK: 2, TWD: 2, THB: 2, MOP: 2, CZK: 2, PLN: 2,
+  };
+
+  function fmtMoney(currency, amountMinor) {
+    if (amountMinor === null || amountMinor === undefined) return "—";
+    const exponent = CURRENCY_EXPONENTS[currency] ?? 0;
+    const amount = Number(amountMinor) / 10 ** exponent;
+    const label = `${currency || ""} ${amount.toLocaleString("zh-CN", {
+      minimumFractionDigits: exponent > 0 ? exponent : 0,
+      maximumFractionDigits: Math.max(exponent, 0),
+    })}`;
+    return exponent === 0 && !(currency in CURRENCY_EXPONENTS) ? `${label} minor` : label;
+  }
+
+  const ORDER_STATUS_TEXT = {
+    pending: t("admin.statusOrderPending", "待支付"), paid: t("admin.statusOrderPaid", "已支付"),
+    failed: t("admin.statusOrderFailed", "支付失败"), canceled: t("admin.statusCanceled", "已取消"),
+    refunded: t("admin.statusRefunded", "已退款"), partially_refunded: t("admin.statusPartiallyRefunded", "部分退款"),
+  };
+  const REFUND_STATUS_TEXT = {
+    pending: t("admin.statusRefundPending", "待处理"), succeeded: t("admin.statusRefundSucceeded", "已退款"), failed: t("admin.statusRefundFailed", "退款失败"),
+  };
+  const RUN_STATUS_TEXT = {
+    queued: t("admin.statusQueued", "排队中"), running: t("admin.statusRunning", "运行中"), succeeded: t("admin.statusSucceeded", "已完成"), failed: t("admin.statusFailed", "失败"), cancelled: t("admin.statusCancelled", "已取消"),
+  };
+  const MEMBER_TIER_TEXT = {
+    free: t("admin.tierFree", "免费版"), basic: t("admin.tierBasic", "基础版"), observer: t("admin.tierObserver", "观察版"), pro: t("admin.tierPro", "专业版"), premium: t("admin.tierPremium", "高级版"),
+  };
+  // source_type vocabulary (mirrors the DB CHECK + backend admin service).
+  const COLLECTION_SOURCE_TYPES = [
+    "authorized_csv",
+    "official_open",
+    "partner",
+    "user_submitted",
+    "aggregate_authorized",
+  ];
+
+  function statusClassFor(status) {
+    const map = {
+      paid: "status-complete",
+      succeeded: "status-complete",
+      completed: "status-complete",
+      active: "status-active",
+      running: "status-active",
+      pending: "status-review",
+      review: "status-review",
+      failed: "status-failed",
+      paused: "status-paused",
+      suspended: "status-paused",
+      canceled: "status-paused",
+      cancelled: "status-paused",
+      refunded: "status-paused",
+      partially_refunded: "status-paused",
+    };
+    return map[status] || "";
+  }
+
+  function badge(status, text) {
+    const cls = statusClassFor(status);
+    return `<span class="admin-table-status ${cls}">${escape(text)}</span>`;
+  }
+
+  function statusLabel(status, fallback) {
+    return fallback[status] || String(status || "—");
+  }
+
+  function emptyRow(colspan, message) {
+    return `<tr><td colspan="${colspan}"><div class="admin-empty">${escape(message)}</div></td></tr>`;
+  }
+
+  function loadingRow(colspan) {
+    return emptyRow(colspan, t("admin.loading", "正在从后台加载……"));
+  }
+
+  // ---------- demo fixtures (unchanged default surface) ----------
+
+  const demoMembers = [
+    {
+      id: "MBR-001",
+      label: "演示会员 A",
+      tier: "专业版",
+      status: "active",
+      quota: "18 / 30 次",
+      activity: "今日 10:42",
+      detail: "演示会员 A 当前为专业版，最近查看了东京港区的物件统计。此行不对应真实账户。",
+    },
+    {
+      id: "MBR-002",
+      label: "演示会员 B",
+      tier: "基础版",
+      status: "review",
+      quota: "4 / 10 次",
+      activity: "昨日 16:18",
+      detail: "演示会员 B 的会员资料等待工作人员确认。真实等级、额度和状态必须由后端权限路径决定。",
+    },
+    {
+      id: "MBR-003",
+      label: "演示会员 C",
+      tier: "专业版",
+      status: "paused",
+      quota: "0 / 30 次",
+      activity: "2026-08-25",
+      detail: "演示会员 C 当前为暂停状态。页面按钮只模拟后台操作，不会撤销任何真实会话。",
+    },
+    {
+      id: "MBR-004",
+      label: "演示会员 D",
+      tier: "观察版",
+      status: "active",
+      quota: "2 / 5 次",
+      activity: "2026-08-22",
+      detail: "演示会员 D 使用观察版额度查看了本地演示数据，未连接真实会员资料。",
+    },
+  ];
+
+  function demoMemberStatusLabel(status) {
+    if (status === "paused") return t("admin.statusPaused", "已暂停");
+    if (status === "review") return t("admin.statusReview", "待确认");
+    return t("admin.statusActive", "正常");
+  }
+
+  function demoMemberStatusClass(status) {
+    if (status === "paused") return "status-paused";
+    if (status === "review") return "status-review";
+    return "status-active";
+  }
+
+  function demoMemberRowsHtml(rows) {
+    if (!rows.length) {
+      return emptyRow(6, t("admin.emptyDemoMembers", "没有符合条件的演示会员。"));
+    }
+    return rows
+      .map((row) => `
+        <tr data-member-row data-member-id="${escape(row.id)}">
+          <th scope="row">${escape(row.label)}<span>${escape(row.id)}</span></th>
+          <td>${escape(row.tier)}</td>
+          <td><span class="admin-table-status ${demoMemberStatusClass(row.status)}">${demoMemberStatusLabel(row.status)}</span></td>
+          <td>${escape(row.quota)}</td>
+          <td>${escape(row.activity)}</td>
+          <td class="member-actions">
+            <button class="admin-action" type="button" data-member-action="view" data-member-id="${escape(row.id)}">${t("admin.view", "查看")}</button>
+            <button class="admin-action" type="button" data-member-action="toggle" data-member-id="${escape(row.id)}">${row.status === "paused" ? t("admin.resumeDemo", "恢复（演示）") : t("admin.pauseDemo", "暂停（演示）")}</button>
+          </td>
+        </tr>
+      `)
+      .join("");
+  }
+
+  // ---------- live member list / detail ----------
+
+  // 9 columns: 会员 / 端别 / 等级 / 状态 / 内部角色 / 订阅 / 当月用量 / 加入时间 / 操作
+  const memberLiveHeaders = `
+    <tr>
+      <th scope="col">${t("admin.member", "会员")}</th><th scope="col">${escape(t("admin.audience", "端别"))}</th><th scope="col">${t("admin.tier", "等级")}</th><th scope="col">${t("admin.status", "状态")}</th><th scope="col">${t("admin.internalRoles", "内部角色")}</th>
+      <th scope="col">${t("admin.subscriptions", "订阅")}</th><th scope="col">${t("admin.monthlyUsage", "当月用量")}</th><th scope="col">${t("admin.joinedAt", "加入时间")}</th><th scope="col">${t("admin.actions", "操作")}</th>
+    </tr>`;
+  const memberDemoHeaders = `
+    <tr>
+      <th scope="col">${t("admin.member", "会员")}</th><th scope="col">${t("admin.tier", "等级")}</th><th scope="col">${t("admin.status", "状态")}</th><th scope="col">${t("admin.quotaUsage", "额度使用")}</th>
+      <th scope="col">${t("admin.recentActivity", "最近活动")}</th><th scope="col">${t("admin.actions", "操作")}</th>
+    </tr>`;
+
+  function tierLabel(tier) {
+    return MEMBER_TIER_TEXT[tier] || tier || "—";
+  }
+
+  function rolesText(roles) {
+    if (!Array.isArray(roles) || !roles.length) return "—";
+    return roles.map((role) => (role && typeof role === "object" ? role.role : role) || "").filter(Boolean).join("、");
+  }
+
+  function subscriptionsText(subscriptions) {
+    if (!Array.isArray(subscriptions) || !subscriptions.length) return "—";
+    return subscriptions
+      .map((sub) => {
+        const code = sub?.product_code || "—";
+        const st = sub?.status || "";
+        return `${escape(code)}<span>${escape(statusLabel(st, ORDER_STATUS_TEXT))}</span>`;
+      })
+      .join("、");
+  }
+
+  function quotasText(quotas) {
+    if (!Array.isArray(quotas) || !quotas.length) return "—";
+    return quotas
+      .map((quota) => {
+        const kind = quota?.usage_kind || "query";
+        const used = quota?.consumed_units ?? 0;
+        const limit = quota?.limit_units ?? 0;
+        return `${used} / ${limit}（${kind}）`;
+      })
+      .join("、");
+  }
+
+  // Live member rows. ``canWrite`` comes from the /api/admin/internal/me role
+  // gate (member_ops/super_admin): with it the status toggle button is an
+  // enabled 停用/恢复 write; without it the button is disabled and explains
+  // the role requirement.  A missing payload status falls back to 'active'
+  // (the DB default) so a list response from an older backend stays safe.
+  function memberLiveRowsHtml(items, options = {}) {
+    const {
+      canWrite = false,
+      statusTexts = { active: "正常", suspended: "已停用" },
+      suspendLabel = "停用",
+      resumeLabel = "恢复",
+      writeBlockedTitle = "",
+    } = options;
+    if (!items || !items.length) {
+      return emptyRow(9, t("admin.emptyMembers", "没有符合条件的会员。"));
+    }
+    return items
+      .map((member) => {
+        const name = member.display_name || member.username || shortId(member.user_id, 12);
+        const sub = [member.email, shortId(member.user_id)].filter(Boolean).join(" · ");
+        const status = member.status === "suspended" ? "suspended" : "active";
+        const statusText = statusTexts[status] || status || "—";
+        const isSuspended = status === "suspended";
+        const action = isSuspended ? "resume" : "suspend";
+        const actionLabel = isSuspended ? resumeLabel : suspendLabel;
+        const blocked = canWrite ? "" : ` disabled title="${escape(writeBlockedTitle)}"`;
+        return `
+        <tr data-member-row data-member-id="${escape(member.user_id)}" data-member-status="${escape(status)}">
+          <th scope="row">${escape(name)}<span>${escape(sub)}</span></th>
+          <td><select class="admin-member-audience" data-member-audience data-member-id="${escape(member.user_id)}"${canWrite ? "" : " disabled"} aria-label="${escape(t("admin.audience", "端别"))}"><option value="c"${member.audience === "c" ? " selected" : ""}>C</option><option value="b"${member.audience === "b" ? " selected" : ""}>B</option></select></td>
+          <td>${escape(tierLabel(member.membership_tier))}</td>
+          <td><span class="admin-table-status ${statusClassFor(status)}">${escape(statusText)}</span></td>
+          <td>${escape(rolesText(member.roles))}</td>
+          <td>${subscriptionsText(member.subscriptions)}</td>
+          <td>${quotasText(member.usage_quotas)}</td>
+          <td>${escape(fmtDateTime(member.created_at))}</td>
+          <td class="member-actions">
+            <button class="admin-action" type="button" data-member-action="view" data-member-id="${escape(member.user_id)}">${t("admin.view", "查看")}</button>
+            <button class="admin-action" type="button" data-member-action="${action}" data-member-id="${escape(member.user_id)}"${blocked}>${escape(actionLabel)}</button>
+          </td>
+        </tr>`;
+      })
+      .join("");
+  }
+
+  function memberDetailText(member) {
+    const lines = [];
+    const name = member.display_name || member.username || "—";
+    const detailLine = (key, fallback, value) => `${t(key, fallback)}：${value}`;
+    lines.push(detailLine("admin.detailMember", "会员", name));
+    if (member.email) lines.push(detailLine("admin.detailEmail", "邮箱（按角色显示）", member.email));
+    lines.push(detailLine("admin.audience", "端别", member.audience === "b" ? "B" : "C"));
+    lines.push(interp(t("admin.detailTier", "等级：{tier}（每日额度 {limit} 次）"), { tier: tierLabel(member.membership_tier), limit: member.daily_query_limit ?? "—" }));
+    lines.push(detailLine("admin.status", "状态", member.status === "suspended" ? t("admin.memberStatusSuspended", "已停用") : t("admin.memberStatusActive", "正常")));
+    lines.push(detailLine("admin.joinedAt", "加入时间", fmtDateTime(member.created_at)));
+    lines.push(detailLine("admin.internalRoles", "内部角色", rolesText(member.roles)));
+    const subs = Array.isArray(member.subscriptions) ? member.subscriptions : [];
+    lines.push(detailLine("admin.subscriptions", "订阅", subs.length ? subs.map((s) => `${s.product_code || "—"}（${s.status || "—"}）`).join("、") : t("admin.none", "无")));
+    const events = Array.isArray(member.usage_events) ? member.usage_events : [];
+    if (events.length) {
+      const recent = events
+        .slice(0, 5)
+        .map((event) => `${fmtDateTime(event.created_at)} ${event.usage_kind || ""} ${event.operation || ""}（+${event.units ?? 0}）`)
+        .join("；");
+      lines.push(detailLine("admin.recentUsageEvents", "最近用量事件", recent));
+    }
+    return lines.join("\n");
+  }
+
+  // ---------- live roles (internal_role_assignments) ----------
+
+  // 7 columns: 用户 / 角色 / 授予人 / 授予时间 / 过期 / 备注 / 操作
+  const ROLE_HEADERS = `
+    <tr>
+      <th scope="col">${t("admin.user", "用户")}</th><th scope="col">${t("admin.role", "角色")}</th><th scope="col">${t("admin.grantedBy", "授予人")}</th>
+      <th scope="col">${t("admin.grantedAt", "授予时间")}</th><th scope="col">${t("admin.expiresAt", "过期时间")}</th><th scope="col">${t("admin.note", "备注")}</th><th scope="col">${t("admin.actions", "操作")}</th>
+    </tr>`;
+
+  function roleRowsHtml(items, options = {}) {
+    const {
+      canManage = false,
+      currentUserId = "",
+      revokeLabel = "撤销",
+      selfBlockedTitle = "",
+      expiredLabel = "已过期",
+    } = options;
+    if (!items || !items.length) {
+      return emptyRow(7, t("admin.emptyRoles", "暂无角色分配记录。"));
+    }
+    return items
+      .map((row) => {
+        const name = row.display_name || row.username || shortId(row.user_id, 12);
+        const isExpired = row.expires_at ? new Date(row.expires_at).getTime() <= Date.now() : false;
+        const expiresText = row.expires_at ? escape(fmtDateTime(row.expires_at)) : "—";
+        const isSelfSuper = row.role === "super_admin" && String(row.user_id) === String(currentUserId);
+        const actionCell = canManage
+          ? `<button class="admin-action" type="button" data-role-action="revoke" data-role-user="${escape(row.user_id)}" data-role-name="${escape(row.role)}" ${isSelfSuper ? "disabled" : ""} ${isSelfSuper ? `title="${escape(selfBlockedTitle)}"` : ""}>${escape(revokeLabel)}</button>`
+          : "—";
+        return `
+        <tr data-role-row data-role-user="${escape(row.user_id)}" data-role-name="${escape(row.role)}">
+          <th scope="row">${escape(name)}<span>${escape(shortId(row.user_id, 12))}</span></th>
+          <td><code>${escape(row.role)}</code>${isExpired ? ` <span class="admin-table-status status-paused">${escape(expiredLabel)}</span>` : ""}</td>
+          <td>${escape(shortId(row.granted_by_user_id))}</td>
+          <td>${escape(fmtDateTime(row.granted_at))}</td>
+          <td>${expiresText}</td>
+          <td class="admin-wrap">${escape(row.note || "") || "—"}</td>
+          <td class="member-actions">${actionCell}</td>
+        </tr>`;
+      })
+      .join("");
+  }
+
+  // ---------- live audit ----------
+
+  function auditRowsHtml(items) {
+    if (!items || !items.length) {
+      return emptyRow(5, t("admin.emptyAudit", "没有符合条件的审计记录。"));
+    }
+    return items
+      .map((item) => {
+        let summary = "";
+        if (item.summary === null || item.summary === undefined) {
+          summary = "";
+        } else if (typeof item.summary === "object") {
+          summary = JSON.stringify(item.summary);
+        } else {
+          summary = String(item.summary);
+        }
+        const shown = summary.length > 200 ? `${summary.slice(0, 200)}…` : summary;
+        const target = item.target_id ? `${item.target_type || ""} · ${shortId(item.target_id, 10)}` : (item.target_type || "—");
+        return `
+        <tr>
+          <td>${escape(fmtDateTime(item.occurred_at))}</td>
+          <td>${escape(shortId(item.actor_user_id))}</td>
+          <td><code>${escape(item.action || "—")}</code></td>
+          <td>${escape(target)}</td>
+          <td class="admin-wrap" title="${escape(summary)}">${escape(shown || "—")}</td>
+        </tr>`;
+      })
+      .join("");
+  }
+
+  // ---------- live finance ----------
+
+  function orderRowsHtml(items) {
+    if (!items || !items.length) {
+      return emptyRow(7, t("admin.emptyOrders", "没有符合条件的订单。"));
+    }
+    return items
+      .map((order) => `
+        <tr>
+          <th scope="row">${escape(order.order_no || shortId(order.id))}${order.organization_id ? `<span>${t("admin.organization", "组织")} ${escape(shortId(order.organization_id))}</span>` : ""}</th>
+          <td>${escape(order.product_code || "—")}</td>
+          <td>${escape(shortId(order.owner_user_id))}</td>
+          <td>${badge(order.status, statusLabel(order.status, ORDER_STATUS_TEXT))}</td>
+          <td class="num">${escape(fmtMoney(order.currency, order.amount_minor))}</td>
+          <td>${escape(fmtDateTime(order.paid_at))}</td>
+          <td>${escape(fmtDateTime(order.created_at))}</td>
+        </tr>`)
+      .join("");
+  }
+
+  function refundRowsHtml(items) {
+    if (!items || !items.length) {
+      return emptyRow(6, t("admin.emptyRefunds", "没有符合条件的退款记录。"));
+    }
+    return items
+      .map((refund) => `
+        <tr>
+          <th scope="row">${escape(refund.order_no || shortId(refund.order_id))}</th>
+          <td class="num">${escape(fmtMoney(refund.currency, refund.amount_minor))}</td>
+          <td>${badge(refund.status, statusLabel(refund.status, REFUND_STATUS_TEXT))}</td>
+          <td>${escape(refund.reason || "—")}</td>
+          <td>${escape(shortId(refund.provider_refund_id))}</td>
+          <td>${escape(fmtDateTime(refund.created_at))}</td>
+        </tr>`)
+      .join("");
+  }
+
+  // ---------- live collection runs (collection_runs) ----------
+
+  // 8 columns: 来源 / 状态 / 行数 / 快照哈希 / 错误 / 操作人 / 创建时间 / 完成时间
+  const collectionLiveHeaders = `
+    <tr>
+      <th scope="col">${t("admin.source", "来源")}</th><th scope="col">${t("admin.status", "状态")}</th><th scope="col" class="num">${t("admin.rowCount", "行数")}</th>
+      <th scope="col">${t("admin.snapshotHash", "快照哈希")}</th><th scope="col">${t("admin.errorInfo", "错误信息")}</th><th scope="col">${t("admin.operator", "操作人")}</th>
+      <th scope="col">${t("admin.createdAt", "创建时间")}</th><th scope="col">${t("admin.completedAt", "完成时间")}</th>
+    </tr>`;
+
+  function hashCell(hash) {
+    if (!hash) return "—";
+    const text = String(hash);
+    const shown = text.length > 12 ? `${text.slice(0, 12)}…` : text;
+    return `<code title="${escape(text)}">${escape(shown)}</code>`;
+  }
+
+  function errorCell(message) {
+    if (!message) return "—";
+    const text = String(message);
+    const shown = text.length > 40 ? `${text.slice(0, 40)}…` : text;
+    return `<span class="admin-wrap" title="${escape(text)}">${escape(shown)}</span>`;
+  }
+
+  function collectionRunsHtml(items) {
+    if (!items || !items.length) {
+      return emptyRow(8, t("admin.emptyRuns", "暂无采集运行记录。"));
+    }
+    return items
+      .map((run) => `
+        <tr data-collection-run data-run-id="${escape(run.id)}" data-run-status="${escape(run.status)}">
+          <th scope="row">${escape(run.source_key || shortId(run.id))}<span><code>${escape(run.source_type || "")}</code></span></th>
+          <td>${badge(run.status, statusLabel(run.status, RUN_STATUS_TEXT))}</td>
+          <td class="num">${escape(String(run.rows_collected ?? 0))}</td>
+          <td>${hashCell(run.snapshot_hash)}</td>
+          <td>${errorCell(run.error_message)}</td>
+          <td>${escape(shortId(run.operator_user_id, 12))}</td>
+          <td>${escape(fmtDateTime(run.created_at))}</td>
+          <td>${escape(fmtDateTime(run.completed_at))}</td>
+        </tr>`)
+      .join("");
+  }
+
+  // ---------- quality gate: failed-run health queue ----------
+  // 7 columns: 来源 / 状态 / 行数 / 错误 / 创建时间 / 完成时间 / 操作(重投)
+
+  const qualityLiveHeaders = `
+    <tr>
+      <th scope="col">${t("admin.source", "来源")}</th><th scope="col">${t("admin.status", "状态")}</th><th scope="col" class="num">${t("admin.rowCount", "行数")}</th>
+      <th scope="col">${t("admin.errorInfo", "错误信息")}</th><th scope="col">${t("admin.createdAt", "创建时间")}</th><th scope="col">${t("admin.completedAt", "完成时间")}</th>
+      <th scope="col">${t("admin.actions", "操作")}</th>
+    </tr>`;
+
+  function qualityRunsHtml(items, { canRetry = false } = {}) {
+    if (!items || !items.length) {
+      return emptyRow(7, t("admin.qualityClean", "队列干净：暂无异常采集任务。"));
+    }
+    return items
+      .map((run) => `
+        <tr data-quality-run data-run-id="${escape(run.id)}" data-run-status="${escape(run.status)}">
+          <th scope="row">${escape(run.source_key || shortId(run.id))}<span><code>${escape(run.source_type || "")}</code></span></th>
+          <td>${badge(run.status, statusLabel(run.status, RUN_STATUS_TEXT))}</td>
+          <td class="num">${escape(String(run.rows_collected ?? 0))}</td>
+          <td>${errorCell(run.error_message)}</td>
+          <td>${escape(fmtDateTime(run.created_at))}</td>
+          <td>${escape(fmtDateTime(run.completed_at))}</td>
+          <td>${
+            canRetry
+              ? `<button type="button" class="admin-action" data-quality-retry
+                     data-source-key="${escape(run.source_key)}"
+                     data-source-type="${escape(run.source_type)}"
+                     data-run-id="${escape(run.id)}">${t("admin.retry", "重投")}</button>`
+              : "—"
+          }</td>
+        </tr>`)
+      .join("");
+  }
+
+  // ---------- service dispatch: C-end task ledger (read-only) ----------
+  const SERVICE_STATUS_TEXT = {
+    draft: t("admin.serviceDraft", "草稿"), open: t("admin.serviceOpen", "招募中"), matched_pending_consent: t("admin.serviceMatchedPending", "已匹配待确认"),
+    in_progress: t("admin.serviceInProgress", "进行中"), completion_pending: t("admin.serviceCompletionPending", "待完成确认"), completed: t("admin.statusSucceeded", "已完成"),
+    cancelled: t("admin.statusCancelled", "已取消"), expired: t("admin.expired", "已过期"), closed_unconfirmed: t("admin.serviceClosedUnconfirmed", "关闭未确认"), suspended: t("admin.statusPaused", "已暂停"),
+  };
+
+  const serviceLiveHeaders = `
+    <tr>
+      <th scope="col">${t("admin.task", "任务")}</th><th scope="col">${t("admin.region", "区域")}</th><th scope="col">${t("admin.asset", "资产")}</th><th scope="col">${t("admin.compensation", "报酬")}</th>
+      <th scope="col">${t("admin.status", "状态")}</th><th scope="col" class="num">${t("admin.applications", "应征")}</th><th scope="col">${t("admin.deadline", "截止")}</th><th scope="col">${t("admin.createdAt", "创建时间")}</th>
+    </tr>`;
+
+  function serviceTasksHtml(items) {
+    if (!items || !items.length) {
+      return emptyRow(8, t("admin.serviceEmpty", "暂无服务任务。任务由 C 端用户发起，创建后在此可见。"));
+    }
+    return items
+      .map((task) => `
+        <tr data-service-task data-task-id="${escape(task.id)}">
+          <th scope="row">${escape(task.purpose || shortId(task.id))}</th>
+          <td>${escape(task.region_pref || "—")}</td>
+          <td>${escape(task.asset_type || "—")}</td>
+          <td>${escape(task.compensation || "—")}</td>
+          <td>${badge(task.status, statusLabel(task.status, SERVICE_STATUS_TEXT))}</td>
+          <td class="num">${escape(String(task.applications_count ?? 0))}</td>
+          <td>${escape(fmtDateTime(task.apply_deadline))}</td>
+          <td>${escape(fmtDateTime(task.created_at))}</td>
+        </tr>`)
+      .join("");
+  }
+
+  // ---------- pager ----------
+
+  function totalPages(pageSize, total) {
+    return Math.max(1, Math.ceil((Number(total) || 0) / (Number(pageSize) || 1)));
+  }
+
+  function pagerHtml({ page = 1, pageSize = 20, total = 0, target = "" } = {}) {
+    const pages = totalPages(pageSize, total);
+    const current = Math.min(Math.max(Number(page) || 1, 1), pages);
+    return `
+      <div class="admin-pager" data-pager-target="${escape(target)}">
+        <button type="button" class="admin-action" data-pager-dir="prev" ${current <= 1 ? "disabled" : ""}>${t("admin.previous", "上一页")}</button>
+        <span>${interp(t("admin.pager", "第 {page} / {pages} 页 · 共 {total} 条"), { page: current, pages, total: Number(total) || 0 })}</span>
+        <button type="button" class="admin-action" data-pager-dir="next" ${current >= pages ? "disabled" : ""}>${t("admin.next", "下一页")}</button>
+      </div>`;
+  }
+
+  window.ZouAdminViews = Object.freeze({
+    escape,
+    shortId,
+    fmtDateTime,
+    fmtMoney,
+    emptyRow,
+    loadingRow,
+    demoMembers,
+    demoMemberRowsHtml,
+    memberDemoHeaders,
+    memberLiveHeaders,
+    memberLiveRowsHtml,
+    memberDetailText,
+    ROLE_HEADERS,
+    roleRowsHtml,
+    auditRowsHtml,
+    orderRowsHtml,
+    refundRowsHtml,
+    collectionLiveHeaders,
+    collectionRunsHtml,
+    qualityLiveHeaders,
+    qualityRunsHtml,
+    serviceLiveHeaders,
+    serviceTasksHtml,
+    SERVICE_STATUS_TEXT,
+    pagerHtml,
+    totalPages,
+    ORDER_STATUS_TEXT,
+    REFUND_STATUS_TEXT,
+    RUN_STATUS_TEXT,
+    COLLECTION_SOURCE_TYPES,
+  });
+})();

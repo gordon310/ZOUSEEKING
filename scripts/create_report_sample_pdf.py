@@ -34,7 +34,7 @@ from reportlab.pdfgen import canvas as canvas_module
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "output" / "pdf" / "zoubeacon-property-analysis-sample-v2.pdf"
-LOGO = ROOT / "web" / "assets" / "logoELE.png"
+LOGO = ROOT / "web" / "assets" / "icon-512.png"
 
 PAGE_W, PAGE_H = A4
 NAVY = colors.HexColor("#10284d")

@@ -6,7 +6,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 W, H = 1080, 1440
 OUT = Path("data/output/minato_tower_report/images")
-ELEPHANT_LOGO = Path("logoELE.png")
+ELEPHANT_LOGO = Path(__file__).resolve().parents[1] / "web" / "assets" / "icon-512.png"
 FONT_REGULAR = "/System/Library/Fonts/STHeiti Light.ttc"
 FONT_BOLD = "/System/Library/Fonts/Hiragino Sans GB.ttc"
 PUBLISH_MONTH = f"{date.today().year}年{date.today().month}月"

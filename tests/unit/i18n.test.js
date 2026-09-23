@@ -380,7 +380,7 @@ test("runtime intake copy has four-locale keys and no direct Chinese status lite
   for (const locale of ["zh-CN", "zh-Hant", "en", "ja"]) {
     for (const key of INTAKE_RUNTIME_KEYS) assert.ok(i18n.keys(locale).includes(key), `${locale}: ${key}`);
   }
-  const source = fs.readFileSync("web/js/property-intake.js", "utf8");
+  const source = fs.readFileSync("web-source/js/property-intake.js", "utf8");
   for (const literal of [
     "请选择自住或投资出租。",
     "请选择物件类型（公寓、塔楼、一户建等），否则无法判断。",
@@ -391,7 +391,7 @@ test("runtime intake copy has four-locale keys and no direct Chinese status lite
 });
 
 test("location loading exposes loading, retry and validated payload behavior", () => {
-  const source = fs.readFileSync("web/js/property-intake.js", "utf8");
+  const source = fs.readFileSync("web-source/js/property-intake.js", "utf8");
   assert.match(source, /locationOptionsLoading/);
   assert.match(source, /locationOptionsRetry/);
   assert.match(source, /addEventListener\("click", \(\) => loadLocationFields\(\)\)/);
@@ -407,7 +407,7 @@ test("global runtime error notice is localized, dismissible and deduplicated", (
       assert.ok(i18n.keys(locale).includes(key), `${locale}: ${key}`);
     }
   }
-  const source = fs.readFileSync("web/js/i18n.js", "utf8");
+  const source = fs.readFileSync("web-source/js/i18n.js", "utf8");
   assert.match(source, /unhandledrejection/);
   assert.match(source, /window\.addEventListener\("error"/);
   assert.match(source, /dataset\.runtimeErrorKey/);

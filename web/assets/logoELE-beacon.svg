@@ -1,12 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1254 1254" role="img">
-  <title>小象避坑</title>
-  <defs>
-    <filter id="remove-white" color-interpolation-filters="sRGB">
-      <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0  -0.2126 -0.7152 -0.0722 0 1" result="alpha" />
-      <feComponentTransfer in="alpha">
-        <feFuncA type="discrete" tableValues="0 0 0 0 0 1 1 1 1 1" />
-      </feComponentTransfer>
-    </filter>
-  </defs>
-  <image href="/assets/logoELE.png" width="1254" height="1254" preserveAspectRatio="none" filter="url(#remove-white)" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1254 1254" role="img" aria-labelledby="title">
+  <title id="title">小象避坑</title>
+  <g fill="none" stroke="#10284d" stroke-linecap="round" stroke-linejoin="round" stroke-width="27">
+    <path d="M474 416C394 322 284 323 218 389c-76 76-69 200 17 276 47 42 33 113 75 143 47 34 114 20 144-35"/>
+    <path d="M780 416c80-94 190-93 256-27 76 76 69 200-17 276-47 42-33 113-75 143-47 34-114 20-144-35"/>
+    <path d="M398 546c0-130 102-221 229-221s229 91 229 221v91c0 123-91 199-193 199H592c-102 0-194-76-194-199z"/>
+    <path d="M541 602c0-15-12-27-27-27s-27 12-27 27"/>
+    <path d="M767 602c0-15-12-27-27-27s-27 12-27 27"/>
+    <path d="M584 656c27 24 59 24 86 0"/>
+    <path d="M588 720c24-16 54-16 78 0M600 770c16-13 38-13 54 0"/>
+    <path d="M540 721l13 105c6 54 52 91 107 91h70c12 0 21-9 21-21v-45c0-15-12-27-27-27h-21c-25 0-43-23-38-47l8-56"/>
+  </g>
 </svg>

@@ -536,6 +536,31 @@
 - **待 Gordon 拍板(编号,推荐置顶)**:① **一次部署批次**(应用 4 条迁移 + 上 r63 前端 + 切注册门;顺序不可颠倒,否则无人能注册)—— 10-07 前最大且唯一的「工程侧就绪、生产侧未生效」缺口;② **C02:ADR-0002 重批为「C 端 + 后台」**;③ 是否派 Codex 补 C07/C08/C09 合同与可观测缺口 + C13 staging smoke 证据包;④ C04 provider 备份/Storage 恢复的项目与成本批准;⑤ 4 行历史僵尸报告清理;⑥ 迁移台账 C4 口径;⑦ 未部署冻结件(Edge 函数 / `run_jphouse_worker.py`)删除 vs 长期冻结;⑧ 本班次(job `ab373f6bd99d`)改绑 P2 或停用。
 - **红线**:零 DB 写入或对象变更、零部署、未触凭据与冻结字段、**未新增/未修改任何 migration**、无删除操作;生产侧仅**只读 GET 探测**与 Supabase **Management API 只读查询**(未登录任何用户/管理员凭据,未读回任何密钥值)。
 
+## C09 可观测与出站超时契约闭环 · CI 红→绿复位(2026-09-24 下午班,本 BOT,第五个「补缺口」单元)
+
+- **班前实测(13:22)**:工作树干净、`main == origin/main == d82db68`、`git rev-list --count origin/main..main = 0`;仓库内**无 `codex exec` 进程**;Release Gate `d82db68` **success**(run `35934349841`,七 job);Codex 通道探针实测 `exit 0` 且真写文件(出口非 09-13 的香港 403)。
+- **单元选择**:09-24 晨班已把 Go/No-Go 清单对齐 10-07 口径;10-07 阻断链第 5 步 = **C07/C08/C09 合同与可观测缺口**(计划归 Codex,2–4 天)。本班先做**有界可验证的 C09** —— 三处文件实测缺失:`backend/app/observability.py`、`backend/app/timeouts.py`、`docs/production-reliability.md`。
+- **改动(17 文件;派工 Codex 执行、Hermes 验收;commit `6d7e21b`,已 push)**:
+  - 新增 `backend/app/observability.py`(+149):请求关联 ID(入站 `X-Request-Id` 仅接受 1–128 的 `[A-Za-z0-9._-]`,否则生成 UUID4 hex;响应头回写同值)+ 逐行 JSON(`request_completed`/`request_failed` 带 method / path(不含 query)/ status / duration_ms / request_id)+ 脱敏(email、`sb_` / `sk_(live|test)_` / `eyJ…`、`access_token=` / `apikey=` 查询值 → `<redacted>`;非标量字段 → `<redacted>`;**异常原文与堆栈永不序列化**,只留异常类名)。
+  - 新增 `backend/app/timeouts.py`(+97):出站超时 / 瞬态判定 / 有界重试(抖动退避)/ 取消的集中契约;**默认值等于现状**(8.0s、2 次、0.25s 基数),逐项可由 `OUTBOUND_*` 环境变量覆盖;重试**只接在确认为幂等只读的调用**上(Supabase Auth 用户查询、GSI 逆地理),**所有写路径明确不重试**(邀请建号、intake 上传/删除、vision POST、recognition POST、Supabase Admin 登出/删除、Stripe 全部调用)——已在文档列清单。
+  - 新增 `docs/production-reliability.md`(+62):日志字段表、脱敏规则、超时/重试表、双层限流、依赖审计、告警与 on-call 指引,并诚实标注仍 `NOT_EXECUTED` 的生产告警投递与演练。
+  - `backend/app/worker_logging.py` 与新实现对齐(同一 formatter 行为 + 同一 `_ThirdPartyQuietFilter`,两侧互不 import);9 处调用点最小接线(**既有超时数值未变**)。
+- **验收(独立实跑,非采信自报)**:
+  - 真实中间件:200 与 500 两条路径、非法 request id 替换为 32-hex、缺失时生成、响应头回写、每请求单行 JSON;`email` / `sk_live_` / JWT / 异常原文**零泄漏**(脚本逐项断言为 False)。
+  - **发现并修掉一个真缺陷**:第三方(stdlib / httpx 类)记录被 JSON handler 接走后产出**空骨架行 `"event":"unstructured_log"` 且 message 被静默丢弃** → 修复为 `event":"log"` + 脱敏 `logger` / `message`,并按 `LOG_THIRD_PARTY_LEVEL`(默认 WARNING)抑制噪声。
+  - 真实 app 级:`main.app` 装配 3 个 http 中间件、单 marked handler + filter、`/health/live` 200 且回写 `X-Request-Id`、`/health/ready` 无库时 503 且日志成对。
+  - `pytest tests/unit tests/architecture` **471 passed / 91 skipped**(基线 457;+14 全为新增用例);`compileall`、`git diff --check` 净。
+- **CI 红→绿复位(本班实测,含真实根因)**:`6d7e21b` 的 Release Gate **红**(run `35960753487`,唯一红 job = **Python checks**,`2 failed`);根因 = **新增测试断言依赖 CPython 版本** —— `logging.Handler.filter` 自 **3.12 起返回 log record 本身**(同一段代码实测:3.9.6 / 3.11.16 → `True`;3.14.7 → `<LogRecord …>`),而本仓库 venv 是 **Python 3.9.6**、CI 是 **3.12** → 本地放过、CI 必红。**产品代码无缺陷**,修的是断言口径(改为取 handler 上实际的 `_ThirdPartyQuietFilter` 实例、断言其自身布尔返回值,同时额外证明该 filter 确实已装配),commit `5ae1c52`;**Release Gate `5ae1c52` run `35961415238` success(七 job,2m55s)**。
+- **⚠️ 本节新增的生产侧实测(只读,首次落地)**:本机 **SSH 通道可用** —— `/tmp/ssh_jp.config` → `jpbox` = `52.221.7.33`,经 `127.0.0.1:7897` 代理,私钥 `~/Downloads/LightsailDefaultKey-ap-southeast-1.pem`。**更正 09-23 记录「本机已无 Lightsail 私钥 → 生产主机无法从本机核验」**:通道可用,生产实况已可只读核验。
+  - 生产 checkout HEAD = `fd13974`(09-22 23:20),**落后仓库 6 个提交**;5 容器 Up(api 42h / worker 27h / report-worker 27h / scheduler 8d / nginx 6d),`git status` 干净。
+  - 生产 `deploy/.env` 键存在性(只读,不回显任何值):`STRIPE_SECRET_KEY`(`sk_live` 前缀 ✓)、`SUPABASE_SERVICE_ROLE_KEY`、`ABUSE_HASH_SALT`、`ENVIRONMENT` **存在**;**`ADMIN_ENABLED`、`QUERY_RATE_LIMIT_PER_HOUR`、`INVITE_REGISTER_RATE_LIMIT_PER_HOUR` 三键缺失**。
+  - **新增阻断项(🔴)**:`ADMIN_ENABLED` 缺失 → 代码默认 `false`(`backend/app/admin/service.py:1236`)→ 鉴权通过后一律 **503「admin 未配置」= 生产后台管理平台处于关闭状态**,与 10-07「C 端 + 后台**同时**上线」直接冲突;部署批次必须补写 `ADMIN_ENABLED=true`。09-24 晨班原判定「该门的值未知」由此结案(401 早于该门,故此前只看到 401)。
+  - 两个限流键缺失 → 落代码默认 `QUERY_RATE_LIMIT_PER_HOUR=20`、`INVITE_REGISTER_RATE_LIMIT_PER_HOUR=5`(`rate_limit.configured_limit` 默认值,**已生效、非阻断**,但数值是否符合业务口径需用户确认)。
+  - `p5-release.sh` 的配置快照键清单**漏了 `ADMIN_ENABLED`**,已同步修正到 Go/No-Go 阻断链与台账。
+- **文档**:`docs/release/launch-readiness-log.md` 新增 2 行(C09 已闭合、生产 env 键存在性),并把「生产后台 API 边界」由 🟡 改为 **🔴 后台被关闭**;`docs/release/go-no-go-checklist-2026-10-07.md` 复核节 A4 改写、新增 A8、**C09 由 🟡 升 ✅**、阻断链第 1 步补 `ADMIN_ENABLED=true` 与「后台 200」验收。
+- **待 Gordon 拍板(更新后全量,推荐置顶)**:① **一次部署批次** —— 现含 4 条待应用迁移 + 前端 r63 + **`ADMIN_ENABLED=true`** + 注册门切换(顺序不可颠倒);**种子邀请码名单仍待你提供**;② C07 / C08 合同缺口是否继续派 Codex(本班已闭 C09);③ C02:ADR-0002 重批为「C 端 + 后台」;④ C04 provider 备份 / Storage 恢复的项目与成本批准;⑤ C13 staging smoke 证据包(需 staging 授权);⑥ 4 行历史僵尸报告清理;⑦ 迁移台账 C4 口径;⑧ 未部署冻结件(Edge 函数 / `run_jphouse_worker.py`)删除 vs 长期冻结;⑨ 本班次(job `ab373f6bd99d`)改绑 P2 或停用。
+- **红线**:零 DB 写入或对象变更、零部署、未触凭据与冻结字段、**未新增/未修改任何 migration**、无删除操作;生产侧仅**只读**探测(SSH `git log` / `git status` / `docker compose ps` / `.env` 键存在性 `grep -c`,未回显任何值;未登录任何用户或管理员凭据)。
+
 ## Last updated
 
 2026-09-24

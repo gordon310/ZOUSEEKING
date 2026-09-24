@@ -42,6 +42,10 @@
 | 09-24 | 生产备份服务缺失(更正) | ⚠️ 已修 | 实测主机**原无** `zouseeking-backup.service/.timer`、无 `/var/backups/zouseeking`、无 `/etc/zouseeking/backup.env` → 文档「每日 03:10 备份 / 机侧巡检」在主机上不成立;已安装备份(见上行),`observability-check.timer` 仍未装 | 不再重验 |
 | 09-24 | 前端部署漂移 | ✅ 已消除 | 线上 `?v=` 由 `20260917-r61` → **`20260923-r63`** == 仓库 `deploy/frontend-version.txt` | 前端版本变更时 |
 
+| 09-25 | 备份异地化(Cloudflare R2) | ✅ | 桶 `zouseeking-backup`(私有)+ S3 凭据仅限该桶;**本机实测** PUT/HEAD/GET/LIST/DELETE + sha256 往返一致;**生产实测**:aws-cli 2.27.1 容器 + `--endpoint-url` 上传 dump(15,776,182 B)+ manifest → 从 R2 下载回算 sha256 与本地/manifest **三方一致**(`0f57f954…`);持久化于 `/etc/zouseeking/backup.env`(600,含 `.bak-20260925`);手工触发 `zouseeking-backup.service` → **自动上传 R2 成功**(22:09:33Z) | 桶/凭据/端点/保留策略变更时 |
+| 09-25 | 备份新鲜度观测(S3 路径) | ✅ | `observability-check.timer` **一直在跑但连续失败**(约 3 小时、每 15 分钟一次 `OBSERVABILITY_ALERT backup_artifact_missing:local:/var/backups/zouseeking`,根因=回落到不存在的本地默认路径);把 6 个 `BACKUP_S3_*` 写入 `/etc/zouseeking/observability.env` 后转 **`backup_age_hours=0 threshold_hours=36` + `failed=0` + `OBSERVABILITY_OK`** | 观测脚本/env/阈值变更时 |
+| 09-25 | 更正:observability-check.timer 安装状态 | ⚠️ 已修 | 09-24 夜班记录「`observability-check.timer` 仍未安装」**为误判** —— 实测该 timer 自更早已在运行(每 15 分钟),真实问题是它看不见备份;现已修好并转绿 | 不再重验 |
+| 09-25 | **待办**:R2 端保留策略 | 🟡 | 本地保留 14 天,**R2 端目前无保留策略**;实测约 15.8 MB/天 → 约 1.7 年触及 10 GB 免费额度。需加对象生命周期或脚本侧清理 | 加上后重验 |
 ## 待闭合(未完成项,不属本台账)
 - ~~G2-ENG:邀请制准入 + 试运行标识(工程缺口)~~ → **工程侧已闭合(见本表 09-23 行)**;**生产侧:4 条迁移已应用(09-24 部署批次),邀请表已在生产;仅剩注册门切换**(`disable_signup=true`,需先有邀请码)
 - G3:C01–C14 逐项判定 → **已完成 10-07 口径复核(见 `docs/release/go-no-go-checklist-2026-10-07.md` 文末《2026-09-24 范围对齐复核》)**

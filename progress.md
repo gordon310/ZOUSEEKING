@@ -631,6 +631,20 @@
 - **未做**:注册门切换(`disable_signup` 维持发布前状态 = 公共注册仍开放;邀请迁移已应用,切邀请制需先有邀请码)、回滚演练、主机 `observability-check.timer` / `mlit-refresh.timer` 仍未安装。
 - **红线**:仅生产主机上的 git pull / 迁移应用 / env 写入 / 容器重建(均获用户授权);未触碰任何凭据值、未新增或修改 migration、无删除操作;备份产物为新增文件。
 
+## D-4 备份异地化完成(Cloudflare R2)+ 备份新鲜度观测转绿(2026-09-25 凌晨班,本 BOT)
+
+- **背景**:用户 09-24 拍板「开放注册(不切 `disable_signup`)」+ 授权 C13 + 批准 C04 成本;倒排计划里「仍需你出手」仅剩两项,其中一项即**对象存储桶名 + 密钥**(D-4)。用户已建 R2 桶 `zouseeking-backup` 并提供 S3 凭据 → 本班完成 D-4。
+- **零代码改动即打通**:实测 `scripts/backup_database.py` 的上传链路**本来就实现了 S3 兼容端点**(`_upload_s3()` 用 `amazon/aws-cli:2.27.1` 容器 + `--endpoint-url`;配置键 `REQUIRED_S3_SETTINGS` = `BACKUP_S3_BUCKET/ENDPOINT/REGION/ACCESS_KEY_ID/SECRET_ACCESS_KEY` + `BACKUP_S3_PREFIX` 默认 `zouseeking/database`),此前只是未配置目标而退化为「仅本地保留」。
+- **验证证据(全部实跑)**:
+  - 本机:PUT/HEAD/GET/LIST/DELETE 全通,往返 sha256 一致;凭据落 `~/.r2-backup-credentials`(600)。
+  - 生产:aws-cli 镜像拉取成功;`s3 ls` 连通;上传生产已有 dump(15,776,182 B)+ manifest;**从 R2 下载回算 sha256 与本地、与 manifest 三方完全一致**(`0f57f954ecaa7aef9574a8034749e4f33cb66d8dbcc4f2e9e81cc9e522b0b6c8`)。
+- **持久化配置(生产写)**:`/etc/zouseeking/backup.env`(原 3 键)与 `/etc/zouseeking/observability.env`(原 2 键)**各追加 6 个 `BACKUP_S3_*` 键**,均 600 权限、均留 `.bak-20260925`;密钥经 stdin 传入,不出现在命令行。
+- **自动链路验证**:手工 `systemctl start zouseeking-backup.service` → `result=success` → **新备份(22:09:33Z)自动上传 R2**(远端 4 个对象 = 2 份备份 × dump+manifest)。另发现**定时器已自动跑过一次**(03:10 JST 排期,文件 `…181005Z`)。
+- **顺带修复(高价值)**:`observability-check.timer` **一直在运行但每 15 分钟失败一次**(实测至少 11 次连续 `OBSERVABILITY_ALERT backup_artifact_missing:local:/var/backups/zouseeking`;根因 = 未配 `BACKUP_S3_*` 时回落默认本地路径,而真实备份目录是 `/home/ubuntu/zouseeking-backups`)。写入 `BACKUP_S3_*` 后**转绿**:`backup_artifact=zouseeking/database/zouseeking-20260924T220933Z.manifest.json … backup_age_hours=0 threshold_hours=36` + `failed=0` + `OBSERVABILITY_OK`。**该 timer 实际早已安装** —— 更正 09-24 夜班「仍未安装」的误判(D-12 第③项由此视为已闭合)。
+- **D-4 验收口径对照**:「对象存储接入」✅(每日备份自动上传)、「备份新鲜度观测绿」✅(`OBSERVABILITY_OK`,走远端)、「脱离本地保留」✅(S3 路径优先)。
+- **遗留(已登记待办)**:① R2 端**无保留策略**,约 15.8 MB/天 → 约 1.7 年触及 10 GB 免费额度,需加生命周期或脚本侧清理;② 备份新鲜度阈值 36h(当前 age≈0h)。
+- **红线**:生产侧仅 `backup.env`/`observability.env` 追加(均已备份)、systemd timer 安装与手工触发、只读探测与已有的备份上传;**未触碰任何 migration、未改产品代码、未删任何文件、未改 `disable_signup`**;凭据仅落本机 600 文件与生产 600 env,全程未回显明文。
+
 ## Last updated
 
-2026-09-24
+2026-09-25

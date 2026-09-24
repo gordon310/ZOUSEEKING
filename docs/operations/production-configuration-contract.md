@@ -42,6 +42,12 @@ Classifications are limited to `production_required`, `production_optional`, `ci
 | `APP_VERSION` | production_required | required | Deployed application version. |
 | `BACKUP_PG_CLIENT_IMAGE` | production_optional | code default when unset | PostgreSQL client image for backup work. |
 | `BACKUP_RETENTION_DAYS` | production_optional | code default when unset | Local backup-retention period. |
+| `BACKUP_S3_ACCESS_KEY_ID` | production_optional | required when uploading; secret | 备份目标凭据 id;与 bucket 范围绑定 |
+| `BACKUP_S3_BUCKET` | production_optional | required when uploading | 目标桶名 |
+| `BACKUP_S3_ENDPOINT` | production_optional | required when uploading | S3 兼容端点(R2:`https://<account-id>.r2.cloudflarestorage.com`) |
+| `BACKUP_S3_PREFIX` | production_optional | default `zouseeking/database` | 对象键前缀 |
+| `BACKUP_S3_REGION` | production_optional | `auto` for R2 | 签名区域;R2 用 `auto` |
+| `BACKUP_S3_SECRET_ACCESS_KEY` | production_optional | required when uploading; secret | 备份目标凭据密钥 |
 | `BILLING_CANCEL_URL` | production_required | required | Stripe cancellation redirect URL. |
 | `BILLING_PORTAL_RETURN_URL` | production_required | required | Stripe portal return URL. |
 | `BILLING_SUCCESS_URL` | production_required | required | Stripe success redirect URL. |
@@ -85,7 +91,7 @@ Classifications are limited to `production_required`, `production_optional`, `ci
 
 ## Secret handling
 
-Secrets include `DATABASE_URL`, `ABUSE_HASH_SALT`, `INTERNAL_DIAGNOSTICS_TOKEN`, `MLIT_API_KEY`, `RENOVATION_VISION_API_TOKEN`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `SUPABASE_SERVICE_ROLE_KEY`. `.env` is not committed; real values belong only in a controlled provider or restricted host environment file. `scripts/ci/secret_scan.py` is a Release Gate check for committed secret-shaped values, not proof that a host is correctly configured. Rotation requires updating the controlled provider, restarting the affected service, revoking the prior credential, and recording operational verification without exposing the value.
+Secrets include `DATABASE_URL`, `ABUSE_HASH_SALT`, `BACKUP_S3_ACCESS_KEY_ID`, `BACKUP_S3_SECRET_ACCESS_KEY`, `INTERNAL_DIAGNOSTICS_TOKEN`, `MLIT_API_KEY`, `RENOVATION_VISION_API_TOKEN`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `SUPABASE_SERVICE_ROLE_KEY`. `.env` is not committed; real values belong only in a controlled provider or restricted host environment file. `scripts/ci/secret_scan.py` is a Release Gate check for committed secret-shaped values, not proof that a host is correctly configured. Rotation requires updating the controlled provider, restarting the affected service, revoking the prior credential, and recording operational verification without exposing the value.
 
 ## Health and readiness
 
@@ -95,4 +101,5 @@ Secrets include `DATABASE_URL`, `ABUSE_HASH_SALT`, `INTERNAL_DIAGNOSTICS_TOKEN`,
 
 - Code-read keys missing from the prior `deploy/.env.example`: `ADMIN_ENABLED`, `BACKUP_PG_CLIENT_IMAGE`, `BACKUP_RETENTION_DAYS`, `GITHUB_REF_NAME`, `GITHUB_SHA`, `LICENSED_AGGREGATE_DIR`, `LOG_LEVEL`, `LOG_THIRD_PARTY_LEVEL`, `MLIT_API_KEY`, `MLIT_XIT001_URL`, `OUTBOUND_TRANSIENT_STATUS_CODES`, `PRICING_CACHE_TTL_SECONDS`, `PROVENANCE_LAST_SUCCESS_AT`, `PROVENANCE_PARSER_VERSION`, `PROVENANCE_STATUS`, `RENOVATION_VISION_API_TOKEN`, `RENOVATION_VISION_API_URL`, `REPORT_WORKER_ONCE`, `REVERSE_GEOCODER_TIMEOUT_SECONDS`, `REVERSE_GEOCODER_URL`, `SUPABASE_STAGING_REF`, `OUTBOUND_TIMEOUT_SECONDS`, `OUTBOUND_MAX_ATTEMPTS`, `OUTBOUND_BACKOFF_BASE_SECONDS`, `QUERY_RATE_LIMIT_PER_HOUR`, and `INVITE_REGISTER_RATE_LIMIT_PER_HOUR`.
 - The measured production `deploy/.env` lacked `ADMIN_ENABLED` (default `false`, which closes admin), `QUERY_RATE_LIMIT_PER_HOUR` (default `20`), and `INVITE_REGISTER_RATE_LIMIT_PER_HOUR` (default `5`).
+- Closed: the Cloudflare R2 backup target was configured and tested for upload, download, list, and delete, with a SHA-256 round trip match. A real production backup upload has not run; that evidence remains `NEEDS_PROD_EVIDENCE`.
 - Staging and production use different Supabase projects. Production alert delivery and alert/restore exercises are unverified and remain `NEEDS_PROD_EVIDENCE`.

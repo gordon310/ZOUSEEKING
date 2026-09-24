@@ -1,5 +1,12 @@
-"""Static checks for the Lightsail production-configuration contract."""
+"""Static checks for the Lightsail production-configuration contract.
 
+Configuration keys can be read through a named all-caps settings collection,
+then passed to an environment mapping, rather than appearing as literals in
+``os.getenv``.  Scan those collections too so this indirection cannot bypass
+the contract guard.
+"""
+
+import ast
 from pathlib import Path
 import re
 
@@ -11,6 +18,7 @@ COMPOSE = ROOT / "deploy/docker-compose.prod.yml"
 RENDER = ROOT / "render.yaml"
 SOURCE_ROOTS = (ROOT / "backend/app", ROOT / "scripts")
 OPT_IN_ENV_FILE_EXCEPTIONS = {"jpsskill": "./jpsskill.env"}
+CONFIGURATION_KEY = re.compile(r"[A-Z][A-Z0-9_]*_[A-Z0-9_]*")
 
 
 def _contract_keys() -> set[str]:
@@ -28,6 +36,25 @@ def _code_read_keys() -> set[str]:
             contents = path.read_text()
             for pattern in patterns:
                 keys.update(re.findall(pattern, contents))
+            tree = ast.parse(contents, filename=str(path))
+            for node in ast.walk(tree):
+                if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+                    continue
+                targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                if not any(
+                    isinstance(target, ast.Name) and target.id.endswith("_SETTINGS") and target.id.isupper()
+                    for target in targets
+                ):
+                    continue
+                if not isinstance(node.value, (ast.Tuple, ast.Set, ast.List)):
+                    continue
+                keys.update(
+                    element.value
+                    for element in node.value.elts
+                    if isinstance(element, ast.Constant)
+                    and isinstance(element.value, str)
+                    and CONFIGURATION_KEY.fullmatch(element.value)
+                )
     return keys
 
 

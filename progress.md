@@ -617,6 +617,20 @@
   ⑧ 本班次(job `ab373f6bd99d`)改绑 P2 或停用。
 - **红线**:零 DB 写入或对象变更、零部署、零 SSH、未触凭据与冻结字段、**未新增/未修改任何 migration**、无删除操作;仅本机实跑 + 文档/测试新增。
 
+## 生产上线批次执行完成(2026-09-24 夜班,Hermes 管家执行;用户授权「跳过邀请码名单,先上线」)
+
+- **班前实测**:`main == origin/main == 85bc86f`、工作树干净、Release Gate 七门全绿(run 36004372133);生产 checkout `fd13974`(落后 6 个提交);SSH 通道可用(`ssh -F /tmp/ssh_jp.config jpbox`)。
+- **前置门槛异常 → 手动兜住**:P5 清单要求的「发布前备份」服务 `zouseeking-backup.service` 在主机上**根本不存在**(无 `/var/backups/zouseeking`、无 `/etc/zouseeking/backup.env`;文档所述「每日 03:10 备份」在主机上不成立)。改用仓库自带 `scripts/backup_database.py` **手动跑了一次真实备份**:`/home/ubuntu/zouseeking-backups/zouseeking-20260924T144633Z.dump`(15,764,178 B,`sha256=2ef19c4b…`;manifest 记录 50 迁移版本 + 7 表行数;PG 17.6;本地保留模式)。
+- **执行(顺序不可颠倒)**:
+  1. `git pull --ff-only` → `85bc86f`;
+  2. `apply-migrations.sh apply`:应用 4 条迁移(`20260921000100` provenance 回填 / `20260923000100` 邀请门 / `20260923000200` 邀请错误态 / `20260923000300` 共享限流),**台账 50 → 54,`pending=0`**;
+  3. `deploy/.env` 写入 `ADMIN_ENABLED=true`(原文件备份 `.env.bak-20260924`);
+  4. `docker compose -f deploy/docker-compose.prod.yml up -d --build api report-worker worker scheduler`;
+  5. 验收(生产侧实跑):`/health/ready` **200**、`zoubeacon.app` **200**、前端 `?v=20260923-r63` == 仓库 `deploy/frontend-version.txt`(**零漂移**)、未鉴权 `/api/admin/overview` **401**、api 容器内 `ADMIN_ENABLED=true`。
+- **每日备份定时器安装(用户指令)**:`deploy/systemd/zouseeking-backup.{service,timer}` 安装至 `/etc/systemd/system/` 并 `enable --now`;`/etc/zouseeking/backup.env`(由 `deploy/.env` 的 DATABASE_URL 生成,权限 600,全程不回显);立即试跑 `result=success` / `exec_status=0`;排期**每日 03:10 JST**;产物 `/home/ubuntu/zouseeking-backups/`,本地保留 14 天(**未配对象存储 → 非异地**)。
+- **未做**:注册门切换(`disable_signup` 维持发布前状态 = 公共注册仍开放;邀请迁移已应用,切邀请制需先有邀请码)、回滚演练、主机 `observability-check.timer` / `mlit-refresh.timer` 仍未安装。
+- **红线**:仅生产主机上的 git pull / 迁移应用 / env 写入 / 容器重建(均获用户授权);未触碰任何凭据值、未新增或修改 migration、无删除操作;备份产物为新增文件。
+
 ## Last updated
 
 2026-09-24

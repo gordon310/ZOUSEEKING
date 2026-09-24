@@ -36,13 +36,18 @@
 | 09-24 | 生产配置合同(C08) | ✅ | `docs/operations/production-configuration-contract.md`(Lightsail 拓扑 + staging/prod 边界 + jpsskill 受控例外 + 全量 env 契约 + known gaps);`deploy/.env.example` 补 **25 键**;6 条静态守护(不依赖 PyYAML)经**变异测试**验证;`secret_scan` / `check_release_policy` 均 PASS | 配置键 / compose / render.yaml 变更时 |
 | 09-24 | C13 staging smoke 载体 | 🟡 载体已交付 | 四处交付物落地:`scripts/staging_synthetic_smoke.py`(默认 `--plan` 零网络零 socket;`--execute` 双开关 + `SMOKE_*` 三环境变量;生产 host 硬拒;10 条固定用例;`finally` 清理 + 读回断言残留 0;证据递归脱敏)、`docs/staging-synthetic-smoke.md`、`docs/release/phase-one-staging-evidence.json`(`NOT_EXECUTED` 骨架)、`tests/smoke/test_staging_synthetic_smoke.py`。独立验收:smoke **15 passed**、unit+arch **482/91**、全量 **694/113** | **真实 staging 运行 + 浏览器审计尚未执行** → 用户一次性写入授权 + `SMOKE_*` 凭据后重验 |
 | 09-24 | canonical 证据写入守卫 | ✅ | `--self-check` 裸跑不再写任何文件;指向 `docs/release/phase-one-staging-evidence.json` 被硬拒(exit 2),实测该文件 SHA-256 前后未变 → 防止「离线假通过」被当成 staging 证据 | 守卫或证据路径变更时 |
+| 09-24 | 生产部署批次(Web/PWA 上线) | ✅ | `git pull` → `85bc86f`;4 条迁移应用 → 台账 **54/54, pending=0**;`ADMIN_ENABLED=true`(env 备份 `.env.bak-20260924`);api/report-worker/worker/scheduler 重建;验收 `/health/ready` 200、站点 200、前端 `r63`==仓库、admin 未鉴权 401 | 新增迁移 / 部署配置变更 / 前端版本变更时 |
+| 09-24 | 生产后台启用(ADMIN_ENABLED) | ✅ | 部署批次写入 `ADMIN_ENABLED=true` 并重建 api;容器内 `printenv` = true;未鉴权 `/api/admin/*` 仍 401(鉴权先行)。登录态 200 待用户会话复验 | env 或后台代码变更时 |
+| 09-24 | 生产每日备份定时器 | ✅ | `zouseeking-backup.timer` 安装 + enable;`/etc/zouseeking/backup.env`(600,DATABASE_URL 由 deploy/.env 生成、不回显);试跑 `result=success` / `exec_status=0`;排期**每日 03:10 JST**;产物 15.7 MB + manifest(sha256) | unit / 脚本 / 保留策略变更时 |
+| 09-24 | 生产备份服务缺失(更正) | ⚠️ 已修 | 实测主机**原无** `zouseeking-backup.service/.timer`、无 `/var/backups/zouseeking`、无 `/etc/zouseeking/backup.env` → 文档「每日 03:10 备份 / 机侧巡检」在主机上不成立;已安装备份(见上行),`observability-check.timer` 仍未装 | 不再重验 |
+| 09-24 | 前端部署漂移 | ✅ 已消除 | 线上 `?v=` 由 `20260917-r61` → **`20260923-r63`** == 仓库 `deploy/frontend-version.txt` | 前端版本变更时 |
 
 ## 待闭合(未完成项,不属本台账)
-- ~~G2-ENG:邀请制准入 + 试运行标识(工程缺口)~~ → **工程侧已闭合(见本表 09-23 行)**;**生产侧未生效(见 09-24 行),待部署批次**
+- ~~G2-ENG:邀请制准入 + 试运行标识(工程缺口)~~ → **工程侧已闭合(见本表 09-23 行)**;**生产侧:4 条迁移已应用(09-24 部署批次),邀请表已在生产;仅剩注册门切换**(`disable_signup=true`,需先有邀请码)
 - G3:C01–C14 逐项判定 → **已完成 10-07 口径复核(见 `docs/release/go-no-go-checklist-2026-10-07.md` 文末《2026-09-24 范围对齐复核》)**
 - G4:生产迁移/RLS/额度/日志终检 + 回滚预案演练(09-27 ~ 09-30 窗口)
 - G5:发布公告 + 首周观察看板
 - G6/G8:提审材料 / 退款客服流程(用户口径 + Hermes 起草)
 - G7:合规评估与备案(并行轨道)
-- **新增(09-24 实测)**:一次部署批次(4 条迁移 + r63 前端 + 注册门切换,需用户批准)
+- ~~**新增(09-24 实测)**:一次部署批次(4 条迁移 + r63 前端 + 注册门切换,需用户批准)~~ → **已执行(2026-09-24 夜班,见本表 09-24 行)**;仅注册门切换保留
 - **新增(09-24 夜班)**:C13 真实 staging 运行 + 浏览器审计(工程载体已交付;需用户一次性 staging 写入授权 + `SMOKE_ANON_KEY` / `SMOKE_OWNER_TOKEN` / `SMOKE_OTHER_TOKEN`)

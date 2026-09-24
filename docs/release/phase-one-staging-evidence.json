@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "recorded_at": null,
+  "environment": "authorized_staging",
+  "status": "NOT_EXECUTED",
+  "candidate": {
+    "commit": null,
+    "frontend_version": null,
+    "frontend_version_match": null
+  },
+  "target": {
+    "project_ref": "fnogxuytbabxmqousifh",
+    "api_url": "https://zouseeking-api-staging.onrender.com",
+    "web_url": "https://zouseeking-web-staging.onrender.com"
+  },
+  "cases": [],
+  "storage_cleanup": {
+    "attempted": false,
+    "objects_remaining": null,
+    "sessions_remaining": null,
+    "verified": false
+  },
+  "browser_audit": {
+    "status": "NOT_EXECUTED",
+    "reason": "真实 staging 浏览器审计需用户授权",
+    "commands": []
+  },
+  "limitations": [
+    "真实 staging 运行需用户授权;本文件为骨架。",
+    "本文件不得被解释为 staging 或 production 已执行证据。"
+  ]
+}

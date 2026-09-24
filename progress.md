@@ -561,6 +561,41 @@
 - **待 Gordon 拍板(更新后全量,推荐置顶)**:① **一次部署批次** —— 现含 4 条待应用迁移 + 前端 r63 + **`ADMIN_ENABLED=true`** + 注册门切换(顺序不可颠倒);**种子邀请码名单仍待你提供**;② C07 / C08 合同缺口是否继续派 Codex(本班已闭 C09);③ C02:ADR-0002 重批为「C 端 + 后台」;④ C04 provider 备份 / Storage 恢复的项目与成本批准;⑤ C13 staging smoke 证据包(需 staging 授权);⑥ 4 行历史僵尸报告清理;⑦ 迁移台账 C4 口径;⑧ 未部署冻结件(Edge 函数 / `run_jphouse_worker.py`)删除 vs 长期冻结;⑨ 本班次(job `ab373f6bd99d`)改绑 P2 或停用。
 - **红线**:零 DB 写入或对象变更、零部署、未触凭据与冻结字段、**未新增/未修改任何 migration**、无删除操作;生产侧仅**只读**探测(SSH `git log` / `git status` / `docker compose ps` / `.env` 键存在性 `grep -c`,未回显任何值;未登录任何用户或管理员凭据)。
 
+## C07 报告队列合同 + C08 生产配置合同 双闭环 · 部署清单缺迁移步骤已补(2026-09-24 下午续班,本 BOT,第六/七个「补缺口」单元)
+
+- **班前实测**:工作树干净、`main == origin/main == 5efc1f4`、Release Gate 绿;Codex 通道正常。用户回「1」= 授权继续闭 **C07 / C08**(10-07 阻断链第 5 步)。
+- **C07 交付(commit `6062e79`,已 push;Release Gate run `35963451021` 全绿;派工 Codex 执行、Hermes 验收)**:
+  - 新增 `docs/architecture/report-job-queue-contract.md`(+139):唯一权威消费者(三条证据:唯一调用方 grep、compose 服务、`authoritative-boundaries.json`)、**五态状态机**(以 `20260918000400` 的 `check (status in (...))` 为准,逐状态给出写入者与条件坐标)、原子认领契约(`for update skip locked` + 15 分钟租约 + `attempts < max_attempts` + `claim_token`)、重试/退避/终态失败、**三个独立幂等边界**(`idempotency_key` unique、`unique (generation_job_id)`、`complete_claim` 的条件更新)、取消的真实行为、可观测事件、遗留执行器保证、证据索引。
+  - 新增 `tests/architecture/test_report_job_queue_contract.py`(5 条静态守护):钉死 `run_generation_job` 的**唯一调用点 = `report_worker.py:241`**(排除 `main.py:624` 的定义行)、断言不存在请求线程路径执行报告(`BackgroundTasks` 调用点集合锁定)、合同锚点/边界值/状态词汇三方一致。
+  - `tests/integration/test_report_worker_postgres.py` +3 真库用例:租约到期重放**不产生第二份报告**、重入队幂等且不把 `completed` 打回 `pending`、`completed` 永不被再认领。
+  - **独立验收(非采信自报)**:unit+arch **476 passed / 91 skipped**;真库两条文件 **8 passed**;全量 **673 passed / 113 skipped**;`git diff --check` 净;红线内(只动文档 + 测试)。
+  - **变异测试(本班新增的验收手法)**:故意放入 `scripts/__mutation_probe_tmp.py` 调用 `run_generation_job` → 守护测试立即失败并**精确报出路径与行号**;删除探针 → 5 passed。证明守护测试确有拦截力,而非摆设。
+- **C08 交付(commit `b388b73`,已 push;Release Gate run `35965877349` 全绿)**:
+  - 按实际架构把 C08 从旧要求(`render.production.yaml` / `supabase_config.py` / `production-readiness.md` 均不存在且不符)改为 **Lightsail 生产配置合同** `docs/operations/production-configuration-contract.md`(+98):逐服务拓扑表(含 `jpsskill` 为 opt-in `--profile ai`)、**staging 与 production 边界**(render.yaml 仅 staging,两套不得共享配置或互相引用)、**受控例外**(仓库外的 jpsskill 用自己的 `deploy/jpsskill.env`)、**全量环境变量契约表**(分类仅 `production_required` / `production_optional` / `ci_only` / `runtime_injected`)、secret 处理、health/readiness、known gaps,并标注 `deployment status: NOT_EXECUTED`。
+  - `deploy/.env.example` **只增不改**补齐 **25 个**此前未声明的键(全部占位符/安全默认值,无任何真实值);`ADMIN_ENABLED` 标为 required 默认 `false` = 后台关闭,两个限流键标为 optional 默认 `20` / `5`。
+  - 新增 `tests/architecture/test_production_configuration_contract.py`(6 条静态守护):合同键 ⊆ example、代码读取键 ⊆ 合同(**扫描覆盖两类**:直接 `os.getenv` 与经 `configured_limit` / 超时助手传入的字面量键 —— 后者是本班侦察时先漏、后纠正的口径)、compose 服务集与 `env_file` 规则(`jpsskill` 例外作为数据声明)、`render.yaml` 仅 staging、`NOT_EXECUTED` 锚点、example 内不得出现密钥形态。**不 import yaml**(CI 未装 PyYAML)。
+  - **独立验收**:该文件 6 passed;unit+arch **482 passed / 91 skipped**;全量 **679 passed / 113 skipped**;`secret_scan` 与 `check_release_policy` 均 **PASS**;**变异测试**同样验证有牙齿(探针读取未登记环境变量 → 精确报出该键名)。
+  - **Codex 报回的 `FOUND_DEFECTS` 处置**:它指出 `deploy/docker-compose.prod.yml:21` 的 `jpsskill` 用自己的 `jpsskill.env`,与我任务书里「单一 .env」断言冲突 —— **它判断正确且未擅自改断言**。验收方复核后判定:这是**契约写错**,`jpsskill` 属合理受控例外(仓库外构建、opt-in profile、独立凭据文件),已派一轮收尾把契约与守护测试改为显式例外口径(该轮另修,合入 `b388b73`)。
+- **⚠️ 本节新增的生产侧实测(SSH 只读,首次落地)**:
+  - 生产迁移台账表结构实测:`supabase_migrations.schema_migrations` 列 = `(version text, name text, statements text[])`,**既有 50 行的 `name` / `statements` 全为 NULL** → 前向应用的台账登记**只需写 `version`**。
+  - 生产 checkout 磁盘上的迁移文件 = **51 条**(HEAD `fd13974`),故 pull **之前**跑对账只会看到 1 条待应用;pull 后才是完整 4 条 —— 与晨班 Management API 对账(仓库 54 / 生产 50)一致。
+- **🔧 本节修复的发布计划缺陷(自上一轮发现)**:
+  1. **P5 清单与 `p5-release.sh` 都没有「应用迁移」这一步** —— 而 `deploy/Dockerfile.backend` 不 COPY `supabase/migrations`、AGENTS 又禁止应用启动时执行 DDL,故迁移必须单独应用,否则新迁移永远不进生产。新增 `~/zouseeking-cron-tasks/apply-migrations.sh`:`plan` 只读对账 / `apply` **逐条独立事务**执行 + 台账登记(失败即回滚并中止)。用一次性容器把宿主迁移目录只读挂载(`deploy-api` 镜像 + `--env-file deploy/.env`),因为镜像内没有迁移文件。**已实跑 `plan` 验证脚本可用**(生产实测:`on_disk=51 applied=50 pending=1`)。
+  2. `p5-release.sh` 的配置快照键清单**漏了 `ADMIN_ENABLED`**;备份步骤只 `ls` 目录、未真跑备份;重建未含 `nginx`(前端静态资源随仓库更新)。三处均已修正(备份改用 `zouseeking-backup.service` oneshot)。
+  3. P5 清单第 1/2 节同步更新:迁移对账指向 `apply-migrations.sh plan`、补 `ADMIN_ENABLED=true` 写入项、验收加「已登录管理员访问后台为 200(非 503)」。
+- **文档**:`docs/release/go-no-go-checklist-2026-10-07.md` —— **C07、C08 由 🟡 升 ✅**(逐条列出证据),新增 A9(C07/C08 缺口已闭环)、A10(部署清单缺迁移步骤已补),阻断链第 5 步整体划掉(仅剩 `NEEDS_PROD_EVIDENCE` 类项);`docs/release/launch-readiness-log.md` 新增 C07 / C08 两行(一次性证据 + 重验条件)。commit `3956847`,已 push。
+- **待 Gordon 拍板(更新后全量,推荐置顶)**:
+  ① **执行部署批次** —— 现已有可运行的执行体(`p5-release.sh` + `apply-migrations.sh`),顺序:git pull → 备份 → **应用 4 条迁移** → 写 `ADMIN_ENABLED=true` → 重建 api/report-worker/worker/nginx → 切 `disable_signup`;仍**待你提供试运行种子邀请码名单**;
+  ② C02:ADR-0002 重批为「C 端 + 后台」(一句话确认);
+  ③ C04 provider 备份 / Storage 恢复的项目与成本批准;
+  ④ C13 staging smoke 证据包(需 staging 授权);
+  ⑤ 4 行历史僵尸报告清理;
+  ⑥ 迁移台账 C4 口径;
+  ⑦ 未部署冻结件(Edge 函数 / `run_jphouse_worker.py`)删除 vs 长期冻结;
+  ⑧ 本班次(job `ab373f6bd99d`)改绑 P2 或停用。
+  (原 D4「无 outbox 行历史 job」口径现已被 C07 合同如实记录为 known difference + 人工 requeue 处置,实测受影响 0 条;若你认可该口径,可从此清单移除。)
+- **红线**:零 DB 写入或对象变更(**生产侧仅只读**;`apply-migrations.sh` 只跑了 `plan` 模式,未执行任何 `apply`)、零部署、未触凭据与冻结字段、**未新增/未修改任何 migration**(合同明确记录差异但不加回填迁移、不改 ADR-0001 决策文字)、无删除操作;未登录任何用户或管理员凭据。
+
 ## Last updated
 
 2026-09-24

@@ -32,6 +32,8 @@
 | 09-24 | 生产环境键存在性(只读) | 🟡 | SSH 只读:5 容器 Up(api 42h / worker 27h / report-worker 27h / scheduler 8d / nginx 6d);`STRIPE_SECRET_KEY`(`sk_live` 前缀 ✓)、`SUPABASE_SERVICE_ROLE_KEY`、`ABUSE_HASH_SALT`、`ENVIRONMENT` 均存在;`ADMIN_ENABLED`、`QUERY_RATE_LIMIT_PER_HOUR`、`INVITE_REGISTER_RATE_LIMIT_PER_HOUR` **三键缺失** → 分别落代码默认 `false` / `20` / `5`(限流默认足够;后台默认关闭见上行) | 部署批次写入或变更 env 后重验 |
 | 09-24 | C09 可观测与出站超时契约 | ✅ | 新增 `backend/app/observability.py`(请求关联 ID + 逐行 JSON + 脱敏,`X-Request-Id` 回写)、`backend/app/timeouts.py`(出站超时/重试/取消集中化,**默认值不变**)、`docs/production-reliability.md`;**独立实跑**(非自报):中间件 200/500 两路径、非法 request id 替换为 32-hex、email/token/JWT/异常原文**零泄漏**、每请求单行 JSON、第三方 INFO 噪声骨架行消除;`pytest tests/unit tests/architecture` **471 passed / 91 skipped**;`compileall`、`git diff --check` 净 | observability/timeouts/worker_logging 实现变更时 |
 | 09-24 | 前端部署漂移 | 🔴 | 线上 `?v=20260917-r61` vs 仓库 `deploy/frontend-version.txt=20260923-r63` → 生产前端落后 **16 个提交**(invite 注册前端、四语试运行标识、静态瘦身 r63、后台页签修复未上线) | 部署批次后重验版本号 |
+| 09-24 | 报告任务队列合同(C07) | ✅ | `docs/architecture/report-job-queue-contract.md`(五态机 + 原子认领/租约 + 三个幂等边界 + 取消真实行为 + 证据索引);5 条静态守护钉死唯一执行器(`report_worker.py:241`),3 条真库用例(租约重放不重复 / 重入队幂等 / completed 不再认领);守护经**变异测试**验证;unit+arch **476**、真库 **8**、全量 **673** | 队列实现 / worker / compose 变更时 |
+| 09-24 | 生产配置合同(C08) | ✅ | `docs/operations/production-configuration-contract.md`(Lightsail 拓扑 + staging/prod 边界 + jpsskill 受控例外 + 全量 env 契约 + known gaps);`deploy/.env.example` 补 **25 键**;6 条静态守护(不依赖 PyYAML)经**变异测试**验证;`secret_scan` / `check_release_policy` 均 PASS | 配置键 / compose / render.yaml 变更时 |
 
 ## 待闭合(未完成项,不属本台账)
 - ~~G2-ENG:邀请制准入 + 试运行标识(工程缺口)~~ → **工程侧已闭合(见本表 09-23 行)**;**生产侧未生效(见 09-24 行),待部署批次**

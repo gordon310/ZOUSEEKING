@@ -65,6 +65,8 @@
 | A6 | 服务健康 | `zoubeacon.app` 200、`platform.zoubeacon.com/admin.html` 200、`/health/ready` = `ready/database ok` | 服务可用;不代表新范围已生效 |
 | A7 | CI | `252b661` Release Gate **success**(七 job,run 35862699493) | C12 的「每次提交绿」持续成立 |
 | A8 | C09 可观测/超时缺口 | `observability.py` / `timeouts.py` / `docs/production-reliability.md` 三处缺口**已落地并独立实跑验收**(471 passed / 91 skipped;零 PII 泄漏;`X-Request-Id` 回写) | C09 由 🟡 升 ✅(见 §B),原判定解除 |
+| A9 | C07 / C08 缺口 | C07 合同 + 5 静态守护 + 3 真库用例;`C08` 生产配置合同 + `deploy/.env.example` 补 25 键 + 6 静态守护。两者均经独立实跑与**变异测试**(故意引入违规 → 守护测试精确报错) | 两项判定由 🟡 升 ✅(见 §B) |
+| A10 | 部署清单缺迁移步骤 | `p5-release.sh` / P5 清单此前**没有应用迁移的步骤**(compose 启动按 AGENTS 不跑 DDL),且配置快照漏 `ADMIN_ENABLED`。已新增 `apply-migrations.sh`(plan 只读对账 / apply 逐条事务 + 台账登记,只写 `version`,与生产既有 50 行一致)并补进清单 | 阻断链第 1 步的执行体已可运行;`plan` 模式已在生产实测(改动前:`on_disk=51 applied=50 pending=1`) |
 
 ## B. C01–C14 对 10-07 的判定
 
@@ -76,8 +78,8 @@
 | C04 | 🔴 阻断 | provider 物理备份/PITR 与私有 Storage 恢复**均无证据**;需用户批准项目、成本上限、停机窗口 | 用户 + Codex |
 | C05 | 🟡 需一次生产复验 | 数据库四身份有 09-20 生产证据;Storage 四角色仅 09-02 staging 证据;生产 Auth 生命周期未复验 | 用户(授权) + Codex |
 | C06 | ✅ 闭合 | 实测两副本各 **6** 条、全部 `synthetic_fixture`、SHA-256 一致(`301cf824…`);非 synthetic 违规 0 | Hermes |
-| C07 | 🟡 缺合同 + 缺演练 | 生产 worker 已常驻 → **旧口径「worker 保持关闭到 C14」不再适用**;`docs/architecture/report-job-queue-contract.md` 实测缺失;缺并发/崩溃/replay 演练证据 | Codex |
-| C08 | 🟡 口径改写 | 旧要求的 `render.production.yaml`、`backend/app/supabase_config.py`、`docs/production-readiness.md` 实测缺失且与实际架构(Lightsail Compose)不符 → 改为 Lightsail 生产配置合同;secret scan 已 PASS | Codex |
+| C07 | ✅ 已闭合(09-24 补) | 合同 `docs/architecture/report-job-queue-contract.md` 落地:五态状态机(以 migration 的 `check (status in ...)` 为准)+ 原子认领/15 分钟租约 + `claim_token` 保护 + 三个独立幂等边界 + **取消的真实行为**(SIGTERM;无面向客户的取消入口,如实列为 known gap)+ 遗留执行器保证 + 证据索引。新增 5 条静态守护(钉死 `run_generation_job` 唯一调用点 = `report_worker.py:241`、断言无请求线程路径执行报告)+ 3 条真库用例(租约重放不重复、重入队幂等、completed 不再认领);守护测试经**变异测试**验证确有拦截力。unit+arch 476 / 真库 8 / 全量 673 | Codex ✅ |
+| C08 | ✅ 已闭合(09-24 补) | 按实际架构改为 Lightsail 生产配置合同 `docs/operations/production-configuration-contract.md`(逐服务拓扑 + staging/production 边界 + `jpsskill` 受控 env_file 例外 + **全量环境变量契约** + secret 处理 + health/readiness + known gaps,并标注 `deployment status: NOT_EXECUTED`);`deploy/.env.example` 补齐 **25 个**此前未声明的键;6 条静态守护(键覆盖〔含经 `configured_limit`/超时助手传入的键〕/ 服务集 / env_file 规则 / render 仅 staging / NOT_EXECUTED 锚点 / 无密钥形态),**不依赖 PyYAML**;守护测试经**变异测试**验证确有拦截力 | Codex ✅ |
 | C09 | ✅ 已闭合(09-24 补) | 三处缺口已落地:`observability.py`(请求关联 + 脱敏结构化日志)、`timeouts.py`(出站超时/重试/取消契约,默认值不变)、`docs/production-reliability.md`;`rate_limit.py`、`oncall.md`、依赖审计维持原判。剩 `NEEDS_PROD_EVIDENCE`:生产告警投递与演练未做(已在文档 `Known gaps` 诚实标注) | Codex ✅ |
 | C10 | 🟡 待用户 | 隐私/删除链路代码与测试在;法务/运营签署未完成;受控删除演练未做 | 用户(法务) + Codex |
 | C11 | 🟡 仅缺数值 | 09-23 已落「受邀范围」机器可读基线;**静态预算问题已消除**(最大文件 945,771 → 246,943 B < 524,288 B);缺用户提供的预算/SLO 数值 | 用户 |
@@ -91,7 +93,7 @@
 2. **同批处理注册门(顺序不可颠倒)**:迁移应用后**先**确认邀请端点可用,**再**把 `disable_signup` 切 `true`;否则会出现「公共注册已关、邀请注册不可用 = 无人能注册」。验收:非邀请注册被拒、邀请码注册成功。
 3. **C04/C05 生产证据(需授权 + 成本上限)**:provider 备份或 clone + 私有 Storage 恢复 + 四身份复验(禁止 SSH,禁止把本机结果当生产证据)。
 4. **C13 staging candidate smoke 证据包**(Codex 0.5–1 天 + staging 授权)。
-5. **C07/C08/C09 收窄后的合同与可观测缺口**(Codex 2–4 天)。
+5. ~~**C07/C08/C09 收窄后的合同与可观测缺口**~~ → ✅ **已全部闭合(2026-09-24)**:C09 可观测/出站超时契约、C07 报告队列合同与证据、C08 生产配置合同(均含静态守护测试,并经变异测试验证)。三者剩余的仅为 `NEEDS_PROD_EVIDENCE` 类项(生产告警投递、告警/恢复演练),不构成工程缺口。
 6. **C02 ADR 重批(用户)+ C10/C11 用户数值**。
 7. **C14 逐项授权**:六位 owner、批准时间、回滚 smoke、30 分钟/24h 观察窗。
 

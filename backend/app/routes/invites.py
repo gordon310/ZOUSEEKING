@@ -1,4 +1,4 @@
-"""Public endpoint for invite-only consumer account creation."""
+"""Public endpoint for consumer account creation with an optional invite source."""
 from __future__ import annotations
 import os
 from datetime import datetime, timezone
@@ -12,7 +12,7 @@ from ..rate_limit import RateLimitStoreUnavailable, abuse_subject_hash, configur
 router=APIRouter(prefix="/api/auth",tags=["auth"])
 class InviteRegisterRequest(BaseModel):
  email:str=Field(min_length=3,max_length=320); password:str=Field(min_length=6,max_length=128)
- username:str=Field(min_length=1,max_length=120); invite_code:str=Field(min_length=1,max_length=128)
+ username:str=Field(min_length=1,max_length=120); invite_code:str=Field(default="",max_length=128)
  consent_version:str=Field(default="",max_length=80); terms_version:str=Field(default="",max_length=80)
 @router.post("/invite-register",status_code=201)
 async def invite_register(body:InviteRegisterRequest,request:Request)->dict[str,Any]:

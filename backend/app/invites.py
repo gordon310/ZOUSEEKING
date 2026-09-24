@@ -9,6 +9,7 @@ from uuid import UUID
 import asyncpg
 from . import timeouts
 
+# § 邀请码为可选来源。
 INVITE_REQUIRED_OPERATIONS=frozenset({"consumer_registration"})
 class InviteCodeError(Exception):
  def __init__(self,code:str,status_code:int=400)->None: super().__init__(code); self.code=code; self.status_code=status_code
@@ -30,7 +31,15 @@ def _admin_create_user(payload:dict[str,Any])->dict[str,Any]:
 @dataclass(frozen=True)
 class InviteRegistration:
  email:str; password:str; username:str; invite_code:str; consent_version:str=""; terms_version:str=""; ip_hash:str|None=None
+async def _create_consumer_user(registration:InviteRegistration,email:str,consent_source:str)->UUID:
+ created=await asyncio.to_thread(_admin_create_user,{"email":email,"password":registration.password,"email_confirm":False,"user_metadata":{"username":registration.username,"audience":"c","consent_version":registration.consent_version,"terms_version":registration.terms_version,"consent_source":consent_source}})
+ return UUID(str(created["id"]))
 async def register_invited_user(conn:asyncpg.Connection,registration:InviteRegistration)->dict[str,str]:
+ if registration.invite_code=="":
+  email=registration.email.strip().lower()
+  if not email or "@" not in email: raise InviteCodeError("invite_registration_invalid",400)
+  user_id=await _create_consumer_user(registration,email,"consumer_registration")
+  return {"user_id":str(user_id),"email":email}
  code=normalize_invite_code(registration.invite_code); email=registration.email.strip().lower()
  if not email or "@" not in email: raise InviteCodeError("invite_registration_invalid",400)
  row=await conn.fetchrow("select redemption_id,state from public.reserve_invite_code($1,$2,$3)",code,_email_hash(email),registration.ip_hash)
@@ -39,8 +48,7 @@ async def register_invited_user(conn:asyncpg.Connection,registration:InviteRegis
   raise InviteCodeError(f"invite_code_{state}", 409 if state=="exhausted" else 403)
  redemption_id=row["redemption_id"]
  try:
-  created=await asyncio.to_thread(_admin_create_user,{"email":email,"password":registration.password,"email_confirm":False,"user_metadata":{"username":registration.username,"audience":"c","consent_version":registration.consent_version,"terms_version":registration.terms_version,"consent_source":"invite_registration"}})
-  user_id=UUID(str(created["id"]))
+  user_id=await _create_consumer_user(registration,email,"invite_registration")
   if not await conn.fetchval("select public.complete_invite_redemption($1,$2)",redemption_id,user_id): raise InviteCodeError("invite_service_unavailable",503)
   return {"user_id":str(user_id),"email":email}
  except Exception:

@@ -67,8 +67,10 @@ def test_third_party_info_is_suppressed_at_default_level(monkeypatch):
     info = logging.LogRecord("httpx", logging.INFO, "", 0, "diagnostic", (), None)
     warning = logging.LogRecord("httpx", logging.WARNING, "", 0, "diagnostic", (), None)
 
-    assert handler.filter(info) is False
-    assert handler.filter(warning) is True
+    filters = [filter_ for filter_ in handler.filters if isinstance(filter_, observability._ThirdPartyQuietFilter)]
+    assert len(filters) == 1
+    assert filters[0].filter(info) is False
+    assert filters[0].filter(warning) is True
     assert json.loads(handler.format(warning))["event"] == "log"
 
 
@@ -77,7 +79,10 @@ def test_application_records_are_not_suppressed(monkeypatch):
     observability.configure_logging("api-test")
     record = logging.LogRecord("app.request", logging.INFO, "", 0, "request_completed", (), None)
 
-    assert _handlers()[0].filter(record) is True
+    handler = _handlers()[0]
+    filters = [filter_ for filter_ in handler.filters if isinstance(filter_, observability._ThirdPartyQuietFilter)]
+    assert len(filters) == 1
+    assert filters[0].filter(record) is True
 
 
 def test_log_third_party_level_invalid_value_falls_back_to_warning(monkeypatch):

@@ -34,6 +34,8 @@
 | 09-24 | 前端部署漂移 | 🔴 | 线上 `?v=20260917-r61` vs 仓库 `deploy/frontend-version.txt=20260923-r63` → 生产前端落后 **16 个提交**(invite 注册前端、四语试运行标识、静态瘦身 r63、后台页签修复未上线) | 部署批次后重验版本号 |
 | 09-24 | 报告任务队列合同(C07) | ✅ | `docs/architecture/report-job-queue-contract.md`(五态机 + 原子认领/租约 + 三个幂等边界 + 取消真实行为 + 证据索引);5 条静态守护钉死唯一执行器(`report_worker.py:241`),3 条真库用例(租约重放不重复 / 重入队幂等 / completed 不再认领);守护经**变异测试**验证;unit+arch **476**、真库 **8**、全量 **673** | 队列实现 / worker / compose 变更时 |
 | 09-24 | 生产配置合同(C08) | ✅ | `docs/operations/production-configuration-contract.md`(Lightsail 拓扑 + staging/prod 边界 + jpsskill 受控例外 + 全量 env 契约 + known gaps);`deploy/.env.example` 补 **25 键**;6 条静态守护(不依赖 PyYAML)经**变异测试**验证;`secret_scan` / `check_release_policy` 均 PASS | 配置键 / compose / render.yaml 变更时 |
+| 09-24 | C13 staging smoke 载体 | 🟡 载体已交付 | 四处交付物落地:`scripts/staging_synthetic_smoke.py`(默认 `--plan` 零网络零 socket;`--execute` 双开关 + `SMOKE_*` 三环境变量;生产 host 硬拒;10 条固定用例;`finally` 清理 + 读回断言残留 0;证据递归脱敏)、`docs/staging-synthetic-smoke.md`、`docs/release/phase-one-staging-evidence.json`(`NOT_EXECUTED` 骨架)、`tests/smoke/test_staging_synthetic_smoke.py`。独立验收:smoke **15 passed**、unit+arch **482/91**、全量 **694/113** | **真实 staging 运行 + 浏览器审计尚未执行** → 用户一次性写入授权 + `SMOKE_*` 凭据后重验 |
+| 09-24 | canonical 证据写入守卫 | ✅ | `--self-check` 裸跑不再写任何文件;指向 `docs/release/phase-one-staging-evidence.json` 被硬拒(exit 2),实测该文件 SHA-256 前后未变 → 防止「离线假通过」被当成 staging 证据 | 守卫或证据路径变更时 |
 
 ## 待闭合(未完成项,不属本台账)
 - ~~G2-ENG:邀请制准入 + 试运行标识(工程缺口)~~ → **工程侧已闭合(见本表 09-23 行)**;**生产侧未生效(见 09-24 行),待部署批次**
@@ -43,3 +45,4 @@
 - G6/G8:提审材料 / 退款客服流程(用户口径 + Hermes 起草)
 - G7:合规评估与备案(并行轨道)
 - **新增(09-24 实测)**:一次部署批次(4 条迁移 + r63 前端 + 注册门切换,需用户批准)
+- **新增(09-24 夜班)**:C13 真实 staging 运行 + 浏览器审计(工程载体已交付;需用户一次性 staging 写入授权 + `SMOKE_ANON_KEY` / `SMOKE_OWNER_TOKEN` / `SMOKE_OTHER_TOKEN`)

@@ -20,7 +20,7 @@
 | C10 | policy/terms 版本与服务端 consent record 对应；受控删除演练覆盖 DB/Auth/Storage/backup 限制；支持和事故流程有负责人；法务未确认的地区组合保持关闭。 | 🟡 部分达成 `NEEDS_PROD_EVIDENCE` | privacy unit/API/architecture tests 在 65-pass 批次通过；`backend/app/routes/privacy.py`、`services/privacy.py`、政策/条款/运营/事故文档和 UI 存在。`privacy-policy.md` 仍写“上線前草稿，待法務／負責人確認”；route 要求 current versions。 | 完成法务/运营主体、地区、SLA、support 和 incident owner 的签署；受控 synthetic deletion 覆盖 DB/Auth/Storage，记录 backup 到期限制；验证连续 retention worker/alert 及 200/400%/keyboard/mobile/reduced motion。法务未确认地区须配置关闭。 | 用户（法务/责任人）+ Codex | 1–2 天实现/测试 + 法务周期 |
 | C11 | baseline JSON 可机器读取；production 部署和 rollback 阈值从该基线派生；容量满足首月预算或已明确缩小受邀范围；没有 production load test。 | 🟡 部分达成 `NEEDS_PROD_EVIDENCE` | `tests/performance/test_staging_capacity.py` 本轮通过；JSON 可读且明确 `production_contacted=false`。但 `staging-capacity-baseline-2026-09-01.json` `overall.passed=false`/`FIX`：logo 945,771B 超 524,288B；真实 DB/Storage/geocoder/worker/CDN 与首月预算均未测/未定。 | 产品确定用户量、峰值、文件量、SLO、预算、降级/受邀范围；修静态预算问题；获批后做 staging-only synthetic 分轨测量，导出 deployment/rollback threshold。禁止 production load test。 | 用户（预算/SLO）+ Codex | 1–2 天 + 0.5–1 天 staging |
 | C12 | `offline_gate_passed=true`；所有 required jobs 在 GitHub Actions 绿；secret scan、dependency audit、SQL/RLS、Playwright 与 policy checks 无跳过；证据包可由 checksum 验证。`release_ready` 仍需 C13–C14 的 staging/production 证据。 | 🟡 部分达成 `NEEDS_PROD_EVIDENCE` | `.github/workflows/release-gate.yml`、`scripts/ci/release_evidence.py` 和 docs 存在；本轮 release-gate contract/policy/secret scan 通过，Playwright scope 2 passed。`tests/unit/test_release_evidence.py` 验证 code can build an offline manifest, not an actual run. | 没有本仓库中的候选 commit GitHub-hosted Actions run/runner/artifact checksum evidence，也未证明所有 required jobs（尤其 dependency audit、disposable SQL/RLS、full Playwright）无 skip。对已冻结 candidate 在 GitHub Actions 跑完整 workflow，保存 artifact manifest/checksum；此项不靠 YAML parse 通过。 | Codex + 用户（CI access） | 0.5–1 天 |
-| C13 | smoke 数据与 Storage objects 清理为 0；API/Web/ready 指向同一候选 commit；无未解释 console/network 请求；staging 证据包完整；Go/No-Go 清单仅剩 production 授权动作。 | ❌ 未开始/缺口 `NEEDS_PROD_EVIDENCE` | `docs/release/phase-one-staging-evidence.json`、`docs/staging-synthetic-smoke.md`、`scripts/staging_synthetic_smoke.py` 均不存在。浏览器 scope test 仅本机，不是 staging candidate smoke。 | 固定 commit/checksum/environment diff；经新授权在 staging 使用 synthetic text/URL/PDF/JPG/PNG、location deny/geocoder failure/expiry/cross-user/idempotency，证明 Storage cleanup=0；在实际 build 做 console/network/mobile/zoom/reduced motion，产出 evidence bundle。 | Codex + 用户（staging 授权） | 1–2 天 |
+| C13 | smoke 数据与 Storage objects 清理为 0；API/Web/ready 指向同一候选 commit；无未解释 console/network 请求；staging 证据包完整；Go/No-Go 清单仅剩 production 授权动作。 | ❌ 未开始/缺口 `NEEDS_PROD_EVIDENCE` | `docs/release/phase-one-staging-evidence.json`、`docs/staging-synthetic-smoke.md`、`scripts/staging_synthetic_smoke.py` 均不存在。浏览器 scope test 仅本机，不是 staging candidate smoke。 | 固定 commit/checksum/environment diff；经新授权在 staging 使用 synthetic text/URL/PDF/JPG/PNG、location deny/geocoder failure/expiry/cross-user/idempotency，证明 Storage cleanup=0；在实际 build 做 console/network/mobile/zoom/reduced motion，产出 evidence bundle。 | Codex + 用户（staging 授权） | ~~1–2 天~~ **载体已交付(09-24 夜班,见 §A A11 / §B C13)** |
 | C14 | production evidence 与部署 commit 对应；首发域名、API、Auth/Storage、日志、告警、删除和 rollback smoke 全通过；`consumer_intake_preview` 正式上线；B/admin、convert、完整版报告与付费路径仍保持关闭。 | ❌ 未开始/缺口 `NEEDS_PROD_EVIDENCE` | `docs/release/production-go-live-approval.json`: `BLOCK / NOT AUTHORIZED`；`production-release-evidence.json`: `NOT_EXECUTED`, `release_ready=false`，且所有 production checks BLOCKED/NOT_EXECUTED。 | 在 C01–C13 关闭后，记录六位 owner/批准时间、目标/commit/checksum/backup/forward-fix/rollback/观察窗；获用户明确逐项授权后才部署。依顺序验证 API/worker-off live+ready、C-only Web、synthetic smoke、30 分钟/24h 观察和 rollback smoke；保持 B/admin/convert/full report/payments 关闭。不得 SSH。 | 用户（正式授权/owners）+ Codex | 1 天发布窗口 + 24h 观察 |
 
 ## 必须先闭合项（按门槛链）
@@ -67,6 +67,7 @@
 | A8 | C09 可观测/超时缺口 | `observability.py` / `timeouts.py` / `docs/production-reliability.md` 三处缺口**已落地并独立实跑验收**(471 passed / 91 skipped;零 PII 泄漏;`X-Request-Id` 回写) | C09 由 🟡 升 ✅(见 §B),原判定解除 |
 | A9 | C07 / C08 缺口 | C07 合同 + 5 静态守护 + 3 真库用例;`C08` 生产配置合同 + `deploy/.env.example` 补 25 键 + 6 静态守护。两者均经独立实跑与**变异测试**(故意引入违规 → 守护测试精确报错) | 两项判定由 🟡 升 ✅(见 §B) |
 | A10 | 部署清单缺迁移步骤 | `p5-release.sh` / P5 清单此前**没有应用迁移的步骤**(compose 启动按 AGENTS 不跑 DDL),且配置快照漏 `ADMIN_ENABLED`。已新增 `apply-migrations.sh`(plan 只读对账 / apply 逐条事务 + 台账登记,只写 `version`,与生产既有 50 行一致)并补进清单 | 阻断链第 1 步的执行体已可运行;`plan` 模式已在生产实测(改动前:`on_disk=51 applied=50 pending=1`) |
+| A11 | C13 载体(09-24 夜班新增) | 四处交付物**已落地**:`scripts/staging_synthetic_smoke.py`(默认 `--plan` **零网络零 socket**;`--execute` 需 `--allow-staging` + `--authorized-writes` **双开关**且 `SMOKE_ANON_KEY/OWNER_TOKEN/OTHER_TOKEN` 三环境变量齐备,否则 exit 2;生产 6 个 host 与白名单外 host **硬拒**;candidate commit 必须 40-hex 且在本地 git;10 条固定用例;`finally` **必清理 + 读回断言残留 0**;证据 JSON 递归脱敏)、`docs/staging-synthetic-smoke.md`、`docs/release/phase-one-staging-evidence.json`(**`NOT_EXECUTED`** 骨架)、`tests/smoke/test_staging_synthetic_smoke.py`(15 条离线用例) | 独立验收实跑:`pytest tests/smoke/test_staging_synthetic_smoke.py -q` → **15 passed**;`pytest tests/unit tests/architecture -q` → **482 passed / 91 skipped**;全量无库 `pytest -q` → **694 passed / 113 skipped**;生产 host → `error: api-url production host is explicitly forbidden` exit 2;`--self-check` 裸跑**不写** canonical 证据文件(实测哈希未变),指向该文件被硬拒 exit 2。**真实 staging 运行与浏览器审计未执行(需用户授权)** |
 
 ## B. C01–C14 对 10-07 的判定
 
@@ -84,7 +85,7 @@
 | C10 | 🟡 待用户 | 隐私/删除链路代码与测试在;法务/运营签署未完成;受控删除演练未做 | 用户(法务) + Codex |
 | C11 | 🟡 仅缺数值 | 09-23 已落「受邀范围」机器可读基线;**静态预算问题已消除**(最大文件 945,771 → 246,943 B < 524,288 B);缺用户提供的预算/SLO 数值 | 用户 |
 | C12 | ✅ 收窄满足 | 每次 push 均有 gate 绿证据(`252b661` 七 job);依赖审计已纳入必填。剩「候选 commit artifact checksum 归档」一次性动作 | Hermes |
-| C13 | 🔴 阻断 | `docs/release/phase-one-staging-evidence.json`、`scripts/staging_synthetic_smoke.py` 实测**缺失** → staging candidate smoke 无载体 | Codex + 用户(授权) |
+| C13 | 🟡 载体已交付(仅剩授权 + 一次运行) | **09-24 夜班**:四处交付物已落地并独立验收(见 §A A11)——默认零网络的 `--plan`、双开关门控的 `--execute`(生产 host 硬拒)、10 条固定用例、finally 清理 + 读回、脱敏证据写入、`NOT_EXECUTED` 骨架;`--self-check` 加硬守卫,**不再可能**把 canonical 证据文件写成离线假通过(实测 exit 2 且文件哈希未变)。**真实 staging 运行、cleanup 读回实测、浏览器审计仍未执行** → 需用户一次性 staging 写入授权 + `SMOKE_*` 凭据 | 用户(授权) + Codex |
 | C14 | 🔴 阻断 | `production-go-live-approval.json` = `BLOCK / NOT AUTHORIZED`;旧口径「B/admin/convert/付费保持关闭」与新范围**矛盾**(新:后台同时上线、付费=单次购买) | 用户 |
 
 ## C. 10-07 阻断链(按执行顺序)
@@ -92,7 +93,7 @@
 1. **一次部署批次(需用户批准)**:`git pull --ff-only` → 应用 4 条待应用迁移 → **在 `deploy/.env` 写入 `ADMIN_ENABLED=true`** → `docker compose -f deploy/docker-compose.prod.yml up -d --build nginx api worker report-worker scheduler`。验收:前端版本 = `20260923-r63`、生产迁移台账 54/54、**已登录管理员访问后台为 200(非 503)**。
 2. **同批处理注册门(顺序不可颠倒)**:迁移应用后**先**确认邀请端点可用,**再**把 `disable_signup` 切 `true`;否则会出现「公共注册已关、邀请注册不可用 = 无人能注册」。验收:非邀请注册被拒、邀请码注册成功。
 3. **C04/C05 生产证据(需授权 + 成本上限)**:provider 备份或 clone + 私有 Storage 恢复 + 四身份复验(禁止 SSH,禁止把本机结果当生产证据)。
-4. **C13 staging candidate smoke 证据包**(Codex 0.5–1 天 + staging 授权)。
+4. **C13 staging candidate smoke 证据包** —— ✅ **工程载体已交付(2026-09-24 夜班,见 §A A11)**;剩:用户一次性 staging 写入授权 + `SMOKE_ANON_KEY`/`SMOKE_OWNER_TOKEN`/`SMOKE_OTHER_TOKEN` → `scripts/staging_synthetic_smoke.py --execute --allow-staging --authorized-writes`(自动比对 `?v=` 与 `deploy/frontend-version.txt`、finally 清理 + 读回)→ 浏览器审计(`--browser-evidence`)→ 证据文件由 `NOT_EXECUTED` 变为实测结果。
 5. ~~**C07/C08/C09 收窄后的合同与可观测缺口**~~ → ✅ **已全部闭合(2026-09-24)**:C09 可观测/出站超时契约、C07 报告队列合同与证据、C08 生产配置合同(均含静态守护测试,并经变异测试验证)。三者剩余的仅为 `NEEDS_PROD_EVIDENCE` 类项(生产告警投递、告警/恢复演练),不构成工程缺口。
 6. **C02 ADR 重批(用户)+ C10/C11 用户数值**。
 7. **C14 逐项授权**:六位 owner、批准时间、回滚 smoke、30 分钟/24h 观察窗。
@@ -119,3 +120,22 @@ docs/release/phase-one-staging-evidence.json、scripts/{audit_provenance,staging
 ```
 
 > 未做:任何 DB 写入、迁移应用、部署、DNS/凭据变更、删除;生产侧仅上述只读 GET 探测(未使用任何用户或管理员凭据登录)。
+
+## E. 2026-09-24 夜班:C13 载体交付的实测输出(证据)
+
+```text
+git status --porcelain                    → 空(班前);交付后仅 4 个新增文件(未跟踪,由 Hermes 提交)
+backend/.venv/bin/python -m pytest tests/smoke/test_staging_synthetic_smoke.py -q   → 15 passed
+backend/.venv/bin/python -m pytest tests/unit tests/architecture -q                → 482 passed / 91 skipped
+backend/.venv/bin/python -m pytest -q(全量,无库)                                  → 694 passed / 113 skipped
+PYTHONPYCACHEPREFIX=/tmp/jp-pycache backend/.venv/bin/python -m compileall -q scripts tests/smoke → OK
+backend/.venv/bin/python scripts/staging_synthetic_smoke.py --plan                 → exit 0;打印白名单/candidate c4962b8…/r63/fixture 字节数与 SHA-256/端点/清理计划
+backend/.venv/bin/python scripts/staging_synthetic_smoke.py --plan --api-url https://api.zoubeacon.com → error: api-url production host is explicitly forbidden(exit 2)
+backend/.venv/bin/python scripts/staging_synthetic_smoke.py --execute              → error: --execute requires --allow-staging …(exit 2)
+backend/.venv/bin/python scripts/staging_synthetic_smoke.py --execute --allow-staging --authorized-writes → error: --execute requires environment variables: SMOKE_ANON_KEY, SMOKE_OWNER_TOKEN, SMOKE_OTHER_TOKEN(exit 2)
+backend/.venv/bin/python scripts/staging_synthetic_smoke.py --plan --candidate-commit deadbeef → error: candidate commit must be a 40-character hexadecimal SHA(exit 2)
+backend/.venv/bin/python scripts/staging_synthetic_smoke.py --self-check           → 只打印证据,不写文件;canonical 证据文件 SHA-256 前后一致(c5025853…)
+backend/.venv/bin/python scripts/staging_synthetic_smoke.py --self-check --evidence-out docs/release/phase-one-staging-evidence.json → error: canonical 证据文件只允许真实 staging 运行写入(exit 2)
+```
+
+> 本轮未做:任何 DB 写入、迁移应用、部署、SSH、连 staging/production、删除;未使用任何凭据。Codex 沙箱内的 1 例失败为沙箱禁止本地端口绑定所致(本机复跑该集合 482 passed / 91 skipped,无失败)。

@@ -596,6 +596,27 @@
   (原 D4「无 outbox 行历史 job」口径现已被 C07 合同如实记录为 known difference + 人工 requeue 处置,实测受影响 0 条;若你认可该口径,可从此清单移除。)
 - **红线**:零 DB 写入或对象变更(**生产侧仅只读**;`apply-migrations.sh` 只跑了 `plan` 模式,未执行任何 `apply`)、零部署、未触凭据与冻结字段、**未新增/未修改任何 migration**(合同明确记录差异但不加回填迁移、不改 ADR-0001 决策文字)、无删除操作;未登录任何用户或管理员凭据。
 
+## C13 staging smoke 载体交付(2026-09-24 夜班,本 BOT,第八个「补缺口」单元)
+
+- **班前实测(20:31)**:工作树干净、`main == origin/main == c4962b8`、`git rev-list --count origin/main..main = 0`;仓库内**无 `codex exec` 进程**;Release Gate `c4962b8` 绿;Codex 通道探针通过(代理 401、colo=LAX)。→ 按判据**不判进行中**,本班可开工。
+- **单元选择**:P1 清单 09-07 已闭环;10-07 阻断链上**唯一剩下的工程侧缺口**是第 4 步 **C13**——四处交付物实测不存在(`scripts/staging_synthetic_smoke.py`、`docs/staging-synthetic-smoke.md`、`docs/release/phase-one-staging-evidence.json`、`tests/smoke/test_staging_synthetic_smoke.py`),导致 staging candidate smoke **无载体**。C02/C04/C05/C10/C11/C14 均为用户决策类,不在本班边界。
+- **交付(4 新文件;派工 Codex 执行、Hermes 独立验收;feat commit `1dc2106`)**:`--plan` 默认**零网络零 socket**(无参即可跑);`--execute` 需 `--allow-staging` + `--authorized-writes` **双开关**且 `SMOKE_*` 三环境变量齐备;**生产 6 host 硬拒**、白名单外一律拒;candidate commit 必须 40-hex 且在本地 git;10 条固定用例(synthetic text/`.invalid` URL/PDF/JPG/PNG/位置拒绝/geocoder 失败/过期清理/跨用户拒绝/幂等);`finally` **必清理 + 读回断言残留 0**;证据 JSON 递归脱敏(敏感键 + `sb_`/JWT/邮箱);浏览器审计**不在脚本内**(`--browser-evidence` 可选输入,缺省 `not_executed` + 待跑命令清单)。
+- **独立验收发现并修掉两个真缺陷(第二轮)**:
+  1. **`--self-check` 会把 canonical 证据文件写成离线假通过** —— 它原本把 `environment="offline_self_check"` 的结果写进默认路径 `docs/release/phase-one-staging-evidence.json`(即仓库那份 `NOT_EXECUTED` 骨架)。已加硬守卫:裸 `--self-check` 只打印;**任何非 `authorized_staging` 路径写 canonical 证据文件一律 exit 2**。实测:裸跑后该文件 SHA-256 前后一致(`c5025853…`),指定它 → `error: canonical 证据文件只允许真实 staging 运行写入`。
+  2. **`_preview_is_safe()` 与真实免费预览契约不符 → 真实 staging 上必然假失败**。真实响应由 `backend/app/intake/completeness.py::build_free_preview()` 产出:**没有顶层 `data_class`、没有 `insufficient_data_status`**,资料不足信号在 `completeness.<维度>.status` 与 `acquisition_costs.status`。已改为:资料不足三路信号任一成立;`data_class` **递归**查找并记录路径(找不到时要求 `comparable.reference` 为空且无税费总额,并记明原因);`comparable_status` 必须存在且 ∈ {not_checked, insufficient, sufficient},为 `sufficient` 时 `reference` 每行必须带 `data_class`,否则 fail。
+- **验证证据(全部本机实跑)**:`pytest tests/smoke/test_staging_synthetic_smoke.py -q` → **15 passed**;`pytest tests/unit tests/architecture -q` → **482 passed / 91 skipped**(与 09-24 下午基线一致,零回归);全量无库 `pytest -q` → **694 passed / 113 skipped / 0 failed**(基线 679,新增 15 即本批用例);`compileall -q scripts tests/smoke` OK;`git diff --check` 净;CLI 实测:`--plan` exit 0、生产 host exit 2、缺 `--allow-staging` exit 2、缺凭据 exit 2、非 hex commit exit 2。
+- **commit**:`1dc2106`(feat,4 个新文件)+ 本提交(docs):Go/No-Go 清单 §A A11 / §B C13 由 🔴 改 🟡、阻断链第 4 步、新增 §E 实测输出;launch-readiness-log 2 行 + 待闭合 1 行;progress.md 本节。
+- **待 Gordon 拍板(更新后全量,推荐置顶)**:
+  ① **执行部署批次**(现已有可运行执行体 `p5-release.sh` + `apply-migrations.sh`;顺序:git pull → 备份 → 应用 4 条迁移 → 写 `ADMIN_ENABLED=true` → 重建 api/worker/report-worker/nginx → 切 `disable_signup`);**种子邀请码名单仍待你提供**;
+  ② **C13 一次性 staging 写入授权** + 三个 `SMOKE_*` 凭据(给了就能跑 `--execute` 并产出真实证据);
+  ③ C02:ADR-0002 重批为「C 端 + 后台」(一句话确认);
+  ④ C04 provider 备份 / Storage 恢复的项目与成本批准;
+  ⑤ 4 行历史僵尸报告清理;
+  ⑥ 迁移台账 C4 口径;
+  ⑦ 未部署冻结件(Edge 函数 / `run_jphouse_worker.py`)删除 vs 长期冻结;
+  ⑧ 本班次(job `ab373f6bd99d`)改绑 P2 或停用。
+- **红线**:零 DB 写入或对象变更、零部署、零 SSH、未触凭据与冻结字段、**未新增/未修改任何 migration**、无删除操作;仅本机实跑 + 文档/测试新增。
+
 ## Last updated
 
 2026-09-24

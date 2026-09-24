@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Any, Mapping, Optional
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
+from .. import timeouts
 
 
 DEFAULT_GSI_REVERSE_GEOCODER_URL = (
@@ -84,7 +85,7 @@ class GsiReverseGeocoder:
             },
         )
         try:
-            with urlopen(request, timeout=self.timeout_seconds) as response:
+            with timeouts.fetch_with_retry(urlopen, request, timeout=timeouts.outbound_timeout(self.timeout_seconds)) as response:
                 raw_payload = response.read(MAX_RESPONSE_BYTES + 1)
             if len(raw_payload) > MAX_RESPONSE_BYTES:
                 raise ReverseGeocoderError("reverse geocoder response is too large")

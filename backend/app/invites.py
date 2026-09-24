@@ -7,6 +7,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from uuid import UUID
 import asyncpg
+from . import timeouts
 
 INVITE_REQUIRED_OPERATIONS=frozenset({"consumer_registration"})
 class InviteCodeError(Exception):
@@ -21,7 +22,7 @@ def _admin_create_user(payload:dict[str,Any])->dict[str,Any]:
  if not base or not key: raise InviteCodeError("invite_service_unavailable",503)
  request=Request(f"{base}/auth/v1/admin/users",method="POST",headers={"apikey":key,"Authorization":f"Bearer {key}","Content-Type":"application/json"},data=json.dumps(payload).encode())
  try:
-  with urlopen(request,timeout=8) as response: return json.loads(response.read().decode())
+  with urlopen(request,timeout=timeouts.DEFAULT_OUTBOUND_TIMEOUT_SECONDS) as response: return json.loads(response.read().decode())
  except HTTPError as exc:
   if exc.code in (400,409,422): raise InviteCodeError("account_already_exists",409) from exc
   raise InviteCodeError("invite_service_unavailable",503) from exc

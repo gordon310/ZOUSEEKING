@@ -12,6 +12,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from fastapi import Header, HTTPException
+from . import timeouts
 
 
 @dataclass(frozen=True)
@@ -37,7 +38,7 @@ def _fetch_supabase_user(access_token: str) -> dict:
         },
     )
     try:
-        with urlopen(request, timeout=8) as response:
+        with timeouts.fetch_with_retry(urlopen, request, timeout=timeouts.DEFAULT_OUTBOUND_TIMEOUT_SECONDS) as response:
             return json.loads(response.read().decode("utf-8"))
     except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as exc:
         raise ValueError("invalid Supabase access token") from exc

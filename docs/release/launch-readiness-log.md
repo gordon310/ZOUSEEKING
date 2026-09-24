@@ -28,7 +28,9 @@
 | 09-23 | 正式上线口径 | ✅ | 用户拍板:Web/PWA 先行,硬出口 **2026-10-07**;商店/备案为并行轨道 | 用户改口径时 |
 | 09-24 | 生产迁移台账 | 🟡 | 管理 API 只读实测:生产已登记 **50** / 仓库 **54**;待应用 `20260921000100`(provenance 回填)、`20260923000100/000200/000300`(邀请门/错误态/共享限流) | 应用 4 条后重验;此后新增迁移时 |
 | 09-24 | 生产注册门(邀请制准入在生产的实际状态) | 🔴 **未生效** | 管理 API:`disable_signup=false`(公共注册仍开放);`invite_codes`/`invite_redemptions` **仅定义于未应用的两条迁移** → 生产无邀请码表。**09-23 行的 ✅ 证据取自真库,非生产**;生产侧不成立 | 迁移应用 + 邀请端点确认 + 切 `disable_signup=true` 后重验(顺序不可颠倒) |
-| 09-24 | 生产后台 API 边界 | 🟡 | 未鉴权 `/api/admin/overview`、`/collection/runs`、`/service/tasks` 均 **401**(非 503) → 鉴权边界生效;但 401 早于 `ADMIN_ENABLED` 门,该门在生产 `.env`(本机不可读)→ **值未知** | 需一次已登录会话或读取生产 env;后台同时上线前必核 |
+| 09-24 | 生产后台 API 边界 | 🔴 **后台被关闭** | 未鉴权 `/api/admin/*` 均 **401**(鉴权边界生效);SSH 只读实测生产 `deploy/.env` **无 `ADMIN_ENABLED` 键**(`grep -c` 返回 0)→ 代码默认 `false`(`backend/app/admin/service.py:1236`)→ 鉴权通过后一律 **503「admin 未配置」** = **后台管理平台在生产不可用**,与 10-07「C 端 + 后台同时上线」直接冲突 | 部署批次写入 `ADMIN_ENABLED=true` 并重启 api 后用已登录管理员会话重验 |
+| 09-24 | 生产环境键存在性(只读) | 🟡 | SSH 只读:5 容器 Up(api 42h / worker 27h / report-worker 27h / scheduler 8d / nginx 6d);`STRIPE_SECRET_KEY`(`sk_live` 前缀 ✓)、`SUPABASE_SERVICE_ROLE_KEY`、`ABUSE_HASH_SALT`、`ENVIRONMENT` 均存在;`ADMIN_ENABLED`、`QUERY_RATE_LIMIT_PER_HOUR`、`INVITE_REGISTER_RATE_LIMIT_PER_HOUR` **三键缺失** → 分别落代码默认 `false` / `20` / `5`(限流默认足够;后台默认关闭见上行) | 部署批次写入或变更 env 后重验 |
+| 09-24 | C09 可观测与出站超时契约 | ✅ | 新增 `backend/app/observability.py`(请求关联 ID + 逐行 JSON + 脱敏,`X-Request-Id` 回写)、`backend/app/timeouts.py`(出站超时/重试/取消集中化,**默认值不变**)、`docs/production-reliability.md`;**独立实跑**(非自报):中间件 200/500 两路径、非法 request id 替换为 32-hex、email/token/JWT/异常原文**零泄漏**、每请求单行 JSON、第三方 INFO 噪声骨架行消除;`pytest tests/unit tests/architecture` **471 passed / 91 skipped**;`compileall`、`git diff --check` 净 | observability/timeouts/worker_logging 实现变更时 |
 | 09-24 | 前端部署漂移 | 🔴 | 线上 `?v=20260917-r61` vs 仓库 `deploy/frontend-version.txt=20260923-r63` → 生产前端落后 **16 个提交**(invite 注册前端、四语试运行标识、静态瘦身 r63、后台页签修复未上线) | 部署批次后重验版本号 |
 
 ## 待闭合(未完成项,不属本台账)

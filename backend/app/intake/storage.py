@@ -10,6 +10,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 from uuid import uuid4
+from .. import timeouts
 
 
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024
@@ -93,7 +94,7 @@ def upload_private_file(session_id: str, filename: str, media_type: str, content
         },
     )
     try:
-        with urlopen(request, timeout=8) as response:
+        with urlopen(request, timeout=timeouts.DEFAULT_OUTBOUND_TIMEOUT_SECONDS) as response:
             if getattr(response, "status", 200) >= 400:
                 raise StorageUnavailable()
     except StorageUnavailable:
@@ -120,7 +121,7 @@ def delete_private_file(path: str) -> None:
         headers=_service_headers(service_key),
     )
     try:
-        with urlopen(request, timeout=8) as response:
+        with urlopen(request, timeout=timeouts.DEFAULT_OUTBOUND_TIMEOUT_SECONDS) as response:
             if getattr(response, "status", 200) >= 400:
                 raise StorageUnavailable()
     except StorageUnavailable:

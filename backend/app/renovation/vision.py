@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import List, Optional, Sequence
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+from .. import timeouts
 
 from pydantic import ValidationError
 
@@ -67,7 +68,7 @@ class HttpVisionProvider:
             headers=headers,
         )
         try:
-            with urlopen(request, timeout=self.timeout_seconds) as response:
+            with urlopen(request, timeout=timeouts.outbound_timeout(self.timeout_seconds)) as response:
                 body = response.read(2 * 1024 * 1024)
             decoded = VisionResponse.model_validate(json.loads(body.decode("utf-8")))
         except (

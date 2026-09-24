@@ -10,6 +10,7 @@ from collections.abc import Mapping
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from uuid import UUID
+from .. import timeouts
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ class SupabaseAdminError(RuntimeError):
 
 
 class SupabaseAdmin:
-    def __init__(self, *, base_url: str | None = None, service_role_key: str | None = None, timeout_seconds: float = 8.0) -> None:
+    def __init__(self, *, base_url: str | None = None, service_role_key: str | None = None, timeout_seconds: float = timeouts.DEFAULT_OUTBOUND_TIMEOUT_SECONDS) -> None:
         self.base_url = (base_url if base_url is not None else os.getenv("SUPABASE_URL", "")).rstrip("/")
         self.service_role_key = service_role_key if service_role_key is not None else os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
         self.timeout_seconds = timeout_seconds
@@ -65,5 +66,5 @@ class SupabaseAdmin:
             raise SupabaseAdminError("transport", retryable=True) from None
 
     def _urlopen(self, request: Request) -> bytes:
-        with urlopen(request, timeout=self.timeout_seconds) as response:
+        with urlopen(request, timeout=timeouts.outbound_timeout(self.timeout_seconds)) as response:
             return response.read()

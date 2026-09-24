@@ -10,6 +10,7 @@ import socket
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+from .. import timeouts
 
 from ..intake.geocoding import GsiReverseGeocoder, ReverseGeocoderError
 from .exif import parse_exif_gps
@@ -186,7 +187,7 @@ async def recognize(
 
 def _post(request: Request, timeout: float) -> str:
     try:
-        with urlopen(request, timeout=timeout) as response:
+        with urlopen(request, timeout=timeouts.outbound_timeout(timeout)) as response:
             return response.read().decode("utf-8")
     except HTTPError:
         raise

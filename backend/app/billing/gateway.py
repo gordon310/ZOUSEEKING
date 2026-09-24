@@ -16,6 +16,7 @@ from .ports import (
     RefundResult,
     StripeGateway,
 )
+from .. import timeouts
 
 
 class BillingGatewayError(Exception):
@@ -55,7 +56,7 @@ def _scalar(value: Any) -> str:
 
 
 class StripeHttpGateway(StripeGateway):
-    def __init__(self, secret_key: str, *, timeout: float = 30.0) -> None:
+    def __init__(self, secret_key: str, *, timeout: float = timeouts.outbound_timeout(30.0)) -> None:
         self._api_base = "https://api.stripe.com/v1"
         self._auth = base64.b64encode(f"{secret_key}:".encode()).decode()
         self._timeout = timeout

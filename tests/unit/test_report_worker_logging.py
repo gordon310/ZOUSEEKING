@@ -10,6 +10,8 @@ from uuid import uuid4
 import pytest
 
 from backend.app import report_worker
+from backend.app import observability
+from backend.app import worker_logging
 from backend.app.worker_logging import configure_logging, log_event
 
 
@@ -77,6 +79,28 @@ def test_failure_event_does_not_serialize_exception_message(capsys: pytest.Captu
     assert line["event"] == "report_failed"
     assert line["error_code"] == "report_generation_failed"
     assert line["retryable"] is False
+
+
+def test_worker_unstructured_records_match_api_redacted_shape():
+    record = logging.LogRecord(
+        "httpx",
+        logging.WARNING,
+        "",
+        0,
+        "HTTP Request: GET https://x/y?access_token=SECRET123 mail jane.doe@example.co.jp",
+        (),
+        None,
+    )
+
+    api_payload = json.loads(observability._JsonFormatter("api-test").format(record))
+    worker_payload = json.loads(worker_logging._JsonFormatter("report-worker-test").format(record))
+
+    assert worker_payload.keys() == api_payload.keys()
+    assert worker_payload["event"] == "log"
+    assert worker_payload["logger"] == "httpx"
+    assert "HTTP Request" in worker_payload["message"]
+    assert "SECRET123" not in worker_payload["message"]
+    assert "jane.doe@example.co.jp" not in worker_payload["message"]
 
 
 @pytest.mark.asyncio

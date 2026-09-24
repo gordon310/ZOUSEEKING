@@ -52,6 +52,7 @@ from .routes.invites import router as invite_router
 from .usage.ledger import QuotaExceeded
 from .usage.quota import consume_current_entitlement
 from .rate_limit import RateLimitStoreUnavailable, abuse_subject_hash, configured_limit, consume_shared_rate_limit
+from . import observability
 
 
 ALLOWED_ORIGINS = [
@@ -66,6 +67,7 @@ MARKET_SOURCE_CACHE_TTL_SECONDS = 60.0
 _market_source_cache: tuple[str, float] | None = None
 _market_source_cache_lock: asyncio.Lock | None = None
 logger = logging.getLogger(__name__)
+observability.configure_logging("api")
 
 
 @asynccontextmanager
@@ -142,6 +144,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+observability.install(app)
 app.include_router(health_router)
 app.include_router(intake_router)
 app.include_router(renovation_router)

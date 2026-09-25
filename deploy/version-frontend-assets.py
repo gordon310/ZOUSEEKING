@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Apply the single release version to static asset references in web/*.html and web/js/*.js."""
+"""Keep source and generated frontend asset references on one release version.
+
+Both web-source/js and web/js must use the same version as web/*.html; otherwise
+check:web-assets rebuilds stale source references and fails its freshness check.
+"""
 
 import argparse
 import re
@@ -62,6 +66,14 @@ def main() -> int:
                 path.write_text(updated, encoding="utf-8")
 
     for path in sorted((ROOT / "web" / "js").glob("*.js")):
+        original = path.read_text(encoding="utf-8")
+        updated = rewrite_module_imports(original, version)
+        if updated != original:
+            changed.append(path)
+            if not args.check:
+                path.write_text(updated, encoding="utf-8")
+
+    for path in sorted((ROOT / "web-source" / "js").rglob("*.js")):
         original = path.read_text(encoding="utf-8")
         updated = rewrite_module_imports(original, version)
         if updated != original:

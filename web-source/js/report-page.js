@@ -1,5 +1,5 @@
-import { getValidAccessToken } from "./api-client.js?v=20260923-r63";
-import { currencyForRegion, inferRegion, reportAccessState, reportCoverageState, selectPrice } from "./report-page-core.js?v=20260923-r63";
+import { getValidAccessToken } from "./api-client.js?v=20260925-r64";
+import { currencyForRegion, inferRegion, reportAccessState, reportCoverageState, selectPrice } from "./report-page-core.js?v=20260925-r64";
 
 const PRODUCT_CODE = "risk_report_single";
 const params = new URL(window.location.href).searchParams;

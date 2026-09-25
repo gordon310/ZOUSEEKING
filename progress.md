@@ -645,6 +645,29 @@
 - **遗留(已登记待办)**:① R2 端**无保留策略**,约 15.8 MB/天 → 约 1.7 年触及 10 GB 免费额度,需加生命周期或脚本侧清理;② 备份新鲜度阈值 36h(当前 age≈0h)。
 - **红线**:生产侧仅 `backup.env`/`observability.env` 追加(均已备份)、systemd timer 安装与手工触发、只读探测与已有的备份上传;**未触碰任何 migration、未改产品代码、未删任何文件、未改 `disable_signup`**;凭据仅落本机 600 文件与生产 600 env,全程未回显明文。
 
+## D-12 开放注册改造闭环(服务端 + 前端)+ 顺带修 CI 红(2026-09-25 上午班,本 BOT)
+
+- **背景**:用户 09-24 拍板「开放注册,不做邀请」并要求 D-12 当日闭环。原状态:注册端点**强制**邀请码(服务端 `invite_code` min_length=1;前端 `#registerInviteCode` 带 `required`)。
+- **服务端(commit `b36d47a`,CI 绿 run `36067118555`)**:
+  - `InviteRegisterRequest.invite_code` 改 `default=""`;`register_invited_user` 分流:**有码**完全保留既有邀请校验/消耗/释放语义(一行未改),**无码**跳过邀请表但仍走「邮箱校验 → 共享限流 → consent → Admin 建号」;`consent_source` 有码 = `invite_registration`、无码 = `consumer_registration`(审计可区分);两条分支共用同一个建号助手(未复制第二份)。
+  - **限流保持强制且在建号之前**,共享计数键不变 —— 开放的是准入,不是安全控制。
+  - `AGENTS.md` 的 «invitation-only» 条款改写为开放注册口径,保留「必须经 FastAPI 注册端点、不得直连 Auth 公共注册/Admin、consent 必录」等约束。
+  - 验收:`test_invite_gate` **13 passed**(原 5 条断言零改动);unit+arch **488**;全量 **700**;release policy PASS。
+- **前端(commit `f2e838a`)**:
+  - `web/index.html`:邀请码输入框**保留但去掉 `required`**、label 默认文案改「邀请码(选填)」;提交按钮由「凭邀请码注册」改「注册账号」。
+  - `web-source/app.js`:必填校验去掉 `!inviteCode`;两处状态文案改中性;**请求体仍始终带 `invite_code`(无码为空串)**,保持单一请求形状。
+  - `web-source/js/i18n.js`:4 个键(`inviteCode`/`inviteCodePlaceholder`/`inviteRequired`/`inviteUnavailable`)**只改值不加删键**(四语言)。
+  - 产物重建 + 版本 `20260923-r63 → 20260925-r64`(26 个资源文件一致)。
+  - `tests/web/signup-flow.spec.js` 把原「要求邀请码」用例拆成**「无码直接注册成功(`invite_code: ""`)」**与**「带码仍转发并被消耗」**两条。
+- **收尾(commit `f2e838a` 同批)**:
+  - 修 `tests/web/account-controls.spec.js` 一处**失效的按钮选择器**(仍引用旧文案 → 点击超时;全量浏览器套件实测 1 failed)。定位范围:全仓仅此一处。
+  - **R2 远端保留策略**:`scripts/backup_database.py` 新增 `BACKUP_S3_RETENTION_DAYS`(缺省回落 `BACKUP_RETENTION_DAYS`)+ `_prune_remote`:只删**指定前缀下**且**匹配 `zouseeking-*.dump`/`*.manifest.json`** 的对象、**逐对象显式 Key 删除**(无通配符、不碰桶根);清理失败只打印 `BACKUP_S3_PRUNE_FAILED`,**不影响备份成功与退出码**;新增键同步登记进 `.env.example` 与生产配置合同(守护测试强制)。对应测试 +98 行(打桩,不连网不起容器)。
+- **⚠️ CI 红→绿(本班第二处,含真实根因)**:`f2e838a` 的 Release Gate **红**(唯一红 job = Node checks,`web-assets-fresh` FAIL,报 `web/js/{property-intake,recognition,report-page}.js` would be updated)。根因 = **前端版本源/产物脱钩**:`deploy/version-frontend-assets.py` 只改 `web/*.html` 与 `web/js/*.js`、**不改 `web-source/js`**,而 5 处源 import 内嵌 `?v=20260923-r63` → `check:web-assets` 会从源重建、把旧版本压回产物。修(commit `3d93427`):5 处源引用改 r64;版本脚本递归处理 `web-source/js/**/*.js`;新增守护测试 `tests/architecture/test_frontend_asset_version_contract.py`(源集合与产物集合必须非空、相等、且等于 `deploy/frontend-version.txt`)。**Release Gate `3d93427` run `36085650325` success**。
+- **本班验收(全部独立实跑,非采信自报)**:全量浏览器套件 **110 passed / 0 failed**;`signup-flow` 12 passed;`check:web-assets` **零变化**(修复前报 3 个文件);`version-frontend-assets.py --check` = `0 asset file(s) would change`;236 处 `?v=` 引用全部统一为 `r64`;unit+arch **492 passed / 91 skipped**;全量 **704 passed / 113 skipped**;`check_release_policy` PASS;`git diff --check` 净。
+- **D-12 剩余**:仅 **回滚演练**(真回滚 → 关键路径验证 → 前滚 → 产出 `docs/operations/rollback-drill-2026-10.md`)。该步会让生产短暂停机,**需用户定窗口并在场**;未执行前 D-12 不算全闭环。
+- **同时完成(本班前半段,详见上一节)**:D-4 备份异地化(Cloudflare R2)闭环 + 备份新鲜度观测转绿。
+- **红线**:零 DB 结构变更、未新增/修改任何 migration、未改 `disable_signup`、未动冻结字段、未删除文件;生产侧本班仅本轮之前的备份/观测配置写入(均已备份);凭据未回显。
+
 ## Last updated
 
 2026-09-25

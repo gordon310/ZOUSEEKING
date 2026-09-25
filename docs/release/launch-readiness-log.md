@@ -47,6 +47,10 @@
 | 09-25 | 更正:observability-check.timer 安装状态 | ⚠️ 已修 | 09-24 夜班记录「`observability-check.timer` 仍未安装」**为误判** —— 实测该 timer 自更早已在运行(每 15 分钟),真实问题是它看不见备份;现已修好并转绿 | 不再重验 |
 | 09-25 | **待办**:R2 端保留策略 | 🟡 | 本地保留 14 天,**R2 端目前无保留策略**;实测约 15.8 MB/天 → 约 1.7 年触及 10 GB 免费额度。需加对象生命周期或脚本侧清理 | 加上后重验 |
 ## 待闭合(未完成项,不属本台账)
+| 09-25 | **待办**:R2 端保留策略 | ✅ 已闭合 | `scripts/backup_database.py` 新增 `BACKUP_S3_RETENTION_DAYS`(缺省回落 `BACKUP_RETENTION_DAYS`=14)驱动的 `_prune_remote`:上传成功后按前缀列出对象,**仅删该前缀下且匹配 `zouseeking-*.dump`/`*.manifest.json` 的对象、逐对象显式 Key 删除**(不用通配符);清理失败打印 `BACKUP_S3_PRUNE_FAILED` 但**不改变备份成功与退出码**。新键已登记进 `deploy/.env.example` 与生产配置合同 | 保留策略/脚本变更时 |
+| 09-25 | 开放注册(服务端) | ✅ | 邀请码改为**可选**:有码走原路径(零语义变更),无码跳过邀请表但仍强制「限流 → consent → 服务端建号」;`consent_source` 区分两种来源;两侧共用同一建号助手。`test_invite_gate` **13 passed**;`AGENTS.md` 条款改写为开放注册口径 | 注册链路变更时 |
+| 09-25 | 开放注册(前端) | ✅ | 邀请码输入框**保留但去 `required`**、label 改「邀请码(选填)」、提交按钮改「注册账号」;4 个 i18n 键值改中性文案(**键数不变**);资源版本 `20260923-r63 → 20260925-r64`(26 个文件)。浏览器套件 **110 passed**,其中 `signup-flow` 拆为「无码成功」+「带码仍转发/消耗」两条 | 注册 UI / i18n / 资源版本变更时 |
+| 09-25 | 前端版本源/产物脱钩(CI 红→绿) | ✅ | Release Gate 红于 `web-assets-fresh`(3 个文件 would be updated);根因 = `version-frontend-assets.py` 只改 `web/*.html` 与 `web/js/*.js`、**不改 `web-source/js`** → 升版后重建把旧版本压回产物。修:5 处源引用改 r64 + 脚本递归处理 `web-source/js/**/*.js` + 新增守护测试 `tests/architecture/test_frontend_asset_version_contract.py`(源/产物/version.txt 三方一致)。`check:web-assets` 现零变化 | 版本脚本或资源引用变更时 |
 - ~~G2-ENG:邀请制准入 + 试运行标识(工程缺口)~~ → **工程侧已闭合(见本表 09-23 行)**;**生产侧:4 条迁移已应用(09-24 部署批次),邀请表已在生产;仅剩注册门切换**(`disable_signup=true`,需先有邀请码)
 - G3:C01–C14 逐项判定 → **已完成 10-07 口径复核(见 `docs/release/go-no-go-checklist-2026-10-07.md` 文末《2026-09-24 范围对齐复核》)**
 - G4:生产迁移/RLS/额度/日志终检 + 回滚预案演练(09-27 ~ 09-30 窗口)

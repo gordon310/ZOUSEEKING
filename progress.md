@@ -703,6 +703,22 @@
 - **口径更正**:09-24 台账「生产注册门 🔴 未生效」一行的前提(邀请制)已由用户 09-24 决策废弃;本步之后生产口径 = **开放注册 + 关闭 GoTrue 直连旁路**。
 - **红线**:仅一次 Auth 配置 PATCH(用户批准)+ 一次注册端点的**正向探针**(已清理)+ 一次删除探针账号;未改任何代码、未动 migration、未改 `deploy/.env`、未删除其它任何数据。
 
+## D-11 ② 首发范围面复核闭环(2026-09-26 早班,本 BOT)
+
+- **班前实测(07:30)**:工作树干净(`git status --porcelain` 空)、`main == origin/main == c1fa35d`、无未提交改动 → 不判「进行中」,本班可开工。
+- **当日条目取用顺序(D-11,09-26)**:①支付对账 → 需 live Stripe 凭据且已有 20:00 专项 job,越界/已覆盖;③开放注册端到端实测 → 实质内容已由 09-25 夜班完成(无码 201 / 旁路 422 / 残留 0);故取 **②ADR-0002 文字改「C 端 + 后台」并复核 release-scope 三者一致**。用户 09-23 已拍板范围、09-24 已追加四项决策,且倒排表「仍需你出手」仅剩法务与对象存储两项 → 判定 ② 属可自主项。
+- **交付(纯文档,零代码 / 零 allowlist / 零 env 改动)**:
+  - `docs/architecture/adr-0002-phase-one-release-scope.md`:标题与状态改批为「C 端 + 后台管理平台」;新增 **§0 修订摘要**(四面对照表 + U1–U5 未闭合项);§1 结论改写并保留原 C-only 结论为「历史结论(已作废)」;§4.1 按实测重写 allowlist 口径;§4.2 的 B/admin 行由「demo only」改为「phase 驱动」;§5 新增 A′ 采用方案(原 A 标注被取代);§6 新增修订后翻转/收紧条件;§8 逐条标注已答复项(开放注册已定、地区=日本已定、域名已落地、容量/预算仍未答)。
+  - `docs/release/go-no-go-checklist-2026-10-07.md`:§B **C02 行由 🔴 改 🟡**(文字已改、运行时未收敛)+ 新增 **§F 复核证据**(F1 四面对齐 / F2 allowlist vs 首发面 / F3 生产 phase / F4 未闭合项 / F5 本班验证)。
+  - `docs/release/launch-readiness-log.md`:新增 09-26 行(🟡,含重验触发条件)。
+- **复核结论(实跑 + 生产只读实测)**:
+  - **三项对齐成立**:`phase-one-release-boundaries.json` 的 `api_allowlist` **42 条** == 运行时 `PHASE_ONE_API_CONTRACT` **42 条**,逐条相同、零重复(`backend/app/release_scope.py:13-68`)。
+  - **但契约与首发面不符**:42 条 = health/diagnostics 4 + intake 6 + exports 3 + analysis 1 + usage 1 + 后台(admin/org/service) 27 条,即仍是修订前的 **C-only intake 范围**;10-07 所需的 `POST /api/auth/invite-register`、`POST /api/auth/login`、`POST /api/query`、`GET /api/my/queries`、`GET /api/reports/{query_key}`(+`/download`)、`POST /api/billing/*`、`GET /api/org/region-stats` 实测全部 `in_phase_one_allowlist=False`。
+  - **生产实际 phase(只读实测,`docker exec deploy-api-1 printenv`)**:`RELEASE_PHASE=consumer_active`、`ENVIRONMENT=staging`。`consumer_active` 在 `release_scope.py:103` 属**全放行**分支 → **ADR 声明的 42 条发布边界在生产未生效**,实际门禁来自服务层鉴权 / RLS / 额度;而 `release_scope.py:8-10` 又把该值注释为「Staging acceptance phase … Never use in production」。前端门闩同样只在 `phase == consumer_intake_preview` 设闸(`render-frontend-config.py:24`、`release-boundary.js`)→ 生产上 B 端页(`data-query`/`analysis`/`exports`/`organization`)可直连 API,**「B 端随后上线」目前没有可执行门禁**。
+- **未闭合项(交用户/工程,本班不擅自决定)**:U1 首发面 ≠ allowlist(定义 10-07 专用 phase + 显式 allowlist,或申明 `consumer_active` + 服务层鉴权承担);U2 代码注释与生产现实矛盾;U3 生产 `ENVIRONMENT=staging` 标签;U4 B 端无技术门禁;U5 go-no-go C02 要求的 API release-scope 回归(unknown phase / `/convert` / legacy 路由)尚无专项测试;U6 架构快照文档 `2026-09-11-system-architecture-and-logic.md:212,989` 仍写 allowlist =「intake 六端点」。
+- **验证证据(全部本机实跑)**:`pytest tests/architecture/test_authoritative_backend_policy.py tests/unit/test_admin_api.py tests/api/test_intake_routes.py tests/api/test_usage_routes.py -q` → **102 passed / 21 skipped**;`pytest tests/unit tests/architecture -q` → **492 passed / 91 skipped**(与 09-25 基线一致,**零回归**);`compileall -q backend scripts src` OK;`node --check web/app.js` OK;`git diff --check` 净。
+- **红线**:零 DB 写入或对象变更、零部署、零迁移、零凭据读取、零删除;生产侧仅两个变量的一次 `docker exec … printenv` 只读探测;未改任何代码 / allowlist / phase / env。
+
 ## Last updated
 
-2026-09-25
+2026-09-26

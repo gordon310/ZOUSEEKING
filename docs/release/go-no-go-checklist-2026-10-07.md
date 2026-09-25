@@ -74,7 +74,7 @@
 | 项 | 判定 | 依据 / 下一步 | 负责人 |
 |---|---|---|---|
 | C01 | ✅ 维持 | 工作树干净、`main == origin/main == 252b661`、无未跟踪残留;按 2026-09-04 决策 **main 即唯一权威分支**(不另建 release branch),发布时记录 commit SHA + 前端版本号即可 | Hermes |
-| C02 | 🔴 阻断(需决策) | ADR-0002 仍写 C-only,而 `backend/app/release_scope.py:68` 已把 `ADMIN_API_CONTRACT` 并入 `PHASE_ONE_API_CONTRACT`。新范围下 **allowlist 方向与业务一致,应收窄的是 ADR 文字而非 allowlist**;需用户重批 ADR-0002 为「C 端 + 后台」 | 用户 + Codex |
+| C02 | 🟡 文字已改，运行时未收敛（09-26 复核） | ADR-0002 已按 09-23 决策改批为「C 端 + 后台管理平台」（`docs/architecture/adr-0002-phase-one-release-scope.md`，2026-09-26 修订，原文保留）。**文字 ↔ 机器契约 ↔ 运行时已三项对齐**：JSON `api_allowlist` 42 条 == `PHASE_ONE_API_CONTRACT` 逐条相同、零重复（`tests/architecture/test_authoritative_backend_policy.py` 实测通过）。**但 allowlist 编码的仍是旧的 C-only 范围**（不含注册/查询/报告/付费），而生产实际 `RELEASE_PHASE=consumer_active`（全放行）→ 声明的发布边界在生产未生效；代码又把该值注释为「Never use in production」。详见 §F U1–U5 | 用户（phase/首发面决定）+ Codex |
 | C03 | 🟡 重验条件已触发 | 仓库新增 4 条迁移 → 台账「新增迁移时」触发;09-22 `restore_drill.py`(50 版本)证据已过期。本轮已用 Management API 只读核对台账(50/54),需重跑 drill | Codex |
 | C04 | 🔴 阻断 | provider 物理备份/PITR 与私有 Storage 恢复**均无证据**;需用户批准项目、成本上限、停机窗口 | 用户 + Codex |
 | C05 | 🟡 需一次生产复验 | 数据库四身份有 09-20 生产证据;Storage 四角色仅 09-02 staging 证据;生产 Auth 生命周期未复验 | 用户(授权) + Codex |
@@ -139,3 +139,71 @@ backend/.venv/bin/python scripts/staging_synthetic_smoke.py --self-check --evide
 ```
 
 > 本轮未做:任何 DB 写入、迁移应用、部署、SSH、连 staging/production、删除;未使用任何凭据。Codex 沙箱内的 1 例失败为沙箱禁止本地端口绑定所致(本机复跑该集合 482 passed / 91 skipped,无失败)。
+
+---
+
+## F. 2026-09-26 早班:范围面复核(D-11 ②,实测证据)
+
+> 倒排表 D-11 第 ② 项 = 「ADR-0002 文字改『C 端 + 后台』并复核 release-scope 三者一致」。本班仅做文字修订 + 一致性复核 + 生产只读探测;未改 allowlist / phase / 迁移 / env / 代码。
+
+### F1. 四个面的对齐结果
+
+| 面 | 结论 | 证据 |
+|---|---|---|
+| ADR-0002 文字 | ✅ 已改批为「C 端 + 后台管理平台」 | `docs/architecture/adr-0002-phase-one-release-scope.md`(2026-09-26 修订:标题 / 状态 / §0 修订摘要 / §1 / §4.1 / §4.2 / §5 A′ / §6 / §8;原始论证保留) |
+| 机器契约 JSON | ✅ 与运行时逐条相同、零重复 | `phase-one-release-boundaries.json` 的 `api_allowlist` 42 条 == `PHASE_ONE_API_CONTRACT` 42 条 |
+| 运行时 `release_scope.py` | ⚠️ 与 10-07 首发面不一致 | 见 F2 |
+| 生产实际 phase | ⚠️ 与 ADR 声明不一致 | 见 F3 |
+
+### F2. 运行时 allowlist vs 10-07 首发面(本机实跑)
+
+```text
+allowlist entries (json): 42
+runtime contract entries: 42
+runtime == json: True
+admin block entries: 27
+duplicates: 0
+POST /api/auth/invite-register        in_phase_one_allowlist=False
+POST /api/auth/login                  in_phase_one_allowlist=False
+POST /api/query                       in_phase_one_allowlist=False
+GET /api/my/queries                   in_phase_one_allowlist=False
+GET /api/reports/{query_key}          in_phase_one_allowlist=False
+GET /api/reports/{query_key}/download in_phase_one_allowlist=False
+POST /api/billing/*                   in_phase_one_allowlist=False
+GET /api/org/region-stats             in_phase_one_allowlist=False
+main.py 中未进入 phase-one 契约的自身路由:/api/jobs/{job_id}、/api/jobs/{query_id}/run、/api/my/queries、/api/query、/api/reports/{query_key}、/api/reports/{query_key}/download
+```
+
+⇒ 42 条契约 = health/diagnostics 4 + intake 6 + exports 3 + analysis 1 + usage 1 + 后台(admin/org/service) 27,**编码的仍是修订前的 C-only intake 范围**;10-07 首发所需的注册、查询、报告、付费路由全部不在其中。
+
+### F3. 生产实际 phase(只读实测)
+
+```text
+ssh -F /tmp/ssh_jp.config jpbox "docker exec deploy-api-1 printenv RELEASE_PHASE; docker exec deploy-api-1 printenv ENVIRONMENT"
+→ consumer_active
+→ staging
+```
+
+⇒ `consumer_active` 在 `release_scope.py:103` 属**全放行**分支,即 ADR 声明的 42 条边界**在生产未生效**(实际门禁 = 服务层鉴权 / RLS / 额度);`release_scope.py:8-10` 又把该值标注为「Staging acceptance phase … Never use in production」。生产主机同时挂着 `ENVIRONMENT=staging` 标签。前端门闩同理:`release-boundary.js` 只在 `phase == consumer_intake_preview` 时设闸(`deploy/render-frontend-config.py:24`),故生产上 B 端页 (`data-query`/`analysis`/`exports`/`organization`) 可直连 API —— 「B 端随后上线」目前没有可执行门禁。
+
+### F4. 未闭合项(交用户 / 工程,本班不擅自决定)
+
+| # | 项 | 需要的动作 |
+|---|---|---|
+| U1 | 首发面 ≠ allowlist | 二选一:(a) 定义 10-07 专用 phase + 显式 allowlist(含 auth/query/reports/billing/region-stats 的取舍);(b) 明确申明由 `consumer_active` + 服务层鉴权承担并写进 ADR/检查单 |
+| U2 | 代码注释与生产现实矛盾 | 让 `consumer_active` 的注释与生产口径一致(改名或改注释) |
+| U3 | 生产 `ENVIRONMENT=staging` | 修正标签(env 变更 = 部署类操作,需批准) |
+| U4 | B 端无技术门禁 | B 端正式开放前给出收敛手段 + ADR 修订 |
+| U5 | 回归缺口 | 补 API release-scope 回归(unknown phase / `/convert` / legacy 路由) |
+| U6 | 文档漂移 | `docs/architecture/2026-09-11-system-architecture-and-logic.md:212,989` 仍写 allowlist =「intake 六端点 + health + diagnostics」,与 42 条契约不符 |
+
+### F5. 本班验证(全部本机实跑)
+
+```text
+PYTHONPATH=. backend/.venv/bin/python -m pytest tests/architecture/test_authoritative_backend_policy.py tests/unit/test_admin_api.py tests/api/test_intake_routes.py tests/api/test_usage_routes.py -q → 102 passed / 21 skipped
+PYTHONPATH=. backend/.venv/bin/python -m pytest tests/unit tests/architecture -q → 492 passed / 91 skipped(与 09-25 基线一致,零回归)
+PYTHONPYCACHEPREFIX=/tmp/jp-pycache backend/.venv/bin/python -m compileall -q backend scripts src → OK
+node --check web/app.js → OK ; git diff --check → 干净
+```
+
+> 红线:零 DB 写入或对象变更、零部署、零迁移、零凭据读取、零删除;生产侧仅 `docker exec … printenv` 两个变量的只读探测。本班未改任何代码/allowlist/phase/env。

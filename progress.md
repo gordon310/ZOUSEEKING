@@ -689,6 +689,20 @@
 - **过程中的通道故障(如实记录)**:首次执行回滚时全部 SSH 在 **kex 阶段被远端关闭**(`kex_exchange_identification: Connection closed by remote host`),同时 `github.com:22` 症状相同、生产 HTTP 也变 `000` → 判定为**本机代理节点国际出口故障**而非生产问题。按已验证处置重启本机代理应用后恢复;重启后**先只读复核生产未变**(`85bc86f`、工作树干净)才继续 —— **失败的尝试没有任何命令到达生产**。
 - **红线**:全程未新增/修改 migration、未改 `deploy/.env`、未重启 nginx、未删除文件;生产侧写操作仅 `git checkout` + 容器重建 + 一次注册端点的负向探针(未建账号);无凭据回显。
 
+## 生产注册门收口:`disable_signup → true` + 双面验证(2026-09-25 夜班,本 BOT)
+
+- **缘由**:开放注册已于本日入生产(`5967ea1` 前的 `711c73f` 前滚),但 Supabase `disable_signup` 仍为 `false` → `POST {project}/auth/v1/signup`(GoTrue 直连注册)**仍是唯一能绕过我方共享限流与 consent 记录的注册通道**。用户批准后执行。
+- **动作**:管理 API `PATCH /v1/projects/fnogxuytbabxmqousifh/config/auth` body `{"disable_signup": true}` → **HTTP 200**;复读确认 `disable_signup = True`,`mailer_autoconfirm` 保持 `False`(未误改)。
+- **⚠️ 关键:双面验证(防「关了之后没人能注册」)** —— 这是我方记忆里的既有教训(关公共注册必须与注册端点同批验证)。生产实测三项:
+  | # | 验证 | 结果 |
+  |---|---|---|
+  | ① | GoTrue 直连注册(旁路) | `POST {project}/auth/v1/signup` → **422 `{"error_code":"signup_disabled","msg":"Signups not allowed for this instance"}`** ⇒ 旁路确实关闭 |
+  | ② | 我方注册端点(可用性) | `POST https://api.zoubeacon.com/api/auth/invite-register`(**不带 `invite_code`**)→ **201 `{"user_id":"d103a5d7-…"}`** ⇒ **正常注册不受影响**;同时证明 **Admin API 建号不受 `disable_signup` 影响**(这是本步最大风险点) |
+  | ③ | 清理 | 探针账号 `DELETE /auth/v1/admin/users/{id}` → **200**;残留 **0** |
+- **结论**:安全性与可用性同时成立 —— 绕过限流/consent 的直连注册已关闭,而 C 端注册路径完好。探针邮箱为 `openreg-probe-<ts>@example.com`(保留域,不投递真实用户),账号已即时删除。
+- **口径更正**:09-24 台账「生产注册门 🔴 未生效」一行的前提(邀请制)已由用户 09-24 决策废弃;本步之后生产口径 = **开放注册 + 关闭 GoTrue 直连旁路**。
+- **红线**:仅一次 Auth 配置 PATCH(用户批准)+ 一次注册端点的**正向探针**(已清理)+ 一次删除探针账号;未改任何代码、未动 migration、未改 `deploy/.env`、未删除其它任何数据。
+
 ## Last updated
 
 2026-09-25

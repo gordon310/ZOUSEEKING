@@ -55,6 +55,7 @@
 | 09-25 | **回滚演练**(生产,代码级) | ✅ | `85bc86f` → `fd13974`(checkout + 重建替换 **22 s**)→ 前滚 `main` `711c73f`(**38 s**);两次替换后 `/health/ready` 200、站点 200、未鉴权 `/api/admin/*` 401、4 容器 Up(nginx 未重启);前端版本随 checkout 由 r63→**r61**→**r64**。全程**零 DB 变更**;落档 `docs/operations/rollback-drill-2026-10.md` | 部署机制 / 迁移策略变更时 |
 | 09-25 | D-12 上线(开放注册入生产) | ✅ | 前滚 `main` 后实测:无 `invite_code` + 无效邮箱 → **400 `invite_registration_invalid`**(旧版本此处为 **422** 字段缺失)= 生产证明「邀请码不再必填」;前端资源 **`20260925-r64`**;服务端 `b36d47a` + 前端 `f2e838a` + CI 修复 `3d93427` 全部入生产 | 注册链路 / 前端版本变更时 |
 - G3:C01–C14 逐项判定 → **已完成 10-07 口径复核(见 `docs/release/go-no-go-checklist-2026-10-07.md` 文末《2026-09-24 范围对齐复核》)**
+| 09-25 | 生产注册门 `disable_signup` 切换 | ✅ | 管理 API `PATCH /v1/projects/<ref>/config/auth`:`disable_signup` **False → True**(HTTP 200),复读确认 `true` 且 `mailer_autoconfirm` 保持 `false`。**双面验证(生产实测)**:① `POST {<project>}/auth/v1/signup` → **422 `signup_disabled`**「Signups not allowed for this instance」=**绕过限流/consent 的 GoTrue 直连注册已关闭**;② 我方 `POST /api/auth/invite-register`(无码)→ **201 + user_id** = **正常注册不受影响**(含 Admin API 建号未受该开关影响);③ 探针账号 `DELETE /auth/v1/admin/users/{id}` → **200**,残留 0。**本行取代 09-24「生产注册门 🔴 未生效」的口径**(邀请制已废弃,改为开放注册 + 关直连旁路) | Auth 配置 / 注册链路变更时 |
 - G4:生产迁移/RLS/额度/日志终检 + 回滚预案演练(09-27 ~ 09-30 窗口)
 - G5:发布公告 + 首周观察看板
 - G6/G8:提审材料 / 退款客服流程(用户口径 + Hermes 起草)

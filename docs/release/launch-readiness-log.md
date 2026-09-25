@@ -52,6 +52,8 @@
 | 09-25 | 开放注册(前端) | ✅ | 邀请码输入框**保留但去 `required`**、label 改「邀请码(选填)」、提交按钮改「注册账号」;4 个 i18n 键值改中性文案(**键数不变**);资源版本 `20260923-r63 → 20260925-r64`(26 个文件)。浏览器套件 **110 passed**,其中 `signup-flow` 拆为「无码成功」+「带码仍转发/消耗」两条 | 注册 UI / i18n / 资源版本变更时 |
 | 09-25 | 前端版本源/产物脱钩(CI 红→绿) | ✅ | Release Gate 红于 `web-assets-fresh`(3 个文件 would be updated);根因 = `version-frontend-assets.py` 只改 `web/*.html` 与 `web/js/*.js`、**不改 `web-source/js`** → 升版后重建把旧版本压回产物。修:5 处源引用改 r64 + 脚本递归处理 `web-source/js/**/*.js` + 新增守护测试 `tests/architecture/test_frontend_asset_version_contract.py`(源/产物/version.txt 三方一致)。`check:web-assets` 现零变化 | 版本脚本或资源引用变更时 |
 - ~~G2-ENG:邀请制准入 + 试运行标识(工程缺口)~~ → **工程侧已闭合(见本表 09-23 行)**;**生产侧:4 条迁移已应用(09-24 部署批次),邀请表已在生产;仅剩注册门切换**(`disable_signup=true`,需先有邀请码)
+| 09-25 | **回滚演练**(生产,代码级) | ✅ | `85bc86f` → `fd13974`(checkout + 重建替换 **22 s**)→ 前滚 `main` `711c73f`(**38 s**);两次替换后 `/health/ready` 200、站点 200、未鉴权 `/api/admin/*` 401、4 容器 Up(nginx 未重启);前端版本随 checkout 由 r63→**r61**→**r64**。全程**零 DB 变更**;落档 `docs/operations/rollback-drill-2026-10.md` | 部署机制 / 迁移策略变更时 |
+| 09-25 | D-12 上线(开放注册入生产) | ✅ | 前滚 `main` 后实测:无 `invite_code` + 无效邮箱 → **400 `invite_registration_invalid`**(旧版本此处为 **422** 字段缺失)= 生产证明「邀请码不再必填」;前端资源 **`20260925-r64`**;服务端 `b36d47a` + 前端 `f2e838a` + CI 修复 `3d93427` 全部入生产 | 注册链路 / 前端版本变更时 |
 - G3:C01–C14 逐项判定 → **已完成 10-07 口径复核(见 `docs/release/go-no-go-checklist-2026-10-07.md` 文末《2026-09-24 范围对齐复核》)**
 - G4:生产迁移/RLS/额度/日志终检 + 回滚预案演练(09-27 ~ 09-30 窗口)
 - G5:发布公告 + 首周观察看板

@@ -62,7 +62,7 @@
       "account.loginAnalysisCopy": "未登录不能看分析。数据这东西，多少也算一点隐私。",
       "account.loginWorkspaceCopy": "未登录不能查看自己的查询任务。小象很八卦，但还是讲隐私。",
       "account.loginProfileCopy": "未登录不能编辑资料。小象嘴严，但门还是要锁。",
-      "account.registerAndLogin": "注册并登录",
+      "account.registerAndLogin": "注册账号",
       "account.sendReset": "发送找回邮件",
       "account.passwordPlaceholder": "请输入密码",
       "account.passwordShortPlaceholder": "请输入密码",
@@ -933,7 +933,7 @@
       "account.loginAnalysisCopy": "Log in to view analytics. Data deserves a little privacy.",
       "account.loginWorkspaceCopy": "Log in to view your query tasks. We keep them private.",
       "account.loginProfileCopy": "Log in to edit your account. Your details stay private.",
-      "account.registerAndLogin": "Sign up and log in",
+      "account.registerAndLogin": "Create account",
       "account.sendReset": "Send reset email",
       "account.passwordPlaceholder": "Enter your password",
       "account.passwordShortPlaceholder": "Enter your password",
@@ -1804,7 +1804,7 @@
       "account.loginAnalysisCopy": "分析を見るにはログインしてください。データにもプライバシーが必要です。",
       "account.loginWorkspaceCopy": "検索タスクを見るにはログインしてください。情報は非公開で扱います。",
       "account.loginProfileCopy": "アカウントを編集するにはログインしてください。情報は大切に扱います。",
-      "account.registerAndLogin": "登録してログイン",
+      "account.registerAndLogin": "アカウントを作成",
       "account.sendReset": "再設定メールを送信",
       "account.passwordPlaceholder": "パスワードを入力",
       "account.passwordShortPlaceholder": "パスワードを入力",
@@ -2828,7 +2828,7 @@
     "business.completeApply": { "zh-CN": "申请完成", "zh-Hant": "申請完成", en: "Request completion", ja: "完了を申請" },
     "admin.serviceDraft": { "zh-CN": "草稿", "zh-Hant": "草稿", en: "Draft", ja: "下書き" }, "admin.serviceOpen": { "zh-CN": "招募中", "zh-Hant": "招募中", en: "Open", ja: "募集中" }, "admin.serviceMatchedPending": { "zh-CN": "已匹配待确认", "zh-Hant": "已配對待確認", en: "Matched, pending consent", ja: "マッチング済み・同意待ち" }, "admin.serviceInProgress": { "zh-CN": "进行中", "zh-Hant": "進行中", en: "In progress", ja: "進行中" }, "admin.serviceCompletionPending": { "zh-CN": "待完成确认", "zh-Hant": "待完成確認", en: "Completion pending", ja: "完了確認待ち" }, "admin.expired": { "zh-CN": "已过期", "zh-Hant": "已過期", en: "Expired", ja: "期限切れ" }, "admin.serviceClosedUnconfirmed": { "zh-CN": "关闭未确认", "zh-Hant": "關閉未確認", en: "Closed, unconfirmed", ja: "未確認のまま終了" },
     "admin.organization": { "zh-CN": "组织", "zh-Hant": "組織", en: "Organization", ja: "組織" }, "admin.retry": { "zh-CN": "重投", "zh-Hant": "重投", en: "Retry", ja: "再試行" }, "admin.previous": { "zh-CN": "上一页", "zh-Hant": "上一頁", en: "Previous", ja: "前へ" }, "admin.next": { "zh-CN": "下一页", "zh-Hant": "下一頁", en: "Next", ja: "次へ" }, "admin.pager": { "zh-CN": "第 {page} / {pages} 页 · 共 {total} 条", "zh-Hant": "第 {page} / {pages} 頁 · 共 {total} 條", en: "Page {page} / {pages} · {total} items", ja: "{page} / {pages} ページ · 全 {total} 件" },
-    "account.inviteCode": { "zh-CN": "邀请码", "zh-Hant": "邀請碼", en: "Invitation code", ja: "招待コード" }, "account.inviteCodePlaceholder": { "zh-CN": "输入邀请码", "zh-Hant": "輸入邀請碼", en: "Enter invitation code", ja: "招待コードを入力" }, "account.inviteRequired": { "zh-CN": "正在验证邀请码……", "zh-Hant": "正在驗證邀請碼……", en: "Verifying invitation code…", ja: "招待コードを確認しています…" }, "account.inviteInvalid": { "zh-CN": "邀请码无效、已停用或已过期。", "zh-Hant": "邀請碼無效、已停用或已過期。", en: "The invitation code is invalid, disabled, or expired.", ja: "招待コードが無効、有効停止、または期限切れです。" }, "account.inviteExhausted": { "zh-CN": "邀请码已用尽。", "zh-Hant": "邀請碼已用盡。", en: "The invitation code has been fully used.", ja: "招待コードの利用上限に達しました。" }, "account.inviteExpired": { "zh-CN": "邀请码已过期。", "zh-Hant": "邀請碼已過期。", en: "The invitation code has expired.", ja: "招待コードの有効期限が切れました。" }, "account.inviteDisabled": { "zh-CN": "邀请码已停用。", "zh-Hant": "邀請碼已停用。", en: "The invitation code is disabled.", ja: "招待コードは無効化されています。" }, "account.inviteUnavailable": { "zh-CN": "受邀注册服务尚未配置。", "zh-Hant": "受邀註冊服務尚未設定。", en: "Invited registration is not configured.", ja: "招待登録サービスは未設定です。" }, "account.inviteRegistrationCreated": { "zh-CN": "账户已创建；请完成邮箱确认后登录。", "zh-Hant": "帳戶已建立；請完成電子郵件確認後登入。", en: "Your account was created; confirm your email before signing in.", ja: "アカウントを作成しました。メール確認後にログインしてください。" }, "trial.badge": { "zh-CN": "试运行数据", "zh-Hant": "試運行數據", en: "Pre-release data", ja: "試験運用データ" }, "trial.provenance": { "zh-CN": "数据类别：{dataClass} · 样本量：{sampleCount} · 期次：{period} · 局限：{limitations}", "zh-Hant": "數據類別：{dataClass} · 樣本量：{sampleCount} · 期次：{period} · 局限：{limitations}", en: "Data class: {dataClass} · Sample size: {sampleCount} · Period: {period} · Limitations: {limitations}", ja: "データ分類: {dataClass} · 標本数: {sampleCount} · 期次: {period} · 制約: {limitations}" },
+    "account.inviteCode": { "zh-CN": "邀请码(选填)", "zh-Hant": "邀請碼(選填)", en: "Invitation code (optional)", ja: "招待コード(任意)" }, "account.inviteCodePlaceholder": { "zh-CN": "如有邀请码请填写", "zh-Hant": "如有邀請碼請填寫", en: "Enter an invitation code if you have one", ja: "招待コードをお持ちの場合はご入力ください" }, "account.inviteRequired": { "zh-CN": "正在提交注册……", "zh-Hant": "正在提交註冊……", en: "Submitting registration…", ja: "登録を送信しています…" }, "account.inviteInvalid": { "zh-CN": "邀请码无效、已停用或已过期。", "zh-Hant": "邀請碼無效、已停用或已過期。", en: "The invitation code is invalid, disabled, or expired.", ja: "招待コードが無効、有効停止、または期限切れです。" }, "account.inviteExhausted": { "zh-CN": "邀请码已用尽。", "zh-Hant": "邀請碼已用盡。", en: "The invitation code has been fully used.", ja: "招待コードの利用上限に達しました。" }, "account.inviteExpired": { "zh-CN": "邀请码已过期。", "zh-Hant": "邀請碼已過期。", en: "The invitation code has expired.", ja: "招待コードの有効期限が切れました。" }, "account.inviteDisabled": { "zh-CN": "邀请码已停用。", "zh-Hant": "邀請碼已停用。", en: "The invitation code is disabled.", ja: "招待コードは無効化されています。" }, "account.inviteUnavailable": { "zh-CN": "注册服务尚未配置。", "zh-Hant": "註冊服務尚未設定。", en: "Registration is not configured.", ja: "登録サービスは未設定です。" }, "account.inviteRegistrationCreated": { "zh-CN": "账户已创建;请完成邮箱确认后登录。", "zh-Hant": "帳戶已建立;請完成電子郵件確認後登入。", en: "Your account was created; confirm your email before signing in.", ja: "アカウントを作成しました。メール確認後にログインしてください。" }, "trial.badge": { "zh-CN": "试运行数据", "zh-Hant": "試運行數據", en: "Pre-release data", ja: "試験運用データ" }, "trial.provenance": { "zh-CN": "数据类别：{dataClass} · 样本量：{sampleCount} · 期次：{period} · 局限：{limitations}", "zh-Hant": "數據類別：{dataClass} · 樣本量：{sampleCount} · 期次：{period} · 局限：{limitations}", en: "Data class: {dataClass} · Sample size: {sampleCount} · Period: {period} · Limitations: {limitations}", ja: "データ分類: {dataClass} · 標本数: {sampleCount} · 期次: {period} · 制約: {limitations}" },
   };
   for (const [key, values] of Object.entries(ADDITIONAL_I18N)) {
     DICTIONARY["zh-CN"][key] = values["zh-CN"];

@@ -2004,7 +2004,7 @@ async function register(event) {
   const inviteCode = $("#registerInviteCode").value.trim();
   const submitButton = $("#registerForm button[type='submit']");
 
-  if (!username || !email || !password || !inviteCode) {
+  if (!username || !email || !password) {
     setMessage("用户名、邮件、密码都要填。小象不挑食，但不能空盘。", "error");
     return;
   }
@@ -2014,7 +2014,7 @@ async function register(event) {
   }
 
   if (!API_BASE_URL) {
-    setMessage(uiText("account.inviteUnavailable", "受邀注册服务尚未配置。"), "error");
+    setMessage(uiText("account.inviteUnavailable", "注册服务尚未配置。"), "error");
     return;
   }
   const consent = readRegistrationConsent();
@@ -2022,7 +2022,7 @@ async function register(event) {
 
   try {
     submitButton.disabled = true;
-    setMessage(uiText("account.inviteRequired", "正在验证邀请码……"));
+    setMessage(uiText("account.inviteRequired", "正在提交注册……"));
     const data = await apiFetch("/api/auth/invite-register", {
       method: "POST",
       body: JSON.stringify({

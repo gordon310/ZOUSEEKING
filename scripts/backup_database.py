@@ -138,15 +138,40 @@ def _prune_local(directory: Path, retention_days: int) -> int:
     return removed
 
 
-def _upload_s3(archive: Path, manifest_path: Path, environment: Mapping[str, str]) -> None:
-    prefix = environment.get("BACKUP_S3_PREFIX", "zouseeking/database").strip("/")
-    target_prefix = f"s3://{environment['BACKUP_S3_BUCKET']}/{prefix}" if prefix else f"s3://{environment['BACKUP_S3_BUCKET']}"
-    aws_environment = {
+def _remote_retention_days(environment: Mapping[str, str]) -> int:
+    raw = environment.get("BACKUP_S3_RETENTION_DAYS", environment.get("BACKUP_RETENTION_DAYS", "14"))
+    try:
+        retention_days = int(raw)
+    except ValueError as exc:
+        raise BackupError("BACKUP_S3_RETENTION_DAYS must be an integer") from exc
+    if retention_days < 1:
+        raise BackupError("BACKUP_S3_RETENTION_DAYS must be at least 1")
+    return retention_days
+
+
+def _s3_environment(environment: Mapping[str, str]) -> dict[str, str]:
+    return {
         **environment,
         "AWS_ACCESS_KEY_ID": environment["BACKUP_S3_ACCESS_KEY_ID"],
         "AWS_SECRET_ACCESS_KEY": environment["BACKUP_S3_SECRET_ACCESS_KEY"],
         "AWS_DEFAULT_REGION": environment["BACKUP_S3_REGION"],
     }
+
+
+def _s3_cli_command(environment: Mapping[str, str], *arguments: str) -> list[str]:
+    return [
+        "docker", "run", "--rm",
+        "-e", "AWS_ACCESS_KEY_ID", "-e", "AWS_SECRET_ACCESS_KEY", "-e", "AWS_DEFAULT_REGION",
+        "amazon/aws-cli:2.27.1",
+        "--endpoint-url", environment["BACKUP_S3_ENDPOINT"],
+        *arguments,
+    ]
+
+
+def _upload_s3(archive: Path, manifest_path: Path, environment: Mapping[str, str]) -> None:
+    prefix = environment.get("BACKUP_S3_PREFIX", "zouseeking/database").strip("/")
+    target_prefix = f"s3://{environment['BACKUP_S3_BUCKET']}/{prefix}" if prefix else f"s3://{environment['BACKUP_S3_BUCKET']}"
+    aws_environment = _s3_environment(environment)
     for path in (archive, manifest_path):
         _run(
             [
@@ -160,6 +185,66 @@ def _upload_s3(archive: Path, manifest_path: Path, environment: Mapping[str, str
             environment=aws_environment,
             label=f"S3 upload for {path.name}",
         )
+
+
+def _prune_remote(environment: Mapping[str, str], retention_days: int) -> int:
+    prefix = environment.get("BACKUP_S3_PREFIX", "zouseeking/database").strip("/")
+    if not prefix:
+        raise BackupError("BACKUP_S3_PREFIX must not be empty for remote pruning")
+    key_prefix = f"{prefix}/"
+    aws_environment = _s3_environment(environment)
+    raw = _run(
+        _s3_cli_command(
+            environment,
+            "s3api", "list-objects-v2",
+            "--bucket", environment["BACKUP_S3_BUCKET"],
+            "--prefix", key_prefix,
+            "--query", "Contents[].[Key,LastModified]",
+            "--output", "json",
+        ),
+        environment=aws_environment,
+        label="S3 remote backup inventory",
+    )
+    try:
+        records = json.loads(raw) if raw else []
+    except json.JSONDecodeError as exc:
+        raise BackupError("S3 remote backup inventory returned invalid JSON") from exc
+    if records is None:
+        records = []
+    if not isinstance(records, list):
+        raise BackupError("S3 remote backup inventory returned invalid records")
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
+    removable: list[str] = []
+    for record in records:
+        if not isinstance(record, list) or len(record) != 2:
+            raise BackupError("S3 remote backup inventory returned invalid records")
+        key, last_modified = record
+        if not isinstance(key, str) or not isinstance(last_modified, str):
+            raise BackupError("S3 remote backup inventory returned invalid records")
+        relative_key = key.removeprefix(key_prefix)
+        if key == relative_key or not re.fullmatch(r"zouseeking-.+\.(?:dump|manifest\.json)", relative_key):
+            continue
+        try:
+            modified_at = datetime.fromisoformat(last_modified.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise BackupError("S3 remote backup inventory returned an invalid LastModified value") from exc
+        if modified_at.tzinfo is None:
+            raise BackupError("S3 remote backup inventory returned an invalid LastModified value")
+        if modified_at < cutoff:
+            removable.append(key)
+
+    for key in removable:
+        _run(
+            _s3_cli_command(
+                environment,
+                "s3", "rm", f"s3://{environment['BACKUP_S3_BUCKET']}/{key}",
+            ),
+            environment=aws_environment,
+            label=f"S3 remote backup prune for {key}",
+        )
+    print(f"BACKUP_S3_PRUNED count={len(removable)}")
+    return len(removable)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -176,6 +261,10 @@ def main(argv: list[str] | None = None) -> int:
 
     environment = dict(os.environ)
     environment["DATABASE_URL"] = args.database_url
+    try:
+        remote_retention_days = _remote_retention_days(environment)
+    except BackupError as exc:
+        parser.error(str(exc))
     directory = Path(args.local_dir) if args.local_dir else local_retention_directory(environment)
     try:
         directory.mkdir(parents=True, exist_ok=True)
@@ -200,6 +289,10 @@ def main(argv: list[str] | None = None) -> int:
         if object_storage_is_configured(environment):
             _upload_s3(archive, manifest_path, environment)
             print("BACKUP_S3_UPLOAD_OK")
+            try:
+                _prune_remote(environment, remote_retention_days)
+            except Exception as exc:
+                print(f"BACKUP_S3_PRUNE_FAILED reason={exc}", file=sys.stderr)
         else:
             print(f"BACKUP_LOCAL_RETENTION_MODE directory={directory} reason=object_storage_not_configured")
         return 0

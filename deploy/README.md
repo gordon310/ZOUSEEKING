@@ -210,7 +210,9 @@ with a sidecar `manifest.json`. PostgreSQL queries and `pg_dump` run in a
 short-lived PostgreSQL client container, so the host does not need `psql`.
 The manifest records creation time, artifact size, SHA-256, all migration
 versions, row counts for the seven recovery-critical tables, server and tool
-versions. It retains local artifacts for 14 days by default.
+versions. It retains local artifacts for 14 days by default; after a successful
+S3-compatible upload it also prunes remote backup dumps and manifests under the
+configured prefix after the same period (or `BACKUP_S3_RETENTION_DAYS` when set).
 
 Create the required environment file before enabling the service. A missing
 `EnvironmentFile` makes systemd fail with `Failed to load environment files`;
@@ -236,10 +238,11 @@ BACKUP_RETENTION_DAYS=14
 For S3-compatible upload, set every one of the following in the same file:
 `BACKUP_S3_BUCKET`, `BACKUP_S3_ENDPOINT`, `BACKUP_S3_REGION`,
 `BACKUP_S3_ACCESS_KEY_ID`, and `BACKUP_S3_SECRET_ACCESS_KEY`. Optionally set
-`BACKUP_S3_PREFIX=zouseeking/database`. If any required setting is absent, the
-script explicitly reports local-retention mode and does not make an object-store
-request. Configure the bucket lifecycle policy outside this repository for the
-approved remote retention period; the script never deletes remote objects.
+`BACKUP_S3_PREFIX=zouseeking/database`. Optionally set
+`BACKUP_S3_RETENTION_DAYS`; it falls back to `BACKUP_RETENTION_DAYS` (14). If
+any required setting is absent, the script explicitly reports local-retention
+mode and does not make an object-store request. Remote pruning only removes
+expired `zouseeking-*` dumps and manifests beneath the configured prefix.
 
 Install only after the operator has approved the host paths and database role:
 

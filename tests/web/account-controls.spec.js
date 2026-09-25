@@ -25,7 +25,7 @@ test("注册在认证服务不可达时不创建本地密码凭据", async ({ pa
   await page.locator("#registerEmail").fill("local-only@example.com");
   await page.locator("#registerPassword").fill("Correct Horse Battery Staple");
   await page.locator("#registerInviteCode").fill("test-invite");
-  await page.getByRole("button", { name: /凭邀请码注册|注册并登录/ }).click();
+  await page.getByRole("button", { name: /注册账号|Create account/ }).click();
 
   await expect(page.locator("#formMessage")).toContainText("注册服务暂时无法连接");
   await expect(page).toHaveURL(/index\.html/);

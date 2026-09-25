@@ -47,6 +47,7 @@ Classifications are limited to `production_required`, `production_optional`, `ci
 | `BACKUP_S3_ENDPOINT` | production_optional | required when uploading | S3 兼容端点(R2:`https://<account-id>.r2.cloudflarestorage.com`) |
 | `BACKUP_S3_PREFIX` | production_optional | default `zouseeking/database` | 对象键前缀 |
 | `BACKUP_S3_REGION` | production_optional | `auto` for R2 | 签名区域;R2 用 `auto` |
+| `BACKUP_S3_RETENTION_DAYS` | production_optional | falls back to `BACKUP_RETENTION_DAYS` (14) | 远端备份保留天数 |
 | `BACKUP_S3_SECRET_ACCESS_KEY` | production_optional | required when uploading; secret | 备份目标凭据密钥 |
 | `BILLING_CANCEL_URL` | production_required | required | Stripe cancellation redirect URL. |
 | `BILLING_PORTAL_RETURN_URL` | production_required | required | Stripe portal return URL. |

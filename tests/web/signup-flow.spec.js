@@ -19,22 +19,32 @@ async function openRegistration(page, { email = "signup@example.com", inviteCode
 }
 
 async function submitRegistration(page) {
-  await page.getByRole("button", { name: /凭邀请码注册|注册并登录/ }).click();
+  await page.getByRole("button", { name: /注册账号|Create account/ }).click();
 }
 
-test("受邀注册要求邀请码，且成功请求携带完整受邀合约", async ({ page }) => {
+test("开放注册允许空邀请码，并发送完整注册请求", async ({ page }) => {
   let requestBody;
   await openRegistration(page, { inviteCode: null });
   await page.route("**/api/**", async (route) => {
     requestBody = JSON.parse(route.request().postData() || "{}");
     await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ user_id: "new-user-id", email: "signup@example.com" }) });
   });
-  await expect(page.locator("#registerInviteCode")).toHaveAttribute("required", "");
+  await expect(page.locator("#registerInviteCode")).not.toHaveAttribute("required", "");
   await submitRegistration(page);
-  expect(requestBody).toBeUndefined();
-  await page.locator("#registerInviteCode").fill("valid-invite");
+  await expect(page.locator("#formMessage")).toHaveText("账户已创建;请完成邮箱确认后登录。");
+  await expect(page.locator("#loginForm")).toBeVisible();
+  expect(requestBody).toMatchObject({ email: "signup@example.com", password: "sixsix", username: "signup-user", invite_code: "", consent_version: "privacy-2026-08", terms_version: "terms-2026-08" });
+});
+
+test("带邀请码注册保留邀请码并发送完整注册请求", async ({ page }) => {
+  let requestBody;
+  await openRegistration(page, { inviteCode: "valid-invite" });
+  await page.route("**/api/**", async (route) => {
+    requestBody = JSON.parse(route.request().postData() || "{}");
+    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ user_id: "new-user-id", email: "signup@example.com" }) });
+  });
   await submitRegistration(page);
-  await expect(page.locator("#formMessage")).toHaveText("账户已创建；请完成邮箱确认后登录。");
+  await expect(page.locator("#formMessage")).toHaveText("账户已创建;请完成邮箱确认后登录。");
   await expect(page.locator("#loginForm")).toBeVisible();
   expect(requestBody).toMatchObject({ email: "signup@example.com", password: "sixsix", username: "signup-user", invite_code: "valid-invite", consent_version: "privacy-2026-08", terms_version: "terms-2026-08" });
 });
@@ -68,11 +78,11 @@ test("同一单次邀请码并发提交时只有一次兑换成功", async ({ pa
   });
   await Promise.all([openRegistration(page, { email: "first@example.com", inviteCode: "one-use-code" }), openRegistration(second, { email: "second@example.com", inviteCode: "one-use-code" })]);
   await Promise.all([submitRegistration(page), submitRegistration(second)]);
-  await expect(page.locator("#formMessage")).toHaveText(/账户已创建；请完成邮箱确认后登录。|邀请码已用尽。/);
-  await expect(second.locator("#formMessage")).toHaveText(/账户已创建；请完成邮箱确认后登录。|邀请码已用尽。/);
+  await expect(page.locator("#formMessage")).toHaveText(/账户已创建;请完成邮箱确认后登录。|邀请码已用尽。/);
+  await expect(second.locator("#formMessage")).toHaveText(/账户已创建;请完成邮箱确认后登录。|邀请码已用尽。/);
   expect(requestBodies).toHaveLength(2);
   expect(requestBodies.map((body) => body.invite_code)).toEqual(["one-use-code", "one-use-code"]);
-  expect([await page.locator("#formMessage").textContent(), await second.locator("#formMessage").textContent()].sort()).toEqual(["账户已创建；请完成邮箱确认后登录。", "邀请码已用尽。"]);
+  expect([await page.locator("#formMessage").textContent(), await second.locator("#formMessage").textContent()].sort()).toEqual(["账户已创建;请完成邮箱确认后登录。", "邀请码已用尽。"]);
   await second.close();
 });
 
@@ -88,7 +98,7 @@ test("第六次受邀注册返回 429，并保留 Retry-After 合约", async ({ 
   for (let attempt = 1; attempt <= 6; attempt += 1) {
     await openRegistration(page, { email: `signup-${attempt}@example.com`, inviteCode: `rate-limit-${attempt}` });
     await submitRegistration(page);
-    if (attempt <= 5) await expect(page.locator("#formMessage")).toHaveText("账户已创建；请完成邮箱确认后登录。");
+    if (attempt <= 5) await expect(page.locator("#formMessage")).toHaveText("账户已创建;请完成邮箱确认后登录。");
   }
   expect(attempts).toBe(6);
   expect(retryAfter).toBe("3600");

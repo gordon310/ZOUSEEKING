@@ -246,7 +246,7 @@ git diff --cached --check                                                       
 |---|---|
 | 本机代理 | 7897 端口在听;经代理 `google` **302**、`github` **200**,即代理本身可用 |
 | ChatGPT / OpenAI 链路 | `api.openai.com` 与 `chatgpt.com` 经代理与直连**均 000**(超时);按既定处置重启 Clash Verge 一次后**未恢复** → 判定该链路当班无法自行修复,**停止重试**(不绕行其它通道) |
-| 残留 Codex 进程 | 20:13 起有一个先前派工处于传输重试空转(`failed to refresh available models: timeout`);按「同一时刻只跑一个 codex」的铁律,本班**不派第二个** |
+| 残留 Codex 进程 | 20:13 起有一个先前派工处于传输重试空转(`failed to refresh available models: timeout`);按「同一时刻只跑一个 codex」的铁律,本班**不派第二个**。**该派工在通道恢复后自行完成**,12:43Z 交付 `6507da1`(U2/U5/U6 三缺口,Release Gate `36242841047` success) |
 | cron 投递 | 本日两次投递 QQ 失败(早班 `DNS resolution failed for api.sgroup.qq.com`;夜班 `Not connected`),与产品无关 |
 | 生产健康(对照) | `zoubeacon.app` **200**、`api.zoubeacon.com/health/ready` **200**(带浏览器 UA)——生产未受影响 |
 

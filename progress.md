@@ -732,6 +732,7 @@
 - **⚠️ 当班环境故障(如实记录,与产品无关)**:
   - **Codex 通道不可用**:本机代理 7897 在听且经代理 `google` 302 / `github` 200,但 `api.openai.com`、`chatgpt.com` 经代理**与直连均 000**;按既定处置重启 Clash Verge 一次**未恢复** → 判定该链路当班无法自行修复,**停止重试、不绕行其它通道**。
   - **另有一个先前 Codex 派工在空转**(20:13 起,`failed to refresh available models: timeout`);按「同一时刻只跑一个 codex」的铁律,本班**未派第二个**。
+  - **✅ 该派工随后自行恢复并交付**(本班重启 Clash 后通道恢复;12:43Z 产出并推入 `6507da1`「close the release-scope gaps U2, U5 and U6」,Release Gate `36242841047` **success**)——即 U2 注释与实际一致、U5 release-scope 回归测试、U6 文档漂移三项目前**已闭合**;U1 / U3 / U4(首发面与 B 端门禁)仍待用户决策。
   - **因此本班不改任何代码**:看板的 CI 守护(`scripts/check_first_week_observation.py` + 单测)登记为**下一单元**,由 Codex 执行(既有分工:Hermes 不代写开发与测试)。
   - **cron 投递异常**:本日早班 `DNS resolution failed for api.sgroup.qq.com`、夜班 `Not connected`,两次 QQ 投递失败;与产品无关,建议 `hermes cron status` 复核投递通道。
   - **生产对照(只读)**:`zoubeacon.app` **200**、`api.zoubeacon.com/health/ready` **200**(带浏览器 UA)→ 生产未受影响。

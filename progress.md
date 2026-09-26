@@ -746,6 +746,45 @@
   ⑨ 本班次(job `25fcad9d21ad`)是否继续绑定 10-07 倒排。
 - **红线**:零 DB 写入或对象变更、零部署、零迁移、零凭据读取、零删除、零生产写操作;生产侧仅两次只读 HTTP 探针;本班只新增 3 个文档文件 + 记录更新。
 
+## D-11 ② 生产 release phase 切换:`consumer_active` → `consumer_launch`(2026-09-26 夜班,本 BOT)
+
+**目标**:关闭 ADR-0002 的 U1/U4 —— 让「C 端 + 后台先上,B 端(小象数据)随后」从计划口径变成**可执行门禁**。切换前生产为 `consumer_active`(全放行,allowlist 不生效),B 端路由任何人可直连。
+
+**结果**:✅ 门禁生效。冒烟 32 项:A 组(C 端 + 后台)20 条**零门禁拦截**,B 组 12 条**全部 `404 GATE`**,站点 200。
+
+### 前置工程(三批 Codex 派工 + 独立验收)
+
+- 新 phase `consumer_launch` + `CONSUMER_LAUNCH_API_CONTRACT`(**50 条**)+ `docs/architecture/consumer-launch-boundaries.json`。
+- 契约**机械推导**自「页面 → JS → API」依赖图(`docs/architecture/consumer-launch-page-api-dependency.md`:23 页 / 26 JS / 逐条归属),共享 `app.js` 的 B 端调用逐个追到守护条件(表单 id / 认证分支)而非按文件归属。
+- 守护测试 45 项:C 端可达集 ⊆ 契约、后台脚本调用集 ⊆ 契约、B 端逐条必拦,**三项全部从源码提取比对**(前端新增调用会让测试红,而非上线后静默 404)。
+- **验收拦下一次真缺陷**:第二批交付测试全绿,但复核发现契约**漏了整个后台必需集**(`admin.html` 依赖的 `pricing*`/`overview`/`invite-codes*` 等 12 条不在旧基线内)→ 若直接上线**后台平台会 404**。根因是**任务书漏定义「后台必需集」**;第三批补齐后独立 grep 复核:后台 19 条路径全覆盖、B 端零泄漏。
+
+### 执行序列(两次失败,均自动回滚,生产全程无影响)
+
+| # | 动作 | 结果 | 原因 |
+|---|---|---|---|
+| 1 | 改 `.env` phase + 重启 api | **失败并自动回滚** | 只重启容器、**未重建镜像** → 容器内是 09-25 旧代码,不认 `consumer_launch`,fail closed → 除 health 外**全 404**。证据三条吻合:生产 HEAD `711c73f`、旧代码 `CONSUMER_LAUNCH` 0 次、镜像构建于 09-25 15:20 |
+| 2 | 判定脚本用「状态码 404」当误拦信号 | **失败并自动回滚** | **判定逻辑缺陷**:无法区分「门禁 404」与「资源不存在 404」。`/api/reports/probe`(报告不存在)与 `GET /api/privacy`(不在契约内、被**正确**拦截)被误报为误拦 |
+| 3 | 先部署代码 + 按**响应体**判定 | ✅ **GATE_ACTIVE_OK** | 见下 |
+
+### 固化为规程的两条
+
+1. **切 phase 前必须确认镜像内含新代码**:`git pull` → `docker compose build api` → `docker exec ... grep -c CONSUMER_LAUNCH <镜像内 release_scope.py>`。**只重启容器不够**。
+2. **冒烟判定必须看响应体**:门禁 404 的 body 含 `release phase` 字样;应用层 404 不含。只看状态码会把"资源不存在"误判成"被拦截"。
+
+### 冒烟证据(生产实测,2026-09-26T14:08Z)
+
+- **A 组 20 条,零门禁拦截**:`/health/ready` 200、`/api/me` 401、`POST /api/query` 401、`/api/my/queries` 401、`/api/reports/probe` **404|APP**(应用层)、`/api/billing/prices` 200、`POST /api/billing/webhook` 400、`/api/admin/{overview,pricing,invite-codes,service/tasks,members}` 401、`POST /api/admin/organizations` 401、intake 4 条(422/401)、`POST /api/recognition` 401、`POST /api/account/deletion-request` 401、`GET /api/jobs/abc` 401。
+- **B 组 12 条,全部 `404|GATE`**:`region-stats`(+`/trend`)、`/api/org/{me,usage,members,exports}`、`/api/exports`、`/api/analysis`、`/api/org/invitations`、`/api/service/tasks`、`/api/usage/summary`、`/api/privacy`。
+- 脚本内置自动回滚(A 组任一被门禁拦即切回),本轮未触发。
+
+### 现状与遗留
+
+- 生产:`RELEASE_PHASE=consumer_launch`、HEAD `cee2b22`、前端 r64、站点 200;`ENVIRONMENT=production` 已于本日更早更正。
+- 回滚路径:`.env.bak-20260926-release-phase` 恢复 `consumer_active` + 重启 api(分钟级)。
+- **B 端前端入口的 UI 隐藏**(`release-boundary.js` 在新 phase 下不设闸)**未做** —— API 层已不可达,属可选增强。
+- 依赖图揭示 `POST /api/intake/sessions/{id}/convert` 属 C 端「保存项目」路径,已**取代** ADR §4.1 旧「本阶段 404」表述(已在 ADR 标注口径变更)。
+
 ## Last updated
 
 2026-09-26(夜班)

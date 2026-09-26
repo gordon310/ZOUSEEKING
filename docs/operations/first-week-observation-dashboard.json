@@ -1,0 +1,279 @@
+{
+  "schema_version": 1,
+  "artifact": "first-week-observation-dashboard",
+  "launch_date": "2026-10-07",
+  "status": "defined_pending_production_evidence",
+  "owner": "Hermes 值班看板；最终判读由用户决策",
+  "read_only": true,
+  "production_contacted": false,
+  "definition_doc": "docs/operations/first-week-observation-dashboard.md",
+  "plan_doc": "docs/superpowers/plans/2026-09-24-launch-countdown-10-07.md",
+  "windows": [
+    {"id": "first_hour", "label": "上线首小时", "cadence": "每 15 分钟"},
+    {"id": "first_24h", "label": "上线后 24 小时", "cadence": "每 2 小时"},
+    {"id": "first_week", "label": "上线首周", "cadence": "每日 09:30 巡检 + 每日 20:30 值班"}
+  ],
+  "domains": [
+    {
+      "id": "data",
+      "label": "数据",
+      "owner": "Hermes 值班 + 数据责任人",
+      "summary": "官方统计的新鲜度、统计接口健康、发布门禁与来源授权；口径必须与其数据类别一致。",
+      "metrics": [
+        {
+          "id": "mlit_quarter_freshness",
+          "metric": "MLIT 成交价最新季度与最近导入时间",
+          "windows": ["first_hour", "first_24h", "first_week"],
+          "source": "public.mlit_transactions（官方开放数据，verified_observation）",
+          "query": "select max(trade_quarter) as latest_quarter, max(imported_at) as latest_import from public.mlit_transactions",
+          "unit": "季度 / 时间戳",
+          "threshold": "latest_import 距今 ≤ 45 天；latest_quarter 不低于官方最近一次发布季度",
+          "healthy_state": "两项均满足，统计页可展示为该季度公开成交价口径",
+          "degraded_action": "超出阈值即在统计页标注数据陈旧的季度，禁止对外宣称最新",
+          "owner": "数据责任人"
+        },
+        {
+          "id": "rent_reference_freshness",
+          "metric": "租金参考统计年份与抓取时间",
+          "windows": ["first_24h", "first_week"],
+          "source": "public.rent_reference_stats（官方免费源 e-Stat，verified_observation）",
+          "query": "select max(survey_year) as latest_survey_year, max(fetched_at) as latest_fetch from public.rent_reference_stats",
+          "unit": "年份 / 时间戳",
+          "threshold": "latest_fetch 距今 ≤ 45 天；页面必须显示 survey_year",
+          "healthy_state": "展示口径含官方年份，无实时性宣称",
+          "degraded_action": "缺年份或抓取过期即移除该指标，保留「暂无可用口径」空态",
+          "owner": "数据责任人"
+        },
+        {
+          "id": "statistics_query_volume",
+          "metric": "统计查询计量事件数（配额被真实消耗）",
+          "windows": ["first_24h", "first_week"],
+          "source": "public.usage_events（operation = consume, usage_kind = stats_query）",
+          "query": "select count(*) as stats_consume_24h from public.usage_events where usage_kind = 'stats_query' and operation = 'consume' and created_at >= now() - interval '24 hours'",
+          "unit": "条",
+          "threshold": "与 /api/org/region-stats 的 200 响应数一致（差额必须为 0）",
+          "healthy_state": "计量与响应数一致，说明配额门在生效",
+          "degraded_action": "出现无计量响应即列为当日阻断项并通知用户",
+          "owner": "Hermes 值班"
+        },
+        {
+          "id": "publish_gate_violations",
+          "metric": "非 synthetic 发布门禁违规数",
+          "windows": ["first_24h", "first_week"],
+          "source": "内容库 provenance 检查（data/content_library.json 与 web/content-library.json）",
+          "command": "python3 scripts/audit_content_library_provenance.py --output /tmp/first-week-provenance.json",
+          "unit": "条",
+          "threshold": "0（且两份内容库在应同步时 hash 一致）",
+          "healthy_state": "违规 0，两份副本 hash 一致",
+          "degraded_action": "任意违规 > 0 即停止该内容的对外展示并通知用户",
+          "owner": "数据责任人"
+        },
+        {
+          "id": "source_rights_coverage",
+          "metric": "启用中但未确认授权的采集来源数",
+          "windows": ["first_week"],
+          "source": "public.collection_sources",
+          "query": "select count(*) filter (where enabled and not rights_confirmed) as enabled_without_rights, count(*) filter (where enabled) as enabled_total from public.collection_sources",
+          "unit": "条",
+          "threshold": "enabled_without_rights = 0",
+          "healthy_state": "启用来源全部已确认授权",
+          "degraded_action": "停用未授权来源并通知用户，不得先发布后补授权",
+          "owner": "数据责任人"
+        }
+      ]
+    },
+    {
+      "id": "payments",
+      "label": "支付",
+      "owner": "Hermes 值班 + 财务角色",
+      "summary": "live 遗留单、webhook 处理、价格一致性与退款；任何金额断言都要带币种与来源。",
+      "metrics": [
+        {
+          "id": "live_orders_left_open",
+          "metric": "超期未终态的 live 订单数",
+          "windows": ["first_hour", "first_24h", "first_week"],
+          "source": "public.payment_orders（provider = stripe，status in pending/failed）",
+          "query": "select count(*) as open_live_orders from public.payment_orders where provider = 'stripe' and status in ('pending', 'failed') and created_at < now() - interval '1 hour'",
+          "unit": "单",
+          "threshold": "0；非 0 时每一单都要有可追溯说明",
+          "healthy_state": "无超期未终态订单",
+          "degraded_action": "逐单核对 Stripe 侧状态并记录处置，禁止直接改库状态",
+          "owner": "财务角色"
+        },
+        {
+          "id": "webhook_processing",
+          "metric": "webhook 失败数与滞留数",
+          "windows": ["first_hour", "first_24h", "first_week"],
+          "source": "public.payment_events",
+          "query": "select count(*) filter (where status = 'failed') as failed_total, count(*) filter (where status = 'received' and created_at < now() - interval '15 minutes') as stuck_received from public.payment_events",
+          "unit": "条",
+          "threshold": "failed_total = 0 且 stuck_received = 0",
+          "healthy_state": "事件全部 processed",
+          "degraded_action": "滞留即检查 webhook 端点与签名校验，必要时由财务角色人工补单并留审计",
+          "owner": "财务角色"
+        },
+        {
+          "id": "price_id_consistency",
+          "metric": "生效价格与支付平台价格 ID 一致性",
+          "windows": ["first_24h", "first_week"],
+          "source": "public.pricing_prices 与支付平台 active price 列表逐条比对",
+          "query": "select count(*) as active_prices from public.pricing_prices where status = 'active'",
+          "unit": "条",
+          "threshold": "两侧 active 价格集合逐条相同，无多余或缺失",
+          "healthy_state": "价格 ID 一一对应，币种与金额一致",
+          "degraded_action": "出现差异即冻结该价格的售卖入口并通知用户",
+          "owner": "财务角色"
+        },
+        {
+          "id": "refund_backlog",
+          "metric": "未终态退款单数",
+          "windows": ["first_week"],
+          "source": "public.refunds",
+          "query": "select count(*) as open_refunds from public.refunds where status = 'pending'",
+          "unit": "单",
+          "threshold": "0（否则每单必须有处理中的书面说明）",
+          "healthy_state": "退款全部终态",
+          "degraded_action": "逐单核对支付平台退款状态，超 3 个工作日未终态升级给用户",
+          "owner": "财务角色"
+        }
+      ]
+    },
+    {
+      "id": "jobs",
+      "label": "任务",
+      "owner": "Hermes 值班 + 工程值守",
+      "summary": "报告生成 outbox 的积压、失败分类、租约回收与唯一执行器存活；旧执行器不得被正常流量触发。",
+      "metrics": [
+        {
+          "id": "outbox_state_distribution",
+          "metric": "outbox 五态分布",
+          "windows": ["first_hour", "first_24h", "first_week"],
+          "source": "public.report_generation_outbox",
+          "query": "select status, count(*) as rows from public.report_generation_outbox group by status order by status",
+          "unit": "条",
+          "threshold": "failed = 0；pending / running 与当前在飞请求数相符",
+          "healthy_state": "失败为 0，仅存在与在飞请求对应的 pending / running",
+          "degraded_action": "failed > 0 即按 last_error_code 归类并通知用户，禁止手工插报告",
+          "owner": "工程值守"
+        },
+        {
+          "id": "oldest_due_backlog",
+          "metric": "最老到期未执行任务的等待分钟数",
+          "windows": ["first_hour", "first_24h", "first_week"],
+          "source": "public.report_generation_outbox",
+          "query": "select coalesce(extract(epoch from now() - min(next_attempt_at)) / 60, 0) as oldest_due_minutes from public.report_generation_outbox where status = 'pending'",
+          "unit": "分钟",
+          "threshold": "≤ 5 分钟（常态应接近 0）",
+          "healthy_state": "worker 持续消化到期任务",
+          "degraded_action": "持续 > 5 分钟即检查 report-worker 存活与租约回收，必要时重启该服务（需用户批准）",
+          "owner": "工程值守"
+        },
+        {
+          "id": "failure_class_distribution",
+          "metric": "失败分类分布",
+          "windows": ["first_24h", "first_week"],
+          "source": "public.report_generation_outbox（last_error_code 为分类码，不含异常原文）",
+          "query": "select last_error_code, count(*) as rows from public.report_generation_outbox where status = 'failed' group by last_error_code order by rows desc",
+          "unit": "条",
+          "threshold": "全部失败都有已登记的分类码，且无原样异常文本",
+          "healthy_state": "失败可归因、可重放",
+          "degraded_action": "出现未登记分类码即补登记并评估是否可达终态",
+          "owner": "工程值守"
+        },
+        {
+          "id": "worker_liveness",
+          "metric": "report-worker 与 worker 容器存活及重启次数",
+          "windows": ["first_hour", "first_24h", "first_week"],
+          "source": "生产 compose 状态（只读）",
+          "command": "docker compose -f deploy/docker-compose.prod.yml ps --services --filter status=running",
+          "unit": "服务",
+          "threshold": "api / report-worker / worker / nginx 均在 running；重启次数当天不再增长",
+          "healthy_state": "关键服务齐全且无反复重启",
+          "degraded_action": "缺失即升级为当日阻断项，重启服务属写操作需用户批准",
+          "owner": "工程值守"
+        }
+      ]
+    },
+    {
+      "id": "errors",
+      "label": "错误",
+      "owner": "Hermes 值班 + 事故责任人",
+      "summary": "就绪探针、结构化错误日志、限流 fail-closed、备份新鲜度与容器重启；日志不得含 PII。",
+      "metrics": [
+        {
+          "id": "readiness_probe",
+          "metric": "API 就绪探针",
+          "windows": ["first_hour", "first_24h", "first_week"],
+          "source": "生产就绪端点",
+          "command": "curl --fail --silent --show-error --max-time 10 https://api.zoubeacon.com/health/ready",
+          "unit": "HTTP 状态",
+          "threshold": "HTTP 200",
+          "healthy_state": "进程与依赖均就绪",
+          "degraded_action": "非 200 立即升级为阻断项并按回滚预案判断",
+          "owner": "事故责任人"
+        },
+        {
+          "id": "structured_error_lines",
+          "metric": "结构化错误日志行数（含请求关联 ID）",
+          "windows": ["first_hour", "first_24h", "first_week"],
+          "source": "api 容器结构化日志（逐行 JSON，脱敏后无 PII）",
+          "command": "docker compose -f deploy/docker-compose.prod.yml logs --since 15m api",
+          "unit": "行",
+          "threshold": "每条错误可归入已登记错误类别，且不含异常原文与个人信息",
+          "healthy_state": "错误可归因、可关联到单次请求",
+          "degraded_action": "出现未归因错误即列为当日阻断项并通知用户",
+          "owner": "事故责任人"
+        },
+        {
+          "id": "rate_limit_fail_closed",
+          "metric": "限流计数存储可用性（fail-closed 表现）",
+          "windows": ["first_24h", "first_week"],
+          "source": "public.shared_rate_limits 与注册/登录/查询端点响应",
+          "query": "select count(*) as active_windows, min(expires_at) as earliest_expiry from public.shared_rate_limits where expires_at > now()",
+          "unit": "窗口 / 时间戳",
+          "threshold": "计数正常滚动；计数存储不可用时接口应返回 503 而不是放行",
+          "healthy_state": "限流按共享计数生效，fail-closed 未触发",
+          "degraded_action": "出现放行嫌疑即按事故处理，禁止为跑通而临时放宽限流",
+          "owner": "事故责任人"
+        },
+        {
+          "id": "backup_freshness",
+          "metric": "每日备份新鲜度（异地对象存储优先）",
+          "windows": ["first_24h", "first_week"],
+          "source": "既有只读观测脚本与 systemd 定时器",
+          "command": "deploy/observability-check.sh",
+          "unit": "小时",
+          "threshold": "backup_age_hours ≤ 36 且摘要为 OBSERVABILITY_OK",
+          "healthy_state": "备份新鲜且远端可读",
+          "degraded_action": "超阈值即核对定时器与对象存储连通性并通知用户",
+          "owner": "事故责任人"
+        },
+        {
+          "id": "container_restarts",
+          "metric": "容器重启与僵尸任务",
+          "windows": ["first_24h", "first_week"],
+          "source": "既有观测脚本摘要",
+          "command": "deploy/observability-check.sh",
+          "unit": "次",
+          "threshold": "摘要 failed = 0、zombie_running = 0、pending_due = 0",
+          "healthy_state": "无反复重启与僵尸任务",
+          "degraded_action": "非 0 即定位根因并升级，禁止仅重启掩盖",
+          "owner": "工程值守"
+        }
+      ]
+    }
+  ],
+  "evidence_carriers": [
+    "deploy/observability-check.sh（只读，容器 / 就绪 / 备份新鲜度）",
+    "systemd observability-check.timer（生产每 15 分钟只读自查）",
+    "后台管理平台健康与 KPI 区（collection / quality / service / finance）",
+    "Hermes 每日 09:30 生产巡检与每日 20:30 值班汇报",
+    "支付对账专项（倒排 D-11，2026-09-26 20:00）"
+  ],
+  "limitations": [
+    "本看板是定义与只读口径，尚未在生产采集过任何数据（production_contacted = false）",
+    "官方成交价与租金统计为季度 / 年度口径，存在发布滞后，不得呈现为实时行情",
+    "支付与任务指标需要 live 凭据或生产只读通道，缺件时按「未采集」记录，不得估算补齐",
+    "看板不改变任何门禁：配额、RLS、鉴权与发布门禁仍由服务端与数据库承担"
+  ]
+}

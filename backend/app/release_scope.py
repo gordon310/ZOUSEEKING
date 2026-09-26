@@ -10,6 +10,9 @@ PHASE_ONE = "consumer_intake_preview"
 # ADMIN_ENABLED, role checks, RLS, and consume_current_entitlement remain the
 # security boundary; never treat this phase as a reason to omit service-layer auth.
 CONSUMER_ACTIVE = "consumer_active"
+# 2026-10-07 launch: consumer surface plus back office.  ZOUSEEKING Data
+# business surface is intentionally not included.
+CONSUMER_LAUNCH = "consumer_launch"
 MANAGED_ENVIRONMENTS = {"staging", "production"}
 
 PHASE_ONE_API_CONTRACT = (
@@ -70,6 +73,63 @@ ADMIN_API_CONTRACT = (
 PHASE_ONE_API_CONTRACT = PHASE_ONE_API_CONTRACT + ADMIN_API_CONTRACT
 _ALWAYS_ALLOWED = PHASE_ONE_API_CONTRACT[:4]
 
+# Derived mechanically from the consumer launch page/API dependency graph.
+# This retains the 42-entry preview baseline except the B-only endpoints, adds
+# the full admin.html-required set (source calls plus legacy /api/admin/*
+# baseline entries), then adds consumer-reachable and mandatory endpoints.
+CONSUMER_LAUNCH_API_CONTRACT = (
+    "GET /health",
+    "GET /health/live",
+    "GET /health/ready",
+    "GET /internal/provenance/diagnostics",
+    "POST /api/intake/sessions",
+    "POST /api/intake/sessions/{session_id}/inputs",
+    "POST /api/intake/sessions/{session_id}/files",
+    "PUT /api/intake/sessions/{session_id}/location",
+    "PUT /api/intake/sessions/{session_id}/fields/{field_name}",
+    "POST /api/intake/sessions/{session_id}/preview",
+    "GET /api/admin/members",
+    "GET /api/admin/members/{user_id}",
+    "POST /api/admin/members/{user_id}/status",
+    "GET /api/admin/audit",
+    "GET /api/admin/finance/orders",
+    "GET /api/admin/finance/refunds",
+    "GET /api/admin/collection/runs",
+    "POST /api/admin/collection/runs",
+    "GET /api/admin/internal/me",
+    "GET /api/admin/internal/roles",
+    "POST /api/admin/internal/roles",
+    "DELETE /api/admin/internal/roles/{user_id}/{role}",
+    "POST /api/admin/organizations",
+    "GET /api/admin/pricing",
+    "POST /api/admin/pricing/prices",
+    "POST /api/admin/pricing/prices/{price_id}/status",
+    "POST /api/admin/pricing/regions",
+    "POST /api/admin/pricing/plans",
+    "POST /api/admin/pricing/entitlements",
+    "GET /api/admin/invite-codes",
+    "POST /api/admin/invite-codes",
+    "POST /api/admin/invite-codes/{invite_code_id}/status",
+    "POST /api/admin/members/{user_id}/audience",
+    "GET /api/admin/overview",
+    "GET /api/admin/service/tasks",
+    "POST /api/admin/service/tasks",
+    "POST /api/admin/service/tasks/{task_id}/status",
+    "POST /api/intake/sessions/{session_id}/convert",
+    "POST /api/recognition",
+    "GET /api/my/queries",
+    "POST /api/account/deletion-request",
+    "POST /api/query",
+    "GET /api/jobs/{job_id}",
+    "GET /api/reports/{query_key}",
+    "GET /api/reports/{query_key}/download",
+    "GET /api/billing/prices",
+    "POST /api/billing/checkout",
+    "POST /api/auth/invite-register",
+    "GET /api/me",
+    "POST /api/billing/webhook",
+)
+
 
 def _compile_rule(contract: str) -> tuple[str, re.Pattern[str]]:
     method, path = contract.split(" ", 1)
@@ -81,6 +141,7 @@ def _compile_rule(contract: str) -> tuple[str, re.Pattern[str]]:
 
 
 _PHASE_ONE_RULES = tuple(_compile_rule(contract) for contract in PHASE_ONE_API_CONTRACT)
+_CONSUMER_LAUNCH_RULES = tuple(_compile_rule(contract) for contract in CONSUMER_LAUNCH_API_CONTRACT)
 _ALWAYS_ALLOWED_RULES = tuple(_compile_rule(contract) for contract in _ALWAYS_ALLOWED)
 
 
@@ -104,6 +165,11 @@ def request_allowed(method: str, path: str) -> bool:
         return True
     if phase in ("development", CONSUMER_ACTIVE):
         return True
+    if phase == CONSUMER_LAUNCH:
+        return any(
+            normalized_method == allowed_method and pattern.fullmatch(path)
+            for allowed_method, pattern in _CONSUMER_LAUNCH_RULES
+        )
     if phase != PHASE_ONE:
         return False
     return any(

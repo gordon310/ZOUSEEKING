@@ -6,7 +6,7 @@
 
 **关系：** 补充并收窄 [ADR-0001：权威后端与 Schema 所有权](adr-0001-authoritative-backend-and-schema.md)，不取代 ADR-0001。
 
-**机器契约：** [phase-one-release-boundaries.json](phase-one-release-boundaries.json)
+**机器契约：** [phase-one-release-boundaries.json](phase-one-release-boundaries.json)（历史 preview）及 [consumer-launch-boundaries.json](consumer-launch-boundaries.json)（10-07 首发）
 
 ## 0. 修订摘要（2026-09-26）
 
@@ -23,11 +23,13 @@
 
 **未闭合项（交用户 / 工程，不擅自决定）**：
 
-- **U1 首发面 ≠ allowlist**：10-07 的 C 端（注册/登录/查询/报告/付费）与后台所需路由不在 `consumer_intake_preview` allowlist 内，而该 allowlist 是 ADR 声明的发布边界。需二选一：(a) 定义 10-07 专用 phase + 显式 allowlist（含上列路由）；(b) 明确申明由 `consumer_active` + 服务层鉴权承担，并把这一点写进 ADR 与检查单。**当前形态下 (a) 与 (b) 都不能说「ADR 与运行时一致」**。
+- **[已闭合] U1 首发面 ≠ allowlist**：采用 **(a)**。`consumer_launch` 是 2026-10-07 的专用 fail-closed phase，运行时 `CONSUMER_LAUNCH_API_CONTRACT` 与 `consumer-launch-boundaries.json` 逐条一致。其成员由页面→JS→API 图机械推导（`consumer-launch-page-api-dependency.md`）：C 端可达集 + 强制 webhook/注册项 + 后台必需集（`admin.html` 依赖的 `/api/admin/*` 全集与 42 条基线 `/api/admin/*` 条目的并集），B-only 成员不进入契约。
+  生产 `RELEASE_PHASE` 的切换是独立运维步骤，本批未做，也不因本 ADR 而获得授权。
 - **[已闭合] U2 代码注释与生产现实矛盾**：`release_scope.py` 的 `consumer_active` 注释现说明其为 2026-10-07 C 端 Web/PWA 上线的当前生产 phase、全放行且不做 allowlist 过滤，并列明服务层边界。
   证据：`backend/app/release_scope.py` 仅更新 `CONSUMER_ACTIVE` 上方注释；`tests/architecture/test_release_scope_regression.py` 守护该注释不得再含旧生产禁用表述。
 - **U3 生产 `ENVIRONMENT` 标签**：生产主机 `ENVIRONMENT=staging`（属标签不一致；当前仅影响 fallback/运维判读）。
-- **U4 B 端无技术门禁**：`consumer_active` 下前端 `release-boundary.js` 不设闸，`data-query`/`analysis`/`exports`/`organization` 等 B 端页在生产可直连 API——「B 端随后上线」目前只是计划口径，**没有可执行门禁**。
+- **[已闭合] U4 B 端无技术门禁**：首发使用 `consumer_launch` 时，运行时 allowlist 对未列 API fail closed；B 端 `data-query`/`analysis`/`exports`/`organization`/`service-tasks` 的 API 组被拒绝。后台必需集只保留 `/api/admin/*` 的页面依赖全集与基线 admin 条目；已从 42 条基线移除：`/api/exports*`、`POST /api/analysis`、`GET /api/usage/summary`、`/api/org/invitations*`、`/api/org/service-tasks*`、`/api/service/tasks*`；页面和行号证据见依赖图表 2。
+  这不改变 `consumer_active` 的全放行语义；生产切换仍是独立、未执行的运维步骤。
 - **[已闭合] U5 回归缺口**：go-no-go C02 的 API release-scope 回归现覆盖 unknown phase、`/convert` 与 legacy 路由。
   证据：`tests/architecture/test_release_scope_regression.py` 直接调用 `request_allowed()`，覆盖 preview allow/block 矩阵、unknown/unconfigured managed fail closed，以及 `development`/`consumer_active` 全放行；契约逐条一致性继续由 `tests/architecture/test_authoritative_backend_policy.py` 的既有单一断言覆盖。
 - **[已闭合] U6 文档漂移**：09-11 架构快照现标注以 ADR-0002 与机器契约为准，并将 allowlist 更新为 42 条（C 端 15 + 后台 27）及当前 phase 语义。
@@ -41,14 +43,14 @@
 
 - **C 端**：开放注册（无邀请码；注册一律经 FastAPI 注册端点，服务端限流与 consent 记录强制，公共 Auth 直连注册在生产已关闭）、匿名 intake 与免费预览、物件查询与报告生成（PostgreSQL outbox + durable worker）、单次购买付费与退款/客服路径。
 - **后台管理平台**：管理侧登录 + 成员/审计/财务/采集/服务任务等后台操作；`ADMIN_ENABLED` 是服务层开关（生产已置 `true`，未鉴权请求仍 401）。
-- **B 端（小象数据：机构/会员/额度/导出/任务）随后上线**，不在 10-07 首发面；当前**没有**可执行门禁把 B 端挡在首发面之外（见 §0 U4）。
+- **B 端（小象数据：机构/会员/额度/导出/任务）随后上线**，不在 10-07 首发面；`consumer_launch` 会对其不在 allowlist 的路径 fail closed（见 §0 U4）。
 - 发布 phase 名称与 API allowlist 的口径、以及「ADR 文字 ↔ 机器契约 ↔ 运行时 ↔ 生产实际」的实测差异，见 §0 与 §4.1。
 
 FastAPI 仍是唯一业务 API；Supabase 只作为 FastAPI 后方的 PostgreSQL 与私有 Storage，Supabase Auth 仍是 ADR-0001 指定的唯一身份签发方。
 
 **历史结论（2026-08-30，已作废）**：原为「只发布 C 端匿名 intake 与免费预览」，并把注册、账户转正、项目保存、B 端与管理员真实操作排除在第一阶段之外。作废依据 = 用户 2026-09-23 / 2026-09-24 的范围决策（见 §0）。
 
-以下能力**仍在本阶段之外**（与修订前一致的部分）：匿名会话转正式项目（`/convert` 在 `consumer_intake_preview` 下 404，见 §4.1）、旧区域报告生成、Edge Function 与 local worker 执行路径（已移除）。B 端业务能力的正式开放时点仍在 10-07 之后。
+以下能力**仍在本阶段之外**（与修订前一致的部分）：旧区域报告生成、Edge Function 与 local worker 执行路径（已移除）。B 端业务能力的正式开放时点仍在 10-07 之后。
 
 ## 2. 背景与审计证据
 
@@ -85,7 +87,9 @@ FastAPI 仍是唯一业务 API；Supabase 只作为 FastAPI 后方的 PostgreSQL
 
 `RELEASE_PHASE=consumer_intake_preview` 时只有上述 42 条可进入路由；`/convert`、`/projects/{id}`、`/api/query`、`/api/jobs/*`、`/api/my/queries`、`/api/reports/*`、`/api/auth/*`、`/api/billing/*`、`/api/org/region-stats` 均返回统一 404，且在认证、数据库或 background task 前被拦截。`staging` 或 `production` 未配置 `RELEASE_PHASE` 时只保留 health/diagnostics，其他业务请求 fail closed。未知 phase 同样 fail closed。
 
-**与修订后范围的差异（见 §0 U1，未闭合）**：上述 allowlist 编码的是修订前的 C-only intake 范围，因此**不能**用于 10-07 首发（它不含注册、查询、报告、付费路由）；而生产实际运行 `RELEASE_PHASE=consumer_active`——该 phase 在 `request_allowed()` 中**全放行**，即 allowlist 在生产未生效，门禁来自服务层鉴权 / RLS / 额度。`release_scope.py:8-10` 又明确把 `consumer_active` 标注为「Staging acceptance phase … Never use in production」。因此「ADR 声明的发布边界」与「生产实际边界」当前不是一回事，二者需要在 10-07 前收敛（选项见 §0 U1）。
+**本次口径变更（取代本节此前“`POST /api/intake/sessions/{session_id}/convert` 在本阶段 404”的首发解读）**：`consumer_launch` 已将该路由纳入首发契约，依据 C 端 `property-analysis.html` 的“保存项目”路径 `property-intake.js:945-1037`；它仍在历史 `consumer_intake_preview` phase 下 404，上述旧表述仅适用于该旧 phase，不再描述 10-07 首发范围。
+
+**与修订后范围的差异（见 §0 U1，已闭合）**：上述 preview allowlist 编码的是修订前的 C-only intake 范围，因此**不能**用于 10-07 首发（它不含注册、查询、报告、付费路由）；10-07 的可执行边界已由 `consumer_launch` 专用 allowlist 承担。生产实际仍运行 `RELEASE_PHASE=consumer_active`——该 phase 在 `request_allowed()` 中**全放行**，即新的 allowlist 尚未在生产启用，门禁来自服务层鉴权 / RLS / 额度；切换属于独立、未执行的运维步骤。因此 ADR 机器契约与运行时 phase 的实现已一致，但生产实际切换仍须在 10-07 前按授权完成。
 
 ### 4.2 旧路径冻结
 

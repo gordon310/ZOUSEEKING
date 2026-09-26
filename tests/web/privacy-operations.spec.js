@@ -37,6 +37,7 @@ test("invite registration carries consent version and submission timestamp", asy
   await page.locator("#registerUsername").fill("演示用户");
   await page.locator("#registerEmail").fill("member@example.invalid");
   await page.locator("#registerPassword").fill("not-a-real-password");
+  await page.locator("#registerPasswordConfirm").fill("not-a-real-password");
   await page.locator("#registerInviteCode").fill("privacy-invite");
   await page.locator("#registerConsent").check();
   await page.locator("#registerForm button[type='submit']").click();
@@ -168,6 +169,7 @@ test("login and signup errors stay enumeration-safe", async ({ page }) => {
   await page.locator("#registerUsername").fill("演示用户");
   await page.locator("#registerEmail").fill("member@example.invalid");
   await page.locator("#registerPassword").fill("synthetic-password");
+  await page.locator("#registerPasswordConfirm").fill("synthetic-password");
   await page.locator("#registerInviteCode").fill("safe-error-invite");
   await page.locator("#registerConsent").check();
   await page.locator("#registerForm button[type='submit']").click();

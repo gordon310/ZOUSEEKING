@@ -32,7 +32,7 @@ def _admin_create_user(payload:dict[str,Any])->dict[str,Any]:
 class InviteRegistration:
  email:str; password:str; username:str; invite_code:str; consent_version:str=""; terms_version:str=""; ip_hash:str|None=None
 async def _create_consumer_user(registration:InviteRegistration,email:str,consent_source:str)->UUID:
- created=await asyncio.to_thread(_admin_create_user,{"email":email,"password":registration.password,"email_confirm":False,"user_metadata":{"username":registration.username,"audience":"c","consent_version":registration.consent_version,"terms_version":registration.terms_version,"consent_source":consent_source}})
+ created=await asyncio.to_thread(_admin_create_user,{"email":email,"password":registration.password,"email_confirm":True,"user_metadata":{"username":registration.username,"audience":"c","consent_version":registration.consent_version,"terms_version":registration.terms_version,"consent_source":consent_source}})
  return UUID(str(created["id"]))
 async def register_invited_user(conn:asyncpg.Connection,registration:InviteRegistration)->dict[str,str]:
  if registration.invite_code=="":

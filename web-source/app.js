@@ -2001,6 +2001,7 @@ async function register(event) {
   const username = $("#registerUsername").value.trim();
   const email = $("#registerEmail").value.trim();
   const password = $("#registerPassword").value;
+  const passwordConfirm = $("#registerPasswordConfirm")?.value ?? "";
   const inviteCode = ($("#registerInviteCode")?.value || "").trim();
   const submitButton = $("#registerForm button[type='submit']");
 
@@ -2010,6 +2011,10 @@ async function register(event) {
   }
   if (!passwordIsValid(password)) {
     setMessage(uiText("account.resetPasswordInvalid", "密码需为 6–128 位，且不能包含控制字符。"), "error");
+    return;
+  }
+  if ($("#registerPasswordConfirm") && passwordConfirm !== password) {
+    setMessage(uiText("account.resetPasswordMismatch", "两次输入的密码不一致。"), "error");
     return;
   }
 
@@ -2031,8 +2036,37 @@ async function register(event) {
       }),
     });
     $("#registerForm").reset();
+    // Email confirmation is not required for consumer accounts, so finish the
+    // job here: sign in with the credentials just set and land the user in the
+    // signed-in state instead of sending them back to the login form.
+    if (hasSupabase()) {
+      try {
+        const data = await supabaseAuthFetch("/token?grant_type=password", {
+          method: "POST",
+          body: JSON.stringify({ email, password }),
+        });
+        const session = sessionFromAuth(data, { email });
+        if (session.accessToken && session.userId && session.email) {
+          saveSession(session);
+          try {
+            await ensureUserProfile();
+            await loadMyPage();
+          } catch {
+            // Profile loading is not a reason to lose the session.
+          }
+          state.page = 1;
+          state.selectedId = "";
+          state.queryOptions = null;
+          render();
+          setMessage(uiText("account.registerSuccess", "注册成功，已登录。"), "success");
+          return;
+        }
+      } catch {
+        // Fall back to the login form; the account itself was created.
+      }
+    }
     showMode("login");
-    setMessage(uiText("account.inviteRegistrationCreated", "账户已创建；请完成邮箱确认后登录。"), "success");
+    setMessage(uiText("account.inviteRegistrationCreated", "注册成功，请直接登录。"), "success");
   } catch (error) {
     if (error?.code === "invite_code_exhausted") {
       setMessage(uiText("account.inviteExhausted", "邀请码已用尽。"), "error");

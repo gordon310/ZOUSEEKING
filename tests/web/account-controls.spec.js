@@ -24,6 +24,7 @@ test("注册在认证服务不可达时不创建本地密码凭据", async ({ pa
   await page.getByLabel("用户名").fill("local-only-user");
   await page.locator("#registerEmail").fill("local-only@example.com");
   await page.locator("#registerPassword").fill("Correct Horse Battery Staple");
+  await page.locator("#registerPasswordConfirm").fill("Correct Horse Battery Staple");
   await page.locator("#registerInviteCode").fill("test-invite");
   await page.getByRole("button", { name: /注册账号|Create account/ }).click();
 

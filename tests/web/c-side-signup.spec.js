@@ -25,10 +25,11 @@ async function openConsumerRegistration(page) {
   await expect(page.locator("#registerForm")).toBeVisible();
 }
 
-async function fillConsumerRegistration(page, { username = "c-side-user", email = "c-side@example.com", password = "sixsix" } = {}) {
+async function fillConsumerRegistration(page, { username = "c-side-user", email = "c-side@example.com", password = "sixsix", passwordConfirm = null } = {}) {
   if (username !== null) await page.locator("#registerUsername").fill(username);
   if (email !== null) await page.locator("#registerEmail").fill(email);
   if (password !== null) await page.locator("#registerPassword").fill(password);
+  if (password !== null) await page.locator("#registerPasswordConfirm").fill(passwordConfirm === null ? password : passwordConfirm);
 }
 
 test("C 端注册页不存在邀请码字段（固化缺陷场景）", async ({ page }) => {
@@ -80,7 +81,23 @@ test("C 端注册：未勾选同意时不发请求，表单保持可用", async 
   await expect(page.locator("#registerConsent")).toBeVisible();
 });
 
-test("C 端注册：字段齐全并勾选同意后提交成功，请求体不含邀请码", async ({ page }) => {
+test("C 端注册：两次密码不一致时给出提示且不发请求", async ({ page }) => {
+  let apiCalled = false;
+  await openConsumerRegistration(page);
+  await expect(page.locator("#registerPasswordConfirm")).toBeVisible();
+  await page.route("**/api/**", async (route) => {
+    apiCalled = true;
+    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ user_id: "u" }) });
+  });
+  await fillConsumerRegistration(page, { password: "sixsix", passwordConfirm: "seven7" });
+  await page.locator("#registerConsent").check();
+  await page.locator("#registerForm button[type='submit']").click();
+
+  await expect(page.locator("#formMessage")).toContainText("密码不一致");
+  expect(apiCalled).toBe(false);
+});
+
+test("C 端注册：两次密码一致时提交成功后直接进入已登录状态", async ({ page }) => {
   let requestBody;
   await openConsumerRegistration(page);
   await page.route("**/api/**", async (route) => {
@@ -91,18 +108,27 @@ test("C 端注册：字段齐全并勾选同意后提交成功，请求体不含
     }
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({}) });
   });
-  await fillConsumerRegistration(page);
+  await page.route("**/auth/v1/token**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        access_token: "test-access-token",
+        refresh_token: "test-refresh-token",
+        expires_in: 3600,
+        user: { id: "new-user-id", email: "c-side@example.com" },
+      }),
+    });
+  });
+  await fillConsumerRegistration(page, { password: "sixsix", passwordConfirm: "sixsix" });
   await page.locator("#registerConsent").check();
   await page.locator("#registerForm button[type='submit']").click();
 
-  await expect(page.locator("#formMessage")).toContainText("账户已创建");
+  await expect(page.locator("#formMessage")).toContainText("注册成功");
   expect(requestBody).toBeTruthy();
-  expect(requestBody).toMatchObject({
-    email: "c-side@example.com",
-    password: "sixsix",
-    username: "c-side-user",
-    invite_code: "",
-  });
-  expect(requestBody.consent_version).toBeTruthy();
-  expect(requestBody.terms_version).toBeTruthy();
+  expect(requestBody.password).toBe("sixsix");
+  expect(requestBody).not.toHaveProperty("passwordConfirm");
+  // Email confirmation is not required, so registration must end signed in.
+  const stored = await page.evaluate(() => Object.values(window.localStorage).join("|"));
+  expect(stored).toContain("test-access-token");
 });

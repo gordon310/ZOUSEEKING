@@ -870,6 +870,24 @@ commit `cc62c6e`(修复)+ 本记录;前端版本 `20260926-r65 → r67`;后端�
 
 commit `673b802`;生产已 `git pull`(前端静态即时生效,后端无改动未重建镜像)。
 
+## C4 迁移台账口径 + D4 存量任务口径(2026-09-27 清晨,本 BOT)
+
+### C4 —— 已对齐,关闭
+
+只读对账(生产):仓库 `supabase/migrations/*.sql` **54** 个;生产 `supabase_migrations.schema_migrations` **54 行**;最高登记版本 `20260923000300`。**零缺口**,09-25 前滚批次已把 09-14 之后的迁移全部登记。原先「2026091x 起未录入」的问题**已解决**,本项无需操作。
+
+### D4 —— 采用口径 (b),不补回填迁移
+
+在 `docs/architecture/adr-0001-authoritative-backend-and-schema.md` §3(Worker 与 webhook 契约)增加明确口径:
+
+> **存量任务(V1 不自动接管)**:切换到 durable worker **之前**已存在的 `running` / `pending` 任务,不由新 worker 自动接管 —— 这些行缺少幂等键的历史保证,盲目接管可能重复产生副作用。处理方式为**人工判定后显式 requeue 或终止**,因此 V1 **不**补 forward 回填迁移。
+
+**依据(生产实测,2026-09-27)**:`generation_jobs` 全部终态(completed 5 / failed 2,**无 running/pending**);`report_generation_outbox` **0 行**。即受影响面 = **0**,口径 (b) 与现状完全一致,无数据风险。
+
+**验证**:`pytest tests/architecture -q` **105 passed**;`git diff --check` 干净。
+
+**交付**:commit `5e05384`(ADR-0001 口径)。
+
 ## Last updated
 
 2026-09-27

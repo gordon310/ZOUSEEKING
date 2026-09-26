@@ -207,3 +207,47 @@ node --check web/app.js → OK ; git diff --check → 干净
 ```
 
 > 红线:零 DB 写入或对象变更、零部署、零迁移、零凭据读取、零删除;生产侧仅 `docker exec … printenv` 两个变量的只读探测。本班未改任何代码/allowlist/phase/env。
+
+---
+
+## G. 2026-09-26 夜班:D-10 交付(首周观察看板定义 + 四语言公告草案)
+
+> 倒排表 **D-10**(09-27)由夜班**提前一班**取用:D-11 当日可自主项已全部闭合(① 支付对账需 live 凭据且已排 09-26 20:00 专项;② 早班已交付;③ 实质内容已由 09-25 夜班生产实测覆盖)。
+> 本班为**纯文档交付**,未改代码、未改 allowlist / phase / env / 迁移,未做生产写操作。
+
+### G1. 交付物(commit `cf226b2`,已 push main)
+
+| 文件 | 内容 |
+|---|---|
+| `docs/operations/first-week-observation-dashboard.md` | 首周观察看板运行手册:**数据 / 支付 / 任务 / 错误**四域,逐指标给出来源、只读口径、阈值、健康态、降级动作、责任人;含窗口节奏(首小时每 15 分钟 / 24h 每 2 小时 / 首周每日两班)、既有载体复用表、判读纪律、升级路径、缺口 |
+| `docs/operations/first-week-observation-dashboard.json` | 同源**机器可读契约**(4 域 / 18 指标 / 只允许 `select` 与只读命令 / `production_contacted=false`) |
+| `docs/release/launch-announcement-2026-10-07.md` | 上线公告 + 试运行说明稿,**四语言**(zh-CN / zh-Hant / ja / en);未定事实一律显式占位(待定 / 未定 / `TBD`) |
+
+### G2. 本班实测证据
+
+```text
+python3 -m json.tool docs/operations/first-week-observation-dashboard.json        → OK
+python3 scripts/audit_content_library_provenance.py --output /tmp/...             → 6/6 条、non_synthetic_violations 0、两副本 sha256 相同（301cf824…a1a7a）、exit 0
+backend/.venv/bin/python -m pytest tests/unit tests/architecture -q               → 492 passed / 91 skipped（与改动前基线一致，零回归）
+backend/.venv/bin/python scripts/ci/check_release_policy.py                       → PASS
+PYTHONPYCACHEPREFIX=/tmp/jp-prop-pycache backend/.venv/bin/python -m compileall -q backend scripts src → OK
+git diff --cached --check                                                          → 干净
+```
+
+### G3. 未闭合(不粉饰)
+
+- 看板**尚无生产数据**:`production_contacted = false`,只能作为口径定义,不能当作上线健康证据。
+- 公告的**客服渠道 / 服务时间 / 删除 SLA / 隐私与条款链接**为显式占位,待倒排 **D-5 法务定稿**后填实。
+- 看板的 **CI 守护**(`scripts/check_first_week_observation.py` + 单测:仅允许 `select`、禁止 PII 字段、四语言锚点、禁止夸大用词)本班**未交付**——Codex 通道当班不可用(见 G4),按既有分工不代写;已登记为下一单元。
+
+### G4. 当班环境故障(如实记录,与产品无关)
+
+| 事实 | 实测 |
+|---|---|
+| 本机代理 | 7897 端口在听;经代理 `google` **302**、`github` **200**,即代理本身可用 |
+| ChatGPT / OpenAI 链路 | `api.openai.com` 与 `chatgpt.com` 经代理与直连**均 000**(超时);按既定处置重启 Clash Verge 一次后**未恢复** → 判定该链路当班无法自行修复,**停止重试**(不绕行其它通道) |
+| 残留 Codex 进程 | 20:13 起有一个先前派工处于传输重试空转(`failed to refresh available models: timeout`);按「同一时刻只跑一个 codex」的铁律,本班**不派第二个** |
+| cron 投递 | 本日两次投递 QQ 失败(早班 `DNS resolution failed for api.sgroup.qq.com`;夜班 `Not connected`),与产品无关 |
+| 生产健康(对照) | `zoubeacon.app` **200**、`api.zoubeacon.com/health/ready` **200**(带浏览器 UA)——生产未受影响 |
+
+> 红线:零 DB 写入或对象变更、零部署、零迁移、零凭据读取、零删除、零生产写操作;仅新增 3 个文档文件 + 本清单 / progress 的记录更新。

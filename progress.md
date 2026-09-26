@@ -719,6 +719,32 @@
 - **验证证据(全部本机实跑)**:`pytest tests/architecture/test_authoritative_backend_policy.py tests/unit/test_admin_api.py tests/api/test_intake_routes.py tests/api/test_usage_routes.py -q` → **102 passed / 21 skipped**;`pytest tests/unit tests/architecture -q` → **492 passed / 91 skipped**(与 09-25 基线一致,**零回归**);`compileall -q backend scripts src` OK;`node --check web/app.js` OK;`git diff --check` 净。
 - **红线**:零 DB 写入或对象变更、零部署、零迁移、零凭据读取、零删除;生产侧仅两个变量的一次 `docker exec … printenv` 只读探测;未改任何代码 / allowlist / phase / env。
 
+## D-10 首周观察看板定义 + 四语言上线公告草案(2026-09-26 夜班,本 BOT)
+
+- **班前实测(20:30)**:工作树干净(`git status --porcelain` 空)、`main == origin/main == a38cb04`、无未提交改动 → 不判「进行中」,本班可开工。
+- **当日条目取用顺序(D-11,09-26)**:①支付对账 → 需 live Stripe 凭据且已排 20:00 专项 job,越界;③开放注册端到端实测 → 实质内容已由 09-25 夜班完成(无码 201 / 旁路 422 / 残留 0)。→ **当日可自主项已全部闭合,按规则顺延到下一个可自主完成的条目 D-10**(09-27)。
+- **D-10 为什么现在可做**:其两项验收物(首周观察看板成型、上线公告与试运行说明稿四语言)都是 Hermes 负责的文档类交付,**不依赖任何外部授权**;倒排表「仍需你出手」只剩法务口径与对象存储两项,均不阻塞本项。
+- **交付(commit `cf226b2`,已 push main;纯文档,零代码 / 零 allowlist / 零 env / 零 migration)**:
+  - `docs/operations/first-week-observation-dashboard.md`(+99):**数据 / 支付 / 任务 / 错误**四域运行手册。每格给出来源、**只读口径**(`select` 或只读命令)、阈值、健康态、降级动作、责任人;含三个窗口的节奏(首小时每 15 分钟 / 24h 每 2 小时 / 首周每日 09:30+20:30)、既有载体复用表(不用同一事实检两遍:`observability-check.sh` + timer、后台 KPI 区、每日巡检、支付对账专项)、判读纪律(单月非趋势、官方口径滞后、缺件记「未采集」不估算)、升级路径与缺口。
+  - `docs/operations/first-week-observation-dashboard.json`(+279):同源**机器可读契约**,4 域 / 18 指标,`read_only = true`、`production_contacted = false`。
+  - `docs/release/launch-announcement-2026-10-07.md`(+134):上线公告 + 试运行说明稿,**四语言**(zh-CN / zh-Hant / ja / en);口径 = 开放注册无需邀请码、C 端 + 后台同日上线、首周为试运行期并显式标注、官方数据季度/年度口径滞后、免费预览不替代专业交易核查;**未定事实一律显式占位**(待定 / 未定 / `TBD`),不写推测内容。用词遵守既定术语纪律(一律「物件」,C 端不搬 B 端功能名)。
+- **验证证据(全部本机实跑)**:`json.tool` 校验 OK;`scripts/audit_content_library_provenance.py --output /tmp/...` → 6/6 条、`non_synthetic_violations` 0、两副本 sha256 相同、exit 0(看板 18 格里**唯一已实测**的一格,已在文档中如实标注);`pytest tests/unit tests/architecture -q` → **492 passed / 91 skipped**(与改动前基线一致,零回归);`scripts/ci/check_release_policy.py` **PASS**;`compileall backend scripts src` OK;`git diff --cached --check` 干净。
+- **⚠️ 当班环境故障(如实记录,与产品无关)**:
+  - **Codex 通道不可用**:本机代理 7897 在听且经代理 `google` 302 / `github` 200,但 `api.openai.com`、`chatgpt.com` 经代理**与直连均 000**;按既定处置重启 Clash Verge 一次**未恢复** → 判定该链路当班无法自行修复,**停止重试、不绕行其它通道**。
+  - **另有一个先前 Codex 派工在空转**(20:13 起,`failed to refresh available models: timeout`);按「同一时刻只跑一个 codex」的铁律,本班**未派第二个**。
+  - **因此本班不改任何代码**:看板的 CI 守护(`scripts/check_first_week_observation.py` + 单测)登记为**下一单元**,由 Codex 执行(既有分工:Hermes 不代写开发与测试)。
+  - **cron 投递异常**:本日早班 `DNS resolution failed for api.sgroup.qq.com`、夜班 `Not connected`,两次 QQ 投递失败;与产品无关,建议 `hermes cron status` 复核投递通道。
+  - **生产对照(只读)**:`zoubeacon.app` **200**、`api.zoubeacon.com/health/ready` **200**(带浏览器 UA)→ 生产未受影响。
+- **待 Gordon 拍板(更新后全量,推荐置顶)**:
+  ① **法务口径定稿**(删除 SLA 天数 / 事故责任人 / 是否上特商法记载页)→ 决定 D-5,并解锁公告里四个显式占位;
+  ② D-11 ① **支付对账**:需 live 凭据或由我按 20:00 专项结果转述(若专项已跑,请确认是否采信其结论);
+  ③ C02 范围决定(U1 首发面 vs allowlist、U4 B 端门禁)与 U5 回归测试派工授权;
+  ④ C13 **一次性 staging 写入授权** + `SMOKE_*` 三凭据;
+  ⑤ 4 行历史僵尸报告清理;⑥ 迁移台账 C4 口径;⑦ 未部署冻结件(Edge 函数 / `run_jphouse_worker.py`)删除 vs 长期冻结;
+  ⑧ 首周观察看板的**责任人与响应 SLA**(与 `oncall.md` 对齐)、每 15 分钟窗口是否只报超标项;
+  ⑨ 本班次(job `25fcad9d21ad`)是否继续绑定 10-07 倒排。
+- **红线**:零 DB 写入或对象变更、零部署、零迁移、零凭据读取、零删除、零生产写操作;生产侧仅两次只读 HTTP 探针;本班只新增 3 个文档文件 + 记录更新。
+
 ## Last updated
 
-2026-09-26
+2026-09-26(夜班)

@@ -1,5 +1,7 @@
 # 小象房产套件(ZOUSEEKING/ZOUBEACON)· 完整技术架构与前后端逻辑
 
+> **快照提醒（2026-09-26）：**本文数字可能滞后于 [ADR-0002](adr-0002-phase-one-release-scope.md) 与 [phase-one-release-boundaries.json](phase-one-release-boundaries.json)，以后两者为准。
+
 > 生成时间:2026-09-11 · 代码基线:`5c71a26`
 
 > 本文档由 5 路并行代码深读汇总;每条关键结论附 `文件:行号` 证据。
@@ -209,7 +211,7 @@
 
 ## 4. API 清单(逐条)
 
-> 全局:所有响应经 `RELEASE_PHASE` 释放范围中间件过滤(`main.py:66-73`;`release_scope.py:73-90`)。`development`/`consumer_active` 阶段全放行;`consumer_intake_preview` 阶段仅白名单(含 intake 六端点 + health + diagnostics)(`release_scope.py:13-24,83-90`)。
+> 全局:所有响应经 `RELEASE_PHASE` 释放范围中间件过滤(`main.py:66-73`;`release_scope.py`)。`development`/`consumer_active` 阶段全放行;`consumer_intake_preview` 阶段仅放行与 [phase-one-release-boundaries.json](phase-one-release-boundaries.json) 同源的 42 条白名单（C 端 15 条 + 后台 27 条）;未知 phase fail closed，仅 health/diagnostics 放行。
 
 ### 4.1 `/api/intake`(匿名会话,前缀 `routes/intake.py:48`)
 
@@ -673,7 +675,7 @@ DB 适配 `PostgresLedger`(`db_ledger.py`):
 
 ### 6.3 release_scope 阶段语义
 
-阶段常量:`PHASE_ONE="consumer_intake_preview"`(`:7`)、`CONSUMER_ACTIVE="consumer_active"`(`:10`,注释:staging 验收阶段,业务 API 全可达,安全由服务层鉴权/`ADMIN_ENABLED`/RLS 承担,**禁止用于生产**)、`MANAGED_ENVIRONMENTS={"staging","production"}`(`:11`)。
+阶段常量:`PHASE_ONE="consumer_intake_preview"`(`:7`)、`CONSUMER_ACTIVE="consumer_active"`(`:13`,当前生产用于 2026-10-07 C 端 Web/PWA 上线;业务 API 全放行且不做 allowlist 过滤，安全由服务层鉴权/`ADMIN_ENABLED`/角色校验/RLS/额度承担)、`MANAGED_ENVIRONMENTS={"staging","production"}`(`:14`)。
 
 `current_release_phase()`(`:65-70`):优先 `RELEASE_PHASE` 环境变量;否则 `ENVIRONMENT ∈ {staging,production}` → `"unconfigured_managed"`,否则 `"development"`。
 
@@ -684,9 +686,9 @@ DB 适配 `PostgresLedger`(`db_ledger.py`):
 4. `phase != PHASE_ONE`(即 `unconfigured_managed` 或他值)→ **全拒**(`:85-86`)。
 5. `phase == PHASE_ONE` → 仅放行契约内规则(`:87-90`)。
 
-`PHASE_ONE_API_CONTRACT`(`:13-24`)含 10 条:三个健康检查、`/internal/provenance/diagnostics`、6 个 intake 端点;再追加 `ADMIN_API_CONTRACT`(`:33-46`)的 12 条后台端点(`:48`)。
+`PHASE_ONE_API_CONTRACT` 含 **42 条**：health/diagnostics 4 条、C 端 intake 6 条、exports/analysis/usage 5 条、后台 admin/org/service 27 条；其顺序与内容以 [phase-one-release-boundaries.json](phase-one-release-boundaries.json) 的 `api_allowlist` 为准。
 
-> 提示(代码事实):`ADMIN_API_CONTRACT` 未包含 `/api/admin/pricing*`、`/collection/sources`、`/overview`、`/service/tasks`;`/api/billing/*`、`/api/usage/*`、`/api/query`、`/api/reports/*` 也未在契约内。因此在 `RELEASE_PHASE=consumer_intake_preview` 下这些路径会被中间件返回 **404**「operation unavailable in current release phase」(中间件 `main.py:66-73`;usage 未入白名单的测试 `tests/api/test_usage_routes.py:115-126`)。
+> 提示(代码事实):`ADMIN_API_CONTRACT` 未包含 `/api/admin/pricing*`、`/collection/sources`、`/overview`;`/api/billing/*`、`POST /api/usage/events`、`/api/query`、`/api/reports/*` 也未在契约内（`GET /api/usage/summary` 与指定 service 路由在契约内）。因此在 `RELEASE_PHASE=consumer_intake_preview` 下未列入契约的路径会被中间件返回 **404**「operation unavailable in current release phase」(中间件 `main.py:66-73`)。
 
 ---
 

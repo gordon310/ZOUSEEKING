@@ -5,8 +5,10 @@ import re
 
 
 PHASE_ONE = "consumer_intake_preview"
-# Staging acceptance phase: business APIs are fully reachable; service-layer
-# auth, ADMIN_ENABLED, and RLS remain responsible for security. Never use in production.
+# Current production phase for the 2026-10-07 consumer Web/PWA release: business
+# APIs are fully reachable without allowlist filtering. Service-layer auth,
+# ADMIN_ENABLED, role checks, RLS, and consume_current_entitlement remain the
+# security boundary; never treat this phase as a reason to omit service-layer auth.
 CONSUMER_ACTIVE = "consumer_active"
 MANAGED_ENVIRONMENTS = {"staging", "production"}
 

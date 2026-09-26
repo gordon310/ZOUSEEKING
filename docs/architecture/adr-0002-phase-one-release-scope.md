@@ -24,11 +24,14 @@
 **未闭合项（交用户 / 工程，不擅自决定）**：
 
 - **U1 首发面 ≠ allowlist**：10-07 的 C 端（注册/登录/查询/报告/付费）与后台所需路由不在 `consumer_intake_preview` allowlist 内，而该 allowlist 是 ADR 声明的发布边界。需二选一：(a) 定义 10-07 专用 phase + 显式 allowlist（含上列路由）；(b) 明确申明由 `consumer_active` + 服务层鉴权承担，并把这一点写进 ADR 与检查单。**当前形态下 (a) 与 (b) 都不能说「ADR 与运行时一致」**。
-- **U2 代码注释与生产现实矛盾**：`release_scope.py:8-10` 把 `consumer_active` 注释为「Staging acceptance phase … Never use in production」，而生产正是该值。
+- **[已闭合] U2 代码注释与生产现实矛盾**：`release_scope.py` 的 `consumer_active` 注释现说明其为 2026-10-07 C 端 Web/PWA 上线的当前生产 phase、全放行且不做 allowlist 过滤，并列明服务层边界。
+  证据：`backend/app/release_scope.py` 仅更新 `CONSUMER_ACTIVE` 上方注释；`tests/architecture/test_release_scope_regression.py` 守护该注释不得再含旧生产禁用表述。
 - **U3 生产 `ENVIRONMENT` 标签**：生产主机 `ENVIRONMENT=staging`（属标签不一致；当前仅影响 fallback/运维判读）。
 - **U4 B 端无技术门禁**：`consumer_active` 下前端 `release-boundary.js` 不设闸，`data-query`/`analysis`/`exports`/`organization` 等 B 端页在生产可直连 API——「B 端随后上线」目前只是计划口径，**没有可执行门禁**。
-- **U5 回归缺口**：go-no-go C02 要求的 API release-scope 回归（unknown phase、`/convert`、legacy 路由）尚无专项测试文件。
-- **U6 文档漂移**：`docs/architecture/2026-09-11-system-architecture-and-logic.md:212,989` 仍把 `consumer_intake_preview` 的 allowlist 描述为「intake 六端点 + health + diagnostics」，与当前 42 条契约不符（该文为 09-11 架构快照，本班未改）。
+- **[已闭合] U5 回归缺口**：go-no-go C02 的 API release-scope 回归现覆盖 unknown phase、`/convert` 与 legacy 路由。
+  证据：`tests/architecture/test_release_scope_regression.py` 直接调用 `request_allowed()`，覆盖 preview allow/block 矩阵、unknown/unconfigured managed fail closed，以及 `development`/`consumer_active` 全放行；契约逐条一致性继续由 `tests/architecture/test_authoritative_backend_policy.py` 的既有单一断言覆盖。
+- **[已闭合] U6 文档漂移**：09-11 架构快照现标注以 ADR-0002 与机器契约为准，并将 allowlist 更新为 42 条（C 端 15 + 后台 27）及当前 phase 语义。
+  证据：`docs/architecture/2026-09-11-system-architecture-and-logic.md` 标题下增加快照提醒，并更新 API 全局说明与 release_scope 段落；第 989 行前端 git 树默认 scope 经核对仍为 `consumer_intake_preview`，无需改动。
 
 本决策值得单独记录：它会约束公开发布物、API 路由、后台执行器和部署配置，跨越浏览器、FastAPI、Supabase 与 worker 边界，且半年后无法只从任一代码文件恢复“为何只开放免费预览”。
 

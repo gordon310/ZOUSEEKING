@@ -70,6 +70,7 @@ Payment provider
 - worker handler 必须幂等、有限重试、区分永久/暂时失败、可安全 replay，并且不能接收浏览器凭证。
 - FastAPI webhook 在解析和信任 payload 前验证原始签名；provider event ID 有唯一约束；同一 event 重放返回已记录结果，不重复产生副作用。
 - outbox 侧效应在主 transaction commit 后投递。FastAPI `BackgroundTasks` 不是 V1 durable worker。
+- **存量任务口径(V1 不自动接管)**:切换到 durable worker **之前**已存在的 `running` / `pending` 任务,**不**由新 worker 自动接管 —— 这些行缺少幂等键的历史保证,盲目接管可能重复产生副作用。处理方式:**人工判定后显式 requeue 或终止**,因此 V1 **不**补 forward 回填迁移。切换前须先对账存量并记录读数。**2026-09-27 生产实测存量 = 0**:`generation_jobs` 全部处于终态(completed 5 / failed 2,无 running/pending),`report_generation_outbox` 为 0 行。
 
 ## 4. Schema 与 migration 契约
 

@@ -2001,7 +2001,7 @@ async function register(event) {
   const username = $("#registerUsername").value.trim();
   const email = $("#registerEmail").value.trim();
   const password = $("#registerPassword").value;
-  const inviteCode = $("#registerInviteCode").value.trim();
+  const inviteCode = ($("#registerInviteCode")?.value || "").trim();
   const submitButton = $("#registerForm button[type='submit']");
 
   if (!username || !email || !password) {

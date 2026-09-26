@@ -64,6 +64,7 @@
 - G5:发布公告 + 首周观察看板 → **看板定义与四语言公告草案已成型(2026-09-26 夜班,commit `cf226b2`)**;剩上线后首次采集与占位填实
 | 09-27 | C 端注册表单静默失败修复 | ✅ | 根因:`web-source/app.js:2004` 无条件读 `$("#registerInviteCode").value`,而该元素**只存在于 `index.html`**;`profile.html?role=consumer`(首页「登录 / 注册」的落地页)**没有**它 → `null.value` 抛 TypeError(发生在必填校验之前)→ 点击注册**无请求、无提示**。修复:容错取值(`?.value || ""`),后端契约本就是 `invite_code: str = Field(default="")`。**新增 `tests/web/c-side-signup.spec.js`(5 例)**:专打 `profile.html`,并断言该页**不存在** `#registerInviteCode`(固化缺陷场景)。既有 `signup-flow.spec.js` 全绿是因为它只驱动 `index.html`。前端版本 r64 → r65。**生产实测**:部署后在同一页面点击注册 → 立即显示「用户名、邮件、密码都要填」 | 前端共享脚本 / 注册链路变更时 |
 - G6/G8:提审材料 / 退款客服流程(用户口径 + Hermes 起草)
+| 09-27 | C 端注册闭环(确认密码 + 免邮箱确认 + 注册即登录) | ✅ | ① 注册表单新增**确认密码**,两次不一致拒绝提交并提示;② **取消邮箱确认要求**:`backend/app/invites.py` 建号改 `email_confirm=True` —— 根因是 Admin API 建号**从不发送确认邮件**,导致账号永久停在未确认(用户报「收不到注册邮件」实为**根本没有发件方**);③ 注册成功后**用刚设凭据自动登录**并进入已登录态(失败则回落登录表单,账号仍然有效)。**生产真实端到端(Playwright 打 zoubeacon.app,无 mock)**:`register status=201` → `formMessage="注册成功，已登录。可以搜房了。"` → `signedIn=true` → `consoleErrors=[]`;探针账号已删除。回归:浏览器 **116 passed / 0 failed**、unit+arch 542、全量 python 754。前端 r65→r67。**连锁影响同批清理**:4 个 spec 的 6 处旧文案断言 + 3 处漏填确认密码一次修完 | 注册 / 认证链路变更时 |
 - G7:合规评估与备案(并行轨道)
 - ~~**新增(09-24 实测)**:一次部署批次(4 条迁移 + r63 前端 + 注册门切换,需用户批准)~~ → **已执行(2026-09-24 夜班,见本表 09-24 行)**;仅注册门切换保留
 - **新增(09-24 夜班)**:C13 真实 staging 运行 + 浏览器审计(工程载体已交付;需用户一次性 staging 写入授权 + `SMOKE_ANON_KEY` / `SMOKE_OWNER_TOKEN` / `SMOKE_OTHER_TOKEN`)

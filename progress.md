@@ -814,6 +814,34 @@
 
 **流程教训(已写入 skill)**:① 共享脚本引入"页面特有元素"的无保护访问时,只在**拥有该元素的页面**上测会全绿 —— 每个多页面共用的脚本改动,必须在其**所有加载页面**上各跑一遍关键路径;② 静态报告"全部通过"不构成交付正确的证据,要按**真实用户入口**实测一次。
 
+## C 端注册闭环:确认密码 + 免邮箱确认 + 注册即登录(2026-09-27 清晨,本 BOT)
+
+用户 4 点反馈:① 密码要两次输入确认;② 注册成功后应提示验证邮箱**或直接登录成功**;③ **没收到注册邮件**;④ 对反复返工表达强烈不满。
+
+### 根因(③,比"邮件没到"更严重)
+
+生产实测:用户账号 `shuushuo@yahoo.co.jp`(2026-09-26 20:35 UTC 由修复后的前端**成功创建**),但 `email_confirmed_at = None` **且 `confirmation_sent_at = None`** —— **确认邮件从未被发送**。原因:`backend/app/invites.py` 经 Supabase **Admin API** 建号,而 Admin API **默认不发确认邮件**(`email_confirm: False`)。后果:任何注册用户永久停在未确认,而登录又要求已确认 —— **整条注册链必然走不通**,与用户邮箱无关。
+
+### 改动
+
+1. **免邮箱确认**(用户 #2 明确授权"或者直接登录成功"):`email_confirm: False → True`。
+2. **确认密码**:`web/profile.html` + `web/index.html` 增加 `#registerPasswordConfirm`;`app.js` 在必填校验后校验两次一致,不一致则 `setMessage`(复用既有键 `account.resetPasswordMismatch`)并中止。
+3. **注册即登录**:注册成功后用刚设凭据调 `/token?grant_type=password` → `saveSession` → `ensureUserProfile`/`loadMyPage`/`render` → 直接进入已登录态;自动登录失败则回落登录表单(账号仍已创建)。i18n `account.inviteRegistrationCreated` 四语言值改为「注册成功，请直接登录。」
+
+### 连锁影响(本单教训)
+
+改动落在**两个页面共用的** `register()` 上,波及 4 个 spec:**6 处旧成功文案断言** + **3 处填了密码但未填确认密码**(会静默撞"两次不一致"校验)。第一次只修了其中 1 个文件就重跑,导致第三轮才收敛。**已全部同批修完**,并在收尾时用脚本枚举"填了注册密码的 spec 是否都填了确认密码"做终检(4/4 覆盖)。用户批评"同一个低级工作反复验证反复出 bug"成立 —— 正确做法是**改共享模块时先枚举全部受影响页面与用例,同批改完再验证**。
+
+### 验证
+
+- 浏览器全量 **116 passed / 0 failed**;unit+arch **542 passed / 91 skipped**;全量 python **754 passed / 113 skipped**;`check:web-assets` 通过。
+- **生产真实端到端**(Playwright 打 `zoubeacon.app`,无 route mock):探针账号注册 `status=201` → `formMessage="注册成功，已登录。可以搜房了。"` → 本地会话含 token(`signedIn=true`)→ **控制台零错误**;探针账号随后经 Admin API 删除(`200`)。
+- 用户既有账号 `shuushuo@yahoo.co.jp` 已手工确认(`email_confirmed_at` 写入),可**用原密码直接登录**。
+
+### 交付
+
+commit `cc62c6e`(修复)+ 本记录;前端版本 `20260926-r65 → r67`;后端改动需重建镜像 —— 生产已 `git pull` + `docker compose build api` + 重启,容器内 `email_confirm":True` 已确认命中。
+
 ## Last updated
 
 2026-09-27

@@ -785,6 +785,35 @@
 - **B 端前端入口的 UI 隐藏**(`release-boundary.js` 在新 phase 下不设闸)**未做** —— API 层已不可达,属可选增强。
 - 依赖图揭示 `POST /api/intake/sessions/{id}/convert` 属 C 端「保存项目」路径,已**取代** ADR §4.1 旧「本阶段 404」表述(已在 ADR 标注口径变更)。
 
+## C 端注册静默失败修复(2026-09-27 凌晨,本 BOT)
+
+**用户实测报告**:在注册页填完所有字段(用户名 `zoutest`、邮箱、密码、勾选同意)后**点击注册没有任何反应**。
+
+**根因(已定位并实证)**:
+- `web-source/app.js:2004`:`const inviteCode = $("#registerInviteCode").value.trim();` —— 无条件取值。
+- `#registerInviteCode` **只存在于 `web/index.html:84`**;`web/profile.html`(C 端账户页,线上首页「登录 / 注册」链接的落地页)**没有**该元素。
+- 于是在 `profile.html?role=consumer` 提交时 `null.value` 抛 `TypeError`,位置在 `:2000` 的 `preventDefault()` 之后、`:2007` 的必填校验**之前** → **既不显示任何提示、也不发请求**:用户看到的就是"点了没反应"。
+- **为什么测试全绿**:`tests/web/signup-flow.spec.js` 全程使用 `#registerInviteCode`(即只驱动 `index.html`),C 端 `profile.html` 的注册路径**零覆盖**。前面 110 个浏览器用例给了虚假安全感。
+
+**修复**:`const inviteCode = ($("#registerInviteCode")?.value || "").trim();`
+后端契约本就是 `invite_code: str = Field(default="", max_length=128)`(`backend/app/routes/invites.py:15`),请求体形状不变。
+
+**同类排查**:对 `profile.html` 加载的 9 个脚本做「非可选链元素访问 × 该页真实 id 集合」比对,得 42 处命中,**逐条判定后全部属于页面专属函数**(只在元素所属页面被调用),**唯一可达崩溃点就是 `:2004`**。
+
+**新增测试** `tests/web/c-side-signup.spec.js`(5 例,目标页固定为 `profile.html?role=consumer`):
+1. 该页**不存在** `#registerInviteCode`(固化缺陷场景,防止用例被挪去 `index.html`);
+2. 缺密码 → **给出内联提示**(本缺陷的直接守护);
+3. 缺用户名 → 给出内联提示;
+4. 未勾同意 → **不发请求**且表单保持可用(注:`#registerConsent` 带原生 `required`,拦截发生在浏览器层并弹原生气泡,`setMessage` 是兜底);
+5. 完整填写 → 提交成功,请求体含 `consent_version`/`terms_version` 且 `invite_code` 为空串。
+
+**验证**:C 端 spec 5 passed;既有 `signup-flow.spec.js` 12 passed;全量浏览器 **115 passed**;unit+arch **542 passed / 91 skipped**;全量 python **754 passed / 113 skipped**;`check:web-assets` exit 0。
+**生产实测(部署后)**:在 `zoubeacon.app/profile.html?role=consumer` 点击注册 → **立即显示**「用户名、邮件、密码都要填。小象不挑食,但不能空盘。」(修复前为静默)。
+
+**交付**:commit `060f44f`,前端版本 `20260925-r64` → `20260926-r65`(源/产物/HTML 三方一致,29 个资源文件同步);生产已 `git pull` 至 `060f44f`,前端静态文件即时生效(后端无改动,未重建镜像)。
+
+**流程教训(已写入 skill)**:① 共享脚本引入"页面特有元素"的无保护访问时,只在**拥有该元素的页面**上测会全绿 —— 每个多页面共用的脚本改动,必须在其**所有加载页面**上各跑一遍关键路径;② 静态报告"全部通过"不构成交付正确的证据,要按**真实用户入口**实测一次。
+
 ## Last updated
 
-2026-09-26(夜班)
+2026-09-27

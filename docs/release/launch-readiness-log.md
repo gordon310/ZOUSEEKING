@@ -62,6 +62,7 @@
 - G4:生产迁移/RLS/额度/日志终检 + 回滚预案演练(09-27 ~ 09-30 窗口)
 | 09-26 | 生产 `RELEASE_PHASE` → `consumer_launch`(B 端门禁生效) | ✅ | 生产代码前滚 `711c73f` → `cee2b22`;`deploy/.env` `RELEASE_PHASE` **consumer_active → consumer_launch**(备份 `.env.bak-20260926-release-phase`);api 镜像重建(运行时变更仅 `backend/app/release_scope.py` 一文件,零前端变更)。**冒烟 32 项**:A 组 20 条(C 端注册/查询/报告/付费/intake/recognition/账号删除 + 后台 admin 6 条)**零门禁拦截**;B 组 12 条(region-stats±trend、org me/usage/members/exports、exports、analysis、org invitations、service tasks、usage summary、privacy)**全部 `404 GATE`**。判定按**响应体**(门禁 404 含 `release phase` 字样)区分,而非仅看状态码。前置校验:容器内 `/app/backend/app/release_scope.py` 含 `CONSUMER_LAUNCH` 5 处 | release phase / 前端 API 依赖变更时 |
 - G5:发布公告 + 首周观察看板 → **看板定义与四语言公告草案已成型(2026-09-26 夜班,commit `cf226b2`)**;剩上线后首次采集与占位填实
+| 09-27 | C 端注册表单静默失败修复 | ✅ | 根因:`web-source/app.js:2004` 无条件读 `$("#registerInviteCode").value`,而该元素**只存在于 `index.html`**;`profile.html?role=consumer`(首页「登录 / 注册」的落地页)**没有**它 → `null.value` 抛 TypeError(发生在必填校验之前)→ 点击注册**无请求、无提示**。修复:容错取值(`?.value || ""`),后端契约本就是 `invite_code: str = Field(default="")`。**新增 `tests/web/c-side-signup.spec.js`(5 例)**:专打 `profile.html`,并断言该页**不存在** `#registerInviteCode`(固化缺陷场景)。既有 `signup-flow.spec.js` 全绿是因为它只驱动 `index.html`。前端版本 r64 → r65。**生产实测**:部署后在同一页面点击注册 → 立即显示「用户名、邮件、密码都要填」 | 前端共享脚本 / 注册链路变更时 |
 - G6/G8:提审材料 / 退款客服流程(用户口径 + Hermes 起草)
 - G7:合规评估与备案(并行轨道)
 - ~~**新增(09-24 实测)**:一次部署批次(4 条迁移 + r63 前端 + 注册门切换,需用户批准)~~ → **已执行(2026-09-24 夜班,见本表 09-24 行)**;仅注册门切换保留

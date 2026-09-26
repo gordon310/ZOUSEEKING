@@ -3,7 +3,7 @@
 > 交付自倒排 **D-10**(2026-09-27)。状态:**草案,待用户与法务定稿**(隐私政策 / 条款 / 删除 SLA 口径属倒排 D-5)。
 > 口径依据:用户 2026-09-24 决策(开放注册、不做邀请;C 端 + 后台同时上线;地区 = 日本)。
 > 用词纪律:C 端一律称「物件」,不使用「房源 / 房子」;不把 B 端功能名搬到 C 端。
-> 待填空位一律显式标注(简体「待定」/ 繁體「待定」/ 日本語「未定」/ English `TBD`),**不得**用推测内容占位。
+> 唯一保留待经营者确认的实体信息(特商法 ★ 项)已在站内 `tokushoho.html` 以日本法允许的「請求時開示」方式表述。
 
 ---
 
@@ -30,12 +30,12 @@
 
 **隐私与条款**
 
-- 隐私政策与使用条款:法务定稿中,链接**待定**。
-- 账号删除与服务响应时限:**待定**。
+- 隐私政策、使用条款与特定商取引法表记:见站内 `privacy.html`、`terms.html`、`tokushoho.html`。
+- 账号删除与各项请求:受理后我们会尽快对应(具体法定期限由法务确认)。
 
 **支持与反馈**
 
-- 客服渠道、服务时间与反馈入口:**待定**。
+- 客服与资料主体请求入口:见站内 `support.html`。
 
 ---
 
@@ -62,12 +62,12 @@
 
 **隱私與條款**
 
-- 隱私政策與使用條款:法務定稿中,連結**待定**。
-- 帳號刪除與服務回應時限:**待定**。
+- 隱私政策、使用條款與特定商取引法表記:見站內 `privacy.html`、`terms.html`、`tokushoho.html`。
+- 帳號刪除與各項請求:受理後我們會儘快對應(具體法定期限由法務確認)。
 
 **支援與回饋**
 
-- 客服管道、服務時間與回饋入口:**待定**。
+- 客服與資料主體請求入口:見站內 `support.html`。
 
 ---
 
@@ -94,12 +94,12 @@
 
 **プライバシーと規約**
 
-- プライバシーポリシーと利用規約:法務確認中、リンク**未定**。
-- アカウント削除および対応期限:**未定**。
+- プライバシーポリシー・利用規約・特定商取引法に基づく表記:サイト内 `privacy.html`、`terms.html`、`tokushoho.html` をご参照ください。
+- アカウント削除および各種ご請求:受付後、遅滞なく対応します(具体的な法定期限は法務確認のうえ確定します)。
 
 **サポート**
 
-- サポート窓口、受付時間、フィードバック導線:**未定**。
+- サポートおよび個人情報に関するご請求の窓口:サイト内 `support.html` をご参照ください。
 
 ---
 
@@ -126,9 +126,9 @@
 
 **Privacy and terms**
 
-- Privacy policy and terms of use: pending legal sign-off, link **TBD**.
-- Account deletion and service response times: **TBD**.
+- Privacy policy, terms of use and the Japanese statutory disclosure (tokushoho): see `privacy.html`, `terms.html` and `tokushoho.html`.
+- Account deletion and other requests: we respond as promptly as possible once received (exact statutory timeframes to be confirmed with counsel).
 
 **Support**
 
-- Support channel, service hours and feedback entry point: **TBD**.
+- Support and data-subject request entry point: see `support.html`.

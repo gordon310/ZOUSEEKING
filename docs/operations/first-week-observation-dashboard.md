@@ -10,6 +10,7 @@
 - 边界:看板**不**改变任何门禁。配额、RLS、鉴权、发布门禁仍由服务端与数据库承担;看板只做观测与判读。
 - 红线:所有查询只允许 `select`;所有命令只允许只读(`docker compose ps/logs`、`curl` 只读 GET、既有只读脚本)。**不允许**在看板里出现写库、改状态、改配置的动作。
 - 隐私:看板只出**聚合数**。不落姓名、邮箱、令牌、连接串、原始请求体;限流相关只允许走已哈希的 `subject_hash`。
+- 采集器:`scripts/collect_first_week_observation.py`(默认 `--plan` 零执行;`--execute` 需 `--allow-read-only` + `DATABASE_URL`,SQL 走 `BEGIN READ ONLY`)。可复制命令:`backend/.venv/bin/python scripts/collect_first_week_observation.py --plan`;生产执行需用户授权与只读通道:`DATABASE_URL='postgresql://…' backend/.venv/bin/python scripts/collect_first_week_observation.py --execute --allow-read-only`。
 
 ## 1. 观察窗口与节奏
 
@@ -87,7 +88,7 @@
 
 ## 8. 缺口(不粉饰)
 
-- 生产数据 **尚未采集**:本看板目前只有定义与一次离线 provenance 实测,不能作为上线健康证据。
+- 生产数据 **尚未采集**:本看板目前只有定义与一次离线 provenance 实测,本轮未连生产,不能作为上线健康证据;采集器已交付并离线验证。
 - 支付域与任务域的多数指标需要生产只读通道或 live 凭据;缺件时按「未采集」记录。
 - 邮件送达率、对象存储配额、CDN 命中率不在本表,分别属通知链路与 C04/C11 范围。
 - 首周结束后的收口(哪些指标转常驻、哪些下线)需在 D-1 冻结前确认。

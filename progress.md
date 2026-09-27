@@ -987,6 +987,30 @@ D-10 的定义与四语言公告已于 09-26 提前一班交付(commit `cf226b2`
 - 采集器**未挂进 CI 门禁**(它是运维工具不是门禁);新测试已被 `python-pytest` 的 `python -m pytest -q` 覆盖。
 - 观察窗(首小时每 15 分钟 / 24h 每 2 小时)的**定时投递与告警到人**尚未接线 → 见待批清单。
 
+## 开放注册上线复核(离线部分)交付(D-6 顺延项,2026-09-28 早班,本 BOT)
+
+### 为什么取 D-6
+
+当日为 **D-9(09-28)**,其唯一条目 `C13 真实 staging smoke` 仍需 `SMOKE_ANON_KEY` / `SMOKE_OWNER_TOKEN` / `SMOKE_OTHER_TOKEN` 三凭据 + 一次性 staging 写入授权(实测环境变量均未设置)→ **不可自主执行**。按倒排规则顺延:07:30 实测工作树**干净**(无未提交改动,允许开工);D-8(provider 物理备份/PITR 与私有 Storage 恢复)与 D-7(C05 生产四身份复验)均需 provider/staging 授权,故取 **D-6「开放注册上线复核:限流 / 账号枚举安全 / 邮件确认行为 + 试运行标识与开放注册口径一致(四语言)」** 的可离线部分(负责人本就标注为自主班)。
+
+### 交付
+
+- `scripts/check_open_registration_review.py`(新增,纯标准库):**零网络零 socket 零凭据**,AST 解析真实源 + 文档事实,6 条判据 C1–C6(注册模型 `invite_code` 非必填 / 空码短路分支先于邀请表调用且必须 early return / 唯一 Admin 建号点固定 `email_confirm=True` / 注册限流走共享计数器 + fail-closed 503 + 限流键已在生产合同与 `.env.example` 登记 / C 端注册页无邀请码字段且读取容错 / 四语言公告口径与试运行标识齐备且无占位);账号枚举只作为**finding 提示**,不作门禁。
+- `tests/unit/test_open_registration_review.py`(新增,10 例):真实仓库 PASS + CLI 可复现 + **7 条变异测试**逐一证明判据有拦截力(必填化邀请码、破坏短路分支、翻 `email_confirm`、删限流键登记、给邀请码字段加 `required`、抹掉某语言开放注册口径、注入 `TBD` 占位)+ 一条行为测试补上此前缺失的断言:无邀请码建号 payload `email_confirm is True` 且 `consent_source=consumer_registration`。
+- `docs/release/open-registration-launch-review.md`(新增):逐项判定 + 机器校验实跑输出 + **未执行三项原样列出**(真实限流/枚举/邮件确认实测)+ 待决策项(账号枚举口径,A/B 选项)。
+
+### 验收(本 BOT 独立实跑)
+
+- `python3 scripts/check_open_registration_review.py` → **pass,6/6**(人类可读);`--json` 同结果
+- `pytest tests/unit/test_open_registration_review.py -q` → **10 passed**
+- `pytest tests/unit tests/architecture -q` → **589 passed / 91 skipped**(基线 579,+10 零回归)
+- `compileall backend scripts src` OK;`node --check web/app.js` OK;`scripts/ci/check_release_policy.py` **PASS**
+- 本班**未连任何环境、未读凭据、未做 DB 写/对象变更/部署**
+
+### 发现的一条真实张力(不擅自改行为)
+
+注册端点对已存在邮箱返回 `409 account_already_exists`,前端据此提示 —— 与 AGENTS「uniform responses where account enumeration is possible」冲突。已写入复核文档 §3 作为**待用户决策**(A 维持现状+记录例外(推荐)/ B 改统一响应),本班不改注册契约。
+
 ## Last updated
 
-2026-09-27(夜班:首周观察看板只读采集器交付,D-10 收口)
+2026-09-28(早班:开放注册上线复核离线部分交付,D-9 因缺件顺延至 D-6)

@@ -26,7 +26,7 @@
 | **D-9** | 09-28 一 | **C13 真实 staging smoke**(已授权):`--execute` 产出实测证据包(证据文件由 `NOT_EXECUTED` 变实测)+ 清理残留 0 —— 🚧 **前置缺件:`SMOKE_ANON_KEY` / `SMOKE_OWNER_TOKEN` / `SMOKE_OTHER_TOKEN` 与一次性 staging 写入授权未提供 → 未执行** | 自主班(Codex) | 凭据由 Hermes 筹备,缺件即报 |
 | **D-8** | 09-29 二 | **C04**(成本已批):provider 物理备份/PITR + 私有 Storage 隔离恢复演练(checksum、RPO/RTO、rollback 路径) | 自主班(Codex) | 停机窗由 Hermes 定 |
 | **D-7** | 09-30 三 | **C05** 生产四身份(Storage/Auth/RLS)复验 + G4 终检(迁移/RLS/额度/日志) | 自主班(Codex) | — |
-| **D-6** | 10-01 四 | **开放注册上线复核**:限流/账号枚举安全/邮件确认行为 + 试运行标识与开放注册口径一致(四语言) | 自主班(Codex) | — |
+| **D-6** | 10-01 四 | 🟡 **离线半部分已提前交付(09-28 早班)**:`scripts/check_open_registration_review.py`(6 判据,AST 读真实源)+ 10 条测试 + `docs/release/open-registration-launch-review.md`;剩真实限流/枚举/邮件确认**实测**(与 D-9 共用 staging 授权) | 自主班(Codex) | 与 D-9 共用 `SMOKE_*` + 一次性授权 |
 | **D-5** | 10-02 五 | 法务(日本口径)定稿:隐私政策/条款/免责 + 删除 SLA/事故责任人 + 商店提审材料包 | 用户 + Hermes 起草 | 法务口径确认 |
 | **D-4** | 10-03 六 | 备份异地化:对象存储接入 + 备份新鲜度观测绿(脱离本地保留) | Hermes | **桶名 + 密钥** |
 | **D-3** | 10-04 日 | **全链路演练**:注册→登录→生成报告→单次支付→退款/客服,端到端一次成功 | Hermes + 自主班 | — |
@@ -43,6 +43,7 @@
 | 3 | **C13 staging 一次性写入授权 + `SMOKE_*` 三凭据**(可选) | 工程载体与采集/验收脚本已就绪;缺件即未执行(见 D-9) | D-9 能否执行 |
 | 4 | **首周观察窗的投递与告警到人**:是否批准新增定时采集(首小时每 15 分钟 / 24h 每 2 小时)并投递 QQ;值班责任人姓名与响应 SLA | 采集器已交付;定时投递**未接线**(C09 的「告警送到人」仍是 Known gap) | D-1 冻结前确认 |
 | 5 | **律师复核留痕**(复核人/事务所、复核日期、书面结论存档位置) | 只差留痕,不代填 | D-5 存档完整性 |
+| 6 | **账号枚举口径决策**(09-28 复核发现):注册端点对已存在邮箱返回 `409 account_already_exists`,前端据此提示 | 属有意可用性选择,但与 AGENTS「uniform responses where account enumeration is possible」冲突;见 `docs/release/open-registration-launch-review.md` §3 | A 维持现状 + 在合同/AGENTS 记录例外(**推荐**)/ B 改统一响应(需改契约+前端+测试) |
 
 ## 若出现滑期
 只允许两档:① 延后 48 小时(10-09);② 缩小范围上线。决定权在用户,最晚 **D-1(10-06)** 拍板。

@@ -955,6 +955,38 @@ commit `673b802`;生产已 `git pull`(前端静态即时生效,后端无改动�
 
 生产:`consumer_launch` 门禁生效、前端 r67、健康 200、B 端 API 全 404;CI 全绿;测试基线 浏览器 116 / unit+arch 556 / 全量 python 754。
 
+## 首周观察看板「只读采集器」交付(D-10 收口,2026-09-27 夜班,本 BOT)
+
+D-10 的定义与四语言公告已于 09-26 提前一班交付(commit `cf226b2`);本班补上**可执行**的那一半——看板此前只有定义,没有采集器。
+
+### 交付
+
+- `scripts/collect_first_week_observation.py`(新增,纯标准库):读 `docs/operations/first-week-observation-dashboard.json` 的 **18 个指标**,只走只读通道。
+  - 默认 `--plan` **零执行**(不起子进程/不开 socket);`--execute` 需 `--allow-read-only` + `DATABASE_URL` 双开关;SQL 走 `psql … "BEGIN READ ONLY; <sql>; COMMIT;"` + `PGOPTIONS=-c default_transaction_read_only=on`(与 `scripts/restore_drill.py:99` 同款),不引入任何 Python DB 依赖。
+  - 只读守卫:SQL 必须 `select` 开头、禁多语句、写/DDL 关键字按**词边界**拒绝;命令只允许契约里的 5 条白名单,`shell=False`。
+  - 缺件语义:通道缺失记 `not_collected` + 原因,**不估算补齐**(采集纪律第 3 条)。
+  - 机械判据只给 5 个指标(就绪探针 / worker 存活 / 发布门禁违规 / 备份新鲜度 / 容器与队列摘要),其余一律 `manual_review` + 逐字引用契约阈值。
+  - 输出限幅:PII 列丢弃、单指标 ≤20 行 × 8 列;`--output` 落在仓库 `docs/` 下硬拒(防离线结果冒充 canonical 证据)。
+- `tests/unit/test_first_week_observation_collector.py`(新增,23 例,全离线)。
+- `docs/operations/first-week-observation-dashboard.md`:§0 增加采集器与两条可复制命令;§8 缺口按实写「本轮未连生产 + 采集器已离线验证」。
+
+### 验收(本 BOT 独立实跑)
+
+- `pytest tests/unit/test_first_week_observation_collector.py -q` → **23 passed**
+- `pytest tests/unit tests/architecture -q` → **579 passed / 91 skipped**(基线 556,+23 零回归)
+- `python3 scripts/check_first_week_observation.py --check` → **PASS(18 metrics)**;`--plan` → exit 0(18 行);`compileall` OK;`check_release_policy` PASS;`git diff --check` 干净
+- `docs/operations/first-week-observation-dashboard.json`(受守护契约)**逐字节未变**,`scripts/check_first_week_observation.py` 未改
+
+### 验收拦下的一条(记入规程)
+
+执行方首版给 curl 加了 `FIRST_WEEK_CURL_UA` 环境变量兜底 → 仓库守护 `test_contract_covers_every_code_read_key` 立刻红(代码读取的每个 env 键都必须在生产配置合同里登记)。判定:**本单不扩环境面**,改代码(默认 UA 用模块常量)而不是改合同;同批把「分组型指标只取首行」补齐为 ≤20 行(五态分布/失败分类按定义就是多行,只取首行等于采不到该项)。
+
+### 仍未闭合(不粉饰)
+
+- 看板**生产数据仍未采集**(`production_contacted=false`):`--execute` 需只读通道 + 用户授权,本班**未连生产、未碰任何凭据**。
+- 采集器**未挂进 CI 门禁**(它是运维工具不是门禁);新测试已被 `python-pytest` 的 `python -m pytest -q` 覆盖。
+- 观察窗(首小时每 15 分钟 / 24h 每 2 小时)的**定时投递与告警到人**尚未接线 → 见待批清单。
+
 ## Last updated
 
-2026-09-27
+2026-09-27(夜班:首周观察看板只读采集器交付,D-10 收口)

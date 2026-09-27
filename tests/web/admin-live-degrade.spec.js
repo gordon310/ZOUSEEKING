@@ -664,7 +664,10 @@ test("reads /api/admin/* with a Bearer token when configured; 403 degrades visib
     expect(revoked.role).toBe("finance");
 
     // List was re-read after each write and every request carried the token.
-    expect(roleListGets).toBeGreaterThanOrEqual(3);
+    // The re-read follows the write asynchronously, so poll for it instead of
+    // reading the counter immediately (which raced the in-flight request and
+    // made this assertion intermittently fail).
+    await expect.poll(() => roleListGets).toBeGreaterThanOrEqual(3);
     seenAuth.forEach((auth) => expect(auth).toBe(`Bearer ${MOCK_TOKEN}`));
     expect(errors).toEqual([]);
   });

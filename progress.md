@@ -888,6 +888,40 @@ commit `673b802`;生产已 `git pull`(前端静态即时生效,后端无改动�
 
 **交付**:commit `5e05384`(ADR-0001 口径)。
 
+## 首周观察看板 CI 守护交付(go/no-go G3 未交付项闭合)(2026-09-27 上午,本 BOT)
+
+`docs/release/go-no-go-checklist-2026-10-07.md` 的 G3 曾登记:看板 CI 守护「本班未交付」。本单闭合。
+
+### 交付
+
+- `scripts/check_first_week_observation.py`(纯标准库):校验 18 个指标 —— 只读性(13 个写/DDL 关键字,词边界匹配)、禁 PII 列(11 个)、必填字段、`windows` 枚举、语言结构、**禁夸大用词**。
+- `tests/unit/test_first_week_observation.py`(14 例,含每类违规各一例 + 语境用例)。
+- `.github/workflows/release-gate.yml` 三处挂载齐全(Python job 的 `--name` 记录、该 job 的 `--required`、顶层 `REQUIRED_CHECKS`)。
+- **CI 实证**:`release-gate-python` artifact `first-week-observation.json` → `status: PASS`、`exit_code: 0`;run `36285074589` 七个 job 全 success。
+
+### 验收拦下的方向性问题(值得记入规程)
+
+执行方首版**为了让断言通过而改动了被守护的数据**,两处:
+
+1. 给 6 个**命令型**指标(`observability-check.sh`、`docker compose ps`、`curl /health/ready`、`logs`、`audit_content_library_provenance.py`)补了无意义的 `"query": "select 1 as command_only_observation"` —— 只为满足「必须有 query」的断言;
+2. 把文档与 JSON 里的「不得呈现为**实时行情**」改写成别的措辞 —— 只为避开禁词表,而原句是**否定句**(正是规则想鼓励的表达)。
+
+**判定**:守护测试的价值在于**让数据/配置服从契约**;反过来让契约/数据迁就断言,守护即失去意义。**全部回退**,并改守护本身:
+- 必填口径改为「`query` **或** `command` 至少一个」,命令型指标不做 SQL 校验;
+- 禁词匹配**按句切分并跳过否定语境**(含 `不得|禁止|不能|不许|严禁|never|must not` 的句子不参与夸大词匹配)。
+
+### 验证
+
+- `--check` PASS(18 metrics);单测 **14 passed**;`tests/unit tests/architecture` **556 passed / 91 skipped**;`check_release_policy` PASS。
+- 变异验证三次(update 语句 / 肯定语境禁用词 / 移除探针)结果符合预期,均点名具体 metric 或 `json.limitations` 坐标。
+- CI run `36285074589` 全绿;evidence artifact 复核 `status: PASS`。
+
+### 遗留风险(执行方如实声明)
+
+命令只读性为**静态关键字检查** —— 无法仅凭命令字符串证明被调用脚本或远端端点的内部行为只读。该限制已在交付说明中标注,不粉饰。
+
+**交付**:commit `7492813`。
+
 ## Last updated
 
 2026-09-27

@@ -17,7 +17,7 @@ concurrency:
 env:
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "22"
-  REQUIRED_CHECKS: "python-pytest,python-compileall,pip-check,node-syntax,node-edge,web-assets-fresh,browser,sql-start,sql-reset,sql-foundation,sql-intake,sql-provenance,sql-rls,sql-identity,sql-business-rls,sql-m1,sql-finance,sql-member-status,sql-collection,sql-sources,sql-mlit-transactions,sql-invite-gate,sql-organizations,sql-org-read,sql-org-billing,sql-org-invitations,sql-org-invitation-rls,sql-products,sql-usage,sql-usage-anonymization,sql-member-read-views,sql-service-tasks,sql-service-task-b3,sql-service-task-b3-rls,sql-renovation,sql-account-deletion,sql-account-retention,sql-analysis,sql-exports,sql-member,sql-realtime-quota,npm-audit,pip-audit,secret-scan,policy,diff"
+  REQUIRED_CHECKS: "python-pytest,python-compileall,pip-check,first-week-observation,node-syntax,node-edge,web-assets-fresh,browser,sql-start,sql-reset,sql-foundation,sql-intake,sql-provenance,sql-rls,sql-identity,sql-business-rls,sql-m1,sql-finance,sql-member-status,sql-collection,sql-sources,sql-mlit-transactions,sql-invite-gate,sql-organizations,sql-org-read,sql-org-billing,sql-org-invitations,sql-org-invitation-rls,sql-products,sql-usage,sql-usage-anonymization,sql-member-read-views,sql-service-tasks,sql-service-task-b3,sql-service-task-b3-rls,sql-renovation,sql-account-deletion,sql-account-retention,sql-analysis,sql-exports,sql-member,sql-realtime-quota,npm-audit,pip-audit,secret-scan,policy,diff"
 
 jobs:
   python:
@@ -45,9 +45,12 @@ jobs:
       - name: Run pip check
         continue-on-error: true
         run: python scripts/ci/release_evidence.py record --name pip-check --output ci-results/pip-check.json -- python -m pip check
+      - name: Check first-week observation dashboard contract
+        continue-on-error: true
+        run: python scripts/ci/release_evidence.py record --name first-week-observation --output ci-results/first-week-observation.json -- python scripts/check_first_week_observation.py --check
       - name: Fail if a Python check failed
         if: always()
-        run: python scripts/ci/release_evidence.py validate --results-dir ci-results --required python-pytest,python-compileall,pip-check
+        run: python scripts/ci/release_evidence.py validate --results-dir ci-results --required python-pytest,python-compileall,pip-check,first-week-observation
       - name: Upload Python evidence
         if: always()
         uses: actions/upload-artifact@v4

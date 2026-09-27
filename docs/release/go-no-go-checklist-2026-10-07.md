@@ -118,7 +118,7 @@
 1. ~~日本律师复核~~ ✅ **已通过(用户 2026-09-27 告知)**;仅剩复核人/日期/书面结论的存档留痕(见 `docs/legal/00-INDEX.md`);
 2. **C11 预算/SLO 数值**(容量基线缺用户给的北极星数值);
 3. **C13 staging smoke 授权**(可选,不影响生产可用性);
-4. **C14 逐项发布授权** —— `production-go-live-approval.json` 记录 owner/批准时间/回滚 smoke/观察窗。
+4. ✅ **C14 逐项发布授权 —— 已完成(2026-09-27)**:`production-go-live-approval.json` 状态由 `BLOCK / NOT AUTHORIZED` 更新为 **`AUTHORIZED`**(owner: Gordon;批准时间 2026-09-27),并记录 approved commit(`2b59c73`)、前端版本与产物 sha256、观察窗与 stop conditions、回滚实测;**`production-release-evidence.json` 由 `NOT_EXECUTED` 更新为 `PRODUCTION_EVIDENCE_RECORDED`**(逐项按生产实测填写,未执行项如实标 `PARTIAL`/未验证,不冒充)。
 
 **未在本轮验证、且不应被当作已通过**:生产告警投递与 on-call 演练、provider 级物理备份/PITR 恢复、私有 Storage 对象恢复、真机多端浏览器审计。
 

@@ -38,10 +38,11 @@
 | 1 | ~~日本律师复核~~ ✅ **已通过**(用户 2026-09-27 告知) | 仅需补:复核人/事务所、复核日期、书面结论存档位置(不代填) |
 | 2 | **C11 预算与 SLO 数值** | 首月预算上限、目标用户量/峰值、可用性 SLO;用于把容量基线从「受邀范围」升级为生产阈值 |
 | 3 | **C13 staging smoke(可选)** | 一次性 staging 写入授权 + `SMOKE_ANON_KEY` / `SMOKE_OWNER_TOKEN` / `SMOKE_OTHER_TOKEN` |
-| 4 | **C14 逐项发布授权** | owner 姓名 + 批准时间;确认回滚 smoke 与观察窗(**建议:上线后 30 分钟密集观察 + 24 小时常规观察**) |
+| 4 | ~~C14 逐项发布授权~~ ✅ **已授权(2026-09-27,owner: Gordon)** | 观察窗采 30 分钟密集 + 24 小时常规;状态已更新为 `AUTHORIZED`,发布证据已填实 |
 
-**授权后我会做**:把 `production-go-live-approval.json` 从 `BLOCK / NOT AUTHORIZED` 更新为批准记录(含上述实值),
-把 `production-release-evidence.json` 的部署/生产检查项由 `NOT_EXECUTED` 填为实测结果,并落档。
+**授权已完成(2026-09-27)**:`production-go-live-approval.json` = `AUTHORIZED`(含 approved commit、前端版本与产物
+sha256、观察窗、stop conditions、回滚实测);`production-release-evidence.json` = `PRODUCTION_EVIDENCE_RECORDED`,逐项按**生产实测**填写,
+未执行项如实标 `PARTIAL` 或列入未验证,**不冒充通过**。
 
 ## 4. 本轮**未验证**、不得当作已通过(如实列出)
 
@@ -70,3 +71,4 @@
 | 2026-09-27 | `app.js` legacy 直读 Supabase 退役 **延后至 10-07 之后**(非因遗忘) | 用户 |
 | 2026-09-27 | 本班次继续绑定 10-07 倒排 | 用户 |
 | 2026-09-27 | **日本律师复核通过**(法务侧阻塞解除) | 用户 |
+| 2026-09-27 | **C14 逐项发布授权:C14 通过**,发布执行与回滚获授权(provider 级变更仍单独把关) | 用户 |

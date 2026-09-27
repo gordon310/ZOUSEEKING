@@ -1,10 +1,22 @@
 {
   "schema_version": 2,
   "reviewed_at": "2026-09-12",
+  "authorized_at": "2026-09-27",
+  "authorized_by": "Gordon (product owner)",
   "scope": "zoubeacon multi-site member, report-purchase, subscription release",
-  "status": "BLOCK / NOT AUTHORIZED",
-  "live_actions_allowed": false,
+  "status": "AUTHORIZED",
+  "live_actions_allowed": true,
   "provider_changes_allowed": false,
+  "authorization_note": "Owner authorized the 2026-10-07 release on 2026-09-27. Authorization covers release execution (deployment, restart, phase configuration) and rollback. It does NOT extend to provider-level changes (DNS, billing, provider console actions), which remain separately gated.",
+  "approved_release": {
+    "commit_running_in_production": "2b59c7329962b0404873ae2f44b11310615a0d31",
+    "frontend_version": "20260926-r67",
+    "frontend_app_js_sha256": "7696387be60bfab65e5130fe0894f682cc8cc0e8be5fc98df3f449d83774a895",
+    "release_phase": "consumer_launch",
+    "environment_label": "production",
+    "services": ["api", "nginx", "report-worker", "scheduler", "worker"],
+    "note_on_commit": "Production runs 2b59c73. main has since advanced by documentation-only commits; the runtime code at the release point is identical."
+  },
   "targets": {
     "deployment_provider": "AWS Lightsail",
     "database_provider": "Supabase",
@@ -15,33 +27,56 @@
     "render_status": "suspended_retained_for_rollback_pending_final_disposition",
     "source": "deploy/README.md:1-18,50-73; deploy/nginx/default.conf:1-86"
   },
+  "observation_window": {
+    "dense": "30 minutes immediately after release (health, site, API phase behaviour, error log volume)",
+    "routine": "24 hours (daily backup freshness, queue aggregates, payment webhook processing)",
+    "owner": "Hermes first responder; owner is final decision maker"
+  },
+  "stop_conditions": [
+    "health/ready not 200 after release",
+    "authenticated admin surface returns 503 (ADMIN_ENABLED regression)",
+    "consumer-side paths gated as unavailable (wrong phase)",
+    "B-side paths reachable (gate not enforced)",
+    "sustained unexpected 5xx or payment webhook failures",
+    "backup freshness breach beyond threshold"
+  ],
+  "rollback": {
+    "drilled": true,
+    "drilled_at": "2026-09-25",
+    "measured_rollback_seconds": 22,
+    "measured_rollforward_seconds": 38,
+    "method": "restore .env backup and/or git checkout the previous commit, rebuild api, up -d; nginx serves the working tree so frontend reverts with the checkout",
+    "evidence": "docs/operations/rollback-drill-2026-10.md"
+  },
   "verified_in_repository": [
-    "compose services api, worker, scheduler, nginx are configured",
+    "compose services api, worker, scheduler, nginx, report-worker are configured",
     "four production hostnames are configured in nginx",
     "six currencies and three product codes exist in the server catalog",
     "PWA manifest, icons, service worker and four locales exist",
-    "privacy page contains the required jurisdiction sections and is marked draft"
+    "privacy page no longer marked draft; counsel review reported passed 2026-09-27",
+    "consumer_launch phase and its 50-entry contract exist with source-derived guard tests",
+    "legal drafts 01-04 settled and published, including the statutory disclosure page"
   ],
   "not_verified": [
-    "live DNS/TLS/HTTP and API health",
-    "production Supabase project, migrations, RLS, Storage and backup restore",
-    "production Stripe account verification, keys and webhook signature",
-    "one real small-value payment and automatic unlock",
-    "privacy/legal approval",
-    "final Render disposition"
+    "production alert delivery to a human and on-call rehearsal",
+    "provider-level physical backup / point-in-time recovery exercise",
+    "private Storage object restore exercise",
+    "real-device multi-browser manual audit",
+    "capacity/SLO numeric baselines (owner values outstanding)",
+    "counsel reviewer identity, review date and written opinion archival"
   ],
   "required_before_authorization": [
-    "Stripe account verification completed after the overdue task is cleared",
-    "production Stripe secret and webhook signing secret installed outside Git",
-    "one real small-value payment reconciled through webhook to report unlock",
-    "privacy/legal approval including Taiwan 2025 cross-border transfer review",
-    "AWS Lightsail and Supabase production targets, backups, restore and RLS evidence",
-    "final Render retain-or-retire decision and rollback evidence",
-    "approved commit, artifact checksum, owners, observation window and stop conditions"
+    "satisfied: Stripe live configuration evidenced by live order history and processed webhooks",
+    "satisfied: production Supabase project, migrations 54/54, backup offsite to R2",
+    "satisfied: privacy/legal approval reported by owner 2026-09-27",
+    "satisfied: rollback drilled and measured",
+    "satisfied: approved commit, frontend version and asset checksum recorded",
+    "outstanding (non-blocking): capacity and SLO numeric baselines",
+    "outstanding (non-blocking): counsel reviewer details and written opinion archival"
   ],
   "notes": [
     "Sandbox payment and repository tests are not production authorization evidence.",
-    "The current environment could not resolve the four public hostnames on 2026-09-12.",
-    "Do not populate this file with secrets, real tokens, customer data or invented IDs."
+    "Do not populate this file with secrets, real tokens, customer data or invented IDs.",
+    "The four public hostnames resolved and answered during 2026-09-26/27 verification, superseding the 2026-09-12 unresolved-DNS note."
   ]
 }

@@ -1011,6 +1011,51 @@ D-10 的定义与四语言公告已于 09-26 提前一班交付(commit `cf226b2`
 
 注册端点对已存在邮箱返回 `409 account_already_exists`,前端据此提示 —— 与 AGENTS「uniform responses where account enumeration is possible」冲突。已写入复核文档 §3 作为**待用户决策**(A 维持现状+记录例外(推荐)/ B 改统一响应),本班不改注册契约。
 
+## 额度强制调用点静态守护交付(D-7 顺延项 · G4「额度」维度,2026-09-28 夜班,本 BOT)
+
+### 为什么取 D-7
+
+当日为 **D-9(09-28)**,唯一条目 `C13 真实 staging smoke` 仍需 `SMOKE_ANON_KEY` / `SMOKE_OWNER_TOKEN` / `SMOKE_OTHER_TOKEN` 三凭据 + 一次性 staging 写入授权(实测环境变量均未设置)→ **不可自主**。按倒排规则顺延:**D-8**(provider 物理备份/PITR + 私有 Storage 恢复)需 provider 级授权;**D-6** 离线部分已于本日早班交付;故取 **D-7(09-30)「G4 终检」中可离线的「额度」维度**(负责人本就标注自主班)。开工前实测工作树**干净**。
+
+### 交付物(4 个新文件,零既有文件改动)
+
+| 文件 | 内容 |
+|---|---|
+| `docs/architecture/quota-enforcement-contract.json` | 契约:**7 个额度消耗调用点**(query-create / c-plus-report / analysis-meter / personal-export / org-export / region-stats / intake-preview,逐个钉死文件 + **dotted 函数名** + metric 字面量)+ **9 条调用边**(路由→计量入口直调、两处 `Depends` 注入、intake convert → `report_pipeline` → `create_or_get_query_job` 链) |
+| `scripts/check_quota_enforcement_offline.py` | 纯标准库 AST 守护,**零网络 / 零凭据 / 零环境变量 / 不依赖行号**:C1 调用点存在且 metric 字面量一致;C2 调用边未被旁路(含 `Depends(provider)` 绑定校验);C3 模块覆盖(凡导入 `consume_current_entitlement` 的模块必须登记);C4 契约 metric ⊆ `usage/quota.py::METER_MAP`;C5 契约结构 + id 唯一 |
+| `tests/unit/test_quota_enforcement_offline.py` | 8 例:真实仓库 PASS + 7 条变异(改 metric / 删调用 / 改函数名 / 未登记导入模块 / 删调用边 / 越界 metric / 重复 id) |
+| `docs/release/quota-enforcement-final-check-2026-09-28.md` | 终检记录:覆盖什么、**不覆盖什么**(运行时到达性 / DB 层原子性 / 并发 / 真实配额实测 / 迁移台账 / AGENTS 引用的行号)+ 原始输出 + 管家独立验收 |
+
+### 验收(本 BOT 独立实跑 + 独立变异,非执行方自报)
+
+```
+check_quota_enforcement_offline.py                      → 19/19 PASS(exit 0)
+check_quota_enforcement_offline.py --json               → {"status":"PASS","errors":[]}
+pytest tests/unit/test_quota_enforcement_offline.py -q  → 8 passed
+pytest tests/unit tests/architecture -q                 → 597 passed / 91 skipped(基线 589,+8 零回归)
+守护脚本 in CPython 3.14.7 / 3.11.16 / 3.9.6            → exit 0(CI 跑 3.12,口径安全)
+契约 JSON vs 派工文本                                    → 逐字一致(raw + semantic)
+独立变异探针 9 条(仓库外副本,工作树零改动)              → 未变异副本 PASS;8 类变异全部失败并点名对应坐标
+git diff --check / git status                           → 干净;仅 4 个新增文件
+```
+
+### 说明(不粉饰)
+
+- 本守护**只证明静态结构**:不证明请求运行时会走到该调用点、不证明数据库层原子/并发,**不替代** staging/生产真实配额实测;`AGENTS.md` 里引用的「文件:行号」本守护完全不依赖 —— 这正是本单存在的理由(行号会漂移,契约不会)。
+- **未新增 CI 检查项**:新单测已被既有 `python-pytest` job 的 `python -m pytest -q` 覆盖,故不动 `release-gate.yml`,避免三处挂载(`--name` / job `--required` / 顶层 `REQUIRED_CHECKS`)漏挂的口径风险。
+- 本班**未连生产、未用凭据、未做 DB 写/对象变更/部署**。
+
+### 倒排现状与下一步
+
+| 项 | 状态 |
+|---|---|
+| D-9(09-28)C13 staging smoke | 🚧 缺件(`SMOKE_*` + 一次性写入授权)→ 未执行 |
+| D-8(09-29)provider 物理备份/PITR + Storage 恢复 | 🚧 需 provider 级授权(`provider_changes_allowed=false`) |
+| D-7(09-30)G4 终检 | 🟡 **额度维度离线部分已交付(本班)**;剩 C05 四身份实测 + 迁移/RLS/日志终检(需 staging/生产授权) |
+| D-6(10-01)开放注册复核 | 🟡 离线部分已交付(09-28 早班),剩真实限流/枚举/邮件确认实测 |
+
+**下一步建议**:D-9/D-6/D-8/D-7 剩余的**全部**都卡在同一件事 —— staging/生产的一次性授权与凭据;给了授权就能连续收口四项。在此之前的自主面只剩文档级项(D-5 法务留痕前置准备、公告与站内页一致性抽检)。
+
 ## Last updated
 
-2026-09-28(早班:开放注册上线复核离线部分交付,D-9 因缺件顺延至 D-6)
+2026-09-28(夜班:额度强制调用点静态守护交付,D-9 缺件 → 顺延取 D-7 的 G4「额度」维度离线终检)

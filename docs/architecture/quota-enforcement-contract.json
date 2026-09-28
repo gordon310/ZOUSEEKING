@@ -1,0 +1,123 @@
+{
+  "schema": "quota-enforcement-contract/v1",
+  "symbol": "consume_current_entitlement",
+  "definition_module": "backend/app/usage/quota.py",
+  "description": "已审计的服务端配额消耗点静态契约。守护脚本 scripts/check_quota_enforcement_offline.py 校验:调用点仍存在、metric 字面量未变、调用边未被旁路、没有未登记的新消耗模块。只证明静态结构,不证明运行时行为或数据库层原子性。",
+  "call_sites": [
+    {
+      "id": "query-create",
+      "file": "backend/app/main.py",
+      "function": "create_or_get_query_job",
+      "metric": "query",
+      "endpoints": ["POST /api/query"],
+      "note": "仅在 query_key 尚不存在时消耗;命中既有查询复用不重复计量"
+    },
+    {
+      "id": "c-plus-report",
+      "file": "backend/app/main.py",
+      "function": "_consume_c_plus_report_quota",
+      "metric": "report",
+      "endpoints": ["POST /api/jobs/{query_id}/run"],
+      "note": "c_plus 会员每份报告消耗一次"
+    },
+    {
+      "id": "analysis-meter",
+      "file": "backend/app/analysis/routes.py",
+      "function": "DbAnalysisStore._meter",
+      "metric": "stats_query",
+      "endpoints": ["POST /api/analysis"],
+      "note": "分析端点共用的单一计量入口"
+    },
+    {
+      "id": "personal-export",
+      "file": "backend/app/exports/routes.py",
+      "function": "DbExportStore.create_export",
+      "metric": "export_row",
+      "endpoints": ["POST /api/exports"],
+      "note": "按导出行数消耗"
+    },
+    {
+      "id": "org-export",
+      "file": "backend/app/org/routes.py",
+      "function": "DbOrgExportStore.create_export",
+      "metric": "export_row",
+      "endpoints": ["POST /api/org/exports"],
+      "note": "scope_key=org:<org_id>"
+    },
+    {
+      "id": "region-stats",
+      "file": "backend/app/region_stats_routes.py",
+      "function": "_consume_stats_query",
+      "metric": "stats_query",
+      "endpoints": ["GET /api/org/region-stats", "GET /api/org/region-stats/trend"],
+      "note": "单期与趋势共用同一计量入口"
+    },
+    {
+      "id": "intake-preview",
+      "file": "backend/app/routes/intake.py",
+      "function": "get_preview_quota.consume",
+      "metric": "free_preview",
+      "endpoints": ["POST /api/intake/sessions/{session_id}/preview"],
+      "note": "预览使用按日额度的 free_preview"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-query-route",
+      "kind": "direct_call",
+      "from": {"file": "backend/app/main.py", "function": "query_report"},
+      "to": {"file": "backend/app/main.py", "function": "create_or_get_query_job"}
+    },
+    {
+      "id": "edge-report-job",
+      "kind": "direct_call",
+      "from": {"file": "backend/app/main.py", "function": "run_generation_job"},
+      "to": {"file": "backend/app/main.py", "function": "_consume_c_plus_report_quota"}
+    },
+    {
+      "id": "edge-analysis-route",
+      "kind": "direct_call",
+      "from": {"file": "backend/app/analysis/routes.py", "function": "DbAnalysisStore.analyze"},
+      "to": {"file": "backend/app/analysis/routes.py", "function": "DbAnalysisStore._meter"}
+    },
+    {
+      "id": "edge-personal-export-route",
+      "kind": "direct_call",
+      "from": {"file": "backend/app/exports/routes.py", "function": "create_export"},
+      "to": {"file": "backend/app/exports/routes.py", "function": "DbExportStore.create_export"}
+    },
+    {
+      "id": "edge-org-export-route",
+      "kind": "direct_call",
+      "from": {"file": "backend/app/org/routes.py", "function": "create_org_export"},
+      "to": {"file": "backend/app/org/routes.py", "function": "DbOrgExportStore.create_export"}
+    },
+    {
+      "id": "edge-region-stats-get",
+      "kind": "direct_call",
+      "from": {"file": "backend/app/region_stats_routes.py", "function": "DbRegionStatsStore.get"},
+      "to": {"file": "backend/app/region_stats_routes.py", "function": "_consume_stats_query"}
+    },
+    {
+      "id": "edge-region-stats-trend",
+      "kind": "direct_call",
+      "from": {"file": "backend/app/region_stats_routes.py", "function": "DbRegionStatsStore.get_trend"},
+      "to": {"file": "backend/app/region_stats_routes.py", "function": "_consume_stats_query"}
+    },
+    {
+      "id": "edge-intake-preview-depends",
+      "kind": "depends_provider",
+      "from": {"file": "backend/app/routes/intake.py", "function": "create_preview"},
+      "provider": {"file": "backend/app/routes/intake.py", "function": "get_preview_quota"},
+      "injected_call": "consume_preview"
+    },
+    {
+      "id": "edge-intake-convert-depends",
+      "kind": "depends_provider",
+      "from": {"file": "backend/app/routes/intake.py", "function": "convert_session"},
+      "provider": {"file": "backend/app/routes/intake.py", "function": "get_report_pipeline"},
+      "injected_call": "report_pipeline",
+      "then": {"file": "backend/app/main.py", "function": "create_or_get_query_job"}
+    }
+  ]
+}

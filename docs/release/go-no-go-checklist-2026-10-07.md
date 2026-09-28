@@ -102,7 +102,7 @@
 | 4. C13 staging candidate smoke | 🟡 载体已交付;**待用户一次性 staging 写入授权 + `SMOKE_*` 凭据** |
 | 5. C07/C08/C09 合同与可观测 | ✅ 已闭合 |
 | 6. C02 ADR 重批 + C10/C11 用户数值 | C02 ✅ 已闭合(`consumer_launch` 门禁上线);C10 ✅ 法务已落;C11 🟡 仍缺用户预算/SLO 数值 |
-| 7. C14 逐项授权 | 🟡 **待用户** |
+| 7. C14 逐项授权 | ✅ **已完成(2026-09-27)**:`production-go-live-approval.json` 状态更新为 `AUTHORIZED`(owner: Gordon),`production-release-evidence.json` 为 `PRODUCTION_EVIDENCE_RECORDED`;详见 §C-2 |
 
 ### C-1. 2026-09-27 新增并完成的关键动作(原链未含)
 

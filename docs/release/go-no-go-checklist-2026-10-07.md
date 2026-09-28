@@ -1,6 +1,8 @@
 # 2026-10-07 Web/PWA Go/No-Go checklist
 
-**总判定：No-Go，不能在 2026-10-07 正式上线 `consumer_intake_preview`。** 必须先闭合 C01 的干净、唯一集成基线；C02 的 ADR/机器 allowlist 一致性；C04 的 provider 备份与数据库/Storage 隔离恢复；C05 的 production 以外四身份 Storage/Auth/RLS 复验边界；C06 的非 synthetic 内容发布门禁；C08–C11 的生产配置、可靠性、隐私运营和容量门槛；C12 的 GitHub Actions 不可变证据；以及 C13/C14 的 staging candidate 和受控 production 发布/回滚证据。现有 `docs/release/production-go-live-approval.json` 明确为 `BLOCK / NOT AUTHORIZED`，`production-release-evidence.json` 为 `NOT_EXECUTED`。
+**总判定(2026-09-27 更新,以 §C-2 为准)：工程侧 Go —— 2026-10-07 可按 `consumer_launch` 正式上线(C 端 + 后台)。** 工程要件(功能、API 门禁、异地备份、回滚路径、支付对账、迁移台账、CI 全绿)均已有生产实测证据;`docs/release/production-go-live-approval.json` = **`AUTHORIZED`**(owner: Gordon,2026-09-27),`production-release-evidence.json` = **`PRODUCTION_EVIDENCE_RECORDED`**。剩余开口均为**用户项、非工程缺口**:C11 预算/SLO 数值、日本律师书面结论存档、C13 staging smoke(可选)。
+
+> **历史记录**:本清单初版审计(2026-09-12 口径)曾判定 `No-Go` 并列出 C01–C14 缺口;该批缺口已在 09-24 ~ 09-27 逐项闭合,详见 §C-0 / §C-1 / §C-2。**旧判定不再作为当前结论,勿引用。**
 
 状态口径：✅ 已达成 = 当前 Done when 全部有仓库内证据；🟡 部分达成 = 有可复现子证据但出口仍缺；❌ 未开始/缺口 = 没有可证明的出口实现或证据。`NEEDS_PROD_EVIDENCE` 不代表可跳过，且本审计未 SSH、未连接生产。
 

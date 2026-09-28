@@ -1,0 +1,120 @@
+{
+  "contract_version": 1,
+  "purpose": "Offline gate for the 2026-10-07 launch surfaces: the four-language launch announcement, the site pages it points users to, and the website dictionary that actually renders them. It never contacts a network, never reads credentials and never proves live behaviour.",
+  "announcement": "docs/release/launch-announcement-2026-10-07.md",
+  "web_dir": "web",
+  "i18n_source": "web-source/js/i18n.js",
+  "source_locales": ["zh-CN", "en", "ja"],
+  "derived_locales": {
+    "zh-Hant": "zh-CN"
+  },
+  "derivation_marker": "DICTIONARY_ZH_HANT",
+  "referenced_pages": [
+    "privacy.html",
+    "terms.html",
+    "tokushoho.html",
+    "support.html"
+  ],
+  "trial_marking": {
+    "keys": ["trial.badge", "trial.provenance"],
+    "pages": ["index.html", "analysis.html", "data-query.html", "report.html"],
+    "attribute": "data-i18n"
+  },
+  "official_sources": {
+    "keys": [
+      "regionStats.intro",
+      "regionStats.source",
+      "regionStats.rentSource",
+      "intake.comparableReference"
+    ],
+    "tokens": {
+      "zh-CN": ["国土交通省", "e-Stat"],
+      "en": ["MLIT", "e-Stat"],
+      "ja": ["国土交通省", "e-Stat"]
+    }
+  },
+  "disclaimers": {
+    "keys": ["intake.previewGenerated", "intake.previewCopy"],
+    "tokens": {
+      "zh-CN": ["不替代专业交易核查"],
+      "en": ["does not replace professional transaction checks"],
+      "ja": ["代わるものではありません"]
+    }
+  },
+  "entity_facts": {
+    "corporate_number": "6120001261672",
+    "representative": "姜爽",
+    "surfaces": [
+      {
+        "path": "web-source/js/i18n.js",
+        "required_tokens": ["6120001261672"],
+        "forbidden_tokens": ["姜興"]
+      },
+      {
+        "path": "web/tokushoho.html",
+        "required_tokens": ["6120001261672", "姜爽"],
+        "forbidden_tokens": ["姜興"]
+      },
+      {
+        "path": "docs/legal/01-プライバシーポリシー(隐私政策).md",
+        "required_tokens": ["6120001261672", "姜爽"],
+        "forbidden_tokens": ["姜興"]
+      },
+      {
+        "path": "docs/legal/03-特定商取引法に基づく表記.md",
+        "required_tokens": ["6120001261672", "姜爽"],
+        "forbidden_tokens": ["姜興"]
+      }
+    ]
+  },
+  "jurisdiction": {
+    "primary": "Japan",
+    "decision_reference": "2026-09-24 用户决策 4：法务地区定位日本（個人情報保護法 / 特定商取引法），允许地区 = 日本，不做多地区适配",
+    "scan_key_prefix": "legal.",
+    "forbidden_tokens": ["台湾", "Taiwan", "PDPA", "PDPO"]
+  },
+  "placeholder_tokens": {
+    "values": ["〔", "待确认", "要確認", "to be confirmed", "TBD", "TBC", "占位", "XXX"],
+    "page_text": ["〔", "待确认", "TBD", "XXX"]
+  },
+  "wording_discipline": {
+    "banned_tokens": ["房源", "房子"],
+    "declared_exceptions": [
+      {
+        "key": "regionStats.meanVsMedian",
+        "reason": "解释均价/中位数统计口径时的市场用语，不是对物件的称呼；C 端物件一律称「物件」的规则仍成立。",
+        "reviewed_by": "Hermes cron bot (早班 10-07 倒排)",
+        "reviewed_at": "2026-09-29"
+      }
+    ]
+  },
+  "declared_open_items": [
+    {
+      "id": "O1",
+      "check": "C6_unfilled_placeholders",
+      "coordinate_contains": ["legal.draftNotice", "legal.pdpa2", "legal.s6Body", "web/privacy.html"],
+      "summary": "站内隐私页旧稿的「待法务确认 / 未填生效日」残留：① legal.draftNotice 三语仍写「本文件为上线前草稿，待法务／负责人确认。生效日：〔生效日:待确认〕」；② web/privacy.html 的 HTML 回退文本同句；③ legal.pdpa2 / legal.s6Body 仍留「待法务确认」表述。与 O2 同源，应由站点法务文案整体同步一并收口。",
+      "owner": "用户（法务口径）+ Codex（把 docs/legal/01 已定稿文本同步到站点字典与法律页）",
+      "target": "D-5 / D-1 冻结前",
+      "blocking": true
+    },
+    {
+      "id": "O2",
+      "check": "C7_jurisdiction_scope",
+      "coordinate_contains": ["'台湾'", "'Taiwan'", "'PDPA'", "'PDPO'"],
+      "summary": "站内 legal.* 文案仍是台湾 PDPA 口径（s2Title/s2Intro/s5Body/s6Body/s7Body，三语共 15 处），与 2026-09-24 决策（法务地区=日本、不做多地区适配）及 docs/legal/01（APPI 口径、律师复核已通过）不一致。",
+      "owner": "用户（法务口径）+ Codex（把 docs/legal/01 已定稿文本同步到站点字典）",
+      "target": "D-5 / D-1 冻结前",
+      "blocking": true
+    },
+    {
+      "id": "O3",
+      "check": "C5_legal_entity_facts",
+      "coordinate_contains": ["web-source/js/i18n.js|representative"],
+      "summary": "站内字典 legal.s1Body 写代表取締役「姜興」，与 docs/legal/01、docs/legal/03、web/tokushoho.html 的「姜爽」不一致（疑似形近字笔误，仅站点为异值）。",
+      "owner": "用户（确认姓名）+ Codex（单处修正 + 重建前端资源）",
+      "target": "D-5 / D-1 冻结前",
+      "blocking": true
+    }
+  ]
+}

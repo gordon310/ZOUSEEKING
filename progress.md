@@ -1056,6 +1056,61 @@ git diff --check / git status                           → 干净;仅 4 个新�
 
 **下一步建议**:D-9/D-6/D-8/D-7 剩余的**全部**都卡在同一件事 —— staging/生产的一次性授权与凭据;给了授权就能连续收口四项。在此之前的自主面只剩文档级项(D-5 法务留痕前置准备、公告与站内页一致性抽检)。
 
+## 上线面板一致性抽检交付(D-5 离线自主面,2026-09-29 早班,本 BOT)
+
+### 为什么取 D-5 的离线面
+
+当日为 **D-8(09-29)**,其唯一验收口径 `C04 = provider 物理备份/PITR + 私有 Storage 隔离恢复演练` 需 provider 级授权与停机窗(`provider_changes_allowed=false`)→ **不可自主执行**。按倒排规则顺延:D-9/D-7 剩余部分同样卡在 staging/生产授权;上一班已把 D-6/D-7 的离线维度交付完毕,故取上一班明确列出的自主面 —— **「公告与站内页一致性抽检」**(归属倒排 D-5,10-07 上线时公告正是让用户去读站内法律页)。开工前实测工作树**干净**。
+
+### 交付物(4 个新文件,零既有文件改动)
+
+| 文件 | 内容 |
+|---|---|
+| `docs/architecture/launch-surface-consistency-contract.json` | 机器可读契约:公告路径 / 被引用页集合 / `zh-Hant` 由 `zh-CN` 派生 / 试运行标注键与落点页 / 官方来源 token / 免责 token / **法人事实(法人番号+代表者+禁值)** / **法域口径 token** / 占位 token / 用词纪律例外 / 已登记开口项(owner+target+是否阻断) |
+| `scripts/check_launch_surface_consistency.py` | 纯标准库离线门禁,C0–C8 九条判据;**零网络零 socket 零凭据零环境变量、不依赖行号**;退出码 `0` 一致 / `2` 已登记开口项 / `1` **未登记漂移**;支持 `--json` |
+| `tests/unit/test_launch_surface_consistency.py` | 21 例:真实仓库零未登记漂移 + **全部登记项必须仍在复现**(防契约僵化)+ 16 条变异测试(删页面/公告漏引/删试运行键/删来源 token/删免责/改法人番号/注入错误代表人名/注入新占位/注入越界法域 token/注入违禁用词/例外失效/派生标记消失/修好草案后坐标消失/声明失效报 `resolved`/契约缺 owner/未知判据报错)+ CLI 退出码 |
+| `docs/release/launch-surface-consistency-2026-09-29.md` | 判定表 + 3 处缺口证据 + 人工复核清单 + 未覆盖面 + 待批清单 |
+
+### 验收(本 BOT 独立实跑)
+
+```
+check_launch_surface_consistency.py                     -> status: open | undeclared violations: 0 (exit 2)
+                                                           C0-C4/C8 PASS;C5/C6/C7 FAIL(全部为已登记开口项)
+                                                           41 个坐标 = O1 12 + O2 28 + O3 1
+check_launch_surface_consistency.py --json              -> {"status":"open","production_contacted":false,"network_used":false}
+pytest tests/unit/test_launch_surface_consistency.py -q -> 21 passed
+pytest tests/unit tests/architecture -q                 -> 618 passed / 91 skipped(基线 597,+21 零回归)
+compileall backend scripts src / node --check web/app.js -> OK
+check_release_policy.py / check_schema_ownership.py     -> PASS / pass
+git status / git diff --check                           -> 仅 4 个新增文件,无空白问题
+```
+
+### 查出的 3 处真实缺口(全部登记为 **D-1 冻结前阻断项**,均未擅自改写)
+
+1. **O3 代表人姓名不一致(1 处)**:站内字典 `legal.s1Body`(zh-CN/ja)写「代表取締役为**姜興**」,而 `docs/legal/01`、`docs/legal/03`、`web/tokushoho.html` 三处均为「**姜爽**」—— 已过律师复核的法务文本与站点对外页不同名(疑似形近字笔误)。
+2. **O1 站内隐私页仍是「上线前草稿 + 未填生效日」(12 处)**:`legal.draftNotice` 三语仍渲染「本文件为上线前草稿,待法务／负责人确认。生效日:〔生效日:待确认〕」,`web/privacy.html` 回退文本同句,`legal.pdpa2`/`legal.s6Body` 亦留「待法务确认」。**与 go/no-go 清单 C10 的「定稿并上线、占位清零」直接冲突**,按 AGENTS 显式暴露,不代为改写。
+3. **O2 站内 `legal.*` 仍是台湾 PDPA 口径(28 处)**:与 2026-09-24 决策 4(法务地区=日本、不做多地区适配)及已定稿的 `docs/legal/01`(APPI 口径、律师复核已通过)不一致 —— **已定稿文本未同步到站点**。
+
+另列 3 项**人工判断项**(不机检):公告「請求時開示」措辞与 `tokushoho.html` 实际逐项公开不符;地址全角/半角表述不一;律师复核留痕仍缺(倒排 D-5 用户项)。
+
+### 说明(不粉饰)
+
+- 门禁**只证静态结构**:不证浏览器真实渲染、不证运行时语言切换、不证线上产物;`web-source` ↔ 生成物一致性由既有 `web-assets-fresh` 负责;法务文本本身正确性不由本门禁判定。
+- **未挂进 CI**(`release-gate.yml` 三处挂载未动);新增单测已被既有 `python-pytest` 覆盖。
+- 本班**未连生产/staging、未用凭据、未做 DB 写/对象变更/部署、未改任何法务文案**。
+
+### 倒排现状与下一步
+
+| 项 | 状态 |
+|---|---|
+| D-9(09-28)C13 staging smoke | 🚧 缺件(`SMOKE_*` + 一次性写入授权)→ 未执行 |
+| D-8(09-29)provider 物理备份/PITR + Storage 恢复 | 🚧 需 provider 级授权(`provider_changes_allowed=false`)→ 未执行 |
+| D-7(09-30)G4 终检 | 🟡 额度维度离线部分已交付;剩四身份实测 + 迁移/RLS/日志终检(需授权) |
+| D-6(10-01)开放注册复核 | 🟡 离线部分已交付;剩真实限流/枚举/邮件确认实测 |
+| **D-5(10-02)法务定稿** | 🟡 **公告↔站内↔法务文本一致性门禁已交付(本班)**;**新增 3 处阻断项 O1/O2/O3 需在 D-1 前收口**;律师留痕仍待用户 |
+
+**下一步建议**:O1/O2/O3 是同一根因(已定稿的日本口径法务文本未同步到站点),给一次「用户确认口径 → Codex 一批改完」即可同时清掉 3 项,改完复跑本门禁应只剩 `resolved`;D-8/D-9 仍只缺授权。
+
 ## Last updated
 
-2026-09-28(夜班:额度强制调用点静态守护交付,D-9 缺件 → 顺延取 D-7 的 G4「额度」维度离线终检)
+2026-09-29(早班:D-8 需 provider 授权 → 顺延取 D-5 离线自主面,交付上线面板一致性门禁,查出 O1/O2/O3 三处站内 vs 法务文本漂移)

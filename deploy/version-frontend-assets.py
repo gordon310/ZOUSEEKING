@@ -50,6 +50,22 @@ def rewrite_module_imports(text: str, version: str) -> str:
     return IMPORT_RE.sub(lambda match: f"{match.group(1)}{match.group(2)}?v={version}{match.group(1)}", text)
 
 
+SW_VERSION_RE = re.compile(r'(const SW_VERSION\s*=\s*")[^"]*(")')
+
+
+def rewrite_sw_version(text: str, version: str) -> str:
+    """Pin the service worker's cache version to the release version.
+
+    The worker's own comment says to bump SW_VERSION after deploys so the app
+    shell refreshes, but nothing did it: the build only minifies and copies the
+    file, so the cache name drifted behind the release (r63 while the site was
+    serving r67) and offline fallbacks could resolve to a stale shell. Deriving
+    it from the single release-version file removes the manual step that was
+    being forgotten.
+    """
+    return SW_VERSION_RE.sub(lambda match: f"{match.group(1)}{version}{match.group(2)}", text)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true", help="fail when HTML is not normalized")
@@ -57,6 +73,15 @@ def main() -> int:
 
     version = read_version()
     changed: list[Path] = []
+
+    sw_source = ROOT / "web-source" / "sw.js"
+    if sw_source.exists():
+        original = sw_source.read_text(encoding="utf-8")
+        updated = rewrite_sw_version(original, version)
+        if updated != original:
+            changed.append(sw_source)
+            if not args.check:
+                sw_source.write_text(updated, encoding="utf-8")
     for path in sorted((ROOT / "web").glob("*.html")):
         original = path.read_text(encoding="utf-8")
         updated = rewrite(original, version)

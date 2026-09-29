@@ -1,9 +1,9 @@
 {
-  "name": "小象数据 ZOUSEEKING",
-  "short_name": "小象",
-  "description": "日本房产数据与决策工作台：查询、相场报告、免费评估与深度报告。",
+  "name": "小象避坑 ZOUBEACON",
+  "short_name": "小象避坑",
+  "description": "提交你合法持有的物件资料，先看清资料完整度、潜在风险和需要补齐的核查项。免费预览不替代专业交易核查。",
   "lang": "zh-CN",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",

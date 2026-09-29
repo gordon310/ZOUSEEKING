@@ -7,7 +7,7 @@
  * to the network - never cache member data, reports or auth responses.
  * Bump SW_VERSION to force an app-shell refresh after deploys.
  */
-const SW_VERSION = "20260923-r63";
+const SW_VERSION = "20260926-r67";
 const APP_SHELL = [
   "./index.html",
   "./property-analysis.html",

@@ -1,0 +1,353 @@
+{
+  "schema_version": 1,
+  "contract": "migration-ledger-contract/v1",
+  "purpose": "Offline gate for the G4 migration dimension of the 2026-10-07 countdown (D-7): the canonical forward history must be append-only, byte-stable for every already-applied migration, still matching every hash that was recorded on the production line, still matching the live documents that claim a zero-gap ledger, and free of unregistered destructive statements. It is offline and read-only: no network, no socket, no credentials, no environment variables, no database, no SQL execution. It never proves that production really holds these 54 versions and never replaces a live ledger read.",
+  "canonical_history": "supabase/migrations",
+  "migration_name_pattern": "^(?P<version>\\d{14})_[a-z0-9][a-z0-9_]*\\.sql$",
+  "manifest": {
+    "path": "docs/architecture/schema-ownership.json",
+    "key": "forward_migration_files"
+  },
+  "recorded_artifacts": [
+    {
+      "id": "m1_baseline_reconciliation_apply",
+      "evidence": "docs/release/m1-database-production-line-evidence.json",
+      "file_pointer": "/migration/file",
+      "sha256_pointer": "/migration/sha256",
+      "note": "Applied to the authorized staging line on 2026-09-02; the recorded bytes must still exist in the repo."
+    },
+    {
+      "id": "m1_service_role_portability_forward_fix",
+      "evidence": "docs/release/m1-database-production-line-evidence.json",
+      "file_pointer": "/migration/service_role_portability_forward_fix/file",
+      "sha256_pointer": "/migration/service_role_portability_forward_fix/sha256",
+      "note": "Forward fix recorded with the same staging apply evidence."
+    }
+  ],
+  "live_ledger_claims": [
+    {
+      "id": "L1_go_live_readiness_summary",
+      "document": "docs/release/2026-10-07-go-live-readiness-summary.md",
+      "kind": "current",
+      "pattern": "生产\\s*\\*\\*(?P<production>\\d+)\\s*/\\s*仓库\\s*(?P<repo>\\d+)\\*\\*[^\\n]*?最高\\s*`(?P<max_version>\\d{14})`",
+      "occurrences_required": 1,
+      "bindings": {
+        "production": "repo_count",
+        "repo": "repo_count",
+        "max_version": "repo_max_version"
+      },
+      "note": "Release-artifact identity block; a fixed 54/54 zero-gap claim with a highest-version pointer."
+    },
+    {
+      "id": "L2_go_no_go_checklist_a1",
+      "document": "docs/release/go-no-go-checklist-2026-10-07.md",
+      "kind": "current",
+      "pattern": "生产已登记\\s*(?P<production>\\d+)\\s*条\\s*/\\s*仓库\\s*(?P<repo>\\d+)\\s*条[^\\n]*?最高登记\\s*`(?P<max_version>\\d{14})`",
+      "occurrences_required": 1,
+      "bindings": {
+        "production": "repo_count",
+        "repo": "repo_count",
+        "max_version": "repo_max_version"
+      },
+      "note": "Checklist §A row A1; the current production-ledger claim of record."
+    }
+  ],
+  "excluded_surfaces": [
+    {
+      "id": "dated_evidence_logs",
+      "where": "docs/release/go-no-go-checklist-2026-10-07.md §D, docs/release/launch-readiness-log.md dated rows",
+      "reason": "These record a measurement taken in a named round (for example §D reads '50 条' from before the 2026-09-25 forward batch). A dated log is allowed to be stale about the present; only current-state claims are bound here."
+    },
+    {
+      "id": "live_production_ledger",
+      "where": "supabase_migrations.schema_migrations (production)",
+      "reason": "Reading the real ledger needs production credentials, which this gate must not use. The 54/54 claim is therefore only checked for consistency with the repo, not for truth against production."
+    }
+  ],
+  "destructive_statement_kinds": {
+    "drop_table": "\\bdrop\\s+table\\b",
+    "drop_column": "\\bdrop\\s+column\\b",
+    "drop_schema": "\\bdrop\\s+schema\\b",
+    "drop_type": "\\bdrop\\s+type\\b",
+    "drop_constraint": "\\bdrop\\s+constraint\\b",
+    "truncate": "\\btruncate\\b",
+    "delete_from": "\\bdelete\\s+from\\b",
+    "alter_column_type": "\\balter\\s+column\\s+\\S+\\s+(?:set\\s+data\\s+)?type\\b"
+  },
+  "destructive_statements": [
+    {
+      "file": "supabase/migrations/20260824000400_analysis_policy_versions.sql",
+      "kind": "drop_constraint",
+      "count": 1
+    },
+    {
+      "file": "supabase/migrations/20260824000500_provenance_and_immutable_contract.sql",
+      "kind": "drop_constraint",
+      "count": 12
+    },
+    {
+      "file": "supabase/migrations/20260824000600_provenance_contract_hardening.sql",
+      "kind": "drop_constraint",
+      "count": 5
+    },
+    {
+      "file": "supabase/migrations/20260824000700_user_submitted_source_rights.sql",
+      "kind": "drop_constraint",
+      "count": 3
+    },
+    {
+      "file": "supabase/migrations/20260902000100_staging_baseline_reconciliation.sql",
+      "kind": "drop_constraint",
+      "count": 17
+    },
+    {
+      "file": "supabase/migrations/20260905000500_v1_finance_admin_audit.sql",
+      "kind": "truncate",
+      "count": 1
+    },
+    {
+      "file": "supabase/migrations/20260915000200_owner_scoped_report_slugs.sql",
+      "kind": "drop_constraint",
+      "count": 1
+    },
+    {
+      "file": "supabase/migrations/20260916000300_organization_invitations.sql",
+      "kind": "drop_constraint",
+      "count": 1
+    },
+    {
+      "file": "supabase/migrations/20260920000300_account_deletion_request_auth_anonymization.sql",
+      "kind": "drop_constraint",
+      "count": 1
+    },
+    {
+      "file": "supabase/migrations/20260923000100_invite_only_consumer_gate.sql",
+      "kind": "delete_from",
+      "count": 1
+    }
+  ],
+  "destructive_statements_note": "Registered occurrences of destructive SQL keywords in canonical migrations, counted per file after stripping line and block comments. A new occurrence, a count change, or a registration that no longer exists all fail C6.",
+  "pinned_hashes": [
+    {
+      "file": "supabase/migrations/20260824000100_legacy_schema_baseline.sql",
+      "sha256": "cf189beaaa9ea7228ddd8e2fe1804f338bb14b66afae3fb0f179611894b4d9db"
+    },
+    {
+      "file": "supabase/migrations/20260824000200_foundation_data_contract.sql",
+      "sha256": "45f74703827f263bdffb3d51f05ce0cfbfcb5c56211d5c76b97156274ed4553a"
+    },
+    {
+      "file": "supabase/migrations/20260824000300_private_project_rls.sql",
+      "sha256": "3eca08bd451ad54ff987527090a9a16086ac253be81c149a5704411075c4e696"
+    },
+    {
+      "file": "supabase/migrations/20260824000400_analysis_policy_versions.sql",
+      "sha256": "6509addb3fe2bc729d9dc16b0bb982d958caf8672d70275651c04fd16988bdaa"
+    },
+    {
+      "file": "supabase/migrations/20260824000500_provenance_and_immutable_contract.sql",
+      "sha256": "9e673a083a77c3cca3e353920124d353c7b84276387f47ce7f43d3e3d65165fd"
+    },
+    {
+      "file": "supabase/migrations/20260824000600_provenance_contract_hardening.sql",
+      "sha256": "efd5ea892de302f792fe198b5b911121254d9898e3ffc4936220d000ba111116"
+    },
+    {
+      "file": "supabase/migrations/20260824000700_user_submitted_source_rights.sql",
+      "sha256": "4a5702e8c0c33ef2844a939b058a3e35065aa93fdde05751eb73c22205fd297a"
+    },
+    {
+      "file": "supabase/migrations/20260825000400_property_intake.sql",
+      "sha256": "430087f2c10d3e5b9778fe09033667b1903b13b5d44e12418b51d32b20f7c171"
+    },
+    {
+      "file": "supabase/migrations/20260827000500_legacy_private_data_rls.sql",
+      "sha256": "70aef9978d4673fb5f1a1b438d1b08ef854aca8937011e9af635c0036c09e563"
+    },
+    {
+      "file": "supabase/migrations/20260828000100_property_photo_location.sql",
+      "sha256": "c14b8c2211806254cbc19c171fe3ce055cebc3a4b053d138243453e1a6917130"
+    },
+    {
+      "file": "supabase/migrations/20260829000100_baseline_access_contract.sql",
+      "sha256": "77d83c0e3609f5a71e2ce04fe92a2f53c5c4cd9ce392d6f1e9363a9d2b1a3950"
+    },
+    {
+      "file": "supabase/migrations/20260902000100_staging_baseline_reconciliation.sql",
+      "sha256": "77c229259060bee1c6b9dde94224adc7bfa65cf7e550a1e627687a0f20c756cd"
+    },
+    {
+      "file": "supabase/migrations/20260902000200_service_role_grant_portability.sql",
+      "sha256": "d6872949b94b47488fa8c39e1f6328ac9b25af7fb13e6a2ce1564adcf7206bb0"
+    },
+    {
+      "file": "supabase/migrations/20260904000100_intake_renovation_observations.sql",
+      "sha256": "e1833f33dc882358f6cbf0c11a2138f84ed2cba6b91d484f16f0a453764bda1f"
+    },
+    {
+      "file": "supabase/migrations/20260905000100_v1_organizations.sql",
+      "sha256": "cedfe912121ea52f262965068375b8868cc1c70f3fac9cb8226147834d1689de"
+    },
+    {
+      "file": "supabase/migrations/20260905000200_v1_products_subscriptions.sql",
+      "sha256": "e69b534948ed5e0201fe041224bb74c9c16dd79964a63b03ebe5b973fb4881fb"
+    },
+    {
+      "file": "supabase/migrations/20260905000300_v1_usage_ledger.sql",
+      "sha256": "8f75fbc9a8e365375f3e3e3fc543be38963026496a40e4f71df6226aedbc7022"
+    },
+    {
+      "file": "supabase/migrations/20260905000400_v1_service_tasks_contacts.sql",
+      "sha256": "9231ea331bdf585e9631fe79fde94550d0a2ad3e23b02fa1d50cbd01cda0b92c"
+    },
+    {
+      "file": "supabase/migrations/20260905000500_v1_finance_admin_audit.sql",
+      "sha256": "cb09f730924ad767c8054bbfcaa6c3e94ac7cb0a5d27f77ee56025c879690c09"
+    },
+    {
+      "file": "supabase/migrations/20260905000600_member_status.sql",
+      "sha256": "48f8529e75d3f4300472f9ba01b167a65326be1ef57de586fb0876e8d3ac7848"
+    },
+    {
+      "file": "supabase/migrations/20260905000601_collection_runs.sql",
+      "sha256": "45c35aa400277dba3a3746a77c5f2d92b1ec4ccaac99b9f0039e92c4ed4ef225"
+    },
+    {
+      "file": "supabase/migrations/20260906000100_collection_sources.sql",
+      "sha256": "5a54721eed69ad4fb424059fc99fb8d8f6412afd9dec0c9c0c882e903daba388"
+    },
+    {
+      "file": "supabase/migrations/20260911000100_report_purchase_subject.sql",
+      "sha256": "b73baaa6480f9f95d63299a1e7a082576bee1fced41047ea5bbd88ec14be7f3b"
+    },
+    {
+      "file": "supabase/migrations/20260912000100_pricing_admin.sql",
+      "sha256": "d8c8f15df3814b1ecd4dba0dbd2f1b1c0f1bb4133eae920fcc4cadfcbb6f9f86"
+    },
+    {
+      "file": "supabase/migrations/20260912000200_plan_entitlements.sql",
+      "sha256": "2f5e46d938f3cfcb0cf8e68ab0d573c8d3665de33457d0e7d2016348a66db4f0"
+    },
+    {
+      "file": "supabase/migrations/20260912000300_pricing_legacy_nullable.sql",
+      "sha256": "19a967494b8964ddad2313be36069d101819643226d58b15c8f0581c76e09c71"
+    },
+    {
+      "file": "supabase/migrations/20260912000400_user_profile_on_signup.sql",
+      "sha256": "a45e6bcb30a6f4696be88eb146dc48e63555b11a34d2ead0aec6cd8078e50075"
+    },
+    {
+      "file": "supabase/migrations/20260912000500_user_profile_audience.sql",
+      "sha256": "9606fafbdc1c376dcf23e45e340f18ed1fe045bddcf4621732f827aa345aef7d"
+    },
+    {
+      "file": "supabase/migrations/20260912000600_exports.sql",
+      "sha256": "cbe1aa5ac82856253e5fd0446e9e4d8a7880dc94cc61b4fdde4058ad03e5363b"
+    },
+    {
+      "file": "supabase/migrations/20260914000100_owner_boundary_comments.sql",
+      "sha256": "d1194f64678befae30a01bda10bbe0ef6b232b610ad559e3dc7619cee502d9b9"
+    },
+    {
+      "file": "supabase/migrations/20260914000200_realtime_authenticated_quota.sql",
+      "sha256": "2cfe23552bc65df9a497fce5b2f729bffc9e7cfa2a42945c4972591cd4e62294"
+    },
+    {
+      "file": "supabase/migrations/20260915000100_register_mlit_transaction_source.sql",
+      "sha256": "855b3933d72a24bcfde7fc47604ef8dad0ad3952f0e8e1623c67413486522a23"
+    },
+    {
+      "file": "supabase/migrations/20260915000200_owner_scoped_report_slugs.sql",
+      "sha256": "65999b60419b7d8807274803068934882c881ab81a692bc95504bc5a36d9b6e9"
+    },
+    {
+      "file": "supabase/migrations/20260915000300_account_deletion_requests.sql",
+      "sha256": "7c7efff58453edb73b9123b21eb60d1dd0cba658bd397ef2a8122767eb7465ce"
+    },
+    {
+      "file": "supabase/migrations/20260915000400_account_retention_sweeper.sql",
+      "sha256": "430674b95325f0b6e751199d9ea647e080de0d6abafb9681e228620357f11e81"
+    },
+    {
+      "file": "supabase/migrations/20260916000100_org_exports.sql",
+      "sha256": "d35795e7a0cc065f1482cb4c7a3885b5a2ab7c1eb13d006148838d8a6783c196"
+    },
+    {
+      "file": "supabase/migrations/20260916000200_org_export_idempotency.sql",
+      "sha256": "396ce91a60a6c7b9346a50d57ad6538ef7f5fd4ce9523a11f4133ee5a6ca3817"
+    },
+    {
+      "file": "supabase/migrations/20260916000300_organization_invitations.sql",
+      "sha256": "151d151d81be7d03d8740c9b0c1ad3c625431c3f55822b09dc342358f4ae41e9"
+    },
+    {
+      "file": "supabase/migrations/20260916000400_service_task_b3.sql",
+      "sha256": "83fc2970b213476263d185d23847589daf5b512fb5b74c21067eebd61d370ed8"
+    },
+    {
+      "file": "supabase/migrations/20260916000500_mlit_transactions.sql",
+      "sha256": "13bea2df088324f32898516972b6acf27a83781ebf35d352ec94abcc2d817493"
+    },
+    {
+      "file": "supabase/migrations/20260918000100_rent_reference_stats.sql",
+      "sha256": "7d3e5b54074b4ba53a4b1065e749212b8ffa0cd360d6ac109fb0467848bc4795"
+    },
+    {
+      "file": "supabase/migrations/20260918000200_rent_reference_building_dimensions.sql",
+      "sha256": "37980de566b00fee1083164bbc79a6c6f5e0563c5bbeff14c9e07a8de166ec06"
+    },
+    {
+      "file": "supabase/migrations/20260918000300_rent_reference_source_key_alignment.sql",
+      "sha256": "8fa306e44bb9dd4ab7b1eaf3ce13b5c8182ea2145928336d176e346f9248acb2"
+    },
+    {
+      "file": "supabase/migrations/20260918000400_report_generation_outbox.sql",
+      "sha256": "24f8d80258e9febd0814a291ac4107e60dbe8f11fecb5a51bf35733a2fad57b3"
+    },
+    {
+      "file": "supabase/migrations/20260920000100_usage_events_anonymization_allowance.sql",
+      "sha256": "eb79fce5b880508d63e0c5cc60a8be37a5351f4171081ce25a8fd13e73f3c0f3"
+    },
+    {
+      "file": "supabase/migrations/20260920000200_member_read_security_invoker_views.sql",
+      "sha256": "b970cf5cc7f6cae9c0b925c1592b2fe55afbea51f46f248462ede137587ffad6"
+    },
+    {
+      "file": "supabase/migrations/20260920000300_account_deletion_request_auth_anonymization.sql",
+      "sha256": "abd377c43631037e33aefc0cabc1b53e2123b2fce1b27bed95269cb52bc2a8a8"
+    },
+    {
+      "file": "supabase/migrations/20260920000400_dataset_provenance_contract.sql",
+      "sha256": "34328c8a7568405f1a11e0cd2a9e9f108df9569c97770e0703094d8689dfeae9"
+    },
+    {
+      "file": "supabase/migrations/20260920000500_sources_license_provenance.sql",
+      "sha256": "4c9d5d1e88c107b90aa71dc1036ae5d476baeb51159cf2befc10400a8de7ba36"
+    },
+    {
+      "file": "supabase/migrations/20260921000100_backfill_dataset_provenance.sql",
+      "sha256": "28243bb0fe76889cc9d737b605b15b89978cbe0289274f620a51df3a8d14fc5a"
+    },
+    {
+      "file": "supabase/migrations/20260922000100_mlit_source_class_and_report_relabel.sql",
+      "sha256": "78c307532ba5973e3cec98a260a90793c53fc3716a111b0379a9501227ef6526"
+    },
+    {
+      "file": "supabase/migrations/20260923000100_invite_only_consumer_gate.sql",
+      "sha256": "347e00765fd7ed9180ea10756ba2fab4c90fe8709536ebb04dddb535ca590354"
+    },
+    {
+      "file": "supabase/migrations/20260923000200_invite_reservation_error_states.sql",
+      "sha256": "af9b839c529f3456b0ebfadff4f74907eb70d686a872bc6d32e15ae3ad0c4fed"
+    },
+    {
+      "file": "supabase/migrations/20260923000300_shared_rate_limits.sql",
+      "sha256": "27597f7f35f16deb096686ae66f8e2ac9337c1c75ec8fc90fb551b53cd37592a"
+    }
+  ],
+  "pinned_hashes_note": "Byte-level SHA-256 of every already-applied migration. Adding a forward migration requires adding its hash in the same change; editing an applied migration in place fails C3. Regenerate with `python3 scripts/check_migration_ledger_offline.py --print-pins`.",
+  "documented_ledger": {
+    "repo_count": 54,
+    "max_version": "20260923000300"
+  }
+}

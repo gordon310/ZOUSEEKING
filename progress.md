@@ -1164,6 +1164,62 @@ git status / git diff --check                            -> 仅 4 新增文件 +
 
 **下一步建议**:自主面已基本耗尽 —— D-9/D-7/D-6 剩余全部卡在同一件事(staging/生产一次性授权 + `SMOKE_*` 凭据),D-5 的 O1/O2/O3 与 D-8 的 D2 都是**用户口径决策**。给一次"用户确认口径 → Codex 一批改完"即可同时收口 O1/O2/O3 + D2 + 发布状态;给 staging 授权即可连续收口 D-9/D-7/D-6。
 
+## 迁移台账离线终检门禁交付(D-7 离线自主面 · 2026-09-30 早班,本 BOT)
+
+### 为什么取这个单元
+
+当日为 **D-7(09-30)**:唯一口径 `C05 生产四身份(Storage/Auth/RLS)复验 + G4 终检(迁移/RLS/额度/日志)`。四身份实测、真实 migration ledger 读取、staging 复验都要 staging/生产凭据 → **不可自主**;额度维度已由 09-28 夜班离线收口。G4 剩下三个维度中,**迁移**是第一个可离线收口的 → 本班把它做成机检门禁。开工前实测工作树**干净**(HEAD `10b9f35`)。
+
+### 交付物(4 个新文件,无既有文件改写)
+
+| 文件 | 内容 |
+|---|---|
+| `docs/architecture/migration-ledger-contract.json` | 契约:canonical history、文件名模式、**54 条已应用迁移的 SHA-256 钉扎**、生产线已记录哈希(2 条)、现行「零缺口」声明绑定(2 处)、破坏性语句声明与登记、排除面(日期化证据块 \| 生产真账) |
+| `scripts/check_migration_ledger_offline.py` | 纯标准库离线门禁 C1–C7:**零网络 / 零凭据 / 零环境变量 / 不执行 SQL / 不依赖行号**;exit `0` 一致 / `1` 漂移;`--json`;`--print-pins`(只读打印钉扎块) |
+| `tests/unit/test_migration_ledger_offline.py` | **18 例**:真实仓库必须通过 + 15 条变异(改已应用迁移字节、删钉扎文件、加未钉扎新迁移、13 位版本号、重复版本、清单倒序、清单 canonical 漂移、生产线记录哈希篡改、现行声明计数/最高版本漂移、声明重复出现、未登记 `drop table`、已登记 truncate 次数漂移、登记失效、注释内关键字**不算**、契约结构) + CLI 退出码与 `--print-pins` |
+| `docs/release/migration-ledger-final-check-2026-09-30.md` | 判据表 + 原始输出 + 仓库外变异证据 + 已知限制 |
+
+### 门禁真正补上的空白(此前无任何离线守护)
+
+1. **已应用迁移不可就地修改**:AGENTS 明令 "不得就地编辑已应用 migration",此前全仓无哈希基线可证;现 54 条逐一钉扎,C3 漂移即点名文件。
+2. **生产线已记录产物仍与仓库同字节**:`m1-database-production-line-evidence.json` 里 2026-09-02 记录的 2 个迁移 sha256 现被复核(C4)。
+3. **「零缺口台账」声明不再是自由文本**:readiness summary §1 与 checklist §A A1 的 `生产 54 / 仓库 54 · 最高 20260923000300` 现与仓库绑定,且**只允许出现 1 次**;新增迁移而不更新声明即红 —— 这正是 09-24/09-27 两次台账口径漂移的同一根因。
+
+### 本 BOT 独立实跑
+
+```
+check_migration_ledger_offline.py                 -> 7/7 PASS,exit 0
+check_migration_ledger_offline.py --json          -> {"status":"pass","errors":[]}
+pytest tests/unit/test_migration_ledger_offline.py -> 18 passed
+pytest tests/unit tests/architecture -q           -> 667 passed / 91 skipped(同 checkout 基线 649,+18 零回归)
+compileall / node --check / pip check             -> OK / OK / No broken requirements found.
+check_schema_ownership.py / check_quota_enforcement_offline.py / check_release_policy.py -> pass / 0 / PASS
+check_release_status_consistency.py               -> status: open,未登记漂移 0(exit 2,仅 RS1_d8_c04_scope)
+git status --porcelain / git diff --check         -> 仅本班 4 新增文件 + 2 处文档口径追加;--check 干净
+仓库外变异探针 6 类(副本在 /tmp,工作树零改动)     -> 未变异 exit 0;改字节 / 加未钉扎 / 声明漂移 / 记录篡改 / 未登记 drop / 登记失效 各 exit 1 并点名坐标
+```
+
+### 说明(不粉饰)
+
+- 门禁**只证静态与文档一致性**:不证明生产 `supabase_migrations.schema_migrations` 真是 54 条(读真账需凭据),不证明 SQL 语义,不做 SQL 解析(C6 是去注释后的关键字扫描,函数体内部的 truncate 与顶层 truncate 一律要求登记)。
+- 字节哈希假设 checkout 不改行尾;仓库对 `*.sql` 无 `.gitattributes`,CRLF 归一化的检出会误报 C3。
+- checklist §D 仍留前滚批次前的旧快照(`50 条`、最高 `20260922000100`),与本班门禁的边界无关(**日期化证据块已显式排除**);已在本班证据文档里如实点出,**未代改**。
+- **未挂进 CI**(`release-gate.yml` 未动);新单测已被既有 `python-pytest` 覆盖。
+- 本班**未连生产/staging、未用凭据、未做 DB 写/对象变更/部署**。
+
+### 倒排现状与下一步
+
+| 项 | 状态 |
+|---|---|
+| D-9(09-28)C13 staging smoke | 🚧 缺件(`SMOKE_*` + 一次性写入授权)→ 未执行 |
+| D-8(09-29)provider 物理备份/PITR + Storage 恢复 | 🚧 需 provider 级授权 → 未执行;倒排 ↔ 清单口径冲突已登记待批(D2) |
+| **D-7(09-30)G4 终检** | 🟡 额度维度(09-28)+ **迁移维度(本班)** 已离线收口;**剩 RLS / 日志维度离线面 + 四身份实测(需凭据)** |
+| D-6(10-01)开放注册复核 | 🟡 离线部分已交付;剩真实限流/枚举/邮件确认实测 |
+| D-5(10-02)法务定稿 | 🟡 一致性门禁已交付;**O1/O2/O3 三处阻断项待用户口径确认** |
+| 发布状态判定一致性 | ✅ 门禁已交付(09-29 夜班);D1 已修,D2 待批 |
+
+**下一步建议**:G4 还剩 **RLS / 日志** 两个可离线收口的维度(下一班按序取 RLS);D-9/D-7 四身份/D-6 仍全部卡在同一件事(staging 一次性授权 + `SMOKE_*`),给授权即可连续收口;D-5 的 O1/O2/O3 与 D-8 的 D2 仍是**用户口径决策**。
+
 ## Last updated
 
-2026-09-29(夜班:D-8 需 provider 授权 → 顺延取离线自主面,交付发布状态判定一致性门禁 C0-C7,更正清单 §B C14 过期行,保留 1 项范围口径待批)
+2026-09-30(早班:D-7 取离线自主面,交付迁移台账离线终检门禁 C1–C7(54 条已应用迁移 SHA-256 钉扎 + 生产线记录哈希复核 + 现行零缺口声明绑定 + 破坏性语句登记),18 条新测试,文档口径同步)

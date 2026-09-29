@@ -70,3 +70,37 @@ test("consumer home page is installable and carries the consumer identity", asyn
   const swResponse = await page.request.get("/sw.js");
   expect(swResponse.status()).toBe(200);
 });
+
+test("authenticated analysis shell remains usable offline", async ({ browser }) => {
+  const context = await browser.newContext({
+    baseURL: "http://127.0.0.1:8787",
+    serviceWorkers: "allow",
+  });
+  await context.addInitScript(() => {
+    localStorage.setItem("sb-zou-house-auth-token", JSON.stringify({
+      access_token: "offline-test-access-token",
+      refresh_token: "offline-test-refresh-token",
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+      user: { id: "offline-test-user", email: "offline@example.com", user_metadata: { username: "offline-user" } },
+    }));
+  });
+  const page = await context.newPage();
+  try {
+    await page.goto("/property-analysis.html");
+    await page.evaluate(async () => {
+      await navigator.serviceWorker.ready;
+      if (!navigator.serviceWorker.controller) {
+        await new Promise((resolve) => navigator.serviceWorker.addEventListener("controllerchange", resolve, { once: true }));
+      }
+    });
+    await page.reload();
+    await context.setOffline(true);
+    await page.goto("/property-analysis.html", { waitUntil: "domcontentloaded" });
+
+    await expect(page.locator("#submitButton")).toBeVisible();
+    await expect(page.locator("#authGate")).toBeHidden();
+    await expect.poll(() => page.locator("#prefecture option").count()).toBeGreaterThan(1);
+  } finally {
+    await context.close();
+  }
+});

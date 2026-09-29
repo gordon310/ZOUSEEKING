@@ -212,6 +212,20 @@ h3 { margin-bottom: 0; font-size: 17px; line-height: 1.3; }
 
 .workspace-notice:not(:empty) { padding: 12px 14px; border-left: 3px solid var(--green); background: var(--surface); }
 
+.workspace-access-gate {
+  width: min(100% - 48px, 720px);
+  margin: clamp(52px, 10vw, 120px) auto;
+  padding: clamp(28px, 6vw, 56px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.workspace-access-gate p:not(.eyebrow) { max-width: 560px; color: var(--navy-soft); }
+
+.workspace-access-gate .primary-button { display: inline-flex; margin-top: 10px; text-decoration: none; }
+
 .workspace-layout { display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 28px; align-items: start; }
 
 .workspace-main { min-width: 0; }

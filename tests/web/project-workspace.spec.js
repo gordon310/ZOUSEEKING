@@ -1,6 +1,6 @@
 const { test, expect } = require("@playwright/test");
 
-test("free preview renders the report-style preview and its paid teaser", async ({ page }) => {
+test("material check renders the report-style preview and its paid teaser", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/project.html?demo=1&state=preview");
 
@@ -17,7 +17,7 @@ test("free preview renders the report-style preview and its paid teaser", async 
   expect(hasHorizontalOverflow).toBe(false);
 });
 
-test("paid report renders all 11 chapters and hides the free preview", async ({ page }) => {
+test("paid report renders all 11 chapters and hides the material check", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/project.html?demo=1&state=completed");
 
@@ -32,7 +32,7 @@ test("paid report renders all 11 chapters and hides the free preview", async ({ 
   await expect(page.locator("body")).not.toContainText("synthetic_fixture");
 });
 
-test("review state selector switches between free and paid report layouts", async ({ page }) => {
+test("review state selector switches between material check and paid report layouts", async ({ page }) => {
   await page.goto("/project.html?demo=1&state=preview");
   await page.locator("#stateSelector").selectOption("completed");
 
@@ -41,7 +41,15 @@ test("review state selector switches between free and paid report layouts", asyn
   await expect(page.locator("#reportContent")).toBeVisible();
 
   await page.locator("#stateSelector").selectOption("preview");
-  await expect(page.locator("#projectStatus")).toHaveText("免费预览");
+  await expect(page.locator("#projectStatus")).toHaveText("资料检查");
   await expect(page.locator("#freeReportContent")).toBeVisible();
   await expect(page.locator("#reportContent")).toBeHidden();
+});
+
+test("project workspace requires an explicit review mode", async ({ page }) => {
+  await page.goto("/project.html");
+
+  await expect(page.locator("#workspaceAccessGate")).toBeVisible();
+  await expect(page.locator(".workspace-page")).toBeHidden();
+  await expect(page.locator("#workspaceAccessGate a")).toHaveAttribute("href", /profile\.html\?role=consumer&return_to=project\.html/);
 });

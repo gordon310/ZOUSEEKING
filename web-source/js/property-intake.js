@@ -18,6 +18,7 @@ const copy = (key, fallback, values = {}) => Object.entries(values).reduce(
   t(key, fallback),
 );
 const NOT_SUBDIVIDED_VALUE = "__not_subdivided__";
+const JPY_PER_MAN_YEN = 10_000;
 const DIMENSION_LABELS = {
   identity: "intake.previewDimensionIdentity",
   price_cost: "intake.previewDimensionPriceCost",
@@ -38,7 +39,7 @@ const FIELD_META = [
     check: "price",
     labelKey: "intake.askingPrice",
     icon: "¥",
-    format: (value) => Number(value).toLocaleString("ja-JP"),
+    format: (value) => (Number(value) / JPY_PER_MAN_YEN).toLocaleString("ja-JP"),
   },
   {
     key: "area_sqm",
@@ -141,6 +142,7 @@ const elements = {
   submitStep: document.querySelector("#submitStep"),
   confirmStep: document.querySelector("#confirmStep"),
   previewStep: document.querySelector("#previewStep"),
+  authGate: document.querySelector("#authGate"),
   submitForm: document.querySelector("#submitForm"),
   confirmForm: document.querySelector("#confirmForm"),
   assetType: document.querySelector("#assetType"),
@@ -252,9 +254,11 @@ function setStage(stage) {
     preview: elements.previewStep,
   };
   const visibleStage = stage === "save" ? "preview" : stage;
+  const authReady = DEMO_MODE || window.ZouAuthSession?.isLoggedIn?.() || false;
   Object.entries(sections).forEach(([name, section]) => {
-    if (section) section.hidden = name !== visibleStage;
+    if (section) section.hidden = name !== visibleStage || !authReady;
   });
+  if (elements.authGate) elements.authGate.hidden = authReady;
   const currentStep = { submit: 1, confirm: 3, preview: 4, save: 5 }[stage] || 1;
   elements.progressItems.forEach((item) => {
     const itemStep = Number(item.dataset.step || 0);
@@ -273,19 +277,19 @@ function renderSaveState() {
   if (elements.saveHeading) {
     elements.saveHeading.textContent = t(
       loggedIn ? "intake.saveTitleLoggedIn" : "intake.saveTitle",
-      loggedIn ? "保存这个项目" : "注册后保存这个项目",
+      loggedIn ? "保存这个项目" : "保存这个项目",
     );
   }
   if (elements.saveCopy) {
     elements.saveCopy.textContent = t(
       loggedIn ? "intake.saveCopyLoggedIn" : "intake.saveCopy",
-      loggedIn ? "项目会保存到你当前登录的账户。" : "登录账户后，小象会把临时资料绑定到你的账户；匿名项目会在 24 小时后到期。",
+      loggedIn ? "项目会保存到你当前登录的账户。" : "请先注册或登录，再保存项目。",
     );
   }
   if (elements.saveButton && state.stage !== "save") {
     elements.saveButton.textContent = t(
       loggedIn ? "intake.saveButtonLoggedIn" : "intake.saveButton",
-      loggedIn ? "保存这个项目" : "登录后保存项目",
+      loggedIn ? "保存这个项目" : "保存这个项目",
     );
   }
 }
@@ -330,7 +334,9 @@ function formValue(fieldName) {
   if (!input) return null;
   const raw = input.value.trim();
   if (!raw) return null;
-  return input.type === "number" ? Number(raw) : raw;
+  if (input.type !== "number") return raw;
+  const number = Number(raw);
+  return fieldName === "asking_price_jpy" ? Math.round(number * JPY_PER_MAN_YEN) : number;
 }
 
 function updateSourceCount() {
@@ -641,7 +647,9 @@ function applyTextExtraction(source) {
   const extracted = extractPropertyFields(source);
   for (const [fieldName, value] of Object.entries(extracted)) {
     const input = document.querySelector(`[data-field='${fieldName}']`);
-    if (input && !input.value.trim()) input.value = String(value);
+    if (input && !input.value.trim()) {
+      input.value = String(fieldName === "asking_price_jpy" ? Number(value) / JPY_PER_MAN_YEN : value);
+    }
   }
   const missingLabels = [
     ["asking_price_jpy", "intake.askingPrice", "售价"],
@@ -808,6 +816,11 @@ function renderPreview(preview) {
 async function startIntake(event) {
   event.preventDefault();
   if (state.busy) return;
+  if (!DEMO_MODE && !window.ZouAuthSession?.isLoggedIn?.()) {
+    setStage("submit");
+    elements.authGate?.querySelector("a")?.focus();
+    return;
+  }
   if (!elements.assetType || !elements.source || !elements.files || !elements.photos) {
     return setStatus(t("intake.formUnavailable", "表单暂时无法使用，请刷新后重试。"), "error");
   }
@@ -837,12 +850,18 @@ async function startIntake(event) {
 
   state.busy = true;
   setBusy(elements.submitButton, true, t("intake.organizing", "正在整理…"));
-  setStatus(t("intake.sessionCreating", "正在创建临时分析项目，资料会在 24 小时后到期。"), "info");
+  setStatus(t("intake.sessionCreating", "正在创建分析项目，未完成项目会在 24 小时后到期。"), "info");
   try {
     if (DEMO_MODE) {
       saveAnonymousSession({ ...DEMO_SESSION, assetType });
     } else {
-      const session = await createSession(purpose);
+      const accessToken = await getValidAccessToken();
+      if (!accessToken) {
+        setStage("submit");
+        setStatusWithLoginLink(t("intake.authRequired", "请先注册或登录，再开始分析。"));
+        return;
+      }
+      const session = await createSession(purpose, "privacy-2026-08", accessToken);
       saveAnonymousSession({
         sessionId: session.session_id,
         rawToken: session.session_token,
@@ -878,6 +897,11 @@ async function startIntake(event) {
 async function createFreePreview(event) {
   event.preventDefault();
   if (state.busy) return;
+  if (!DEMO_MODE && !window.ZouAuthSession?.isLoggedIn?.()) {
+    setStage("submit");
+    elements.authGate?.querySelector("a")?.focus();
+    return;
+  }
   const session = state.session;
   if (!session?.sessionId || !session?.rawToken) {
     setStatus(t("intake.sessionExpired", "临时项目已失效，请重新开始。"), "error");
@@ -900,7 +924,7 @@ async function createFreePreview(event) {
   const fields = ["asking_price_jpy", "area_sqm", "building_name", "address", "land_right"]
     .map((fieldName) => ({ fieldName, value: formValue(fieldName) }))
     .filter((field) => field.value !== null);
-  if (!fields.length) return setStatus(t("intake.confirmFieldRequired", "至少确认售价或专有面积中的一项，再生成预览。"), "error");
+  if (!fields.length) return setStatus(t("intake.confirmFieldRequired", "至少确认售价或专有面积中的一项，再完成资料检查。"), "error");
 
   state.busy = true;
   setBusy(elements.previewButton, true, t("intake.generating", "正在生成…"));
@@ -929,12 +953,12 @@ async function createFreePreview(event) {
     renderPreview(state.preview);
     updateProjectNameDefault();
     setStage("preview");
-    setStatus(t("intake.previewGenerated", "免费预览已生成。它只反映当前资料完整度，不替代专业交易核查。"), "success");
+    setStatus(t("intake.previewGenerated", "资料检查已完成。它只反映当前资料完整度，不替代专业交易核查。"), "success");
   } catch (error) {
     console.error("Property intake preview failed", error);
     const message = error?.status === 401 || error?.status === 403 || error?.code === "auth_session_expired"
       ? t("auth.sessionExpired", "登录状态已过期，请重新登录。")
-      : t("intake.previewFailed", "预览生成失败，请稍后重试。");
+      : t("intake.previewFailed", "资料检查生成失败，请稍后重试。");
     setStatus(message, "error");
   } finally {
     state.busy = false;
@@ -971,7 +995,7 @@ async function saveProject() {
     } else {
       setStatus(hadSupabaseSession
         ? t("auth.sessionRefreshFailed", "暂时无法续期登录状态，请稍后重试。")
-        : t("intake.loginRequiredToSave", "请先登录或注册，再回来保存这个项目。匿名项目会保留到 24 小时到期。"), "info");
+        : t("intake.loginRequiredToSave", "请先注册或登录，再开始分析项目。"), "info");
       if (!hadSupabaseSession) window.location.href = "profile.html?role=consumer#accountPanel";
     }
     return;
@@ -1030,8 +1054,12 @@ async function saveProject() {
       elements.saveButton.disabled = !state.reportReady;
     }
     if (elements.savedProjectLink) {
-      elements.savedProjectLink.classList.add("hidden");
-      elements.savedProjectLink.removeAttribute("href");
+      const projectHref = reportKey && state.reportReady ? reportHref(reportKey) : "projects.html";
+      elements.savedProjectLink.href = projectHref;
+      elements.savedProjectLink.textContent = state.reportReady
+        ? t("intake.viewSavedReport", "查看报告")
+        : t("intake.viewSavedProject", "查看项目进度");
+      elements.savedProjectLink.classList.remove("hidden");
     }
     setStatus(copy("intake.projectSavedStatus", "项目已保存到你的账户（{propertyId}）。", { propertyId: result.property_id }), "success");
   } catch (error) {
@@ -1071,7 +1099,10 @@ function toggleMenu() {
 }
 
 async function initialize() {
-  window.addEventListener("zou-auth-session-changed", renderSaveState);
+  window.addEventListener("zou-auth-session-changed", () => {
+    renderSaveState();
+    setStage(state.stage);
+  });
   elements.submitForm?.addEventListener("submit", startIntake);
   elements.confirmForm?.addEventListener("submit", createFreePreview);
   elements.saveButton?.addEventListener("click", saveProject);

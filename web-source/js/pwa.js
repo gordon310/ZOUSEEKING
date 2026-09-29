@@ -69,7 +69,7 @@ async function readLatestVersion() {
     const response = await fetch(`sw.js?version-probe=${Date.now()}`, { cache: "no-store" });
     if (!response.ok) return null;
     const source = await response.text();
-    return source.match(/const SW_VERSION = "([^"]+)"/)?.[1] || null;
+    return source.match(/\bSW_VERSION\s*=\s*["']([^"']+)["']/)?.[1] || null;
   } catch {
     return null;
   }

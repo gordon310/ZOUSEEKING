@@ -1,8 +1,35 @@
 from uuid import UUID
 
+from fastapi import HTTPException
+
 from backend.app import main
+from backend.app.auth import require_user
 from backend.app.intake.geocoding import ReverseGeocoderError
 from backend.app.routes.intake import get_report_pipeline
+
+
+def test_create_session_requires_authenticated_user(client):
+    async def reject_anonymous_user():
+        raise HTTPException(status_code=401, detail="需要登录后才能开始分析。")
+
+    main.app.dependency_overrides[require_user] = reject_anonymous_user
+    response = client.post(
+        "/api/intake/sessions",
+        json={"purpose": "self_use", "consent_version": "privacy-2026-08"},
+    )
+
+    assert response.status_code == 401
+
+
+def test_create_session_binds_authenticated_owner(client, fake_repository):
+    response = client.post(
+        "/api/intake/sessions",
+        json={"purpose": "self_use", "consent_version": "privacy-2026-08"},
+    )
+
+    assert response.status_code == 201
+    session_id = UUID(response.json()["session_id"])
+    assert fake_repository.sessions[session_id]["owner_user_id"] is not None
 
 
 def test_create_session_returns_raw_token_once(client):

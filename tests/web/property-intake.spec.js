@@ -14,6 +14,16 @@ test.beforeEach(async ({ page }, testInfo) => {
       window.ZOUSEEKING_API_BASE_URL = "http://127.0.0.1:8787";
       window.ZOUSEEKING_RELEASE_SCOPE = { phase: "development", businessOperations: true, adminOperations: true };
     });
+    if (!testInfo.title.startsWith("anonymous")) {
+      await page.addInitScript(() => {
+        window.localStorage.setItem("sb-zou-house-auth-token", JSON.stringify({
+          access_token: "test-access-token",
+          refresh_token: "test-refresh-token",
+          expires_at: Math.floor(Date.now() / 1000) + 3600,
+          user: { id: "test-user", email: "test@example.com", user_metadata: { username: "test-user" } },
+        }));
+      });
+    }
   }
   let convertAttempts = 0;
   await page.route("**/api/intake/**", async (route) => {
@@ -187,27 +197,14 @@ test("staging intake page points to the deployed FastAPI", async ({ page }) => {
   );
 });
 
-test("anonymous user reaches free preview on mobile", async ({ page }) => {
+test("anonymous user must register before starting an analysis", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/property-analysis.html");
   await expect(page.locator(".intake-progress li")).toHaveCount(5);
-  await page.getByLabel("投资出租").check();
-  await page.getByLabel("物件类型 / 房型").selectOption("tower");
-  await fillLocation(page);
-  await page.getByLabel("物件链接或说明").fill("大阪市北区，售价3500万日元，45.2平方米");
-  await page.getByRole("button", { name: "开始整理资料" }).click();
-  await page.getByLabel("售价（日元）").fill("35000000");
-  await page.getByLabel("专有面积（平方米）").fill("45.2");
-  await page.getByRole("button", { name: "生成免费预览" }).click();
-  await expect(page.locator("#previewStep").getByRole("heading", { name: "免费项目预览", exact: true })).toBeVisible();
-  await expect(page.locator("#previewStep").getByText("法律与交易资料", { exact: true })).toBeVisible();
-  await expect(page.locator("#previewStep")).not.toContainText("land_right");
-  await expect(page.locator("#previewStep")).not.toContainText("insufficient_data");
-  await expect(page.locator("#previewStep")).toContainText("土地权利");
-  await expect(page.locator("#reportLink")).toHaveClass(/\bhidden\b/);
-  await expect(page.locator("#savedProjectLink")).toHaveClass(/\bhidden\b/);
-  await expect(page.locator("#previewStep .save-project a")).toHaveCount(1);
-  await expect(page.locator("#saveProjectButton")).toHaveText("登录后保存项目");
+  await expect(page.locator("#authGate")).toBeVisible();
+  await expect(page.locator("#submitStep")).toBeHidden();
+  await expect(page.locator("#authGate")).toContainText("注册或登录");
+  await expect(page.locator("#authGate a")).toHaveAttribute("href", /profile\.html\?role=consumer/);
 });
 
 test("authenticated preview sends the Supabase access token", async ({ page }) => {
@@ -231,12 +228,33 @@ test("authenticated preview sends the Supabase access token", async ({ page }) =
   await page.getByLabel("物件链接或说明").fill("大阪市北区，售价3500万日元");
   await page.getByRole("button", { name: "开始整理资料" }).click();
   await page.setInputFiles("#propertyPhotos", { name: "house.jpg", mimeType: "image/jpeg", buffer: Buffer.from("photo") });
-  await page.getByLabel("售价（日元）").fill("35000000");
+  await page.getByLabel("售价（万日元）").fill("3500");
   const previewRequest = page.waitForRequest((request) => request.url().includes(`/api/intake/sessions/${SESSION_ID}/preview`));
-  await page.getByRole("button", { name: "生成免费预览" }).click();
+  await page.getByRole("button", { name: "查看资料检查" }).click();
   const request = await previewRequest;
-  await expect(page.locator("#previewStep").getByRole("heading", { name: "免费项目预览", exact: true })).toBeVisible();
+  await expect(page.locator("#previewStep").getByRole("heading", { name: "资料检查", exact: true })).toBeVisible();
   expect(request.headers().authorization).toBe("Bearer preview-access-token");
+});
+
+test("万日元输入在提交前转换为标准 JPY", async ({ page }) => {
+  await page.goto("/property-analysis.html");
+  await page.getByLabel("物件类型 / 房型").selectOption("tower");
+  await fillLocation(page);
+  await page.getByLabel("物件链接或说明").fill("大阪市北区梅田");
+  await page.getByRole("button", { name: "开始整理资料" }).click();
+
+  await page.getByLabel("售价（万日元）").fill("3500");
+  const priceRequest = page.waitForRequest((request) => (
+    request.method() === "PUT"
+      && new URL(request.url()).pathname.endsWith(`/api/intake/sessions/${SESSION_ID}/fields/asking_price_jpy`)
+  ));
+  await page.getByRole("button", { name: "查看资料检查" }).click();
+
+  expect((await priceRequest).postDataJSON()).toMatchObject({
+    field_name: "asking_price_jpy",
+    value: 35000000,
+  });
+  await expect(page.locator("#previewStep").getByRole("heading", { name: "资料检查", exact: true })).toBeVisible();
 });
 
 test("traditional Chinese extraction copy replaces every fields placeholder", async ({ page }) => {
@@ -268,23 +286,6 @@ test("extraction placeholders are replaced in every supported locale", async ({ 
   }
 });
 
-test("anonymous save keeps the C-end login flow on the consumer account page", async ({ page }) => {
-  await page.goto("/property-analysis.html");
-  await page.getByLabel("物件类型 / 房型").selectOption("tower");
-  await fillLocation(page);
-  await page.getByLabel("物件链接或说明").fill("大阪市北区，售价3500万日元");
-  await page.getByRole("button", { name: "开始整理资料" }).click();
-  await page.setInputFiles("#propertyPhotos", { name: "house.jpg", mimeType: "image/jpeg", buffer: Buffer.from("photo") });
-  await page.getByLabel("售价（日元）").fill("35000000");
-  await page.getByLabel("专有面积（平方米）").fill("45.2");
-  await page.getByRole("button", { name: "生成免费预览" }).click();
-  await expect(page.locator("#saveProjectButton")).toHaveText("登录后保存项目");
-  await page.locator("#saveProjectButton").click();
-
-  await expect(page).toHaveURL(/\/profile\.html\?role=consumer#accountPanel$/);
-  await expect(page).toHaveTitle("账户资料｜小象避坑 ZOUBEACON");
-});
-
 test("ready report is the only next action after saving", async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.setItem("zou_house_session", JSON.stringify({
@@ -296,13 +297,13 @@ test("ready report is the only next action after saving", async ({ page }) => {
   await fillLocation(page);
   await page.getByLabel("物件链接或说明").fill("大阪市北区，售价3500万日元");
   await page.getByRole("button", { name: "开始整理资料" }).click();
-  await page.getByLabel("售价（日元）").fill("35000000");
-  await page.getByRole("button", { name: "生成免费预览" }).click();
+  await page.getByLabel("售价（万日元）").fill("3500");
+  await page.getByRole("button", { name: "查看资料检查" }).click();
   await expect(page.locator("#reportLink")).toHaveAttribute("href", /report\.html\?key=.*&lang=zh-CN/);
   await page.locator("#saveProjectButton").click();
   await expect(page.locator("#saveProjectButton")).toHaveText("查看报告");
   await expect(page.locator("#saveProjectButton")).toBeEnabled();
-  await expect(page.locator("#savedProjectLink")).toHaveClass(/\bhidden\b/);
+  await expect(page.locator("#savedProjectLink")).toBeVisible();
   await expect(page.locator("#previewStep .save-project a")).toHaveCount(1);
 });
 
@@ -313,7 +314,7 @@ test("text intake extracts price, area, and address without borrowing unrelated 
   await page.getByLabel("物件链接或说明").fill("林寺2-5-22 售价 5200万日元 面积110平方");
   await page.getByRole("button", { name: "开始整理资料" }).click();
 
-  await expect(page.getByLabel("售价（日元）")).toHaveValue("52000000");
+  await expect(page.getByLabel("售价（万日元）")).toHaveValue("5200");
   await expect(page.getByLabel("专有面积（平方米）")).toHaveValue("110");
   await expect(page.getByLabel("完整地址")).toHaveValue("林寺2-5-22");
   await expect(page.locator("#extractionHelp")).toContainText("已从文字资料识别");
@@ -438,9 +439,9 @@ test("duplicate address focuses manual investigation name and can retry", async 
   await fillLocation(page);
   await page.getByLabel("物件链接或说明").fill("大阪市北区，售价3500万日元");
   await page.getByRole("button", { name: "开始整理资料" }).click();
-  await page.getByLabel("售价（日元）").fill("35000000");
+  await page.getByLabel("售价（万日元）").fill("3500");
   await page.getByLabel("完整地址").fill("大阪府大阪市北区梅田");
-  await page.getByRole("button", { name: "生成免费预览" }).click();
+  await page.getByRole("button", { name: "查看资料检查" }).click();
   await page.evaluate(() => {
     window.localStorage.setItem(
       "zou_house_session",
@@ -461,8 +462,8 @@ test("existing Supabase auth session can save the preview", async ({ page }) => 
   await fillLocation(page);
   await page.getByLabel("物件链接或说明").fill("大阪市北区，售价3500万日元");
   await page.getByRole("button", { name: "开始整理资料" }).click();
-  await page.getByLabel("售价（日元）").fill("35000000");
-  await page.getByRole("button", { name: "生成免费预览" }).click();
+  await page.getByLabel("售价（万日元）").fill("3500");
+  await page.getByRole("button", { name: "查看资料检查" }).click();
   await page.evaluate(() => {
     window.localStorage.setItem(
       "zou_house_session",
@@ -471,7 +472,7 @@ test("existing Supabase auth session can save the preview", async ({ page }) => 
   });
   await page.locator("#saveProjectButton").click();
   await expect(page.getByRole("button", { name: "项目已保存" })).toBeDisabled();
-  await expect(page.locator("#savedProjectLink")).toHaveClass(/\bhidden\b/);
+  await expect(page.locator("#savedProjectLink")).toBeVisible();
   await expect(page.locator(".desktop-stepper [data-stage='save']")).toHaveAttribute("aria-current", "step");
 });
 
@@ -494,12 +495,10 @@ test("missing intake session during save shows recovery guidance instead of a te
   await expect(page.locator("#savedProjectLink")).toHaveClass(/\bhidden\b/);
 });
 
-test("anonymous save step keeps the temporary-project login guidance", async ({ page }) => {
+test("anonymous users see the authentication gate before any save step", async ({ page }) => {
   await page.goto("/property-analysis.html");
-  await expect(page.locator("#saveHeading")).toHaveText("注册后保存这个项目");
-  await expect(page.locator("#saveProjectButton")).toHaveText("登录后保存项目");
-  await expect(page.locator("#saveHeading").locator(".."))
-    .toContainText("匿名项目会在 24 小时后到期");
+  await expect(page.locator("#authGate")).toBeVisible();
+  await expect(page.locator("#saveProjectButton")).toBeHidden();
 });
 
 test("existing auth session is reflected in the save step before preview", async ({ page }) => {
@@ -523,8 +522,9 @@ test("existing auth session is reflected in the save step before preview", async
 });
 
 test("认证会话变更事件会即时更新第 5 步保存文案", async ({ page }) => {
+  await page.addInitScript(() => window.localStorage.removeItem("sb-zou-house-auth-token"));
   await page.goto("/property-analysis.html");
-  await expect(page.locator("#saveHeading")).toHaveText("注册后保存这个项目");
+  await expect(page.locator("#authGate")).toBeVisible();
 
   await page.evaluate(() => window.ZouAuthSession.write({
     provider: "supabase",
@@ -534,19 +534,13 @@ test("认证会话变更事件会即时更新第 5 步保存文案", async ({ pa
     refreshToken: "refresh-token",
     expiresAt: Math.floor(Date.now() / 1000) + 3600,
   }));
-  await expect(page.locator("#saveHeading")).toHaveText("保存这个项目");
-  await expect(page.locator("#saveProjectButton")).toHaveText("保存这个项目");
+  await expect(page.locator("#authGate")).toBeHidden();
 
   await page.evaluate(() => window.ZouAuthSession.write(null));
-  await expect(page.locator("#saveHeading")).toHaveText("注册后保存这个项目");
-  await expect(page.locator("#saveProjectButton")).toHaveText("登录后保存项目");
+  await expect(page.locator("#authGate")).toBeVisible();
 });
 
 test("过期 access token with valid refresh token stays logged in and saves without login redirect", async ({ page }) => {
-  await page.addInitScript(() => {
-    window.ZOUSEEKING_SUPABASE_URL = "http://supabase.test";
-    window.ZOUSEEKING_SUPABASE_ANON_KEY = "public-test-key";
-  });
   await page.route("**/auth/v1/token*", async (route) => {
     await route.fulfill({
       status: 200,
@@ -564,10 +558,12 @@ test("过期 access token with valid refresh token stays logged in and saves wit
   await fillLocation(page);
   await page.getByLabel("物件链接或说明").fill("大阪市北区，售价3500万日元");
   await page.getByRole("button", { name: "开始整理资料" }).click();
-  await page.getByLabel("售价（日元）").fill("35000000");
-  await page.getByRole("button", { name: "生成免费预览" }).click();
+  await page.getByLabel("售价（万日元）").fill("3500");
+  await page.getByRole("button", { name: "查看资料检查" }).click();
 
   await page.evaluate(() => {
+    window.ZOUSEEKING_SUPABASE_URL = "http://supabase.test";
+    window.ZOUSEEKING_SUPABASE_ANON_KEY = "public-test-key";
     localStorage.setItem("sb-supabase-auth-token", JSON.stringify({
       access_token: "expired-access-token",
       refresh_token: "valid-refresh-token",
@@ -587,10 +583,6 @@ test("过期 access token with valid refresh token stays logged in and saves wit
 });
 
 test("明确无效 refresh token shows a clickable login recovery entry", async ({ page }) => {
-  await page.addInitScript(() => {
-    window.ZOUSEEKING_SUPABASE_URL = "http://supabase.test";
-    window.ZOUSEEKING_SUPABASE_ANON_KEY = "public-test-key";
-  });
   let releaseRefresh;
   let refreshStarted;
   const refreshResponseReleased = new Promise((resolve) => {
@@ -609,9 +601,11 @@ test("明确无效 refresh token shows a clickable login recovery entry", async 
   await fillLocation(page);
   await page.getByLabel("物件链接或说明").fill("大阪市北区，售价3500万日元");
   await page.getByRole("button", { name: "开始整理资料" }).click();
-  await page.getByLabel("售价（日元）").fill("35000000");
-  await page.getByRole("button", { name: "生成免费预览" }).click();
+  await page.getByLabel("售价（万日元）").fill("3500");
+  await page.getByRole("button", { name: "查看资料检查" }).click();
   await page.evaluate(() => {
+    window.ZOUSEEKING_SUPABASE_URL = "http://supabase.test";
+    window.ZOUSEEKING_SUPABASE_ANON_KEY = "public-test-key";
     localStorage.setItem("sb-supabase-auth-token", JSON.stringify({
       access_token: "expired-access-token",
       refresh_token: "invalid-refresh-token",
@@ -627,9 +621,8 @@ test("明确无效 refresh token shows a clickable login recovery entry", async 
   await expect.poll(() => page.evaluate(() => window.ZouAuthSession.isLoggedIn())).toBe(true);
   releaseRefresh();
   await refreshPromise;
-  await page.locator("#saveProjectButton").click();
-  await expect(page.getByRole("alert")).toContainText("登录状态已过期，请重新登录");
-  await expect(page.getByRole("alert").getByRole("link", { name: "前往登录" })).toHaveAttribute("href", "profile.html?role=consumer#accountPanel");
+  await expect(page.locator("#authGate")).toBeVisible();
+  await expect(page.locator("#authGate a")).toHaveAttribute("href", /profile\.html\?role=consumer&return_to=property-analysis\.html/);
 });
 
 test("save converts the current Tokyo apartment selections", async ({ page }) => {
@@ -644,8 +637,8 @@ test("save converts the current Tokyo apartment selections", async ({ page }) =>
   await page.getByLabel("市").selectOption("千代田区");
   await page.getByLabel("物件链接或说明").fill("东京都渋谷区，售价8000万日元");
   await page.getByRole("button", { name: "开始整理资料" }).click();
-  await page.getByLabel("售价（日元）").fill("80000000");
-  await page.getByRole("button", { name: "生成免费预览" }).click();
+  await page.getByLabel("售价（万日元）").fill("8000");
+  await page.getByRole("button", { name: "查看资料检查" }).click();
   await page.locator("#saveProjectButton").click();
   const body = JSON.parse((await convertRequest).postData());
   expect(body.prefecture).toBe("东京都");
@@ -677,8 +670,8 @@ test("save sends current selections when an older unversioned api-client module 
   await page.getByLabel("市").selectOption("千代田区");
   await page.getByLabel("物件链接或说明").fill("东京都渋谷区，售价8000万日元");
   await page.getByRole("button", { name: "开始整理资料" }).click();
-  await page.getByLabel("售价（日元）").fill("80000000");
-  await page.getByRole("button", { name: "生成免费预览" }).click();
+  await page.getByLabel("售价（万日元）").fill("8000");
+  await page.getByRole("button", { name: "查看资料检查" }).click();
   await page.locator("#saveProjectButton").click();
   const body = JSON.parse((await convertRequest).postData());
   expect(body).toMatchObject({ prefecture: "东京都", city: "千代田区", ward: "__not_subdivided__", asset_type: "apartment" });

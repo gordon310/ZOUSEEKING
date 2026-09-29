@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 
-const intake = fs.readFileSync("web/js/property-intake.js", "utf8");
-const i18n = fs.readFileSync("web/js/i18n.js", "utf8");
+const intake = fs.readFileSync("web-source/js/property-intake.js", "utf8");
+const i18n = fs.readFileSync("web-source/js/i18n.js", "utf8");
 
 test("property type and location are sufficient to start intake without materials", () => {
   assert.doesNotMatch(intake, /if \(!source && !files\.length && !photos\.length\)/);

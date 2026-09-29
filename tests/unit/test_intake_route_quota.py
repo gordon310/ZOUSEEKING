@@ -45,7 +45,7 @@ async def test_preview_quota_error_uses_preview_specific_safe_message():
     error = _quota_http_exception(QuotaExceeded("usage quota is not configured"), action="preview")
 
     assert error.status_code == 429
-    assert error.detail["message"] == "当前会员额度尚未配置，暂时无法生成免费预览，请稍后再试。"
+    assert error.detail["message"] == "当前会员额度尚未配置，暂时无法完成资料检查，请稍后再试。"
 
 
 @pytest.mark.asyncio

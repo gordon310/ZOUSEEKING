@@ -1,4 +1,4 @@
-"""Parameterized persistence operations for anonymous property intake."""
+"""Parameterized persistence operations for authenticated property intake."""
 
 from __future__ import annotations
 
@@ -109,15 +109,17 @@ class IntakeRepository:
         consent_version: str,
         token_hash: str,
         expires_at: datetime,
+        owner_user_id: UUID,
     ) -> Any:
         async with self.pool.acquire() as connection:
             return await connection.fetchrow(
                 """
                 insert into public.analysis_sessions
-                  (purpose, consent_version, token_hash, expires_at)
-                values ($1, $2, $3, $4)
+                  (owner_user_id, purpose, consent_version, token_hash, expires_at)
+                values ($1, $2, $3, $4, $5)
                 returning *
                 """,
+                owner_user_id,
                 purpose,
                 consent_version,
                 token_hash,
@@ -378,9 +380,10 @@ class IntakeRepository:
                 property_id = _row_value(session, "property_id")
                 status = _row_value(session, "status")
                 if owner_user_id is not None:
-                    if status == "converted" and _as_uuid(owner_user_id) == user_id and property_id:
+                    if _as_uuid(owner_user_id) != user_id:
+                        raise SessionNotFound()
+                    if status == "converted" and property_id:
                         return ConvertedProject(user_id, _as_uuid(property_id))
-                    raise SessionNotFound()
                 if status != "preview_ready":
                     raise SessionNotFound()
 

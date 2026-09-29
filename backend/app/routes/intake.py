@@ -1,4 +1,4 @@
-"""FastAPI boundary for anonymous Osaka property intake."""
+"""FastAPI boundary for authenticated Osaka property intake."""
 
 from __future__ import annotations
 
@@ -59,8 +59,8 @@ LOCATION_FAILURE_MESSAGE = "位置资料保存失败，请稍后重试。"
 DUPLICATE_ADDRESS_MESSAGE = "同一地址已有调查记录，请手工修改记录名称。"
 PROJECT_NAME_TAKEN_MESSAGE = "这个调查记录名称已存在，请换一个名称。"
 PROJECT_NAME_REQUIRED_MESSAGE = "请先确认地址，或手工填写调查记录名称。"
-PREVIEW_QUOTA_UNAVAILABLE_MESSAGE = "当前会员额度尚未配置，暂时无法生成免费预览，请稍后再试。"
-PREVIEW_QUOTA_EXCEEDED_MESSAGE = "本周期免费预览额度已用尽，暂时无法生成免费预览。"
+PREVIEW_QUOTA_UNAVAILABLE_MESSAGE = "当前会员额度尚未配置，暂时无法完成资料检查，请稍后再试。"
+PREVIEW_QUOTA_EXCEEDED_MESSAGE = "本周期资料检查额度已用尽，请稍后再试。"
 CONVERT_QUOTA_UNAVAILABLE_MESSAGE = "当前会员额度尚未配置，暂时无法完成项目转换，请稍后再试。"
 CONVERT_QUOTA_EXCEEDED_MESSAGE = "本周期可用额度已用尽，暂时无法完成项目转换。"
 SESSION_TTL = timedelta(hours=24)
@@ -243,6 +243,7 @@ async def create_session(
     payload: CreateSessionRequest,
     request: Request,
     background_tasks: BackgroundTasks,
+    user: AuthUser = Depends(require_user),
     repository: IntakeRepository = Depends(get_intake_repository),
     storage: Any = Depends(get_storage),
 ) -> CreateSessionResponse:
@@ -255,6 +256,7 @@ async def create_session(
         payload.consent_version,
         token.digest,
         expires_at,
+        user.user_id,
     )
     if not row:
         raise HTTPException(status_code=503, detail="分析服务暂时不可用，请稍后重试。")

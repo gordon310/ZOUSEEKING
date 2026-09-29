@@ -43,11 +43,16 @@ async function request(path, { method = "GET", body, sessionToken = "", accessTo
   return payload;
 }
 
-export function createSession(purpose, consentVersion = "privacy-2026-08") {
+export function createSession(purpose, consentVersion = "privacy-2026-08", accessToken = "") {
   return request("/api/intake/sessions", {
     method: "POST",
+    accessToken,
     body: { purpose, consent_version: consentVersion },
   });
+}
+
+export function listMyQueries(accessToken) {
+  return request("/api/my/queries", { accessToken });
 }
 
 export function addTextOrUrlInput(sessionId, sessionToken, value) {

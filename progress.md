@@ -1111,6 +1111,59 @@ git status / git diff --check                           -> 仅 4 个新增文件
 
 **下一步建议**:O1/O2/O3 是同一根因(已定稿的日本口径法务文本未同步到站点),给一次「用户确认口径 → Codex 一批改完」即可同时清掉 3 项,改完复跑本门禁应只剩 `resolved`;D-8/D-9 仍只缺授权。
 
+## 发布状态判定一致性门禁交付(D-8 离线自主面 · 2026-09-29 夜班,本 BOT)
+
+### 为什么取这个单元
+
+当日为 **D-8(09-29)**,唯一口径 `C04 = provider 物理备份/PITR + 私有 Storage 隔离恢复演练` 需 provider 级授权(`provider_changes_allowed=false`)与停机窗 → **不可自主**;D-9/D-7/D-6 剩余部分同样卡在 staging/生产授权;早班已交付 D-5 的「公告 ↔ 站内 ↔ 法务文本」离线面。故取**同一根因的第二个自主面**:`352b8d4`、`7241aa2` 两次提交都在修同一类事故(发布状态文档自相矛盾/与机器状态不符),本班把它**变成机检门禁**。开工前实测工作树**干净**(HEAD `acf69a2`)。
+
+### 交付物(4 个新文件 + 1 处文档更正)
+
+| 文件 | 内容 |
+|---|---|
+| `docs/architecture/release-status-consistency-contract.json` | 契约:section 注册(历史/当前)、状态类归一、**机器状态绑定**(approval / release-evidence / staging-smoke JSON 值 → 允许的文档状态类)、状态引用声明(当前 section 必须引用机器真值且不得残留旧值)、总判定来源、倒排行 ↔ 清单项比对面、已登记开口项 |
+| `scripts/check_release_status_consistency.py` | 纯标准库离线门禁 C0–C7;**零网络/零凭据/零环境变量/不依赖行号**;exit `0` 一致 / `2` 已登记开口项 / `1` **未登记漂移**;`--json`;契约自身有问题时以 `contract error` 退出 |
+| `tests/unit/test_release_status_consistency.py` | 28 例:真实仓库零未登记漂移 + 已登记项必须仍在复现 + **21 条变异测试**(含"把 C14 行回退""把授权打回 BLOCK""新增一张未登记的判定表""漏项/重复行/抹掉状态符""倒排行与清单反向")+ 6 条契约自身变异 + CLI 退出码 |
+| `docs/release/release-status-consistency-2026-09-29.md` | 判据表 + 2 处漂移证据 + 原始输出 + 仓库外独立变异探针 + 未覆盖面 + 待批清单 |
+| `docs/release/go-no-go-checklist-2026-10-07.md` | **更正 1 行**:§B 的 C14 由「🟡 待用户逐项授权」改为「✅ 已完成(09-27)」,并引用 `AUTHORIZED` / `PRODUCTION_EVIDENCE_RECORDED` |
+
+### 查出的真实漂移
+
+- **D1(已修)**:同一份清单里 C14 自相矛盾 —— 文件头(03 行)、§C-2(123 行)与机器状态均已"已完成/已授权",而 §B 判定表(91 行)仍写「🟡 待用户逐项授权」。机器状态唯一确定(`AUTHORIZED` + `PRODUCTION_EVIDENCE_RECORDED`),故按事实更正该行;回退该行 → 门禁 exit 1 并点名 2 条坐标(已入测试)。
+- **D2(保留待批)**:倒排 D-8 行仍把 `C04` 的 provider drill 列为当日待办,清单 §B 判 C04 已闭合、剩余 provider 演练为**上线后加固项、不阻塞 10-07**。属**范围口径决策**,已登记为开口项(owner 用户,target D-2,blocking=true),不改任何文档。
+
+### 验收(本 BOT 独立实跑)
+
+```
+check_release_status_consistency.py                      -> status: open,未登记漂移 0 (exit 2);C0-C6 PASS,C7 OPEN(仅 RS1)
+check_release_status_consistency.py --json               -> {"status":"open","production_contacted":false,"network_used":false}
+pytest tests/unit/test_release_status_consistency.py -q  -> 28 passed
+pytest tests/unit tests/architecture -q                  -> 649 passed / 91 skipped(同 checkout 基线 621,+28 零回归)
+compileall backend scripts src / node --check web/app.js -> OK
+check_release_policy.py / check_schema_ownership.py      -> PASS / pass
+git status / git diff --check                            -> 仅 4 新增文件 + 1 处文档更正
+仓库外变异探针 4 类(副本在 /tmp,工作树零改动)            -> 未变异 exit 2;回退 C14 行 / 打回 BLOCK / 删历史声明 / 倒排反向 各 exit 1 并点名坐标
+```
+
+### 说明(不粉饰)
+
+- 门禁**只证文档与已存档状态之间不自相矛盾**,不证这些状态当前仍然真实(approval/evidence JSON 为 2026-09-27 存档);不判文字描述对错,只判状态类与引用同向。
+- **未挂进 CI**(`release-gate.yml` 三处挂载未动);新单测已被既有 `python-pytest` 覆盖。
+- 本班**未连生产/staging、未用凭据、未做 DB 写/对象变更/部署、未改任何法务文案**。
+
+### 倒排现状与下一步
+
+| 项 | 状态 |
+|---|---|
+| D-9(09-28)C13 staging smoke | 🚧 缺件(`SMOKE_*` + 一次性写入授权)→ 未执行 |
+| D-8(09-29)provider 物理备份/PITR + Storage 恢复 | 🚧 需 provider 级授权 → 未执行;倒排 ↔ 清单口径冲突已登记待批(D2) |
+| D-7(09-30)G4 终检 | 🟡 额度维度离线部分已交付;剩四身份实测 + 迁移/RLS/日志终检(需授权) |
+| D-6(10-01)开放注册复核 | 🟡 离线部分已交付;剩真实限流/枚举/邮件确认实测 |
+| D-5(10-02)法务定稿 | 🟡 公告↔站内↔法务一致性门禁已交付;**O1/O2/O3 三处阻断项待用户口径确认** |
+| **发布状态判定一致性** | ✅ **门禁已交付(本班)**;D1 已修,D2 待批 |
+
+**下一步建议**:自主面已基本耗尽 —— D-9/D-7/D-6 剩余全部卡在同一件事(staging/生产一次性授权 + `SMOKE_*` 凭据),D-5 的 O1/O2/O3 与 D-8 的 D2 都是**用户口径决策**。给一次"用户确认口径 → Codex 一批改完"即可同时收口 O1/O2/O3 + D2 + 发布状态;给 staging 授权即可连续收口 D-9/D-7/D-6。
+
 ## Last updated
 
-2026-09-29(早班:D-8 需 provider 授权 → 顺延取 D-5 离线自主面,交付上线面板一致性门禁,查出 O1/O2/O3 三处站内 vs 法务文本漂移)
+2026-09-29(夜班:D-8 需 provider 授权 → 顺延取离线自主面,交付发布状态判定一致性门禁 C0-C7,更正清单 §B C14 过期行,保留 1 项范围口径待批)

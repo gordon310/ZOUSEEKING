@@ -1,0 +1,192 @@
+{
+  "contract_version": 1,
+  "purpose": "Offline gate for release-status consistency across the 2026-10-07 release-status documents and the machine-readable state files that evidence them. It reconciles four surfaces that have drifted apart more than once in this countdown: (a) every C-item status table inside the go/no-go checklist, (b) the checklist verdict (header vs final-verdict section), (c) the countdown plan day rows, and (d) the checked-in JSON state files. It is offline: no network, no socket, no credentials, no environment variables, no database. It never proves live behaviour and never replaces the underlying evidence; it only proves that the documents do not contradict each other or the machine state.",
+  "documents": {
+    "checklist": "docs/release/go-no-go-checklist-2026-10-07.md",
+    "countdown_plan": "docs/superpowers/plans/2026-09-24-launch-countdown-10-07.md"
+  },
+  "item_row_pattern": "^\\|\\s*(C\\d{2})\\s*\\|",
+  "item_universe": [
+    "C01",
+    "C02",
+    "C03",
+    "C04",
+    "C05",
+    "C06",
+    "C07",
+    "C08",
+    "C09",
+    "C10",
+    "C11",
+    "C12",
+    "C13",
+    "C14"
+  ],
+  "status_classes": {
+    "closed": ["✅"],
+    "partial": ["🟡"],
+    "not_started": ["❌"]
+  },
+  "status_cell_rule": "The status cell of a row is the first cell after the item id whose text begins with a status glyph, ignoring leading markdown emphasis. A cell that merely ends with a glyph (for example an owner cell reading 'Codex ✅') is never read as the status. A row whose status cannot be resolved this way is a finding, not a default.",
+  "sections": [
+    {
+      "id": "legacy_audit_2026_09_12",
+      "heading_prefix": "# 2026-10-07 Web/PWA Go/No-Go checklist",
+      "kind": "historical",
+      "historical_marker": "旧判定不再作为当前结论,勿引用",
+      "note": "Original 2026-09-12 audit table (all items partial/not_started). It must stay frozen and must keep the caveat that says its verdict is not the current conclusion. Its rows are deliberately NOT compared with the current table: a historical 🟡/❌ followed by a current ✅ is the expected direction of progress."
+    },
+    {
+      "id": "current_item_judgement",
+      "heading_prefix": "## B. C01–C14 对 10-07 的判定",
+      "kind": "current",
+      "note": "The only table that carries today's per-item judgement; the machine-state bindings are evaluated against it."
+    },
+    {
+      "id": "final_verdict",
+      "heading_prefix": "### C-2. 最终判定",
+      "kind": "current_verdict",
+      "note": "Engineering-side verdict of record. It may narrate the transition from an older state, so stale-value scanning is not applied here."
+    }
+  ],
+  "verdict": {
+    "pattern": "工程侧[:：]\\s*\\**\\s*(Go|No-Go)",
+    "required_tokens": ["Go", "No-Go"],
+    "historical_caveat": "旧判定不再作为当前结论,勿引用",
+    "note": "Every 工程侧 verdict found in the document must resolve to a single token, and that token must be the one implied by the approval state file. The obsolete No-Go verdict may only survive as the caveated historical record."
+  },
+  "state_files": [
+    {
+      "id": "go_live_approval",
+      "path": "docs/release/production-go-live-approval.json",
+      "pointer": "/status"
+    },
+    {
+      "id": "production_release_evidence",
+      "path": "docs/release/production-release-evidence.json",
+      "pointer": "/status"
+    },
+    {
+      "id": "phase_one_staging_evidence",
+      "path": "docs/release/phase-one-staging-evidence.json",
+      "pointer": "/status"
+    }
+  ],
+  "bindings": [
+    {
+      "id": "B1_c14_go_live_approval",
+      "kind": "item_class",
+      "item": "C14",
+      "state_file": "go_live_approval",
+      "pointer": "/status",
+      "allowed_classes_when": [
+        {
+          "values": ["AUTHORIZED"],
+          "classes": ["closed"],
+          "reason": "The owner authorized the 2026-10-07 release, so C14 cannot be reported as still pending authorization."
+        },
+        {
+          "values": ["BLOCK / NOT AUTHORIZED", "NOT AUTHORIZED", "BLOCK"],
+          "classes": ["partial", "not_started"],
+          "reason": "Without an authorization record, C14 must not be reported as closed."
+        }
+      ],
+      "on_unknown_value": "fail"
+    },
+    {
+      "id": "B2_c14_release_evidence",
+      "kind": "item_class",
+      "item": "C14",
+      "state_file": "production_release_evidence",
+      "pointer": "/status",
+      "allowed_classes_when": [
+        {
+          "values": ["PRODUCTION_EVIDENCE_RECORDED"],
+          "classes": ["closed"],
+          "reason": "Production evidence has been recorded, so C14 must be reported as closed."
+        },
+        {
+          "values": ["NOT_EXECUTED"],
+          "classes": ["partial", "not_started"],
+          "reason": "No production evidence, so C14 must not be reported as closed."
+        }
+      ],
+      "on_unknown_value": "fail"
+    },
+    {
+      "id": "B3_c13_staging_evidence",
+      "kind": "item_class",
+      "item": "C13",
+      "state_file": "phase_one_staging_evidence",
+      "pointer": "/status",
+      "allowed_classes_when": [
+        {
+          "values": ["NOT_EXECUTED"],
+          "classes": ["partial", "not_started"],
+          "reason": "The staging smoke evidence bundle is still NOT_EXECUTED, so C13 cannot be reported as closed even though its carrier scripts exist."
+        }
+      ],
+      "on_unknown_value": "fail"
+    },
+    {
+      "id": "B4_verdict_go_live_approval",
+      "kind": "verdict",
+      "state_file": "go_live_approval",
+      "pointer": "/status",
+      "value_to_verdict": {
+        "AUTHORIZED": "Go",
+        "BLOCK / NOT AUTHORIZED": "No-Go",
+        "NOT AUTHORIZED": "No-Go",
+        "BLOCK": "No-Go"
+      },
+      "on_unknown_value": "fail"
+    }
+  ],
+  "state_claims": [
+    {
+      "id": "SC1_go_live_approval_status",
+      "state_file": "go_live_approval",
+      "pointer": "/status",
+      "current_value_sections": ["current_item_judgement", "final_verdict"],
+      "stale_value_sections": ["current_item_judgement"],
+      "stale_values": ["BLOCK / NOT AUTHORIZED", "NOT AUTHORIZED"],
+      "note": "The current per-item table must quote the live approval status. The final-verdict section is exempt from stale-value scanning because it narrates the transition the owner approved."
+    },
+    {
+      "id": "SC2_release_evidence_status",
+      "state_file": "production_release_evidence",
+      "pointer": "/status",
+      "current_value_sections": ["current_item_judgement", "final_verdict"],
+      "stale_value_sections": [],
+      "stale_values": [],
+      "note": "NOT_EXECUTED is deliberately not listed as a stale value: the same token legitimately describes the staging evidence bundle elsewhere in the table."
+    },
+    {
+      "id": "SC3_staging_evidence_status",
+      "state_file": "phase_one_staging_evidence",
+      "pointer": "/status",
+      "current_value_sections": ["current_item_judgement", "final_verdict"],
+      "stale_value_sections": [],
+      "stale_values": [],
+      "note": "EXECUTED is not used as a stale value because it is a substring of NOT_EXECUTED."
+    }
+  ],
+  "plan_scope": {
+    "document": "countdown_plan",
+    "row_pattern": "^\\|\\s*\\*\\*(D-\\d+)\\*\\*",
+    "item_reference_pattern": "(?<![A-Za-z0-9])(C\\d{2})(?![0-9])",
+    "closed_markers": ["✅", "已完成"],
+    "note": "A day row that references a C-item must agree with that item's current class: a row that still lists the item as work to do cannot coexist with a checklist row that calls the item closed, and a row marked closed cannot coexist with a checklist row that calls it open. Either way one of the two documents is wrong about scope."
+  },
+  "declared_open_items": [
+    {
+      "id": "RS1_d8_c04_scope",
+      "check": "C7_plan_vs_checklist_scope",
+      "coordinate_contains": "plan:D-8:C04",
+      "summary": "The countdown plan still lists C04's provider physical backup/PITR and isolated Storage restore as the D-8 unit, while the checklist reports C04 closed and files the remaining provider drill as post-launch hardening that does not block 2026-10-07. Both readings are defensible; which one governs the D-1 freeze and the D-2 Go/No-Go is the owner's scope call and no document is rewritten autonomously.",
+      "owner": "用户 (product owner)",
+      "target": "2026-10-05 (D-2 Go/No-Go)",
+      "blocking": true
+    }
+  ]
+}

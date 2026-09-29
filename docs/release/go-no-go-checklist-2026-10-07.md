@@ -88,7 +88,7 @@
 | C11 | 🟡 仅缺数值 | 09-23 已落「受邀范围」机器可读基线;**静态预算问题已消除**(最大文件 945,771 → 246,943 B < 524,288 B);缺用户提供的预算/SLO 数值 | 用户 |
 | C12 | ✅ 收窄满足 | 每次 push 均有 gate 绿证据(`252b661` 七 job);依赖审计已纳入必填。剩「候选 commit artifact checksum 归档」一次性动作 | Hermes |
 | C13 | 🟡 载体已交付(仅剩授权 + 一次运行) | **09-24 夜班**:四处交付物已落地并独立验收(见 §A A11)——默认零网络的 `--plan`、双开关门控的 `--execute`(生产 host 硬拒)、10 条固定用例、finally 清理 + 读回、脱敏证据写入、`NOT_EXECUTED` 骨架;`--self-check` 加硬守卫,**不再可能**把 canonical 证据文件写成离线假通过(实测 exit 2 且文件哈希未变)。**真实 staging 运行、cleanup 读回实测、浏览器审计仍未执行** → 需用户一次性 staging 写入授权 + `SMOKE_*` 凭据 | 用户(授权) + Codex |
-| C14 | 🟡 待用户逐项授权（口径已更新） | 旧口径「B/admin/convert/付费保持关闭」**已按 09-23/24 决策作废**;现行范围 = **C 端(小象避坑)+ 后台管理平台同时上线、开放注册、付费=单次购买**,B 端 API 由 `consumer_launch` 门禁**在 API 层强制不可达**(生产实测 12 条全 `404 GATE`)。发布物与回滚路径已就绪(回滚演练 22/38 秒)。**剩余**:`production-go-live-approval.json` 仍需记录 owner/批准时间/回滚 smoke/观察窗 → **需用户明确授权** | 用户 |
+| C14 | ✅ 已完成（09-27，本行 09-29 夜班按机器状态更正） | 旧口径「B/admin/convert/付费保持关闭」**已按 09-23/24 决策作废**;现行范围 = **C 端(小象避坑)+ 后台管理平台同时上线、开放注册、付费=单次购买**,B 端 API 由 `consumer_launch` 门禁**在 API 层强制不可达**(生产实测 12 条全 `404 GATE`)。发布物与回滚路径已就绪(回滚演练 22/38 秒)。**授权与证据已按机器状态记录**:`production-go-live-approval.json` = **`AUTHORIZED`**(owner: Gordon,批准 2026-09-27),`production-release-evidence.json` = **`PRODUCTION_EVIDENCE_RECORDED`**(逐项按生产实测填写,未执行项标 `PARTIAL`/未验证)—— 与本文件总判定及 §C-2 一致;本行此前写作「🟡 待用户逐项授权」属口径未同步,已由 `scripts/check_release_status_consistency.py` 机检拦下 | 用户(批准已给) |
 
 ## C. 10-07 阻断链 —— **已于 2026-09-27 全部执行完毕**(原链保留在 §C-历史)
 

@@ -47,3 +47,21 @@ Hermes records timestamp, symptom, scope, read-only evidence, and current owner.
 - **端到端投递已在真实环境验证(2026-09-28)**:手动触发一次注入故障的检查,执行记录 `delivery_outcome: delivered`,**owner 已确认在其 QQ 收到该告警**。同批次空输出的那次运行记录为 `suppressed`,证实「静默即正常」按设计工作。
 
 **已知边界**:派遣层运行在本机,本机关机期间不会派发(生产侧检查仍在跑并留日志,恢复开机后可见);这是当前单机条件下的取舍,已如实记录而非当作无此问题。
+
+## 运维坑:文件级 bind mount 不跟 git pull(2026-09-28 实测)
+
+`deploy-nginx-1` 把配置文件以**文件级** bind mount 挂进容器:
+
+```
+/opt/zouseeking/deploy/nginx/default.conf -> /etc/nginx/conf.d/default.conf
+```
+
+`git pull` 会**替换**该文件(新 inode),而**容器仍持有旧 inode** —— 所以
+`nginx -s reload` **读到的还是旧配置**,`docker exec ... grep <新配置>` 返回 0,看起来像"改了没生效"。
+
+**实测证据**:宿主 inode `607076` ≠ 容器内 inode `598722`;`up -d --no-deps --force-recreate nginx` 后容器内变为新配置,线上行为随之改变。
+
+**规则**:
+- 改动 nginx 配置后,**必须 force-recreate 容器**,不能只 `reload`;
+- 判断是否生效,先比 **inode**(`ls -i` 两侧),再比内容 —— **只看宿主文件会误判**;
+- `web/` 目录是**目录级**挂载,不受此影响(新文件直接可见)。

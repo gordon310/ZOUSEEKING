@@ -23,6 +23,15 @@ jobs:
   python:
     name: Python checks
     runs-on: ubuntu-24.04
+    env:
+      # Disposable PostgreSQL for the integration suites. Without it those tests
+      # skip themselves, which reads as "green" while proving nothing.
+      SUPABASE_TELEMETRY_DISABLED: "1"
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      MLIT_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      REGION_STATS_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      RLS_TEST_BASE_URL: http://127.0.0.1:54321
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,13 +39,69 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install Supabase CLI dependency
+        run: npm ci
       - name: Install backend test dependencies
         run: python -m pip install --disable-pip-version-check -r backend/requirements-dev.txt
       - name: Prepare result directory
         run: mkdir -p ci-results
+      - name: Start disposable Supabase
+        run: python scripts/ci/release_evidence.py record --name python-supabase-start --output ci-results/python-supabase-start.json -- npx supabase start
+      - name: Apply migrations to the disposable database
+        run: python scripts/ci/release_evidence.py record --name python-supabase-reset --output ci-results/python-supabase-reset.json -- npx supabase db reset --local
+      - name: Require the disposable database to be reachable
+        # Fail here rather than letting the integration suites skip themselves:
+        # an unreachable database must be a red build, never a quiet one.
+        run: |
+          python - <<'PY'
+          import asyncio
+          import os
+          import sys
+          import time
+
+          import asyncpg
+
+          url = os.environ["DATABASE_URL"]
+
+
+          async def probe() -> int:
+              conn = await asyncpg.connect(url, timeout=10)
+              try:
+                  return await conn.fetchval("select 1")
+              finally:
+                  await conn.close()
+
+
+          last = None
+          for _ in range(30):
+              try:
+                  if asyncio.run(probe()) == 1:
+                      print("disposable database reachable")
+                      sys.exit(0)
+              except Exception as exc:  # noqa: BLE001 - retry until timeout
+                  last = exc
+              time.sleep(4)
+
+          print(f"disposable database unreachable: {last}")
+          sys.exit(1)
+          PY
       - name: Run pytest
         continue-on-error: true
         run: python scripts/ci/release_evidence.py record --name python-pytest --output ci-results/python-pytest.json -- env PYTHONPATH=src:. python -m pytest -q
+      - name: Require the integration suites to have actually run
+        # These suites skip unless a database URL is configured, so a passing
+        # full run can still mean "not verified". Assert they executed.
+        run: |
+          set -o pipefail
+          output="$(env PYTHONPATH=src:. python -m pytest tests/unit/test_report_worker_process.py tests/integration/test_shared_rate_limit_postgres.py tests/integration/test_report_worker_postgres.py tests/integration/test_region_stats_postgres.py tests/integration/test_report_source_resolution_postgres.py tests/integration/test_mlit_xit001_import.py -q -rs 2>&1)"
+          echo "$output"
+          if echo "$output" | grep -qE "[0-9]+ skipped"; then
+            echo "integration suites skipped against the disposable database"
+            exit 1
+          fi
       - name: Run compileall
         continue-on-error: true
         env:

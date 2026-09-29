@@ -17,7 +17,7 @@
   const links = Array.from(document.querySelectorAll(".topbar-links a"));
   const consumerNav = [
     ["property-analysis.html", "分析物件"],
-    ["projects.html?demo=1", "我的项目"],
+    ["projects.html", "我的项目"],
     ["profile.html?role=consumer", "账户资料"],
     ["consumer-home.html", "小象避坑"],
   ];
@@ -32,7 +32,7 @@
   const accountLinks = Array.from(document.querySelectorAll(".account-action-link"));
   const consumerAccountNav = [
     ["property-analysis.html", "分析"],
-    ["projects.html?demo=1", "项目"],
+    ["projects.html", "项目"],
     ["consumer-home.html", "首页"],
   ];
   accountLinks.forEach((link, index) => {

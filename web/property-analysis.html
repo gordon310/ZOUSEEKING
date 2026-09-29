@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="提交日本物件资料，先查看资料完整度和免费项目预览。" />
+    <meta name="description" content="注册或登录后提交日本物件资料，查看资料检查并保存分析项目。" />
     <link rel="manifest" href="manifest.webmanifest?v=20260926-r67" />
     <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=20260926-r67" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -71,8 +71,8 @@
           <li data-stage="purpose" data-step="1"><span>1</span><span data-i18n="intake.stepPurpose">选择用途</span></li>
           <li data-stage="submit" data-step="2" class="is-current" aria-current="step"><span>2</span><span data-i18n="intake.stepSubmit">提交资料</span></li>
           <li data-stage="confirm" data-step="3"><span>3</span><span data-i18n="intake.stepConfirm">确认字段</span></li>
-          <li data-stage="preview" data-step="4"><span>4</span><span data-i18n="intake.stepPreview">免费预览</span></li>
-          <li data-stage="save" data-step="5"><span>5</span><span data-i18n="intake.stepSave">注册保存</span></li>
+          <li data-stage="preview" data-step="4"><span>4</span><span data-i18n="intake.stepPreview">资料检查</span></li>
+          <li data-stage="save" data-step="5"><span>5</span><span data-i18n="intake.stepSave">保存项目</span></li>
         </ol>
 
         <div class="intake-layout">
@@ -87,14 +87,21 @@
                 <li data-stage="purpose" data-step="1"><span>1</span><span data-i18n="intake.stepPurpose">选择用途</span></li>
                 <li data-stage="submit" data-step="2" class="is-current" aria-current="step"><span>2</span><span data-i18n="intake.stepSubmit">提交资料</span></li>
                 <li data-stage="confirm" data-step="3"><span>3</span><span data-i18n="intake.stepConfirm">确认字段</span></li>
-                <li data-stage="preview" data-step="4"><span>4</span><span data-i18n="intake.stepPreview">免费预览</span></li>
-                <li data-stage="save" data-step="5"><span>5</span><span data-i18n="intake.stepSave">注册保存</span></li>
+                <li data-stage="preview" data-step="4"><span>4</span><span data-i18n="intake.stepPreview">资料检查</span></li>
+                <li data-stage="save" data-step="5"><span>5</span><span data-i18n="intake.stepSave">保存项目</span></li>
               </ol>
 
               <div class="flow-content">
+                <section id="authGate" class="auth-gate" aria-labelledby="authGateHeading">
+                  <p class="section-number">1.</p>
+                  <h2 id="authGateHeading" data-i18n="intake.authGateTitle">注册或登录后开始分析</h2>
+                  <p data-i18n="intake.authGateCopy">物件资料会绑定到你的账户，分析项目和报告只对所属账户可见。请先注册或登录，再提交资料。</p>
+                  <a class="primary-action" href="profile.html?role=consumer&amp;return_to=property-analysis.html#accountPanel" data-i18n="intake.authGateCta">注册 / 登录</a>
+                </section>
+
                 <p id="intakeStatus" class="intake-status" role="alert" aria-live="assertive" tabindex="-1"></p>
 
-                <section id="submitStep" class="intake-section" aria-labelledby="submitHeading">
+                <section id="submitStep" class="intake-section" aria-labelledby="submitHeading" hidden>
                   <div class="section-heading">
                     <p class="section-number">1.</p>
                     <h2 id="submitHeading" data-i18n="intake.choosePurpose">请选择分析用途</h2>
@@ -187,7 +194,7 @@
                         </label>
                       </div>
 
-                      <p id="photoPrivacyNote" class="field-help attachment-privacy-note" data-i18n="intake.photoPrivacyNote">照片仅用于读取位置，不存储。</p>
+                      <p id="photoPrivacyNote" class="field-help attachment-privacy-note" data-i18n="intake.photoPrivacyNote">照片会临时保存到私有项目空间，仅用于本次分析；项目过期后删除。</p>
 
                       <div class="privacy-note">
                       <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -240,8 +247,8 @@
                   </section>
                   <form id="confirmForm" class="confirm-form" novalidate>
                     <div class="field-grid">
-                      <label class="field-label" for="askingPrice" data-i18n="intake.askingPrice">售价（日元）</label>
-                      <input id="askingPrice" data-field="asking_price_jpy" type="number" min="0" inputmode="numeric" placeholder="例如 35000000" data-i18n-placeholder="intake.askingPricePlaceholder" />
+                      <label class="field-label" for="askingPrice" data-i18n="intake.askingPrice">售价（万日元）</label>
+                      <input id="askingPrice" data-field="asking_price_jpy" type="number" min="0" step="0.01" inputmode="decimal" placeholder="例如 3500" data-i18n-placeholder="intake.askingPricePlaceholder" />
 
                       <label class="field-label" for="areaSqm" data-i18n="intake.area">专有面积（平方米）</label>
                       <input id="areaSqm" data-field="area_sqm" type="number" min="0" step="0.01" inputmode="decimal" placeholder="例如 45.2" data-i18n-placeholder="intake.areaPlaceholder" />
@@ -263,27 +270,27 @@
                       <span id="confirmedFieldPercent">0%</span>
                     </div>
                     <div class="completion-bar" aria-hidden="true"><span id="confirmedFieldBar"></span></div>
-                    <button id="previewButton" class="primary-action" type="submit" data-i18n="intake.generatePreview">生成免费预览</button>
+                    <button id="previewButton" class="primary-action" type="submit" data-i18n="intake.generatePreview">查看资料检查</button>
                   </form>
                 </section>
 
                 <section id="previewStep" class="intake-section preview-section-wrap" aria-labelledby="previewHeading" hidden>
                   <div class="section-heading">
                     <p class="section-number">4.</p>
-                    <h2 id="previewHeading" data-i18n="intake.previewTitle">免费项目预览</h2>
+                    <h2 id="previewHeading" data-i18n="intake.previewTitle">资料检查</h2>
                   </div>
                   <p class="section-description" data-i18n="intake.previewCopy">这是当前资料的可追溯整理结果，不是完整估价、税务意见或法律结论。</p>
                   <div id="previewContent"></div>
                   <a id="reportLink" class="primary-product-link hidden" data-i18n="report.viewReport">查看报告</a>
                   <section class="save-project" aria-labelledby="saveHeading">
                     <p class="section-number">5.</p>
-                    <h3 id="saveHeading" data-i18n="intake.saveTitle">注册后保存这个项目</h3>
-                    <p id="saveCopy" data-i18n="intake.saveCopy">登录账户后，小象会把临时资料绑定到你的账户；匿名项目会在 24 小时后到期。</p>
+                    <h3 id="saveHeading" data-i18n="intake.saveTitle">保存这个项目</h3>
+                    <p id="saveCopy" data-i18n="intake.saveCopy">确认后，项目会保存到你当前登录的账户。</p>
                     <label class="field-label" for="projectName" data-i18n="intake.projectName">调查记录名称</label>
                     <input id="projectName" name="projectName" type="text" maxlength="200" aria-describedby="projectNameHelp" placeholder="默认使用已确认地址" data-i18n-placeholder="intake.projectNamePlaceholder" />
                     <p id="projectNameHelp" class="project-name-help" data-i18n="intake.projectNameHelp">默认使用已确认地址；如果同一地址已有记录，系统会要求你手工修改名称。</p>
-                    <button id="saveProjectButton" class="primary-action" type="button" data-i18n="intake.saveButton">登录后保存项目</button>
-                    <a id="savedProjectLink" class="secondary-action hidden" data-i18n="intake.viewSavedReport">查看报告</a>
+                    <button id="saveProjectButton" class="primary-action" type="button" data-i18n="intake.saveButton">保存项目</button>
+                    <a id="savedProjectLink" class="secondary-action hidden" data-i18n="intake.viewSavedProject">查看项目进度</a>
                   </section>
                 </section>
               </div>
@@ -308,7 +315,7 @@
                 <li data-check="purpose"><span class="check-icon">✓</span><span data-i18n="intake.purposeLabel">分析用途</span><span class="chevron" aria-hidden="true">›</span></li>
                 <li data-check="assetType"><span class="check-icon">✓</span><span data-i18n="intake.assetTypeShort">物件类型</span><span class="chevron" aria-hidden="true">›</span></li>
                 <li data-check="source"><span class="check-icon">✓</span><span data-i18n="intake.propertySource">物件链接或说明</span><span class="chevron" aria-hidden="true">›</span></li>
-                <li data-check="price"><span class="check-icon">✓</span><span data-i18n="intake.askingPrice">售价（日元）</span><span class="chevron" aria-hidden="true">›</span></li>
+                <li data-check="price"><span class="check-icon">✓</span><span data-i18n="intake.askingPrice">售价（万日元）</span><span class="chevron" aria-hidden="true">›</span></li>
                 <li data-check="area"><span class="check-icon">✓</span><span data-i18n="intake.area">专有面积（平方米）</span><span class="chevron" aria-hidden="true">›</span></li>
                 <li data-check="files"><span class="check-icon">✓</span><span data-i18n="intake.filesAndPhotos">资料文件与物件照片（可选）</span><span class="chevron" aria-hidden="true">›</span></li>
               </ol>
@@ -322,7 +329,7 @@
             </section>
 
             <section class="rail-preview">
-              <h2 data-i18n="intake.previewTitle">免费项目预览</h2>
+              <h2 data-i18n="intake.previewTitle">资料检查</h2>
               <div class="rail-preview-detail">
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                   <rect x="5" y="3.5" width="14" height="17" rx="2" />
@@ -333,7 +340,7 @@
                   <p data-i18n="intake.legalMaterialsCopy">整理不动产登记、土地与建筑信息、用途地域、建蔽率/容积率等核心资料。</p>
                 </div>
               </div>
-              <p class="included-note"><span>✓</span> <span data-i18n="intake.includedFree">包含在免费预览中</span></p>
+              <p class="included-note"><span>✓</span> <span data-i18n="intake.includedFree">注册后可查看当前资料检查</span></p>
             </section>
           </aside>
         </div>
@@ -344,8 +351,8 @@
           <li data-stage="purpose" data-step="1"><span>1</span><span data-i18n="intake.stepPurpose">选择用途</span></li>
           <li data-stage="submit" data-step="2" class="is-current" aria-current="step"><span>2</span><span data-i18n="intake.stepSubmit">提交资料</span></li>
           <li data-stage="confirm" data-step="3"><span>3</span><span data-i18n="intake.stepConfirm">确认字段</span></li>
-          <li data-stage="preview" data-step="4"><span>4</span><span data-i18n="intake.stepPreview">免费预览</span></li>
-          <li data-stage="save" data-step="5"><span>5</span><span data-i18n="intake.stepSave">注册保存</span></li>
+          <li data-stage="preview" data-step="4"><span>4</span><span data-i18n="intake.stepPreview">资料检查</span></li>
+          <li data-stage="save" data-step="5"><span>5</span><span data-i18n="intake.stepSave">保存项目</span></li>
         </ol>
       </nav>
     </main>

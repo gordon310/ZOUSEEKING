@@ -42,7 +42,7 @@ def test_no_request_path_executes_generation_jobs() -> None:
     """A BackgroundTasks report call would make crash/replay semantics non-durable."""
     all_source = "\n".join(path.read_text(encoding="utf-8") for path in _python_sources())
     assert not re.search(r"\.add_task\(\s*run_generation_job\s*[,)]", all_source)
-    assert _call_sites("add_task") == [(Path("backend/app/routes/intake.py"), 261)]
+    assert _call_sites("add_task") == [(Path("backend/app/routes/intake.py"), 263)]
     intake = (ROOT / "backend/app/routes/intake.py").read_text(encoding="utf-8")
     assert "background_tasks.add_task(cleanup_expired_sessions, repository, storage)" in intake
 

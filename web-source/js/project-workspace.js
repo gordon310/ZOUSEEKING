@@ -16,6 +16,8 @@ const state = {
 
 const elements = {
   reviewToolbar: document.querySelector("#reviewToolbar"),
+  accessGate: document.querySelector("#workspaceAccessGate"),
+  workspacePage: document.querySelector(".workspace-page"),
   stateSelector: document.querySelector("#stateSelector"),
   status: document.querySelector("#projectStatus"),
   notice: document.querySelector("#workspaceNotice"),
@@ -40,19 +42,19 @@ const elements = {
 
 const VERSION_DATA = [
   { id: "v2", label: "V2", title: "补充资料后的报告", date: "2026-08-27 14:20", note: "新增 2 项确认字段；仍有关键资料不足。" },
-  { id: "v1", label: "V1", title: "首轮免费预览", date: "2026-08-27 11:05", note: "基于初始提交资料生成的免费预览。" },
+  { id: "v1", label: "V1", title: "首轮资料检查", date: "2026-08-27 11:05", note: "基于初始提交资料生成的资料检查。" },
 ];
 
 const VERSION_3 = { id: "v3", label: "V3", title: "更新后的报告", date: "2026-08-27 15:10", note: "补充资料后的新版本；V2 保持只读。" };
 
 const STATE_DATA = {
   preview: {
-    status: "免费预览",
+    status: "资料检查",
     completion: 62,
     nextTitle: "先注册保存项目",
-    nextCopy: "匿名资料会在 24 小时后到期。注册后才能继续管理项目和报告版本。",
+    nextCopy: "项目资料只在所属账户内保存；注册或登录后才能继续管理项目和报告版本。",
     nextLabel: "注册并保存项目",
-    notice: "当前显示免费预览。它只反映资料完整度，不包含完整行动结论。",
+    notice: "当前显示资料检查结果。它只反映资料完整度，不包含完整行动结论。",
   },
   ready: {
     status: "权益已准备",
@@ -156,8 +158,8 @@ function renderStateCard(view) {
       <article class="${classes}">
         <div class="state-header">
           <div>
-            <p class="eyebrow">FREE PREVIEW</p>
-            <h2>免费项目预览已生成</h2>
+            <p class="eyebrow">MATERIAL CHECK</p>
+            <h2>资料检查已完成</h2>
             <p>你已经看到资料完整度、费用项目和当前提醒。完整报告会固定本次输入和规则版本。</p>
           </div>
           <span class="state-mark">${mark.symbol}</span>
@@ -185,7 +187,7 @@ function renderStateCard(view) {
         <div class="state-meta"><span>内部测试权益 · 1 次</span><span>预计生成：演示</span><span>报告旧版本：保留</span></div>
         <div class="state-actions">
           <button class="primary-button" type="button" data-action="running">启动完整分析</button>
-          <button class="outline-button" type="button" data-action="preview">返回免费预览</button>
+          <button class="outline-button" type="button" data-action="preview">返回资料检查</button>
         </div>
       </article>
     `;
@@ -230,12 +232,12 @@ function renderStateCard(view) {
           <span class="state-mark ${mark.tone}">${mark.symbol}</span>
         </div>
         <div class="upload-summary">
-          <div><strong>失败类别：资料处理暂时不可用</strong><span>已有 V1 免费预览仍然可查看，输入资料不会丢失。</span></div>
+          <div><strong>失败类别：资料处理暂时不可用</strong><span>已有 V1 资料检查仍然可查看，输入资料不会丢失。</span></div>
           <span class="table-status missing">未生成 V2</span>
         </div>
         <div class="state-actions">
           <button class="primary-button" type="button" data-action="running">重新生成</button>
-          <button class="outline-button" type="button" data-action="preview">查看免费预览</button>
+          <button class="outline-button" type="button" data-action="preview">查看资料检查</button>
         </div>
       </article>
     `;
@@ -324,6 +326,9 @@ function updateNextAction(view) {
 function render() {
   const config = STATE_DATA[state.view];
   elements.reviewToolbar.hidden = !state.demo;
+  elements.accessGate.hidden = state.demo;
+  elements.workspacePage.hidden = !state.demo;
+  if (!state.demo) return;
   elements.stateSelector.value = state.view;
   elements.status.textContent = config.status;
   elements.status.dataset.state = state.view;

@@ -48,7 +48,7 @@
       <div class="projects-review-banner" id="projectsReviewBanner" hidden>
         <strong>界面评审模式</strong>
         <span>列表内容为合成示例数据演示，不代表真实项目或分析结论。</span>
-        <label>状态筛选<select id="statusFilter"><option value="all">全部状态</option><option value="draft">资料待确认</option><option value="preview">免费预览</option><option value="running">生成中</option><option value="completed">完整报告</option><option value="failed">生成失败</option></select></label>
+        <label>状态筛选<select id="statusFilter"><option value="all">全部状态</option><option value="draft">待处理</option><option value="running">生成中</option><option value="completed">完整报告</option><option value="failed">生成失败</option></select></label>
       </div>
 
       <div class="projects-page">
@@ -59,10 +59,16 @@
             <h1>我的项目</h1>
             <p>保存过的物件资料、分析进度和报告版本，都从这里继续。</p>
           </div>
-          <a class="primary-button" href="property-analysis.html?demo=1">分析一个新物件</a>
+          <a class="primary-button" href="property-analysis.html">分析一个新物件</a>
         </header>
 
         <div class="projects-notice" id="projectsNotice" role="status" aria-live="polite"></div>
+
+        <section class="projects-auth-state" id="projectsAuthState" hidden aria-labelledby="projectsAuthHeading">
+          <h2 id="projectsAuthHeading">注册或登录后查看项目</h2>
+          <p>项目资料和报告只对所属账户可见。请先进入账户页面完成注册或登录。</p>
+          <a class="primary-button" href="profile.html?role=consumer&amp;return_to=projects.html#accountPanel">注册 / 登录</a>
+        </section>
 
         <section class="project-list-shell" aria-labelledby="projectListHeading">
           <div class="project-list-heading">
@@ -76,13 +82,16 @@
           <span class="empty-mark" aria-hidden="true">＋</span>
           <h2 id="emptyHeading">还没有符合条件的项目</h2>
           <p>可以换一个状态筛选，或者从一个日本物件开始。</p>
-          <a class="outline-button" href="property-analysis.html?demo=1">开始分析</a>
+          <a class="outline-button" href="property-analysis.html">开始分析</a>
         </section>
 
         <footer class="projects-footer"><span>私有项目仅对所属账户可见。</span><a href="ui-review.html">返回前端流程评审</a></footer>
       </div>
     </main>
+    <script src="config.js?v=20260926-r67"></script>
+    <script src="js/auth-session.js?v=20260926-r67"></script>
     <script src="js/pwa.js?v=20260926-r67"></script>
+    <script src="js/i18n.js?v=20260926-r67"></script>
     <script type="module" src="js/projects.js?v=20260926-r67"></script>
   </body>
 </html>

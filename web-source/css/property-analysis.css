@@ -116,6 +116,33 @@ button:disabled {
 
 .demo-banner strong { color: var(--orange-dark); }
 
+.auth-gate {
+  display: grid;
+  gap: 10px;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: clamp(28px, 6vw, 54px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface-warm);
+  box-shadow: var(--shadow-soft);
+}
+
+.auth-gate h2,
+.auth-gate p {
+  margin: 0;
+}
+
+.auth-gate p:not(.section-number) {
+  color: var(--navy-soft);
+}
+
+.auth-gate .primary-action {
+  width: fit-content;
+  margin-top: 6px;
+  text-decoration: none;
+}
+
 .beacon-brand {
   display: inline-flex;
   align-items: center;

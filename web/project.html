@@ -57,7 +57,7 @@
         <label>
           查看状态
           <select id="stateSelector">
-            <option value="preview">免费预览</option>
+            <option value="preview">资料检查</option>
             <option value="ready">权益已准备</option>
             <option value="running">生成中</option>
             <option value="completed">完整报告</option>
@@ -67,7 +67,14 @@
         </label>
       </div>
 
-      <div class="workspace-page">
+      <section class="workspace-access-gate" id="workspaceAccessGate" aria-labelledby="workspaceAccessHeading">
+        <p class="eyebrow">ZOUBEACON</p>
+        <h1 id="workspaceAccessHeading">注册或登录后查看项目</h1>
+        <p>项目资料和报告只对所属账户可见。请从账户页面完成注册或登录，再从“我的项目”进入。</p>
+        <a class="primary-button" href="profile.html?role=consumer&amp;return_to=project.html#accountPanel">注册 / 登录</a>
+      </section>
+
+      <div class="workspace-page" hidden>
         <nav class="breadcrumbs" aria-label="面包屑导航">
           <a href="projects.html">我的项目</a>
           <span aria-hidden="true">/</span>
@@ -81,7 +88,7 @@
             <p class="project-subtitle">以当前已确认资料为基础，查看分析进度、报告版本和下一步动作。</p>
           </div>
           <div class="project-heading-meta">
-            <span class="project-status" id="projectStatus">免费预览</span>
+            <span class="project-status" id="projectStatus">资料检查</span>
             <span class="fixture-label">界面演示 · 合成示例数据</span>
           </div>
         </header>
@@ -141,11 +148,11 @@
             <section class="report-content free-report-content" id="freeReportContent" hidden aria-labelledby="freeReportHeading">
               <div class="report-title-row">
                 <div>
-                  <p class="eyebrow">FREE PREVIEW · V1 · SYNTHETIC SAMPLE</p>
+                  <p class="eyebrow">MATERIAL CHECK · V1 · SYNTHETIC SAMPLE</p>
                   <h2 id="freeReportHeading">先看清资料状态，再决定是否继续</h2>
-                  <p>免费预览帮助你判断资料是否值得补齐，不替代正式交易核查，也不公开完整行动结论。</p>
+                  <p>资料检查帮助你确认缺口，不替代正式交易核查，也不公开完整行动结论。</p>
                 </div>
-                <span class="conclusion conclusion-free">免费预览</span>
+                <span class="conclusion conclusion-free">资料检查</span>
               </div>
 
               <div class="report-alert report-alert-neutral">
@@ -153,7 +160,7 @@
                 <p>没有证据支持的字段会保留为资料不足；收费完整版才会展开证据推理、市场比较和专项测算。</p>
               </div>
 
-              <div class="preview-metric-grid" aria-label="免费预览摘要">
+              <div class="preview-metric-grid" aria-label="资料检查摘要">
                 <article class="preview-metric-card preview-metric-primary">
                   <span class="metric-label">资料完整度</span>
                   <strong>62%</strong>
@@ -278,7 +285,7 @@
               </div>
 
               <footer class="report-footer">
-                <span>免费预览 V1 · 输入版本 I1 · 数据类别：合成示例数据</span>
+                <span>资料检查 V1 · 输入版本 I1 · 数据类别：合成示例数据</span>
                 <span>预览结果不保存完整报告，不替代专业意见。</span>
               </footer>
             </section>
@@ -500,7 +507,7 @@
                   <div class="method-grid">
                     <dl class="source-list">
                       <div><dt>数据类别</dt><dd>合成示例数据</dd></div>
-                      <div><dt>计算规则</dt><dd>free-preview-v1 · 演示</dd></div>
+                      <div><dt>计算规则</dt><dd>material-check-v1 · 演示</dd></div>
                       <div><dt>市场口径</dt><dd>未生成估算</dd></div>
                     </dl>
                     <div class="method-note"><strong>结论边界</strong><p>缺少证据时保持“资料不足”，不把模型估算或示例数据当作收集到的市场事实。</p><p>本报告不替代宅地建物取引士、律师、税务师或金融机构意见。</p></div>
@@ -545,9 +552,9 @@
 
             <section class="rail-panel next-action-panel" id="nextActionPanel">
               <p class="eyebrow">NEXT ACTION</p>
-              <h2 id="nextActionTitle">先查看免费预览</h2>
-              <p id="nextActionCopy">你可以先确认资料整理结果，再决定是否注册保存。</p>
-              <button class="primary-button" id="nextActionButton" type="button">查看免费预览</button>
+              <h2 id="nextActionTitle">注册后查看项目进度</h2>
+              <p id="nextActionCopy">项目资料只在所属账户内保存；注册或登录后才能继续管理项目和报告版本。</p>
+              <button class="primary-button" id="nextActionButton" type="button">注册并保存项目</button>
             </section>
 
             <section class="rail-panel safe-note">

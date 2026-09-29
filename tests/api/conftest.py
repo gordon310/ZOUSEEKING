@@ -37,7 +37,7 @@ class FakeRepository:
         self.duplicate_address = False
         self.project_name_taken = False
 
-    async def create_session(self, purpose, consent_version, token_hash, expires_at):
+    async def create_session(self, purpose, consent_version, token_hash, expires_at, owner_user_id):
         session_id = uuid4()
         session = {
             "id": session_id,
@@ -45,7 +45,7 @@ class FakeRepository:
             "consent_version": consent_version,
             "token_hash": token_hash,
             "expires_at": expires_at,
-            "owner_user_id": None,
+            "owner_user_id": owner_user_id,
             "property_id": None,
             "status": "draft",
         }
@@ -144,9 +144,10 @@ class FakeRepository:
     async def convert_to_user(self, session_id, token_hash, user_id, project_name=None):
         session = await self.require_session(session_id, token_hash)
         if session["owner_user_id"] is not None:
-            if session["owner_user_id"] == user_id:
+            if session["owner_user_id"] != user_id:
+                raise SessionNotFound()
+            if session["status"] == "converted" and session["property_id"]:
                 return ConvertedProject(user_id, session["property_id"])
-            raise SessionNotFound()
         if session["status"] != "preview_ready":
             raise SessionNotFound()
         if self.duplicate_address and not project_name:

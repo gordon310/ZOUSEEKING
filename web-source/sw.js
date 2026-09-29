@@ -8,20 +8,52 @@
  * Bump SW_VERSION to force an app-shell refresh after deploys.
  */
 const SW_VERSION = "20260926-r67";
-const APP_SHELL = [
+const APP_SHELL_PAGES = [
   "./index.html",
+  "./consumer-home.html",
   "./property-analysis.html",
   "./report.html",
   "./project.html",
   "./projects.html",
   "./mypage.html",
-].map((path) => `${path}?v=${SW_VERSION}`);
+  "./profile.html",
+];
+const APP_SHELL_ASSETS = [
+  "./config.js",
+  "./field-options.json",
+  "./manifest.webmanifest",
+  "./property-analysis.css",
+  "./projects.css",
+  "./project-workspace.css",
+  "./report-page.css",
+  "./styles.css",
+  "./js/auth-session.js",
+  "./js/auth-recovery.js",
+  "./js/api-client.js",
+  "./js/i18n.js",
+  "./js/pwa.js",
+  "./js/property-intake.js",
+  "./js/property-intake-extraction.js",
+  "./js/recognition.js",
+  "./js/projects.js",
+  "./js/project-workspace.js",
+  "./js/report-page.js",
+  "./js/business-api.js",
+  "./js/record-location.js",
+  "./js/profile-role.js",
+  "./app.js",
+  "./assets/logoELE-beacon.svg",
+  "./assets/apple-touch-icon.png",
+];
+const APP_SHELL = [...APP_SHELL_PAGES, ...APP_SHELL_ASSETS].map((path) => `${path}?v=${SW_VERSION}`);
 const CACHE_NAME = `zouseeking-shell-${SW_VERSION}`;
 const APP_SHELL_PATHS = new Set(APP_SHELL.map((path) => new URL(path, self.location).pathname));
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()),
+    caches.open(CACHE_NAME)
+      .then((cache) => Promise.all(APP_SHELL.map((path) => cache.add(path).catch(() => null))))
+      .then(() => self.skipWaiting()),
   );
 });
 
@@ -62,6 +94,12 @@ function cacheAppShellFallback(pathname) {
   });
 }
 
+function cacheVersionedAssetFallback(url) {
+  const versionedUrl = new URL(url.href);
+  versionedUrl.search = `?v=${SW_VERSION}`;
+  return caches.match(versionedUrl).then((cached) => cached || caches.match(url));
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -89,24 +127,26 @@ self.addEventListener("fetch", (event) => {
   if (!isStaticAsset(url)) return;
 
   if (!isVersionedAsset(url)) {
-    event.respondWith(fetch(request).catch(() => caches.match(request)));
+    event.respondWith(fetch(request).catch(() => cacheVersionedAssetFallback(url)));
     return;
   }
 
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
-      return fetch(request).then((response) => {
-        if (response && response.ok) {
-          event.waitUntil(
-            caches
-              .open(CACHE_NAME)
-              .then((cache) => cache.put(request, response.clone()))
-              .catch(() => {}),
-          );
-        }
-        return response;
-      });
+      return fetch(request)
+        .then((response) => {
+          if (response && response.ok) {
+            event.waitUntil(
+              caches
+                .open(CACHE_NAME)
+                .then((cache) => cache.put(request, response.clone()))
+                .catch(() => {}),
+            );
+          }
+          return response;
+        })
+        .catch(() => cacheVersionedAssetFallback(url));
     }),
   );
 });

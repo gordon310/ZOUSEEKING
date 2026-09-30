@@ -71,6 +71,33 @@ test("consumer home page is installable and carries the consumer identity", asyn
   expect(swResponse.status()).toBe(200);
 });
 
+test("consumer home sends anonymous visitors only to registration or login", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/consumer-home.html");
+
+  const actions = page.locator(".consumer-home-actions a");
+  await expect(actions).toHaveCount(1);
+  await expect(actions.first()).toHaveAttribute("href", /profile\.html\?role=consumer/);
+  await expect(page.locator('.consumer-home-actions a[href^="property-analysis.html"]')).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});
+
+test("consumer home defaults to Japanese and offers a persistent language switcher", async ({ page }) => {
+  await page.goto("/consumer-home.html");
+
+  const switcher = page.locator("[data-locale-switcher]");
+  await expect(page.locator("html")).toHaveAttribute("lang", "ja");
+  await expect(switcher).toBeVisible();
+  await expect(switcher).toHaveValue("ja");
+  await expect(page.locator("#consumerHomeTitle")).toContainText("日本の物件");
+  await expect(page.locator(".consumer-home-actions a")).toHaveText("登録 / ログイン");
+
+  await switcher.selectOption("zh-CN");
+  await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
+  await expect(page.locator("#consumerHomeTitle")).toContainText("日本物件");
+  await expect(page.locator(".consumer-home-actions a")).toHaveText("注册 / 登录");
+});
+
 test("authenticated analysis shell remains usable offline", async ({ browser }) => {
   const context = await browser.newContext({
     baseURL: "http://127.0.0.1:8787",

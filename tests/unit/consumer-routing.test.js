@@ -9,8 +9,8 @@ const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "u
 test("consumer home is an independent C-end entry page", () => {
   const html = read("web/consumer-home.html");
   assert.match(html, /<title[^>]*>[^<]*小象避坑/);
-  assert.match(html, /property-analysis\.html/);
   assert.match(html, /profile\.html\?role=consumer#accountPanel/);
+  assert.doesNotMatch(html, /href=["']property-analysis\.html/);
 });
 
 test("consumer-owned navigation does not use the B-end index page", () => {

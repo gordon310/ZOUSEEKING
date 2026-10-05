@@ -7,7 +7,7 @@
  * to the network - never cache member data, reports or auth responses.
  * Bump SW_VERSION to force an app-shell refresh after deploys.
  */
-const SW_VERSION = "20260926-r67";
+const SW_VERSION = "20261005-r68";
 const APP_SHELL_PAGES = [
   "./index.html",
   "./consumer-home.html",
@@ -37,6 +37,7 @@ const APP_SHELL_ASSETS = [
   "./js/recognition.js",
   "./js/projects.js",
   "./js/project-workspace.js",
+  "./js/project-live.js",
   "./js/report-page.js",
   "./js/business-api.js",
   "./js/record-location.js",

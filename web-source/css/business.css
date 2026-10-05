@@ -558,7 +558,7 @@
   }
 
   .business-home .business-latest-panel {
-    grid-column: 1;
+    grid-column: 2;
     grid-row: 3;
     margin-top: 12px;
   }
@@ -578,7 +578,7 @@
   }
 
   .business-home .business-latest-panel {
-    grid-column: 1;
+    grid-column: 2;
   }
 
   .business-app .hero {
@@ -693,3 +693,22 @@
     min-height: 44px;
   }
 }
+
+.query-type-control { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 18px auto 0; padding: 10px 12px; width: min(100% - 32px, 1120px); border: 1px solid var(--line); }
+.query-type-control label { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-size: 13px; }
+.query-type-control input { width: 24px; height: 24px; min-height: 24px; margin: 0; }
+[hidden] { display: none !important; }
+@media (min-width: 901px) {
+  .business-app .query-type-control, .business-app .region-stats-panel { grid-column: 2; width: auto; margin-inline: 0; }
+}
+@media (max-width: 900px) {
+  .business-home .account-panel { margin-bottom: 18px; }
+}
+
+@media (max-width: 900px) {
+  .business-app #queryForm { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .business-app #queryForm label { min-width: 0; }
+}
+
+#queryLoginLink { grid-column: 2; justify-self: start; }
+@media (max-width: 900px) { #queryLoginLink { grid-column: 1; } }

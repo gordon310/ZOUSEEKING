@@ -1,5 +1,5 @@
-import { getValidAccessToken } from "./api-client.js?v=20260926-r67";
-import { currencyForRegion, inferRegion, reportAccessState, reportCoverageState, selectPrice } from "./report-page-core.js?v=20260926-r67";
+import { getValidAccessToken } from "./api-client.js?v=20261005-r68";
+import { currencyForRegion, inferRegion, reportAccessState, reportCoverageState, selectPrice } from "./report-page-core.js?v=20261005-r68";
 
 const PRODUCT_CODE = "risk_report_single";
 const params = new URL(window.location.href).searchParams;
@@ -127,7 +127,7 @@ async function preparePaywall(report) {
     }
     elements.login.hidden = false;
     elements.unlock.hidden = true;
-    elements.login.href = `mypage.html?return=${encodeURIComponent(`report.html?key=${queryKey}`)}`;
+    elements.login.href = `profile.html?role=consumer&return_to=${encodeURIComponent(`report.html${window.location.search}`)}#accountPanel`;
     return;
   }
   elements.login.hidden = true;

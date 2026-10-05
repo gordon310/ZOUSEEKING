@@ -1223,3 +1223,11 @@ git status --porcelain / git diff --check         -> 仅本班 4 新增文件 + 
 ## Last updated
 
 2026-09-30(早班:D-7 取离线自主面,交付迁移台账离线终检门禁 C1–C7(54 条已应用迁移 SHA-256 钉扎 + 生产线记录哈希复核 + 现行零缺口声明绑定 + 破坏性语句登记),18 条新测试,文档口径同步)
+
+## 2026-10-05：PWA 上线闭环重新核对与排期
+
+已交付 `docs/release/pwa-launch-closure-2026-10-05.md`：沿用 10-07 目标，重排 L01–L09（法务/环境隔离与恢复范围/候选整合/缓存更新/真机/交易权限/值守恢复/终检/30min+24h观察）。公开 GET 证实线上首页、manifest、SW 与 ready 可用，版本仍 r67；本轮 UX r68 未整合。离线迁移钉扎与注册静态检查 PASS；站内法务 O1/O2/O3 和恢复范围 RS1 仍 OPEN。新增核对点：稳定 sw.js URL 一年 immutable 缓存、smoke 白名单与生产证据使用相同 project_ref，写入验收前必须先确认隔离。未部署、未操作凭据、未做 DB/Storage/支付写入；当前仅计划与只读核对完成。
+
+## 2026-10-05：继续 PWA 上线闭环（本地候选验收）
+
+在 codex/ux-simplification 完成：nginx SW/manifest 再验证缓存头、新版表单变更阻止自动刷新、r68 全资产版本归一、Node 安全检查接入既有 CI、已审定姓名 O3 同步。全套浏览器139 passed，聚焦 pytest31 passed，Node/资产新鲜度/版本/策略/秘密扫描/差异检查通过；本地临时 nginx 三host9个HTTP检查通过并清理。真实r67保存夹具首次升级清洁页只刷新一次，新版 dirty guard/离线私有API也验证通过。O1/O2、环境隔离、真实设备/交易/响应恢复仍未关闭；未部署、不改生产数据，待候选 main 整合与远程完整 CI。细节为候选 docs/release/pwa-preflight-evidence-2026-10-05.md 和 legal-site-sync-review-2026-10-05.md。

@@ -1,3 +1,5 @@
+import { loadLiveProject } from "./project-live.js?v=20261005-r68";
+
 const DEMO_STATES = new Set(["preview", "ready", "running", "completed", "failed", "update"]);
 const DEMO_QUERY = "demo";
 const STATE_QUERY = "state";
@@ -413,3 +415,5 @@ initializeMenu();
 elements.stateSelector.addEventListener("change", (event) => writeState(event.target.value));
 elements.serviceRequestButton?.addEventListener("click", submitServiceRequest);
 render();
+
+if (!state.demo) loadLiveProject();

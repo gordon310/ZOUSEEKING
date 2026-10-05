@@ -54,6 +54,8 @@ test("region metric provenance line is assembled from API response fields", asyn
   });
 
   await page.goto("/data-query.html");
+  await expect(page.locator("body.auth-ready")).toBeVisible();
+  await page.locator("#queryTypeTransactions").check();
   await page.waitForFunction(() => document.body.classList.contains("auth-ready"));
   await page.locator("#regionStatsForm").evaluate((form) => form.requestSubmit());
 

@@ -274,6 +274,12 @@ def test_resolved_declaration_is_reported_as_resolved(tmp_path: Path) -> None:
     staged = stage_repo(tmp_path)
 
     def drop_the_forbidden_name(contract: dict) -> None:
+        contract["declared_open_items"].append({
+            "id": "O3", "check": "C5_legal_entity_facts",
+            "coordinate_contains": ["web-source/js/i18n.js|representative"],
+            "summary": "A resolved declaration fixture", "owner": "test owner",
+            "target": "test", "blocking": True,
+        })
         for surface in contract["entity_facts"]["surfaces"]:
             surface["forbidden_tokens"] = []
 

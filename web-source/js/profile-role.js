@@ -3,6 +3,8 @@
   if (role !== "consumer") return;
 
   document.body.dataset.role = "consumer";
+  const brand = document.querySelector(".topbar-brand");
+  if (brand) brand.href = "consumer-home.html";
   document.title = "账户资料｜小象避坑 ZOUBEACON";
 
   const brandName = document.querySelector(".topbar-brand-copy strong");

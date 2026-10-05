@@ -2,6 +2,8 @@ const { test, expect } = require("@playwright/test");
 
 test("区域成交价统计表单选项全部来自 field-options 词表", async ({ page }) => {
   await page.goto("/data-query.html");
+  await expect(page.locator("body.auth-ready")).toBeVisible();
+  await page.locator("#queryTypeTransactions").check();
   const options = await page.evaluate(async () => fetch("field-options.json").then((response) => response.json()));
   const values = await page.evaluate(() => Object.fromEntries(
     ["statsPrefecture", "statsCity", "statsAssetType", "statsYear", "statsQuarter"].map((id) => [
@@ -31,6 +33,8 @@ test("区域成交价统计成功态展示真实口径与出典", async ({ page 
       rent_to_price_ratio: { gross_value: 0.012, formula_label: "formula", numerator_label: "rent", denominator_label: "price", survey_label: "令和5年(2023)", geo_level: "city" },
   };
   await page.goto("/data-query.html");
+  await expect(page.locator("body.auth-ready")).toBeVisible();
+  await page.locator("#queryTypeTransactions").check();
   await page.evaluate(() => window.ZouAuthSession.write({ provider: "demo", username: "Member", email: "member@example.test", userId: "member-1" }));
   await page.waitForFunction(() => document.body.classList.contains("auth-ready"));
   await page.evaluate((payload) => { window.fetch = async () => new Response(JSON.stringify(payload), { status: 200, headers: { "Content-Type": "application/json" } }); }, successPayload);
@@ -65,6 +69,8 @@ test("区域成交价统计成功态展示真实口径与出典", async ({ page 
 test("区域成交价统计租金回落到都道府县时明确标注口径", async ({ page }) => {
   await page.addInitScript(() => { window.ZOUSEEKING_API_BASE_URL = "https://api.test"; });
   await page.goto("/data-query.html");
+  await expect(page.locator("body.auth-ready")).toBeVisible();
+  await page.locator("#queryTypeTransactions").check();
   await page.evaluate(() => window.ZouAuthSession.write({ provider: "demo", username: "Member", email: "member@example.test", userId: "member-1" }));
   await page.waitForFunction(() => document.body.classList.contains("auth-ready"));
   await page.evaluate(() => window.fetch = async () => new Response(JSON.stringify({
@@ -80,6 +86,8 @@ test("区域成交价统计租金回落到都道府县时明确标注口径", as
 
 test("区域成交价统计四语言文案键完整且没有内部枚举", async ({ page }) => {
   await page.goto("/data-query.html");
+  await expect(page.locator("body.auth-ready")).toBeVisible();
+  await page.locator("#queryTypeTransactions").check();
   const locales = await page.evaluate(() => Object.fromEntries(["zh-CN", "zh-Hant", "en", "ja"].map((locale) => {
     localStorage.setItem("zou_ui_locale", locale);
     window.ZouI18n?.setLocale?.(locale);
@@ -101,6 +109,8 @@ test("区域成交价统计四语言文案键完整且没有内部枚举", async
 test("区域成交价统计样本不足态不显示数字", async ({ page }) => {
   await page.addInitScript(() => { window.ZOUSEEKING_API_BASE_URL = "https://api.test"; });
   await page.goto("/data-query.html");
+  await expect(page.locator("body.auth-ready")).toBeVisible();
+  await page.locator("#queryTypeTransactions").check();
   await page.evaluate(() => window.ZouAuthSession.write({ provider: "demo", username: "Member", email: "member@example.test", userId: "member-1" }));
   await page.waitForFunction(() => document.body.classList.contains("auth-ready"));
   await page.evaluate(() => { window.fetch = async () => new Response(JSON.stringify({ status: "insufficient_sample", sample_size: 4 }), { status: 200, headers: { "Content-Type": "application/json" } }); });
@@ -112,6 +122,8 @@ test("区域成交价统计样本不足态不显示数字", async ({ page }) => 
 test("塔楼统计显示口径说明且不泄露内部标识", async ({ page }) => {
   await page.addInitScript(() => { window.ZOUSEEKING_API_BASE_URL = "https://api.test"; });
   await page.goto("/data-query.html");
+  await expect(page.locator("body.auth-ready")).toBeVisible();
+  await page.locator("#queryTypeTransactions").check();
   await page.evaluate(() => window.ZouAuthSession.write({ provider: "demo", username: "Member", email: "member@example.test", userId: "member-1" }));
   await page.waitForFunction(() => document.body.classList.contains("auth-ready"));
   await page.selectOption("#statsAssetType", { label: "塔楼" });
@@ -127,6 +139,8 @@ test("塔楼统计显示口径说明且不泄露内部标识", async ({ page }) 
 test("一户建统计把前端真实值送到后端并展示完整结果", async ({ page }) => {
   await page.addInitScript(() => { window.ZOUSEEKING_API_BASE_URL = "https://api.test"; });
   await page.goto("/data-query.html");
+  await expect(page.locator("body.auth-ready")).toBeVisible();
+  await page.locator("#queryTypeTransactions").check();
   await page.evaluate(() => window.ZouAuthSession.write({ provider: "demo", username: "Member", email: "member@example.test", userId: "member-1" }));
   await page.waitForFunction(() => document.body.classList.contains("auth-ready"));
   await page.selectOption("#statsAssetType", "一户建");
@@ -150,6 +164,8 @@ test("一户建统计把前端真实值送到后端并展示完整结果", async
 test("区域成交价统计将 403 显示为权限提示而不是暂时失败", async ({ page }) => {
   await page.addInitScript(() => { window.ZOUSEEKING_API_BASE_URL = "https://api.test"; });
   await page.goto("/data-query.html");
+  await expect(page.locator("body.auth-ready")).toBeVisible();
+  await page.locator("#queryTypeTransactions").check();
   await page.evaluate(() => window.ZouAuthSession.write({ provider: "demo", username: "Member", email: "member@example.test", userId: "member-1" }));
   await page.waitForFunction(() => document.body.classList.contains("auth-ready"));
   await page.evaluate(() => {
@@ -166,6 +182,8 @@ test("区域成交价统计将 403 显示为权限提示而不是暂时失败", 
 test("区域成交价统计将 404 显示为资源不存在提示", async ({ page }) => {
   await page.addInitScript(() => { window.ZOUSEEKING_API_BASE_URL = "https://api.test"; });
   await page.goto("/data-query.html");
+  await expect(page.locator("body.auth-ready")).toBeVisible();
+  await page.locator("#queryTypeTransactions").check();
   await page.evaluate(() => window.ZouAuthSession.write({ provider: "demo", username: "Member", email: "member@example.test", userId: "member-1" }));
   await page.waitForFunction(() => document.body.classList.contains("auth-ready"));
   await page.evaluate(() => {
@@ -182,6 +200,8 @@ test("区域成交价统计将 404 显示为资源不存在提示", async ({ pag
 test("区域成交价统计将 500 显示为暂时失败", async ({ page }) => {
   await page.addInitScript(() => { window.ZOUSEEKING_API_BASE_URL = "https://api.test"; });
   await page.goto("/data-query.html");
+  await expect(page.locator("body.auth-ready")).toBeVisible();
+  await page.locator("#queryTypeTransactions").check();
   await page.evaluate(() => window.ZouAuthSession.write({ provider: "demo", username: "Member", email: "member@example.test", userId: "member-1" }));
   await page.waitForFunction(() => document.body.classList.contains("auth-ready"));
   await page.evaluate(() => {
@@ -193,6 +213,8 @@ test("区域成交价统计将 500 显示为暂时失败", async ({ page }) => {
 
 test("物件查询未命中提示使用业务措辞", async ({ page }) => {
   await page.goto("/data-query.html");
+  await expect(page.locator("body.auth-ready")).toBeVisible();
+  await page.locator("#queryTypeTransactions").check();
   await page.evaluate(() => window.ZouAuthSession.write({ provider: "demo", username: "Member", email: "member@example.test", userId: "member-1" }));
   await page.waitForFunction(() => document.body.classList.contains("auth-ready"));
   await expect(page.locator("#queryHint")).toContainText("未命中的条件会先记录下来");
@@ -202,6 +224,8 @@ test("物件查询未命中提示使用业务措辞", async ({ page }) => {
 test("物件查询的来源失败只显示本地化安全文案", async ({ page }) => {
   await page.addInitScript(() => { window.ZOUSEEKING_API_BASE_URL = "https://api.test"; });
   await page.goto("/data-query.html");
+  await expect(page.locator("body.auth-ready")).toBeVisible();
+  await page.locator("#queryTypeTransactions").check();
   await page.evaluate(() => window.ZouAuthSession.write({
     provider: "supabase", username: "Member", email: "member@example.test", userId: "member-1", accessToken: "test-token", refreshToken: "test-refresh",
   }));

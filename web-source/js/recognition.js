@@ -1,4 +1,4 @@
-import { getExistingAccessToken } from "./api-client.js?v=20260926-r67";
+import { getExistingAccessToken } from "./api-client.js?v=20261005-r68";
 
 const API_BASE_URL = (window.ZOUSEEKING_API_BASE_URL || "").replace(/\/+$/, "");
 const t = (key, fallback) => window.ZouI18n?.t(key, fallback) || fallback;

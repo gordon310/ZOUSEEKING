@@ -106,15 +106,6 @@
       "owner": "用户（法务口径）+ Codex（把 docs/legal/01 已定稿文本同步到站点字典）",
       "target": "D-5 / D-1 冻结前",
       "blocking": true
-    },
-    {
-      "id": "O3",
-      "check": "C5_legal_entity_facts",
-      "coordinate_contains": ["web-source/js/i18n.js|representative"],
-      "summary": "站内字典 legal.s1Body 写代表取締役「姜興」，与 docs/legal/01、docs/legal/03、web/tokushoho.html 的「姜爽」不一致（疑似形近字笔误，仅站点为异值）。",
-      "owner": "用户（确认姓名）+ Codex（单处修正 + 重建前端资源）",
-      "target": "D-5 / D-1 冻结前",
-      "blocking": true
     }
   ]
 }

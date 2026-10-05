@@ -200,7 +200,7 @@ test("staging intake page points to the deployed FastAPI", async ({ page }) => {
 test("anonymous user must register before starting an analysis", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/property-analysis.html");
-  await expect(page.locator(".intake-progress li")).toHaveCount(5);
+  await expect(page.locator(".intake-progress li")).toHaveCount(3);
   await expect(page.locator("#authGate")).toBeVisible();
   await expect(page.locator("#submitStep")).toBeHidden();
   await expect(page.locator("#authGate")).toContainText("注册或登录");
@@ -325,13 +325,13 @@ test("ZOUBEACON shell switches between desktop rail and mobile flow navigation",
   await page.goto("/property-analysis.html");
   await expect(page.getByRole("link", { name: /小象避坑/ })).toBeVisible();
   await expect(page.getByText("ZOUBEACON", { exact: true })).toBeVisible();
-  await expect(page.getByRole("complementary", { name: "分析进度" })).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "填写进度" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "流程导航" })).toBeHidden();
-  await expect(page.locator(".mobile-flow-nav")).toBeHidden();
+  await expect(page.locator(".mobile-flow-nav")).toHaveCount(0);
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.getByRole("complementary", { name: "分析进度" })).toBeHidden();
-  await expect(page.locator(".mobile-flow-nav")).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "填写进度" })).toBeHidden();
+  await expect(page.locator(".mobile-rail-stepper")).toBeVisible();
 });
 
 test("desktop progress rail reflects purpose and source input", async ({ page }) => {
@@ -473,7 +473,7 @@ test("existing Supabase auth session can save the preview", async ({ page }) => 
   await page.locator("#saveProjectButton").click();
   await expect(page.getByRole("button", { name: "项目已保存" })).toBeDisabled();
   await expect(page.locator("#savedProjectLink")).toBeVisible();
-  await expect(page.locator(".desktop-stepper [data-stage='save']")).toHaveAttribute("aria-current", "step");
+  await expect(page.locator(".desktop-stepper [data-stage='preview']")).toHaveAttribute("aria-current", "step");
 });
 
 test("missing intake session during save shows recovery guidance instead of a technical error", async ({ page }) => {
@@ -491,7 +491,7 @@ test("missing intake session during save shows recovery guidance instead of a te
 
   await expect(page.getByRole("alert")).toContainText("页面已重新加载，请重新完成前面的步骤后再保存");
   await expect(page.getByRole("alert")).not.toContainText("Cannot read properties of null");
-  await expect(page.locator(".intake-progress.desktop-stepper [data-stage='purpose']")).toHaveAttribute("aria-current", "step");
+  await expect(page.locator(".intake-progress.desktop-stepper [data-stage='submit']")).toHaveAttribute("aria-current", "step");
   await expect(page.locator("#savedProjectLink")).toHaveClass(/\bhidden\b/);
 });
 

@@ -6,8 +6,8 @@ import {
   generatePreview,
   getValidAccessToken,
   uploadFiles,
-} from "./api-client.js?v=20260926-r67";
-import { extractPropertyFields } from "./property-intake-extraction.js?v=20260926-r67";
+} from "./api-client.js?v=20261005-r68";
+import { extractPropertyFields } from "./property-intake-extraction.js?v=20261005-r68";
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const INTAKE_SESSION_KEY = "zou_house_property_intake_session";
@@ -259,7 +259,7 @@ function setStage(stage) {
     if (section) section.hidden = name !== visibleStage || !authReady;
   });
   if (elements.authGate) elements.authGate.hidden = authReady;
-  const currentStep = { submit: 1, confirm: 3, preview: 4, save: 5 }[stage] || 1;
+  const currentStep = { submit: 1, confirm: 2, preview: 3, save: 3 }[stage] || 1;
   elements.progressItems.forEach((item) => {
     const itemStep = Number(item.dataset.step || 0);
     const isCurrent = itemStep === currentStep;
@@ -409,7 +409,7 @@ function updateProgressRail() {
   if (elements.completionCount) elements.completionCount.textContent = copy("intake.completedCountRuntime", "已完成 {completed}/6 项", { completed });
   if (elements.progressPercent) elements.progressPercent.textContent = `${percent}%`;
   elements.progressRing?.style.setProperty("--progress", `${percent}%`);
-  elements.progressRing?.setAttribute("aria-label", `资料完整度 ${percent}%`);
+  elements.progressRing?.setAttribute("aria-label", `${t("intake.progressTitle", "填写进度")} ${percent}%`);
   elements.completionChecklist?.querySelectorAll("[data-check]").forEach((item) => {
     item.classList.toggle("is-complete", Boolean(checks[item.dataset.check]));
   });
@@ -800,7 +800,7 @@ function renderPreview(preview) {
     comparison.append(createElement("p", t("intake.comparableUnavailable", "市场可比数据：尚未检查。完整报告、税费金额、自动提取和法律判断将在后续阶段提供。")));
   }
 
-  elements.previewContent.append(completeness, costs, risks, comparison);
+  elements.previewContent.append(risks, comparison, completeness, costs);
   const reportKey = preview?.query_key || state.session?.query_key || state.session?.queryKey || "";
   state.reportReady = preview?.report_status === "full_report";
   if (elements.reportLink) {
@@ -1054,12 +1054,12 @@ async function saveProject() {
       elements.saveButton.disabled = !state.reportReady;
     }
     if (elements.savedProjectLink) {
-      const projectHref = reportKey && state.reportReady ? reportHref(reportKey) : "projects.html";
+      const projectHref = reportKey && state.reportReady ? reportHref(reportKey) : `project.html?property_id=${encodeURIComponent(result.property_id)}&key=${encodeURIComponent(reportKey)}`;
       elements.savedProjectLink.href = projectHref;
       elements.savedProjectLink.textContent = state.reportReady
         ? t("intake.viewSavedReport", "查看报告")
         : t("intake.viewSavedProject", "查看项目进度");
-      elements.savedProjectLink.classList.remove("hidden");
+      elements.savedProjectLink.classList.toggle("hidden", state.reportReady);
     }
     setStatus(copy("intake.projectSavedStatus", "项目已保存到你的账户（{propertyId}）。", { propertyId: result.property_id }), "success");
   } catch (error) {

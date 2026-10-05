@@ -28,6 +28,8 @@ test("trend view renders an accessible summary and semantic table without consol
     return route.fulfill({ json: url.pathname === "/api/org/region-stats/trend" ? trendPayload : {} });
   });
   await page.goto("/data-query.html");
+  await expect(page.locator("body.auth-ready")).toBeVisible();
+  await page.locator("#queryTypeTransactions").check();
   await page.waitForFunction(() => document.body.classList.contains("auth-ready"));
   expect(await page.evaluate(() => window.ZouAuthSession.read())).toMatchObject({ provider: "demo", username: "Member" });
   expect(await page.evaluate(async () => window.ZouAuthSession.ensureValidSession(window.ZouAuthSession.read()))).toMatchObject({ provider: "demo" });
@@ -57,6 +59,8 @@ test("trend view shows explicit insufficient-period state instead of an empty ch
     return route.fulfill({ json: url.pathname === "/api/org/region-stats/trend" ? payload : {} });
   });
   await page.goto("/data-query.html");
+  await expect(page.locator("body.auth-ready")).toBeVisible();
+  await page.locator("#queryTypeTransactions").check();
   await page.waitForFunction(() => document.body.classList.contains("auth-ready"));
   await page.getByLabel("趋势").check();
   await page.locator("#regionStatsForm").evaluate((form) => form.requestSubmit());

@@ -1,9 +1,10 @@
-import { getValidAccessToken, listMyQueries } from "./api-client.js?v=20260926-r67";
+import { getValidAccessToken, listMyQueries } from "./api-client.js?v=20261005-r68";
 
 const DEMO_MODE = new URL(window.location.href).searchParams.get("demo") === "1";
 const EMPTY_MODE = new URL(window.location.href).searchParams.get("empty") === "1";
 const t = (key, fallback) => window.ZouI18n?.t(key, fallback) || fallback;
 let currentProjects = [];
+let loadVersion = 0;
 
 const PROJECTS = [
   { id: "project-01", title: "大阪市北区・塔楼演示项目", purpose: "自住购买", status: "preview", statusLabel: "资料检查", completion: 62, updated: "2026-08-27 11:05", note: "已确认售价、面积；法律与管理资料不足。" },
@@ -53,9 +54,7 @@ function projectFromQuery(query) {
   const updated = timestamp
     ? new Date(timestamp).toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })
     : "—";
-  const completion = status === "completed"
-    ? 100
-    : Math.max(0, Math.min(100, Number(job?.progress ?? query?.progress ?? 0)));
+  const completion = job?.progress == null ? null : Math.max(0, Math.min(100, Number(job.progress)));
   const statusLabel = {
     completed: "完整报告",
     failed: "生成失败",
@@ -70,21 +69,23 @@ function projectFromQuery(query) {
     statusLabel,
     completion,
     updated,
-    note: job?.error_message || job?.current_step || (status === "completed" ? "报告已生成，可查看结果。" : "项目已保存，等待下一步处理。"),
+    note: status === "failed" ? "报告生成失败，请打开项目查看恢复操作。" : status === "running" ? "报告正在生成，可打开项目查看进度。" : status === "completed" ? "报告已生成，可查看结果。" : "项目已保存，等待下一步处理。",
     reportKey: query?.query_key || "",
   };
 }
 
 function stateLink(project) {
-  if (!project.reportKey || project.status !== "completed") return "";
-  return `report.html?key=${encodeURIComponent(project.reportKey)}`;
+  if (DEMO_MODE) return `project.html?demo=1&state=${project.status === "draft" ? "preview" : project.status}`;
+  return `project.html?query_id=${encodeURIComponent(project.id)}&key=${encodeURIComponent(project.reportKey)}`;
 }
 
 function renderProjects(projects = currentProjects) {
+  if (!DEMO_MODE && !window.ZouAuthSession?.isLoggedIn?.()) { showAuthState(); return; }
   const filter = elements.filter?.value || "all";
   const source = DEMO_MODE ? PROJECTS : projects;
   const visible = EMPTY_MODE && DEMO_MODE ? [] : source.filter((project) => filter === "all" || project.status === filter);
   elements.count.textContent = `${visible.length} 个项目`;
+  elements.listShell.hidden = false;
   elements.description.textContent = filter === "all" ? "按最近更新排序" : `筛选：${visible.length} 个${elements.filter.selectedOptions[0].textContent}项目`;
   elements.empty.hidden = visible.length > 0;
   elements.list.hidden = visible.length === 0;
@@ -98,20 +99,22 @@ function renderProjects(projects = currentProjects) {
         </div>
         <div class="project-status-cell">
           <span class="project-status project-status-${escapeHtml(project.status)}">${escapeHtml(project.statusLabel)}</span>
-          <small>${project.status === "completed" ? "报告 V2" : project.status === "running" ? "当前任务进行中" : "需要下一步"}</small>
+          <small>${project.status === "completed" ? "报告已生成" : project.status === "running" ? "当前任务进行中" : "需要下一步"}</small>
         </div>
         <div class="project-completeness">
           <div class="project-purpose">${escapeHtml(project.purpose)}</div>
-          <div class="project-completeness-row"><span>资料完整度</span><strong>${project.completion}%</strong></div>
-          <div class="project-list-meter" aria-hidden="true"><span style="width:${project.completion}%"></span></div>
+          <div class="project-completeness-row"><span>${DEMO_MODE ? "资料完整度（演示）" : "任务进度"}</span><strong>${project.completion == null ? "未提供" : `${project.completion}%`}</strong></div>
+          <div class="project-list-meter" aria-hidden="true"><span style="width:${project.completion ?? 0}%"></span></div>
         </div>
-        ${stateLink(project) ? `<a href="${stateLink(project)}">查看报告</a>` : `<span class="project-link-muted">项目处理中</span>`}
+        <a href="${stateLink(project)}">查看项目</a>
       </article>
     `)
     .join("");
 }
 
 function showAuthState() {
+  currentProjects = [];
+  elements.list.replaceChildren();
   elements.authState.hidden = false;
   elements.listShell.hidden = true;
   elements.empty.hidden = true;
@@ -119,8 +122,10 @@ function showAuthState() {
 }
 
 async function loadProjects() {
+  const version = ++loadVersion;
   if (DEMO_MODE) {
     elements.banner.hidden = false;
+    document.querySelector("#projectsReviewLink").hidden = false;
     if (EMPTY_MODE) elements.notice.textContent = t("projects.emptyDemoNotice", "当前是空状态演示；切换状态筛选不会填充真实项目。");
     currentProjects = PROJECTS;
     renderProjects();
@@ -128,9 +133,13 @@ async function loadProjects() {
   }
 
   elements.banner.hidden = true;
+  document.querySelector("#projectsReviewLink").hidden = true;
+  document.querySelector("#projectsReload").hidden = true;
+  elements.empty.hidden = true;
   elements.authState.hidden = true;
   elements.listShell.hidden = false;
   const accessToken = await getValidAccessToken();
+  if (version !== loadVersion) return;
   if (!accessToken) {
     showAuthState();
     return;
@@ -138,17 +147,20 @@ async function loadProjects() {
   elements.notice.textContent = "正在读取你的项目……";
   try {
     const queries = await listMyQueries(accessToken);
+    if (version !== loadVersion) return;
     currentProjects = (Array.isArray(queries) ? queries : []).map(projectFromQuery);
     renderProjects();
     elements.notice.textContent = "";
   } catch (error) {
+    if (version !== loadVersion) return;
     if (error?.status === 401 || error?.status === 403) {
       showAuthState();
       return;
     }
-    elements.notice.textContent = error?.message || "项目暂时无法读取，请稍后重试。";
-    currentProjects = [];
-    renderProjects([]);
+    elements.notice.textContent = "项目暂时无法读取，请重新读取。";
+    elements.listShell.hidden = true;
+    elements.empty.hidden = true;
+    document.querySelector("#projectsReload").hidden = false;
   }
 }
 
@@ -170,3 +182,11 @@ function initializeMenu() {
 elements.filter.addEventListener("change", () => renderProjects());
 initializeMenu();
 loadProjects();
+
+document.querySelector("#projectsReload").addEventListener("click", loadProjects);
+
+window.addEventListener("zou-auth-session-changed", () => {
+  if (DEMO_MODE) return;
+  showAuthState();
+  loadProjects();
+});

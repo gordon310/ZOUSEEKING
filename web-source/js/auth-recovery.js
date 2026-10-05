@@ -15,6 +15,21 @@
     );
   }
 
+  function buildAuthReturnUrl(href) {
+    try {
+      const current = new URL(href);
+      const destination = current.searchParams.get("return_to") || current.searchParams.get("return");
+      if (!destination || /[\\\s]/.test(destination)) return "";
+      const target = new URL(destination, current);
+      const directory = current.pathname.slice(0, current.pathname.lastIndexOf("/") + 1);
+      const pages = ["property-analysis.html", "projects.html", "project.html", "report.html", "data-query.html", "analysis.html", "mypage.html"];
+      if (target.origin !== current.origin || target.username || target.password || !pages.some((page) => target.pathname === directory + page)) return "";
+      return target.href;
+    } catch {
+      return "";
+    }
+  }
+
   function buildResetRedirectUrl(origin) {
     const base = String(origin || "").replace(/\/$/, "");
     return new URL("reset-password.html", `${base}/`).toString();
@@ -84,6 +99,7 @@
 
   return {
     isPasswordValid,
+    buildAuthReturnUrl,
     buildResetRedirectUrl,
     resetRequestResultMessage,
     resetRequestErrorMessage,

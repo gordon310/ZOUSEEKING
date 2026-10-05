@@ -4,9 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title data-i18n-title="page.analysisTitle">统计分析｜小象数据 ZOUSEEKING</title>
-    <link rel="icon" href="assets/logoELE-beacon.svg?v=20260926-r67" />
-    <link rel="stylesheet" href="styles.css?v=20260926-r67" />
-    <link rel="stylesheet" href="business.css?v=20260926-r67" />
+    <link rel="icon" href="assets/logoELE-beacon.svg?v=20261005-r68" />
+    <link rel="stylesheet" href="styles.css?v=20261005-r68" />
+    <link rel="stylesheet" href="business.css?v=20261005-r68" />
   </head>
   <body class="auth-pending business-app" data-role="business">
     <main class="app">
@@ -20,7 +20,7 @@
                 <feFlood flood-color="#10284d" result="logo-color" /><feComposite in="logo-color" in2="logo-mask" operator="in" />
               </filter>
             </defs>
-            <image href="assets/logoELE-beacon.svg?v=20260926-r67" width="1254" height="1254" preserveAspectRatio="none" />
+            <image href="assets/logoELE-beacon.svg?v=20261005-r68" width="1254" height="1254" preserveAspectRatio="none" />
           </svg>
           <span class="topbar-brand-copy"><strong data-i18n="brand.business">小象数据</strong><small>ZOUSEEKING</small></span>
         </a>
@@ -40,6 +40,27 @@
           </select>
         </label>
       </nav>
+
+      <header class="hero">
+        <div class="brand">
+          <svg class="brand-mark" viewBox="150 285 950 700" aria-hidden="true" focusable="false">
+            <defs>
+              <filter id="beacon-logo-color" color-interpolation-filters="sRGB">
+                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -0.2126 -0.7152 -0.0722 0 1" result="logo-alpha" />
+                <feComponentTransfer in="logo-alpha" result="logo-mask"><feFuncA type="discrete" tableValues="0 0 0 0 0 1 1 1 1 1" /></feComponentTransfer>
+                <feFlood flood-color="#10284d" result="logo-color" /><feComposite in="logo-color" in2="logo-mask" operator="in" />
+              </filter>
+            </defs>
+            <image href="assets/logoELE-beacon.svg?v=20261005-r68" width="1254" height="1254" preserveAspectRatio="none" />
+          </svg>
+          <div>
+            <p class="eyebrow" data-i18n="hero.business">小象数据 / ZOUSEEKING</p>
+            <h1 data-i18n="hero.analysisTitle">数据分析</h1>
+          </div>
+        </div>
+        <p class="hero-copy" data-i18n="hero.analysisCopy">按月份查看指定数据口径的变化。</p>
+        <p class="business-provenance-note" data-i18n="trial.badge">试运行数据</p>
+      </header>
 
       <section class="account-panel" id="accountPanel">
         <div class="account-head">
@@ -90,31 +111,12 @@
         <p class="form-message" id="formMessage"></p>
       </section>
 
-      <header class="hero">
-        <div class="brand">
-          <svg class="brand-mark" viewBox="150 285 950 700" aria-hidden="true" focusable="false">
-            <defs>
-              <filter id="beacon-logo-color" color-interpolation-filters="sRGB">
-                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -0.2126 -0.7152 -0.0722 0 1" result="logo-alpha" />
-                <feComponentTransfer in="logo-alpha" result="logo-mask"><feFuncA type="discrete" tableValues="0 0 0 0 0 1 1 1 1 1" /></feComponentTransfer>
-                <feFlood flood-color="#10284d" result="logo-color" /><feComposite in="logo-color" in2="logo-mask" operator="in" />
-              </filter>
-            </defs>
-            <image href="assets/logoELE-beacon.svg?v=20260926-r67" width="1254" height="1254" preserveAspectRatio="none" />
-          </svg>
-          <div>
-            <p class="eyebrow" data-i18n="hero.business">小象数据 / ZOUSEEKING</p>
-            <h1 data-i18n="hero.analysisTitle">数据分析</h1>
-          </div>
-        </div>
-        <p class="hero-copy" data-i18n="hero.analysisCopy">按月份看趋势，也可以横向比较不同区域。</p>
-        <p class="business-provenance-note" data-i18n="trial.badge">试运行数据</p>
-      </header>
+
 
       <section class="analysis-panel hidden" id="analysisPanel">
         <div class="section-title">
           <p class="eyebrow" data-i18n="analysis.eyebrow">Chart &amp; Compare</p>
-          <h2 data-i18n="analysis.title">趋势图表 / 数据比较</h2>
+          <h2 data-i18n="analysis.title">趋势分析</h2>
         </div>
         <form class="analysis-form" id="analysisForm">
           <label>
@@ -157,11 +159,11 @@
       </section>
     </main>
 
-    <script src="config.js?v=20260926-r67"></script>
-    <script src="js/auth-session.js?v=20260926-r67"></script>
-    <script src="js/release-boundary.js?v=20260926-r67"></script>
-    <script src="js/i18n.js?v=20260926-r67"></script>
-    <script src="js/auth-recovery.js?v=20260926-r67"></script>
-    <script src="app.js?v=20260926-r67"></script>
+    <script src="config.js?v=20261005-r68"></script>
+    <script src="js/auth-session.js?v=20261005-r68"></script>
+    <script src="js/release-boundary.js?v=20261005-r68"></script>
+    <script src="js/i18n.js?v=20261005-r68"></script>
+    <script src="js/auth-recovery.js?v=20261005-r68"></script>
+    <script src="app.js?v=20261005-r68"></script>
   </body>
 </html>

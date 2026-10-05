@@ -4,6 +4,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 let server,origin,workerVersion;
 let historicalClient=false;
+let workerRequests=0;
 const oldClient=fs.readFileSync(path.resolve(__dirname,'../fixtures/pwa/r67-client.js.txt'),'utf8');
 const oldWorker=fs.readFileSync(path.resolve(__dirname,'../fixtures/pwa/r67-worker.js.txt'),'utf8');
 const root=path.resolve(__dirname,'../../web');
@@ -17,22 +18,33 @@ test.beforeAll(async()=>{
     if(name==='/api/private-fixture'){res.setHeader('Content-Type','application/json');return res.end('{"private":"fixture-only"}');}
     const file=path.resolve(root,'.'+name);
     if(!file.startsWith(root+path.sep)){res.writeHead(404);return res.end();}
-    try {let content=fs.readFileSync(file);res.setHeader('Content-Type',name.endsWith('.js')?'application/javascript':name.endsWith('.html')?'text/html':name.endsWith('.json')?'application/json':'application/octet-stream');if(name==='/sw.js')content=historicalClient?oldWorker:content.toString().replaceAll(release,workerVersion);res.end(content);}catch {res.writeHead(404);res.end();}
+    try {let content=fs.readFileSync(file);res.setHeader('Content-Type',name.endsWith('.js')?'application/javascript':name.endsWith('.html')?'text/html':name.endsWith('.json')?'application/json':'application/octet-stream');if(name==='/sw.js')content=historicalClient?oldWorker:content.toString().replaceAll(release,workerVersion);// Exercise startup synchronization with a delayed worker response.
+    if(name==='/sw.js' && ++workerRequests===2) return setTimeout(()=>res.end(content),750);res.end(content);}catch {res.writeHead(404);res.end();}
   });
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));origin=`http://127.0.0.1:${server.address().port}`;
 });
 test.afterAll(async()=>{await new Promise(resolve=>server.close(resolve));});
 async function activeVersion(page){return page.evaluate(async()=>{const registration=await navigator.serviceWorker.ready;return new Promise(resolve=>{const channel=new MessageChannel();channel.port1.onmessage=e=>resolve(e.data.version);registration.active.postMessage({type:'GET_VERSION'},[channel.port2]);});});}
 test('installed shell upgrades and rolls back without discarding a changed form',async({browser})=>{
-  test.setTimeout(30000);workerVersion='20260926-r67';
+  test.setTimeout(30000);workerRequests=0;workerVersion='20260926-r67';
   const context=await browser.newContext({serviceWorkers:'allow'});await context.route('**/*',r=>r.request().url().startsWith(origin)?r.continue():r.abort());const page=await context.newPage();
   try {
-    await page.goto(origin+'/pwa-update-test.html');await expect.poll(()=>activeVersion(page)).toBe('20260926-r67');
+    const startupProbe=page.waitForResponse(response=>response.url().includes('/sw.js?version-probe='));
+    await page.goto(origin+'/pwa-update-test.html');await startupProbe;await expect.poll(()=>activeVersion(page)).toBe('20260926-r67');
     await page.waitForFunction(()=>!!navigator.serviceWorker.controller);
     await page.locator('#draft').fill('尚未保存的物件资料');await page.locator('#draft').blur();
     let navigations=0;page.on('framenavigated',frame=>{if(frame===page.mainFrame())navigations++;});
     for(const version of [release,'20260926-r67']){
-      workerVersion=version;await page.evaluate(async()=>{const registration=await navigator.serviceWorker.ready;await registration.update();});
+      workerVersion=version;await page.evaluate(async()=>{
+        const registration=await navigator.serviceWorker.ready;await registration.update();
+        const worker=registration.installing||registration.waiting;
+        if(worker && worker.state!=="activated") await new Promise((resolve,reject)=>{
+          worker.addEventListener('statechange',()=>{
+            if(worker.state==="activated") resolve();
+            if(worker.state==="redundant") reject(new Error('Updated worker failed to activate'));
+          });
+        });
+      });
       await expect.poll(()=>activeVersion(page)).toBe(version);
       await expect(page.locator('#draft')).toHaveValue('尚未保存的物件资料');
     }

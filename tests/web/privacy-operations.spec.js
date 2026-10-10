@@ -46,7 +46,7 @@ test("invite registration carries consent version and submission timestamp", asy
     username: "演示用户",
     email: "member@example.invalid",
     invite_code: "privacy-invite",
-    consent_version: "privacy-2026-08",
+    consent_version: "privacy-2026-10",
     terms_version: "terms-2026-08",
   });
 });

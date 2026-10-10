@@ -12,8 +12,8 @@ async function manifestOf(page) {
   return response.json();
 }
 
-test("PWA shell assets are served and wired", async ({ page }) => {
-  const response = await page.goto("/index.html");
+test("consumer PWA shell assets are served and wired", async ({ page }) => {
+  const response = await page.goto("/consumer-home.html");
   expect(response.status()).toBe(200);
 
   // manifest link + theme color present
@@ -77,7 +77,7 @@ test("consumer home sends anonymous visitors only to registration or login", asy
 
   const actions = page.locator(".consumer-home-actions a");
   await expect(actions).toHaveCount(1);
-  await expect(actions.first()).toHaveAttribute("href", /profile\.html\?role=consumer/);
+  await expect(actions.first()).toHaveAttribute("href", "consumer-profile.html#accountPanel");
   await expect(page.locator('.consumer-home-actions a[href^="property-analysis.html"]')).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });

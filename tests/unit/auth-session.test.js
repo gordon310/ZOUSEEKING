@@ -189,3 +189,8 @@ test("transient refresh failure preserves the renewable session", async () => {
   assert.equal(harness.auth.isLoggedIn(), true);
   assert.equal(harness.values.has("sb-example-auth-token"), true);
 });
+
+test("legacy stored sessions retain their account identity for consent isolation", () => {
+  const harness = createHarness({ initialStorageKey: "zou_house_session", session: { provider: "supabase", userId: "legacy-user", email: "legacy@invalid.test", accessToken: "fixture", expiresAt: Math.floor(Date.now()/1000)+3600 } });
+  assert.equal(harness.auth.read().userId, "legacy-user");
+});

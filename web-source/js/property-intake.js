@@ -6,8 +6,8 @@ import {
   generatePreview,
   getValidAccessToken,
   uploadFiles,
-} from "./api-client.js?v=20261005-r68";
-import { extractPropertyFields } from "./property-intake-extraction.js?v=20261005-r68";
+} from "./api-client.js?v=20261010-r70";
+import { extractPropertyFields } from "./property-intake-extraction.js?v=20261010-r70";
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const INTAKE_SESSION_KEY = "zou_house_property_intake_session";
@@ -230,7 +230,7 @@ function setStatusWithLoginLink(message) {
   setStatus(message, "info");
   if (!elements.status) return;
   const link = document.createElement("a");
-  link.href = "profile.html?role=consumer#accountPanel";
+  link.href = "consumer-profile.html#accountPanel";
   link.textContent = ` ${t("auth.loginAgain", "前往登录")}`;
   elements.status.append(link);
 }
@@ -861,7 +861,7 @@ async function startIntake(event) {
         setStatusWithLoginLink(t("intake.authRequired", "请先注册或登录，再开始分析。"));
         return;
       }
-      const session = await createSession(purpose, "privacy-2026-08", accessToken);
+      const session = await createSession(purpose, "privacy-2026-10", accessToken);
       saveAnonymousSession({
         sessionId: session.session_id,
         rawToken: session.session_token,
@@ -996,7 +996,7 @@ async function saveProject() {
       setStatus(hadSupabaseSession
         ? t("auth.sessionRefreshFailed", "暂时无法续期登录状态，请稍后重试。")
         : t("intake.loginRequiredToSave", "请先注册或登录，再开始分析项目。"), "info");
-      if (!hadSupabaseSession) window.location.href = "profile.html?role=consumer#accountPanel";
+      if (!hadSupabaseSession) window.location.href = "consumer-profile.html#accountPanel";
     }
     return;
   }
@@ -1177,7 +1177,6 @@ async function initialize() {
   if (elements.status) elements.status.textContent = "";
   if (DEMO_MODE) {
     document.querySelector("#demoBanner")?.removeAttribute("hidden");
-    document.querySelector("#reviewLink")?.removeAttribute("hidden");
     setStatus(t("intake.demoModeEnabled", "界面演示已开启：可以依次体验提交、确认、预览和保存。"), "info");
   }
   updateSourceCount();

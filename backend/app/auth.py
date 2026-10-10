@@ -11,7 +11,7 @@ from uuid import UUID
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-from fastapi import Header, HTTPException
+from fastapi import Header, HTTPException, Request as HTTPRequest
 from . import timeouts
 
 
@@ -44,7 +44,7 @@ def _fetch_supabase_user(access_token: str) -> dict:
         raise ValueError("invalid Supabase access token") from exc
 
 
-async def require_user(authorization: Optional[str] = Header(default=None)) -> AuthUser:
+async def require_user(authorization: Optional[str] = Header(default=None), request: HTTPRequest = None) -> AuthUser:
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(status_code=401, detail="登录状态已失效，请重新登录。")
     access_token = authorization.split(" ", 1)[1].strip()
@@ -64,6 +64,18 @@ async def require_user(authorization: Optional[str] = Header(default=None)) -> A
     except ValueError as exc:
         raise HTTPException(status_code=401, detail="认证用户信息不完整。") from exc
     metadata = payload.get("user_metadata") or {}
+    # Policy evidence is server-owned; user-editable Auth metadata is not proof.
+    if request is not None:
+        from .release_scope import CONSUMER_LAUNCH, current_release_phase
+        from .services.policy_consent import PolicyConsentStore
+        paths = ("/api/intake/", "/api/query", "/api/reports/", "/api/my/report", "/api/jobs/", "/api/billing/checkout")
+        if current_release_phase() == CONSUMER_LAUNCH and request.url.path.startswith(paths):
+            try:
+                accepted = await PolicyConsentStore().status(user_id)
+            except Exception:
+                raise HTTPException(503, "policy confirmation temporarily unavailable") from None
+            if not accepted:
+                raise HTTPException(428, {"code": "policy_confirmation_required"})
     return AuthUser(
         user_id=user_id,
         email=str(payload.get("email") or ""),
@@ -72,9 +84,9 @@ async def require_user(authorization: Optional[str] = Header(default=None)) -> A
     )
 
 
-async def optional_user(authorization: Optional[str] = Header(default=None)) -> Optional[AuthUser]:
+async def optional_user(authorization: Optional[str] = Header(default=None), request: HTTPRequest = None) -> Optional[AuthUser]:
     """Authenticate when a bearer token is supplied, while allowing anonymous reads."""
 
     if not authorization:
         return None
-    return await require_user(authorization)
+    return await require_user(authorization, request=request)

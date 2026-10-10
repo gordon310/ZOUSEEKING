@@ -11,6 +11,7 @@ async function setup(page, signedIn = false) {
   }, signedIn);
   await page.route('https://ux-auth.test/**', r => r.fulfill({json:{id:'ux-user',email:'ux@example.com'}}));
   await page.route('https://ux-api.test/**', r => r.fulfill({json:[]}));
+  await page.route('**/api/account/consent', r => r.fulfill({json:{accepted:true,privacy_policy_version:'privacy-2026-10',terms_version:'terms-2026-08'}}));
 }
 function query(status = 'failed') { return {id:ID,query_key:KEY,prefecture:'大阪府',city:'大阪市',ward:'北区',asset_type:'塔楼',status,generation_jobs:[{status,progress:42,error_message:status==='failed'?'资料处理暂时不可用':null,current_step:'等待处理'}]}; }
 for (const width of [1280,390]) test(`data home puts purpose and action before account at ${width}px`, async ({page}) => {

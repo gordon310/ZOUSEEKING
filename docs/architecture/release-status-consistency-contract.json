@@ -178,15 +178,5 @@
     "closed_markers": ["✅", "已完成"],
     "note": "A day row that references a C-item must agree with that item's current class: a row that still lists the item as work to do cannot coexist with a checklist row that calls the item closed, and a row marked closed cannot coexist with a checklist row that calls it open. Either way one of the two documents is wrong about scope."
   },
-  "declared_open_items": [
-    {
-      "id": "RS1_d8_c04_scope",
-      "check": "C7_plan_vs_checklist_scope",
-      "coordinate_contains": "plan:D-8:C04",
-      "summary": "The countdown plan still lists C04's provider physical backup/PITR and isolated Storage restore as the D-8 unit, while the checklist reports C04 closed and files the remaining provider drill as post-launch hardening that does not block 2026-10-07. Both readings are defensible; which one governs the D-1 freeze and the D-2 Go/No-Go is the owner's scope call and no document is rewritten autonomously.",
-      "owner": "用户 (product owner)",
-      "target": "2026-10-05 (D-2 Go/No-Go)",
-      "blocking": true
-    }
-  ]
+  "declared_open_items": []
 }

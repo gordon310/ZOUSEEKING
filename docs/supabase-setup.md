@@ -135,7 +135,7 @@ sink 为 `NOT_EXECUTED`。正式上线前重点检查：
 
 ## 4.1 隐私、同意和账户删除（离线发布门槛）
 
-当前契约版本为 `privacy-2026-08` / `terms-2026-08`。注册表单必须主动勾选隐私政策和服务条款；提交边界生成 UTC `consent_at`，并将版本写入 Auth metadata。浏览器时钟和 metadata 仍属于不可信输入，正式上线前需要受信任服务端/Auth 事件补充时间戳核验，不能把当前静态前端结果当作 production 证据。
+当前契约版本为 `privacy-2026-10` / `terms-2026-08`。注册表单必须主动勾选隐私政策和服务条款；提交边界生成 UTC `consent_at`，并将版本写入 Auth metadata。浏览器时钟和 metadata 仍属于不可信输入，正式上线前需要受信任服务端/Auth 事件补充时间戳核验，不能把当前静态前端结果当作 production 证据。
 
 账户页的删除入口只会在有 FastAPI 地址、Supabase 会话和 bearer token 时调用 `POST /api/account/deletion-request`，请求包含当前版本及固定值 `DELETE_ACCOUNT`。FastAPI 已接通受控删除执行器：台账先提交，再通过 Auth Admin global logout/长期封禁限制访问，并软删除/匿名化应用数据。缺少必需配置时明确返回 `503`（`no account data was changed`），不会部分执行，也不会发送客服通知。客服与数据主体请求使用静态 [support.html](../web/support.html) 和 `.example` 占位地址，不能视为已接通邮箱。
 

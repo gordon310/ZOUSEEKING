@@ -156,3 +156,7 @@ M-B3 只在既有 `service_tasks`、`task_applications`、`task_status_history`�
 | `pricing_regions` | `region_code`, `currency`, `active` | 账单地区到批准币种的服务端映射；不做客户端汇率换算。 |
 | `pricing_plans` | `plan_code`, `name`, `audience`, `monthly_query_limit`, `monthly_report_quota`, `subscription_slots`, `export_rows_monthly`, `plan_version` | 服务端套餐目录；`audience` 为 `c`/`b`，旧额度列仅作兼容回退。 |
 | `plan_entitlements` | `plan_code`, `metric`, `limit_units`, `period`, `active`, `effective_from`, `created_by` | 键值化权益；metric 为 query/report/stats_query/export_row/subscription_slot，period 为 day/month；active 唯一当前版本，历史版本保留。 |
+
+## 当前隐私版本确认审计 (privacy-2026-10)
+
+复用 `audit_events` 的 append-only 合同，不新增 schema。`action=privacy.policy.accepted`，`target_type=privacy_policy`，`target_id` 为政策版本；`actor_user_id` 来自服务器验证的 Auth UUID。`summary` 仅含 `privacy_policy_version` 与 `terms_version`；`occurred_at` 为数据库 UTC 时间。并发同版本重试只追加一次，不更新旧行，不记录邮箱、姓名、令牌或客户端时间。普通账户不可直接读写该账本；仅通过认证后的当前账户状态/确认 API。旧 Auth metadata 保留，不作当前重新确认凭据。账户删除入口不要求重新同意。

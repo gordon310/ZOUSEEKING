@@ -1,5 +1,10 @@
 const { test, expect } = require("@playwright/test");
 
+// These scenarios cover business flows after an already recorded policy acceptance.
+test.beforeEach(async ({ context }) => {
+  await context.route("**/api/account/consent", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ accepted: true, privacy_policy_version: "privacy-2026-10", terms_version: "terms-2026-08" }) }));
+});
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     window.ZOUSEEKING_API_BASE_URL = "http://127.0.0.1:8787";
@@ -48,7 +53,7 @@ test("anonymous project list shows the registration gate", async ({ page }) => {
 
   await expect(page.locator("#projectsAuthState")).toBeVisible();
   await expect(page.locator(".project-list-shell")).toBeHidden();
-  await expect(page.locator("#projectsAuthState a")).toHaveAttribute("href", /profile\.html\?role=consumer&return_to=projects\.html/);
+  await expect(page.locator("#projectsAuthState a")).toHaveAttribute("href", "consumer-profile.html#accountPanel");
 });
 
 test("review project list keeps its data when status filter changes", async ({ page }) => {

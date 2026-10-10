@@ -1,5 +1,10 @@
 const { test, expect } = require("@playwright/test");
 
+// These scenarios cover business flows after an already recorded policy acceptance.
+test.beforeEach(async ({ context }) => {
+  await context.route("**/api/account/consent", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ accepted: true, privacy_policy_version: "privacy-2026-10", terms_version: "terms-2026-08" }) }));
+});
+
 const SESSION_ID = "00000000-0000-0000-0000-000000000040";
 
 async function fillLocation(page, { prefecture = "大阪府", city = "大阪市", ward = "北区" } = {}) {
@@ -204,7 +209,7 @@ test("anonymous user must register before starting an analysis", async ({ page }
   await expect(page.locator("#authGate")).toBeVisible();
   await expect(page.locator("#submitStep")).toBeHidden();
   await expect(page.locator("#authGate")).toContainText("注册或登录");
-  await expect(page.locator("#authGate a")).toHaveAttribute("href", /profile\.html\?role=consumer/);
+  await expect(page.locator("#authGate a")).toHaveAttribute("href", "consumer-profile.html#accountPanel");
 });
 
 test("authenticated preview sends the Supabase access token", async ({ page }) => {
@@ -622,7 +627,7 @@ test("明确无效 refresh token shows a clickable login recovery entry", async 
   releaseRefresh();
   await refreshPromise;
   await expect(page.locator("#authGate")).toBeVisible();
-  await expect(page.locator("#authGate a")).toHaveAttribute("href", /profile\.html\?role=consumer&return_to=property-analysis\.html/);
+  await expect(page.locator("#authGate a")).toHaveAttribute("href", "consumer-profile.html#accountPanel");
 });
 
 test("save converts the current Tokyo apartment selections", async ({ page }) => {

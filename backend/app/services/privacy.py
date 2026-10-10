@@ -13,7 +13,7 @@ from typing import Any
 
 
 UTC = timezone.utc
-PRIVACY_POLICY_VERSION = "privacy-2026-08"
+PRIVACY_POLICY_VERSION = "privacy-2026-10"
 TERMS_VERSION = "terms-2026-08"
 
 ACKNOWLEDGEMENT_SLA = timedelta(hours=24)

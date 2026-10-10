@@ -88,24 +88,5 @@
       }
     ]
   },
-  "declared_open_items": [
-    {
-      "id": "O1",
-      "check": "C6_unfilled_placeholders",
-      "coordinate_contains": ["legal.draftNotice", "legal.pdpa2", "legal.s6Body", "web/privacy.html"],
-      "summary": "站内隐私页旧稿的「待法务确认 / 未填生效日」残留：① legal.draftNotice 三语仍写「本文件为上线前草稿，待法务／负责人确认。生效日：〔生效日:待确认〕」；② web/privacy.html 的 HTML 回退文本同句；③ legal.pdpa2 / legal.s6Body 仍留「待法务确认」表述。与 O2 同源，应由站点法务文案整体同步一并收口。",
-      "owner": "用户（法务口径）+ Codex（把 docs/legal/01 已定稿文本同步到站点字典与法律页）",
-      "target": "D-5 / D-1 冻结前",
-      "blocking": true
-    },
-    {
-      "id": "O2",
-      "check": "C7_jurisdiction_scope",
-      "coordinate_contains": ["'台湾'", "'Taiwan'", "'PDPA'", "'PDPO'"],
-      "summary": "站内 legal.* 文案仍是台湾 PDPA 口径（s2Title/s2Intro/s5Body/s6Body/s7Body，三语共 15 处），与 2026-09-24 决策（法务地区=日本、不做多地区适配）及 docs/legal/01（APPI 口径、律师复核已通过）不一致。",
-      "owner": "用户（法务口径）+ Codex（把 docs/legal/01 已定稿文本同步到站点字典）",
-      "target": "D-5 / D-1 冻结前",
-      "blocking": true
-    }
-  ]
+  "declared_open_items": []
 }

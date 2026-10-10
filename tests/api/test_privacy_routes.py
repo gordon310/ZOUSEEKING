@@ -20,7 +20,7 @@ def test_privacy_metadata_does_not_require_authentication():
 
     assert response.status_code == 200
     body = response.json()
-    assert body["privacy_policy_version"] == "privacy-2026-08"
+    assert body["privacy_policy_version"] == "privacy-2026-10"
     assert body["terms_version"] == "terms-2026-08"
     assert body["account_deletion"]["no_side_effect_on_unavailable"] is True
 
@@ -29,7 +29,7 @@ def test_deletion_request_requires_authenticated_user():
     response = TestClient(app).post(
         "/api/account/deletion-request",
         json={
-            "privacy_policy_version": "privacy-2026-08",
+            "privacy_policy_version": "privacy-2026-10",
             "terms_version": "terms-2026-08",
             "confirmation": "DELETE_ACCOUNT",
         },
@@ -44,7 +44,7 @@ def test_deletion_request_fails_closed_without_executor_and_leaks_no_identity():
     response = TestClient(app).post(
         "/api/account/deletion-request",
         json={
-            "privacy_policy_version": "privacy-2026-08",
+            "privacy_policy_version": "privacy-2026-10",
             "terms_version": "terms-2026-08",
             "confirmation": "DELETE_ACCOUNT",
         },
@@ -78,7 +78,7 @@ def test_deletion_request_does_not_echo_or_use_client_supplied_identity_fields()
     response = TestClient(app).post(
         "/api/account/deletion-request",
         json={
-            "privacy_policy_version": "privacy-2026-08",
+            "privacy_policy_version": "privacy-2026-10",
             "terms_version": "terms-2026-08",
             "confirmation": "DELETE_ACCOUNT",
             "email": "member@example.invalid",
@@ -102,7 +102,7 @@ def test_deletion_request_returns_executor_receipt_without_exposing_email():
             return {
                 "status": "pending",
                 "request_id": "delreq-test-only",
-                "policy_version": "privacy-2026-08",
+                "policy_version": "privacy-2026-10",
                 "requested_at": "2026-08-31T02:00:00Z",
                 "email": "member@example.invalid",
             }
@@ -113,7 +113,7 @@ def test_deletion_request_returns_executor_receipt_without_exposing_email():
     response = TestClient(app).post(
         "/api/account/deletion-request",
         json={
-            "privacy_policy_version": "privacy-2026-08",
+            "privacy_policy_version": "privacy-2026-10",
             "terms_version": "terms-2026-08",
             "confirmation": "DELETE_ACCOUNT",
         },
@@ -123,7 +123,7 @@ def test_deletion_request_returns_executor_receipt_without_exposing_email():
     assert response.json() == {
         "status": "pending",
         "request_id": "delreq-test-only",
-        "policy_version": "privacy-2026-08",
+        "policy_version": "privacy-2026-10",
         "requested_at": "2026-08-31T02:00:00Z",
     }
     assert executor.calls[0][0] == USER.user_id

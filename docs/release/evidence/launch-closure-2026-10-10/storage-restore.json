@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "data_class": "synthetic_fixture",
+  "production_source_object_count": 0,
+  "restore_target": "independent private local Storage bucket",
+  "sha256": "136d0ff1637f3fb31b4dd4d13d9d774e7810ab30a90d453590042e628973892a",
+  "bytes": 68,
+  "worker_http": 200,
+  "denied_direct_access": {
+    "owner": 400,
+    "other_authenticated": 400,
+    "anonymous": 400
+  },
+  "r2_roundtrip": "PASS",
+  "cleanup": "fixture, target bucket and two local users removed",
+  "signed_url": {
+    "initial_http": 200,
+    "after_expiry_http": 400,
+    "ttl_seconds": 1
+  }
+}

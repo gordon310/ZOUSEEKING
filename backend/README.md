@@ -41,7 +41,7 @@ curl http://127.0.0.1:8000/health/ready
 
 ## 隐私与账户运营边界（离线契约）
 
-- `GET /api/privacy` 公开返回 `privacy-2026-08`、`terms-2026-08`、同意字段、资料保留目标和客服占位入口；它不返回用户资料。
+- `GET /api/privacy` 公开返回 `privacy-2026-10`、`terms-2026-08`、同意字段、资料保留目标和客服占位入口；它不返回用户资料。
 - `POST /api/account/deletion-request` 只接受已验证 Supabase bearer、当前政策/条款版本和固定确认值 `DELETE_ACCOUNT`。已接通受控删除执行器：先登记台账，提交事务后执行 Auth Admin global logout、长期封禁与软删除/匿名化；缺少 `SUPABASE_SERVICE_ROLE_KEY` 或其他必需配置时仍 fail-closed 返回 `503` 和 `no account data was changed`。
 - 注册同意由前端在提交边界写入 Supabase Auth metadata（版本与 UTC ISO 时间）；当前 legacy localStorage 回退仅供演示，不能作为 production 认证或同意证据。
 - `/recover`、`/logout` 和密码更新仍由 Supabase Auth 负责；FastAPI 不接收密码、refresh token 或客服正文。登录、注册和找回密码文案必须保持账户枚举安全。
@@ -82,3 +82,7 @@ For production, replace this localStorage override with a committed `web/config.
 `/api/billing/webhook` 只接受 FastAPI 原始 request body，先用 `Stripe-Signature` 验签，再按唯一 `event.id` 幂等处理；暂时性处理失败返回通用 `5xx` 供 provider 重试，错误事件不会把内部异常或原始 payload 返回给客户端。Checkout 的产品、币种、金额、customer 和 redirect URL 均由服务端决定，不能由浏览器覆盖。
 
 本地验证只使用 `tests/billing` 的固定 fixtures、fake gateway 和 fake store：不连接 live Stripe、不使用 live key、不产生真实收费。接入真实 provider 前必须完成 canonical membership/billing migration、RLS/owner 矩阵、Stripe Dashboard Customer Portal 配置、webhook delivery、provider backup/restore、税费/收据和退款演练，并取得明确的 staging/production 授权。
+
+### 本次隐私版本确认
+
+`GET/POST /api/account/consent` 使用服务端验证的账户身份和 PostgreSQL `audit_events` 追加记录确认 privacy-2026-10 / terms-2026-08。`occurred_at` 由数据库生成；旧 Auth metadata 和客户端时间不作为当前确认凭据。consumer_launch 的查询、intake、报告与 checkout 未确认时返回 428；账户删除和重新确认入口仍可用。

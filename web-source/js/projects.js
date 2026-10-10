@@ -1,4 +1,4 @@
-import { getValidAccessToken, listMyQueries } from "./api-client.js?v=20261005-r68";
+import { getValidAccessToken, listMyQueries } from "./api-client.js?v=20261010-r70";
 
 const DEMO_MODE = new URL(window.location.href).searchParams.get("demo") === "1";
 const EMPTY_MODE = new URL(window.location.href).searchParams.get("empty") === "1";
@@ -125,7 +125,6 @@ async function loadProjects() {
   const version = ++loadVersion;
   if (DEMO_MODE) {
     elements.banner.hidden = false;
-    document.querySelector("#projectsReviewLink").hidden = false;
     if (EMPTY_MODE) elements.notice.textContent = t("projects.emptyDemoNotice", "当前是空状态演示；切换状态筛选不会填充真实项目。");
     currentProjects = PROJECTS;
     renderProjects();
@@ -133,7 +132,6 @@ async function loadProjects() {
   }
 
   elements.banner.hidden = true;
-  document.querySelector("#projectsReviewLink").hidden = true;
   document.querySelector("#projectsReload").hidden = true;
   elements.empty.hidden = true;
   elements.authState.hidden = true;

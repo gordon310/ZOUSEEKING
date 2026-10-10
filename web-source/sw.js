@@ -7,16 +7,14 @@
  * to the network - never cache member data, reports or auth responses.
  * Bump SW_VERSION to force an app-shell refresh after deploys.
  */
-const SW_VERSION = "20261005-r68";
+const SW_VERSION = "20261010-r70";
 const APP_SHELL_PAGES = [
-  "./index.html",
   "./consumer-home.html",
+  "./consumer-profile.html",
   "./property-analysis.html",
   "./report.html",
   "./project.html",
   "./projects.html",
-  "./mypage.html",
-  "./profile.html",
 ];
 const APP_SHELL_ASSETS = [
   "./config.js",
@@ -39,9 +37,7 @@ const APP_SHELL_ASSETS = [
   "./js/project-workspace.js",
   "./js/project-live.js",
   "./js/report-page.js",
-  "./js/business-api.js",
   "./js/record-location.js",
-  "./js/profile-role.js",
   "./app.js",
   "./assets/logoELE-beacon.svg",
   "./assets/apple-touch-icon.png",
@@ -88,10 +84,10 @@ function isVersionedAsset(url) {
 }
 
 function cacheAppShellFallback(pathname) {
-  const versionedPath = `${pathname.replace(/\/$/, "") || "/index.html"}?v=${SW_VERSION}`;
+  const versionedPath = `${pathname.replace(/\/$/, "") || "/consumer-home.html"}?v=${SW_VERSION}`;
   return caches.match(new URL(versionedPath, self.location)).then((cached) => {
     if (cached) return cached;
-    return caches.match(new URL(`./index.html?v=${SW_VERSION}`, self.location));
+    return caches.match(new URL(`./consumer-home.html?v=${SW_VERSION}`, self.location));
   });
 }
 

@@ -1,0 +1,235 @@
+.consumer-app {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f8fbff 0, #f4f7fb 360px, #fff 100%);
+  color: var(--navy);
+}
+
+.consumer-app .app {
+  min-height: 100vh;
+  padding-bottom: 64px;
+}
+
+.consumer-app .topbar {
+  width: min(100% - 48px, 1120px);
+  margin: 0 auto;
+  padding: 0;
+  background: transparent;
+}
+
+.consumer-app .topbar-brand {
+  flex: 0 1 auto;
+}
+
+.consumer-app .topbar-links {
+  flex: 0 1 auto;
+  margin-left: auto;
+  gap: 22px;
+}
+
+.consumer-app .topbar-links a:hover {
+  color: var(--orange-dark);
+}
+
+.consumer-app .consumer-account-panel {
+  position: relative;
+  width: min(100% - 48px, 600px);
+  margin: clamp(40px, 8vw, 88px) auto 0;
+  padding: clamp(24px, 5vw, 42px);
+  border: 1px solid #cbd6e6;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 22px 56px rgb(16 40 77 / 12%);
+}
+
+.consumer-app .consumer-account-panel::before {
+  position: absolute;
+  top: 0;
+  right: 28px;
+  left: 28px;
+  height: 4px;
+  border-radius: 0 0 999px 999px;
+  background: var(--orange);
+  content: "";
+}
+
+.consumer-app .consumer-account-panel .account-head {
+  gap: 20px;
+}
+
+.consumer-app .consumer-account-panel h1 {
+  margin: 0;
+  color: var(--navy);
+  font-size: clamp(26px, 4vw, 34px);
+  line-height: 1.22;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.consumer-app .consumer-account-panel .account-copy {
+  max-width: 48ch;
+  margin-top: 12px;
+  color: #485a75;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.consumer-app .consumer-account-panel .account-tabs {
+  margin-top: 24px;
+}
+
+.consumer-app .consumer-account-panel .tab,
+.consumer-app .consumer-account-panel .ghost-button,
+.consumer-app .consumer-account-panel .ghost-link,
+.consumer-app .consumer-account-panel .account-form button {
+  border: 1px solid #aebed2;
+  border-radius: 10px;
+  font-weight: 750;
+}
+
+.consumer-app .consumer-account-panel .tab {
+  min-height: 46px;
+  background: #fff;
+  color: var(--navy);
+}
+
+.consumer-app .consumer-account-panel .tab:hover,
+.consumer-app .consumer-account-panel .ghost-button:hover,
+.consumer-app .consumer-account-panel .ghost-link:hover {
+  border-color: var(--navy);
+  background: #eef4fb;
+}
+
+.consumer-app .consumer-account-panel .tab.active,
+.consumer-app .consumer-account-panel .account-form button {
+  border-color: #b84300;
+  background: #b84300;
+  color: #fff;
+}
+
+.consumer-app .consumer-account-panel .tab.active:hover,
+.consumer-app .consumer-account-panel .account-form button:hover {
+  border-color: #903500;
+  background: #903500;
+}
+
+.consumer-app .consumer-account-panel .account-form {
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.consumer-app .consumer-account-panel .account-form label {
+  gap: 7px;
+  color: #485a75;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.consumer-app .consumer-account-panel input {
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid #aebed2;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--navy);
+}
+
+.consumer-app .consumer-account-panel .consent-check {
+  padding: 12px;
+  border: 1px solid #d9e2ef;
+  border-radius: 10px;
+  background: #f8fbff;
+}
+
+.consumer-app .consumer-account-panel .account-form button,
+.consumer-app .consumer-account-panel .primary-product-link {
+  min-height: 48px;
+}
+
+.consumer-app .consumer-account-panel .account-recovery-link {
+  margin-top: 16px;
+  color: #485a75;
+}
+
+.consumer-app .consumer-account-panel .form-message {
+  min-height: 1.5em;
+  margin-top: 16px;
+}
+
+.consumer-app .reset-panel {
+  max-width: 540px;
+}
+
+.consumer-app .reset-panel > .eyebrow {
+  margin-bottom: 10px;
+}
+
+.consumer-app .reset-panel > p:not(.form-message) {
+  max-width: 46ch;
+  color: #485a75;
+}
+
+.consumer-app .primary-product-link {
+  border-color: #b84300;
+  background: #b84300;
+}
+
+.consumer-app .primary-product-link:hover {
+  border-color: #903500;
+  background: #903500;
+}
+
+.consumer-app .skip-link {
+  position: fixed;
+  z-index: 10;
+  top: 12px;
+  left: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--navy);
+  color: #fff;
+  transform: translateY(-160%);
+}
+
+.consumer-app .skip-link:focus-visible {
+  transform: translateY(0);
+}
+
+@media (max-width: 720px) {
+  .consumer-app .topbar {
+    width: min(100% - 32px, 1120px);
+    min-height: 0;
+    padding: 16px 0;
+  }
+
+  .consumer-app .topbar-brand {
+    grid-column: 1 / -1;
+  }
+
+  .consumer-app .topbar-links {
+    gap: 14px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+  }
+
+  .consumer-app .topbar-links a {
+    min-height: 40px;
+    padding: 9px 0;
+    white-space: nowrap;
+  }
+
+  .consumer-app .consumer-account-panel {
+    width: min(100% - 32px, 600px);
+    margin-top: 28px;
+    padding: 24px 20px;
+  }
+
+  .consumer-app .consumer-account-panel .account-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .consumer-app .consumer-account-panel .account-actions {
+    flex-wrap: wrap;
+  }
+}

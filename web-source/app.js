@@ -5,7 +5,7 @@ const SESSION_PROVIDERS = new Set(["supabase", "demo"]);
 const API_BASE_URL = (window.ZOUSEEKING_API_BASE_URL || localStorage.getItem("zou_house_api_base") || "").replace(/\/$/, "");
 const SUPABASE_URL = (window.ZOUSEEKING_SUPABASE_URL || localStorage.getItem("zou_house_supabase_url") || "").replace(/\/$/, "");
 const SUPABASE_ANON_KEY = window.ZOUSEEKING_SUPABASE_ANON_KEY || localStorage.getItem("zou_house_supabase_anon_key") || "";
-const PRIVACY_POLICY_VERSION = "privacy-2026-08";
+const PRIVACY_POLICY_VERSION = "privacy-2026-10";
 const TERMS_VERSION = "terms-2026-08";
 const ACCOUNT_DELETION_CONFIRMATION = "DELETE_ACCOUNT";
 const EMAIL_RESEND_COOLDOWN_SECONDS = 60;
@@ -477,7 +477,8 @@ function appRedirectUrl() {
 }
 
 function passwordResetRedirectUrl() {
-  return window.ZouAuthRecovery?.buildResetRedirectUrl?.(window.location.origin) || `${window.location.origin}/reset-password.html`;
+  const path = document.body.dataset.role === "consumer" ? "consumer-reset-password.html" : "reset-password.html";
+  return window.ZouAuthRecovery?.buildResetRedirectUrl?.(window.location.origin, path) || `${window.location.origin}/${path}`;
 }
 
 function passwordRecoveryApi() {

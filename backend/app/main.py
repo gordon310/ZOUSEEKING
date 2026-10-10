@@ -119,6 +119,8 @@ def _validation_summary(exc: RequestValidationError) -> str:
 
 @app.exception_handler(RequestValidationError)
 async def scoped_validation_error(request: Request, exc: RequestValidationError):
+    if request.url.path in {"/api/account/consent", "/api/account/deletion-request"}:
+        return JSONResponse(status_code=422, content={"detail": "invalid account privacy request"})
     if request.url.path.startswith("/api/org/"):
         return JSONResponse(
             status_code=422,

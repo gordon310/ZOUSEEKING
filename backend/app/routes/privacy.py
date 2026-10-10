@@ -10,6 +10,7 @@ from typing_extensions import Literal
 
 from ..auth import AuthUser, require_user
 from ..services.account_deletion import ControlledDeletionExecutor
+from ..services.policy_consent import PolicyConsentStore
 from ..services.privacy import (
     DeletionServiceUnavailable,
     PRIVACY_POLICY_VERSION,
@@ -19,6 +20,35 @@ from ..services.privacy import (
 
 
 router = APIRouter()
+
+
+class PolicyConsentRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    privacy_policy_version: str = Field(min_length=1, max_length=100)
+    terms_version: str = Field(min_length=1, max_length=100)
+
+
+def get_consent_store() -> PolicyConsentStore:
+    return PolicyConsentStore()
+
+
+@router.get("/api/account/consent")
+async def get_policy_consent(user: AuthUser = Depends(require_user), store: Any = Depends(get_consent_store)) -> dict:
+    try:
+        accepted = await store.status(user.user_id)
+    except Exception:
+        raise HTTPException(503, "policy confirmation temporarily unavailable") from None
+    return {"accepted": accepted, "privacy_policy_version": PRIVACY_POLICY_VERSION, "terms_version": TERMS_VERSION}
+
+
+@router.post("/api/account/consent")
+async def accept_policy_consent(payload: PolicyConsentRequest, user: AuthUser = Depends(require_user), store: Any = Depends(get_consent_store)) -> dict:
+    if payload.privacy_policy_version != PRIVACY_POLICY_VERSION or payload.terms_version != TERMS_VERSION:
+        raise HTTPException(409, "please accept the current privacy and terms versions")
+    try:
+        return await store.accept(user.user_id)
+    except Exception:
+        raise HTTPException(503, "policy confirmation temporarily unavailable") from None
 
 
 class AccountDeletionRequest(BaseModel):

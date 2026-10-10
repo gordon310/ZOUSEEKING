@@ -181,13 +181,13 @@ def test_new_placeholder_on_a_referenced_page_is_reported(tmp_path: Path) -> Non
     mutate(
         staged,
         I18N_RELATIVE,
-        '"legal.navHome": "返回小象数据",',
-        '"legal.navHome": "返回小象数据 TBD",',
+        '"legal.h1": "隐私政策",',
+        '"legal.h1": "隐私政策 TBD",',
     )
 
     _, errors = run_audit(staged)
 
-    assert matching(errors, "C6_unfilled_placeholders|web-source/js/i18n.js|legal.navHome")
+    assert matching(errors, "C6_unfilled_placeholders|web-source/js/i18n.js|legal.h1")
 
 
 def test_jurisdiction_drift_is_reported(tmp_path: Path) -> None:
@@ -237,37 +237,14 @@ def test_missing_derived_locale_marker_is_reported(tmp_path: Path) -> None:
 
 def test_fixing_the_draft_notice_clears_its_coordinates(tmp_path: Path) -> None:
     staged = stage_repo(tmp_path)
-    mutate(
-        staged,
-        I18N_RELATIVE,
-        "本文件为上线前草稿，待法务／负责人确认。生效日：〔生效日:待确认〕",
-        "生效日：2026年10月7日。",
-    )
-    mutate(
-        staged,
-        I18N_RELATIVE,
-        "This document is a pre-launch draft pending legal and owner review. Effective date: [Effective date: to be confirmed]",
-        "Effective date: 7 October 2026.",
-    )
-    mutate(
-        staged,
-        I18N_RELATIVE,
-        "本書は公開前の草案であり、法務・責任者の確認待ちです。発効日：〔発効日：要確認〕",
-        "発効日：2026年10月7日。",
-    )
-    mutate(
-        staged,
-        "web/privacy.html",
-        "本文件为上线前草稿，待法务／负责人确认。生效日：〔生效日:待确认〕",
-        "生效日：2026年10月7日。",
-    )
-
+    original = (staged / I18N_RELATIVE).read_text()
+    mutate(staged, I18N_RELATIVE, '制定日：2026-09-27。当前版本：privacy-2026-10', '生效日：〔待确认〕。当前版本：privacy-2026-10')
+    _, errors = run_audit(staged)
+    assert matching(errors, "C6_unfilled_placeholders")
+    (staged / I18N_RELATIVE).write_text(original)
     result, errors = run_audit(staged)
-
     assert errors == []
-    assert not any("legal.draftNotice" in coordinate for coordinate in _all_coordinates(result))
-    assert not any("web/privacy.html" in coordinate for coordinate in _all_coordinates(result))
-    assert result["status"] == "open"
+    assert result["status"] == "pass"
 
 
 def test_resolved_declaration_is_reported_as_resolved(tmp_path: Path) -> None:
@@ -295,6 +272,7 @@ def test_contract_rejects_an_unowned_declaration(tmp_path: Path) -> None:
     staged = stage_repo(tmp_path)
 
     def blank_the_owner(contract: dict) -> None:
+        contract["declared_open_items"].append({"id": "fixture", "check": "C6_unfilled_placeholders", "coordinate_contains": ["fixture"], "summary": "fixture", "owner": "owner", "target": "test", "blocking": True})
         contract["declared_open_items"][0]["owner"] = "TBD"
 
     mutate_contract(staged, blank_the_owner)
@@ -307,6 +285,7 @@ def test_contract_rejects_an_unknown_check_id(tmp_path: Path) -> None:
     staged = stage_repo(tmp_path)
 
     def point_at_an_unknown_check(contract: dict) -> None:
+        contract["declared_open_items"].append({"id": "fixture", "check": "C6_unfilled_placeholders", "coordinate_contains": ["fixture"], "summary": "fixture", "owner": "owner", "target": "test", "blocking": True})
         contract["declared_open_items"][0]["check"] = "C99_made_up"
 
     mutate_contract(staged, point_at_an_unknown_check)
@@ -316,7 +295,7 @@ def test_contract_rejects_an_unknown_check_id(tmp_path: Path) -> None:
 
 
 def test_cli_exit_codes(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    assert main(["--root", str(REPO_ROOT)]) == 2
+    assert main(["--root", str(REPO_ROOT)]) == 0
 
     staged = stage_repo(tmp_path)
     mutate(staged, I18N_RELATIVE, "公开数据查询", "公开房源查询")

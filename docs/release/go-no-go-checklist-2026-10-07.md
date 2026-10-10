@@ -1,5 +1,7 @@
 # 2026-10-07 Web/PWA Go/No-Go checklist
 
+> 本页 Go 判定属于 09-27 发布记录；2026-10-10 新候选的当前判定见 `launch-closure-2026-10-10.md`，历史授权不代替新候选验证。
+
 **总判定(2026-09-27 更新,以 §C-2 为准)：工程侧 Go —— 2026-10-07 可按 `consumer_launch` 正式上线(C 端 + 后台)。** 工程要件(功能、API 门禁、异地备份、回滚路径、支付对账、迁移台账、CI 全绿)均已有生产实测证据;`docs/release/production-go-live-approval.json` = **`AUTHORIZED`**(owner: Gordon,2026-09-27),`production-release-evidence.json` = **`PRODUCTION_EVIDENCE_RECORDED`**。剩余开口均为**用户项、非工程缺口**:C11 预算/SLO 数值、日本律师书面结论存档、C13 staging smoke(可选)。
 
 > **历史记录**:本清单初版审计(2026-09-12 口径)曾判定 `No-Go` 并列出 C01–C14 缺口;该批缺口已在 09-24 ~ 09-27 逐项闭合,详见 §C-0 / §C-1 / §C-2。**旧判定不再作为当前结论,勿引用。**
@@ -78,7 +80,7 @@
 | C01 | ✅ 维持 | 工作树干净、`main == origin/main == 252b661`、无未跟踪残留;按 2026-09-04 决策 **main 即唯一权威分支**(不另建 release branch),发布时记录 commit SHA + 前端版本号即可 | Hermes |
 | C02 | ✅ 已闭合（09-27 收口） | ADR-0002 已按 09-23 决策改批为「C 端 + 后台管理平台」（`docs/architecture/adr-0002-phase-one-release-scope.md`，2026-09-26 修订，原文保留）。**文字 ↔ 机器契约 ↔ 运行时已三项对齐**：JSON `api_allowlist` 42 条 == `PHASE_ONE_API_CONTRACT` 逐条相同、零重复（`tests/architecture/test_authoritative_backend_policy.py` 实测通过）。**但 allowlist 编码的仍是旧的 C-only 范围**（不含注册/查询/报告/付费），而生产实际 `RELEASE_PHASE=consumer_active`（全放行）→ 声明的发布边界在生产未生效；代码又把该值注释为「Never use in production」。详见 §F U1–U5 | 用户（phase/首发面决定）+ Codex |
 | C03 | ✅ 已闭合（09-27 实测） | 仓库新增 4 条迁移 → 台账「新增迁移时」触发;09-22 `restore_drill.py`(50 版本)证据已过期。本轮已用 Management API 只读核对台账(50/54),需重跑 drill | Codex |
-| C04 | ✅ 已闭合（09-27） | 异地备份已上线:每日 03:10 JST 备份自动上传 **Cloudflare R2**(sha256 三方一致),`observability-check.sh` 远端新鲜度检查转 `OBSERVABILITY_OK`(backup_age_hours ≤ 36),保留策略已入库;成本上限已获用户批准。**仍未演练**:provider 级物理备份/PITR 与私有 Storage 对象恢复(属上线后加固项,不阻塞 10-07) | Hermes ✅ |
+| C04 | ✅ 已闭合（2026-10-10 更新） | 用户批准零新增费用替代门槛：PITR=NOT_APPLICABLE；新 R2 逻辑备份下载校验、隔离恢复 7 表与 54 版本一致；生产私有桶为空，合成对象 R2 往返及独立私有桶恢复通过，普通账户直接读取均拒绝。证据见 `launch-closure-2026-10-10.md`；逻辑备份不含完整 Auth 凭据、对象字节或 ACL。备份定时器按用户决定保持禁用。 | Codex |
 | C05 | 🟡 需一次生产复验 | 数据库四身份有 09-20 生产证据;Storage 四角色仅 09-02 staging 证据;生产 Auth 生命周期未复验 | 用户(授权) + Codex |
 | C06 | ✅ 闭合 | 实测两副本各 **6** 条、全部 `synthetic_fixture`、SHA-256 一致(`301cf824…`);非 synthetic 违规 0 | Hermes |
 | C07 | ✅ 已闭合(09-24 补) | 合同 `docs/architecture/report-job-queue-contract.md` 落地:五态状态机(以 migration 的 `check (status in ...)` 为准)+ 原子认领/15 分钟租约 + `claim_token` 保护 + 三个独立幂等边界 + **取消的真实行为**(SIGTERM;无面向客户的取消入口,如实列为 known gap)+ 遗留执行器保证 + 证据索引。新增 5 条静态守护(钉死 `run_generation_job` 唯一调用点 = `report_worker.py:241`、断言无请求线程路径执行报告)+ 3 条真库用例(租约重放不重复、重入队幂等、completed 不再认领);守护测试经**变异测试**验证确有拦截力。unit+arch 476 / 真库 8 / 全量 673 | Codex ✅ |

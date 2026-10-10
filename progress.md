@@ -1231,3 +1231,11 @@ git status --porcelain / git diff --check         -> 仅本班 4 新增文件 + 
 ## 2026-10-05：继续 PWA 上线闭环（本地候选验收）
 
 在 codex/ux-simplification 完成：nginx SW/manifest 再验证缓存头、新版表单变更阻止自动刷新、r68 全资产版本归一、Node 安全检查接入既有 CI、已审定姓名 O3 同步。全套浏览器139 passed，聚焦 pytest31 passed，Node/资产新鲜度/版本/策略/秘密扫描/差异检查通过；本地临时 nginx 三host9个HTTP检查通过并清理。真实r67保存夹具首次升级清洁页只刷新一次，新版 dirty guard/离线私有API也验证通过。O1/O2、环境隔离、真实设备/交易/响应恢复仍未关闭；未部署、不改生产数据，待候选 main 整合与远程完整 CI。细节为候选 docs/release/pwa-preflight-evidence-2026-10-05.md 和 legal-site-sync-review-2026-10-05.md。
+
+## 2026-10-11 上线闭环候选（未部署）
+
+- 唯一候选 codex/launch-closure，整合 r68 UX、C 端独立账户/重置与 r70 生成资源。原 main 及 C dirty 工作树未改写。
+- privacy-2026-10 随实际上线生效；append-only audit_events 记录服务端身份/数据库时间；拒绝同意仍可申请删除。独立审查及账户切换/旧请求/退出回归已完成。
+- 新 R2 实际逻辑备份隔离恢复 7 表/54 migration versions 一致；生产私有桶为空，synthetic 对象 R2 往返恢复/worker-only 拒绝/签名过期验证通过。PITR=NOT_APPLICABLE。按用户决定只补跑一次备份，定时器继续 disabled，未清理 R2。
+- 当前全量 Python 1001 passed, 1 skipped；浏览器业务全套前批次149 passed，新增最终 consent9 passed，冻结完整 CI 待运行。skip 为缺少环境凭据的 live HTTP 四身份检查，不替代生产证据。
+- 尚缺：冻结候选 CI、真机/真实交易主路径、告警到人响应、发布与30分钟/24小时观察；当前 No-Go。详见 docs/release/launch-closure-2026-10-10.md。

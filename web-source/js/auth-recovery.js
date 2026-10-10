@@ -30,9 +30,9 @@
     }
   }
 
-  function buildResetRedirectUrl(origin) {
+  function buildResetRedirectUrl(origin, path = "reset-password.html") {
     const base = String(origin || "").replace(/\/$/, "");
-    return new URL("reset-password.html", `${base}/`).toString();
+    return new URL(path, `${base}/`).toString();
   }
 
   function resetRequestResultMessage() {

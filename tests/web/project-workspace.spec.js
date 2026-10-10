@@ -51,5 +51,5 @@ test("project workspace requires an explicit review mode", async ({ page }) => {
 
   await expect(page.locator("#workspaceAccessGate")).toBeVisible();
   await expect(page.locator(".workspace-page")).toBeHidden();
-  await expect(page.locator("#workspaceAccessGate a")).toHaveAttribute("href", /profile\.html\?role=consumer&return_to=project\.html/);
+  await expect(page.locator("#workspaceAccessGate a")).toHaveAttribute("href", "consumer-profile.html?return_to=project.html#accountPanel");
 });

@@ -1,4 +1,4 @@
-import { loadLiveProject } from "./project-live.js?v=20261005-r68";
+import { loadLiveProject } from "./project-live.js?v=20261010-r70";
 
 const DEMO_STATES = new Set(["preview", "ready", "running", "completed", "failed", "update"]);
 const DEMO_QUERY = "demo";

@@ -1,4 +1,4 @@
-import { getValidAccessToken, getProject, listMyQueries, runQueryJob } from "./api-client.js?v=20261005-r68";
+import { getValidAccessToken, getProject, listMyQueries, runQueryJob } from "./api-client.js?v=20261010-r70";
 
 const params = new URL(window.location.href).searchParams;
 const propertyId = params.get("property_id");
@@ -27,7 +27,7 @@ export async function loadLiveProject() {
   if (loading) return;
   const version = ++loadVersion;
   const login = gate.querySelector("a");
-  login.href = `profile.html?role=consumer&return_to=${encodeURIComponent(`project.html${window.location.search}`)}#accountPanel`;
+  login.href = `consumer-profile.html?return_to=${encodeURIComponent(`project.html${window.location.search}`)}#accountPanel`;
   const token = await getValidAccessToken();
   if (version !== loadVersion) return;
   if (!token) { panel.hidden = true; gate.hidden = false; return; }

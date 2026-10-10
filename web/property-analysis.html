@@ -4,15 +4,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="注册或登录后提交日本物件资料，查看资料检查并保存分析项目。" />
-    <link rel="manifest" href="manifest.webmanifest?v=20261005-r68" />
-    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=20261005-r68" />
+    <link rel="manifest" href="manifest.webmanifest?v=20261010-r70" />
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=20261010-r70" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="小象" />
     <meta name="theme-color" content="#0b1020" />
     <title data-i18n-title="intake.pageTitle">分析一个日本物件｜小象避坑 ZOUBEACON</title>
-    <link rel="icon" href="assets/logoELE-beacon.svg?v=20261005-r68" />
-    <link rel="stylesheet" href="property-analysis.css?v=20261005-r68" />
+    <link rel="icon" href="assets/logoELE-beacon.svg?v=20261010-r70" />
+    <link rel="stylesheet" href="property-analysis.css?v=20261010-r70" />
+    <link rel="stylesheet" href="policy-consent.css?v=20261010-r70" />
   </head>
   <body>
     <main class="beacon-app">
@@ -29,36 +30,19 @@
                 <feComposite in="logo-color" in2="logo-mask" operator="in" />
               </filter>
             </defs>
-            <image href="assets/logoELE-beacon.svg?v=20261005-r68" width="1254" height="1254" preserveAspectRatio="none" />
+            <image href="assets/logoELE-beacon.svg?v=20261010-r70" width="1254" height="1254" preserveAspectRatio="none" />
           </svg>
           <span class="beacon-brand-copy">
             <strong>小象避坑</strong>
             <span>ZOUBEACON</span>
           </span>
         </a>
-        <button
-          id="menuToggle"
-          class="menu-toggle"
-          type="button"
-          aria-label="打开菜单"
-          data-i18n-aria-label="intake.openMenu"
-          aria-expanded="false"
-          aria-controls="beaconMenu"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="M4 6.5h16M4 12h16M4 17.5h16" />
-          </svg>
-        </button>
         <label class="locale-switcher">
           <span class="sr-only" data-i18n="locale.label">界面语言</span>
           <select data-locale-switcher data-i18n-aria-label="locale.label">
             <option value="zh-CN">简体中文</option><option value="zh-Hant">繁體中文</option><option value="en">English</option><option value="ja">日本語</option>
           </select>
         </label>
-        <nav id="beaconMenu" class="beacon-menu" aria-label="快捷导航" data-i18n-aria-label="intake.quickNav" hidden>
-          <a href="https://platform.zoubeacon.com/" data-i18n="intake.backToBusiness">回到小象数据</a>
-          <a id="reviewLink" href="ui-review.html" data-i18n="intake.reviewLink" hidden>前端流程评审</a>
-        </nav>
       </header>
 
       <div id="demoBanner" class="demo-banner" hidden>
@@ -92,7 +76,7 @@
                   <p class="section-number">1.</p>
                   <h2 id="authGateHeading" data-i18n="intake.authGateTitle">注册或登录后开始分析</h2>
                   <p data-i18n="intake.authGateCopy">物件资料会绑定到你的账户，分析项目和报告只对所属账户可见。请先注册或登录，再提交资料。</p>
-                  <a class="primary-action" href="profile.html?role=consumer&amp;return_to=property-analysis.html#accountPanel" data-i18n="intake.authGateCta">注册 / 登录</a>
+                  <a class="primary-action" href="consumer-profile.html#accountPanel" data-i18n="intake.authGateCta">注册 / 登录</a>
                 </section>
 
                 <p id="intakeStatus" class="intake-status" role="alert" aria-live="assertive" tabindex="-1"></p>
@@ -343,11 +327,12 @@
       </div>
     </main>
 
-    <script src="config.js?v=20261005-r68"></script>
-    <script src="js/auth-session.js?v=20261005-r68"></script>
-    <script src="js/pwa.js?v=20261005-r68"></script>
-    <script src="js/i18n.js?v=20261005-r68"></script>
-    <script type="module" src="js/property-intake.js?v=20261005-r68"></script>
-    <script type="module" src="js/recognition.js?v=20261005-r68"></script>
+    <script src="config.js?v=20261010-r70"></script>
+    <script src="js/auth-session.js?v=20261010-r70"></script>
+    <script src="js/pwa.js?v=20261010-r70"></script>
+    <script src="js/i18n.js?v=20261010-r70"></script>
+    <script type="module" src="js/property-intake.js?v=20261010-r70"></script>
+    <script type="module" src="js/recognition.js?v=20261010-r70"></script>
+    <script src="js/policy-consent.js?v=20261010-r70" defer></script>
   </body>
 </html>

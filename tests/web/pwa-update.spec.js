@@ -72,10 +72,27 @@ test('actual r67 client discovers the new worker and reloads a clean page once',
     await page.waitForFunction(()=>!!navigator.serviceWorker.controller);await page.reload();
     let navigations=0;page.on('framenavigated',frame=>{if(frame===page.mainFrame())navigations++;});
     historicalClient=false;workerVersion=release;
-    await Promise.all([page.waitForEvent('load'),page.evaluate(async()=>{await (await navigator.serviceWorker.ready).update();})]);
+    // The historical client may reload before update() returns to this document.
+    const loaded=page.waitForEvent('load');
+    await page.evaluate(async()=>{await (await navigator.serviceWorker.ready).update();}).catch(error=>{
+      if (!error.message.includes('Execution context was destroyed')) throw error;
+    });
+    await loaded;
     await expect.poll(()=>activeVersion(page)).toBe(release);
     await expect.poll(()=>navigations).toBe(1);
     await expect(page.locator('#draft')).toBeVisible();
     expect(await page.evaluate(()=>sessionStorage.getItem('zouseeking-pwa-auto-reload'))).toBe('1');
   }finally{historicalClient=false;await context.close();}
+});
+
+test('private API navigation stays network-only and consumer consent assets install offline',async({browser})=>{
+  workerVersion=release;const context=await browser.newContext({serviceWorkers:'allow'});const page=await context.newPage();
+  try {
+    await page.goto(origin+'/pwa-update-test.html');await page.waitForFunction(()=>!!navigator.serviceWorker.controller);
+    const paths=await page.evaluate(async()=>{const cache=await caches.open((await caches.keys())[0]);return (await cache.keys()).map(request=>new URL(request.url).pathname);});
+    for(const asset of ['/consumer-account.css','/policy-consent.css','/js/policy-consent.js']) expect(paths).toContain(asset);
+    await page.goto(origin+'/api/private-fixture');await expect(page.locator('body')).toContainText('fixture-only');
+    await page.goto(origin+'/pwa-update-test.html');await context.setOffline(true);
+    await expect(page.goto(origin+'/api/private-fixture',{waitUntil:'domcontentloaded'})).rejects.toThrow();
+  }finally{await context.close();}
 });

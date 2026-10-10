@@ -25,11 +25,14 @@ const APP_SHELL_ASSETS = [
   "./project-workspace.css",
   "./report-page.css",
   "./styles.css",
+  "./consumer-account.css",
+  "./policy-consent.css",
   "./js/auth-session.js",
   "./js/auth-recovery.js",
   "./js/api-client.js",
   "./js/i18n.js",
   "./js/pwa.js",
+  "./js/policy-consent.js",
   "./js/property-intake.js",
   "./js/property-intake-extraction.js",
   "./js/recognition.js",
@@ -101,6 +104,7 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
   if (request.method !== "GET" || url.origin !== self.location.origin) return;
+  if (["/api/", "/rest/v1/", "/auth/v1/", "/functions/"].some((prefix) => url.pathname.startsWith(prefix))) return;
 
   if (request.mode === "navigate") {
     event.respondWith(

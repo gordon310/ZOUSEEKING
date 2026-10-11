@@ -1,7 +1,7 @@
 {
-  "schema_version": 1,
-  "contract": "migration-ledger-contract/v1",
-  "purpose": "Offline gate for the G4 migration dimension of the 2026-10-07 countdown (D-7): the canonical forward history must be append-only, byte-stable for every already-applied migration, still matching every hash that was recorded on the production line, still matching current documents against the recorded production snapshot and repository count, and free of unregistered destructive statements. It is offline and read-only: no network, no socket, no credentials, no environment variables, no database, no SQL execution. It never proves that production really holds these 54 versions and never replaces a live ledger read.",
+  "schema_version": 2,
+  "contract": "migration-ledger-contract/v2",
+  "purpose": "Offline gate for the G4 migration dimension: canonical history is append-only, applied hashes remain byte-stable and agree with recorded artifacts, explicitly pending forward migrations are separately hash-pinned, and current claims distinguish the last recorded production ledger from the repository. No network, credentials, database connection or SQL execution. A pass proves repository consistency only; it does not prove current production state or authorize/apply a migration.",
   "canonical_history": "supabase/migrations",
   "migration_name_pattern": "^(?P<version>\\d{14})_[a-z0-9][a-z0-9_]*\\.sql$",
   "manifest": {
@@ -29,27 +29,31 @@
       "id": "L1_go_live_readiness_summary",
       "document": "docs/release/2026-10-07-go-live-readiness-summary.md",
       "kind": "current",
-      "pattern": "生产\\s*\\*\\*(?P<production>\\d+)\\s*/\\s*仓库\\s*(?P<repo>\\d+)\\*\\*[^\\n]*?最高\\s*`(?P<max_version>\\d{14})`",
+      "pattern": "生产\\s*\\*\\*(?P<production>\\d+)\\s*/\\s*仓库\\s*(?P<repo>\\d+)\\*\\*[^\\n]*?生产最高\\s*`(?P<max_version>\\d{14})`[^\\n]*?仓库最高\\s*`(?P<repo_max_version>\\d{14})`[^\\n]*?待应用\\s*(?P<pending>\\d+)\\s*条",
       "occurrences_required": 1,
       "bindings": {
         "production": "production_count",
         "repo": "repo_count",
-        "max_version": "production_max_version"
+        "max_version": "production_max_version",
+        "repo_max_version": "repo_max_version",
+        "pending": "pending_count"
       },
-      "note": "Current documented production snapshot remains 54; repository contains 55, with the new forward migration awaiting explicit production authorization."
+      "note": "Current identity block distinguishes recorded production from repository and explicitly pending forward artifacts."
     },
     {
       "id": "L2_go_no_go_checklist_a1",
       "document": "docs/release/go-no-go-checklist-2026-10-07.md",
       "kind": "current",
-      "pattern": "生产已登记\\s*(?P<production>\\d+)\\s*条\\s*/\\s*仓库\\s*(?P<repo>\\d+)\\s*条[^\\n]*?最高登记\\s*`(?P<max_version>\\d{14})`",
+      "pattern": "生产已登记\\s*(?P<production>\\d+)\\s*条\\s*/\\s*仓库\\s*(?P<repo>\\d+)\\s*条[^\\n]*?最高登记\\s*`(?P<max_version>\\d{14})`[^\\n]*?仓库最高\\s*`(?P<repo_max_version>\\d{14})`[^\\n]*?待应用\\s*(?P<pending>\\d+)\\s*条",
       "occurrences_required": 1,
       "bindings": {
         "production": "production_count",
         "repo": "repo_count",
-        "max_version": "production_max_version"
+        "max_version": "production_max_version",
+        "repo_max_version": "repo_max_version",
+        "pending": "pending_count"
       },
-      "note": "Current documented production snapshot remains 54; repository contains 55, with the new forward migration awaiting explicit production authorization."
+      "note": "Checklist A1 preserves the recorded production count and highest version while declaring the repository-only pending migration."
     }
   ],
   "excluded_surfaces": [
@@ -61,7 +65,7 @@
     {
       "id": "live_production_ledger",
       "where": "supabase_migrations.schema_migrations (production)",
-      "reason": "Reading the real production ledger requires credentials. This gate checks documents against the recorded production snapshot and canonical repo history; it permits an explicitly pending forward migration but never proves live state or authorizes SQL execution."
+      "reason": "Production 54/highest 20260923000300 is recorded separately from repository 56/highest 20261011000200 and two pending migrations. Static consistency never proves live application."
     }
   ],
   "destructive_statement_kinds": {
@@ -343,17 +347,29 @@
     {
       "file": "supabase/migrations/20260923000300_shared_rate_limits.sql",
       "sha256": "27597f7f35f16deb096686ae66f8e2ac9337c1c75ec8fc90fb551b53cd37592a"
+    }
+  ],
+  "pinned_hashes_note": "Immutable byte-level SHA-256 of the full 54-migration recorded applied set. The separate pending_hashes list pins new forward artifacts without claiming application. --print-pins prints all repository hashes for review; it is not an applied-ledger update and must not overwrite this applied set with pending artifacts.",
+  "documented_ledger": {
+    "repo_count": 56,
+    "max_version": "20261011000200",
+    "pending_count": 2
+  },
+  "recorded_production": {
+    "count": 54,
+    "max_version": "20260923000300",
+    "recorded_at": "2026-09-27",
+    "note": "Recorded production remains 54; both the report-preview boundary and audit anonymization migrations await separate production authorization."
+  },
+  "pending_hashes": [
+    {
+      "file": "supabase/migrations/20261011000100_report_preview_read_boundary.sql",
+      "sha256": "7b2d204dc73fa4b76d9da891a503263dcbb401f9a30c95d0ad48b5b1533b7332"
     },
     {
       "file": "supabase/migrations/20261011000200_audit_events_anonymization_allowance.sql",
       "sha256": "5b808ac9aebb2f29610df409e96a1431b8db434ea6be63411f1b4c98f19875a3"
     }
   ],
-  "pinned_hashes_note": "Byte-level SHA-256 of every canonical migration. Adding a forward migration requires adding its hash in the same change; editing an applied migration in place fails C3. Regenerate with `python3 scripts/check_migration_ledger_offline.py --print-pins`.",
-  "documented_ledger": {
-    "repo_count": 55,
-    "max_version": "20261011000100",
-    "production_count": 54,
-    "production_max_version": "20260923000300"
-  }
+  "pending_hashes_note": "Reviewed repository artifacts only, not applied production migrations. Each must be strictly newer than recorded production. Keep all applied pinned_hashes unchanged; adding a pending artifact never advances the recorded production ledger. Promotion requires separately authorized application and new live evidence."
 }

@@ -665,6 +665,28 @@ async function apiFetch(path, options = {}) {
 }
 
 function backendReportToRecord(options, report) {
+  if (report.locked === true || report.unlocked === false) {
+    return {
+      id: `locked::${report.query_key || report.slug}`,
+      locked: true,
+      unlocked: false,
+      query_key: report.query_key || "",
+      slug: report.slug || "",
+      prefecture: options.prefecture || "",
+      city: options.city || "",
+      ward: options.ward || "",
+      asset_type: options.assetType || "",
+      generated_at: report.generated_at || report.created_at || "",
+      report_status: report.report_status || "",
+      title: report.title || "深度报告",
+      publish_month: report.publish_month || "",
+      summary: report.summary || {},
+      data_sources: report.data_sources || [],
+      unlock_hint: report.unlock_hint || "完整报告尚未解锁。",
+      regions: [options.prefecture, options.city, options.ward].filter(Boolean),
+      layouts: [],
+    };
+  }
   const rental = report.rental || [];
   const sale = report.sale || [];
   const layouts = Array.from(new Set([...rental, ...sale].map((row) => row.layout).filter(Boolean))).sort();
@@ -696,6 +718,10 @@ function backendReportToRecord(options, report) {
 
 function supabaseReportToRecord(options, report) {
   return backendReportToRecord(options, {
+    locked: report.locked,
+    unlocked: report.unlocked,
+    query_key: report.query_key,
+    unlock_hint: report.unlock_hint,
     slug: report.slug,
     title: report.title,
     publish_month: report.publish_month,
@@ -1354,18 +1380,9 @@ async function viewReportByQueryKey(key) {
     }
     if (report.locked) {
       // D7 paywall: locked metadata response -> show the unlock card (no content).
-      state.records = state.records.filter((item) => item.id !== `locked::${key}`);
-      state.records.push({
-        id: `locked::${key}`,
-        locked: true,
-        query_key: key,
-        title: report.title || "深度报告",
-        publish_month: report.publish_month || "",
-        unlock_hint: report.unlock_hint || "",
-        regions: [],
-        layouts: [],
-      });
-      state.selectedId = `locked::${key}`;
+      const record = backendReportToRecord({}, { ...report, query_key: key });
+      upsertRuntimeRecord(record);
+      state.selectedId = record.id;
       renderView();
       return;
     }
@@ -1387,6 +1404,13 @@ async function startReportUnlock(queryKey) {
   const button = document.querySelector("[data-unlock-report]");
   if (button) button.disabled = true;
   try {
+    // Recheck server evidence immediately before checkout; another tab or a
+    // completed credit-consuming job may have unlocked this report already.
+    const currentReport = await apiFetch(`/api/reports/${encodeURIComponent(queryKey)}`);
+    if (currentReport.unlocked === true && currentReport.locked !== true) {
+      await viewReportByQueryKey(queryKey);
+      return;
+    }
     const checkout = await apiFetch("/api/billing/checkout", {
       method: "POST",
       body: JSON.stringify({
@@ -2223,10 +2247,18 @@ function renderDetail() {
     return;
   }
   if (record.locked) {
+    const previewSummary = typeof record.summary === "string"
+      ? record.summary
+      : [record.summary?.title, record.summary?.line, record.summary?.note].filter(Boolean).join(" · ");
+    const previewSources = (Array.isArray(record.data_sources) ? record.data_sources : [])
+      .map((source) => typeof source === "string" ? source : [source?.name, source?.period, source?.url].filter(Boolean).join(" · "))
+      .filter(Boolean);
     $("#detailContent").innerHTML = `
       <article class="detail-card">
         <h2>${escapeHtml(displayPropertyText(record.title))}</h2>
         <p class="meta"><span class="pill">${escapeHtml(record.publish_month || "")}</span></p>
+        ${previewSummary ? `<p class="report-preview-summary">${escapeHtml(previewSummary)}</p>` : ""}
+        ${previewSources.length ? `<ul class="report-preview-sources">${previewSources.map((source) => `<li>${escapeHtml(source)}</li>`).join("")}</ul>` : ""}
         <div class="locked-report" role="status">
           <p>🔒 ${escapeHtml(record.unlock_hint || "完整深度报告为付费权益。")}</p>
           <p class="locked-note">${escapeHtml(uiText("report.singleUnlockCopy", "购买后解锁本份深度报告"))}</p>
@@ -2282,8 +2314,13 @@ function renderDetail() {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-function openDetail(id) {
+async function openDetail(id) {
   if (!isLoggedIn()) return;
+  const record = state.records.find((item) => item.id === id);
+  if (record?.locked && record.query_key && canUseAuthenticatedBackend()) {
+    await viewReportByQueryKey(record.query_key);
+    return;
+  }
   state.selectedId = id;
   renderView();
 }

@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 from scripts.check_migration_ledger_offline import (
     DEFAULT_CONTRACT,
     check_repo,
@@ -17,6 +19,7 @@ from scripts.check_migration_ledger_offline import (
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CONTRACT_PATH = REPO_ROOT / DEFAULT_CONTRACT
 MIGRATIONS = "supabase/migrations"
+PENDING_MIGRATION = f"{MIGRATIONS}/20261011000100_report_preview_read_boundary.sql"
 DOCS = (
     "docs/architecture/schema-ownership.json",
     "docs/release/m1-database-production-line-evidence.json",
@@ -45,16 +48,22 @@ def test_real_repository_satisfies_migration_ledger_contract() -> None:
     assert check_repo(REPO_ROOT, load_contract(CONTRACT_PATH)) == []
 
 
-def test_contract_pins_and_records_the_full_applied_set() -> None:
+def test_contract_preserves_full_applied_set_and_separate_pending_artifact() -> None:
     contract = load_contract(CONTRACT_PATH)
     on_disk = sorted(
         path.relative_to(REPO_ROOT).as_posix()
         for path in (REPO_ROOT / MIGRATIONS).glob("*.sql")
     )
 
-    assert [pin["file"] for pin in contract["pinned_hashes"]] == on_disk
+    assert len(contract["pinned_hashes"]) == 54
+    assert [pin["file"] for pin in contract["pinned_hashes"]] == on_disk[:54]
+    assert [pin["file"] for pin in contract["pending_hashes"]] == [PENDING_MIGRATION, f"{MIGRATIONS}/20261011000200_audit_events_anonymization_allowance.sql"]
+    assert [pin["file"] for pin in contract["pending_hashes"]] == on_disk[54:]
+    assert contract["recorded_production"]["count"] == 54
+    assert contract["recorded_production"]["max_version"] == "20260923000300"
     assert contract["documented_ledger"]["repo_count"] == len(on_disk)
     assert contract["documented_ledger"]["max_version"] == on_disk[-1][len(MIGRATIONS) + 1 :][:14]
+    assert contract["documented_ledger"]["pending_count"] == 2
     assert {artifact["id"] for artifact in contract["recorded_artifacts"]} == {
         "m1_baseline_reconciliation_apply",
         "m1_service_role_portability_forward_fix",
@@ -69,6 +78,81 @@ def test_editing_an_applied_migration_is_rejected(tmp_path: Path) -> None:
     errors = check_repo(root, contract)
 
     assert _errors_for(errors, "20260923000300_shared_rate_limits.sql")
+
+
+def test_editing_a_pending_migration_without_updating_its_pin_is_rejected(tmp_path: Path) -> None:
+    root, contract = _fixture_repo(tmp_path)
+    target = root / PENDING_MIGRATION
+    target.write_text(target.read_text(encoding="utf-8") + "\n-- drift\n", encoding="utf-8")
+
+    assert any(
+        error.startswith(f"C3 {PENDING_MIGRATION}: sha256 drift")
+        for error in check_repo(root, contract)
+    )
+
+
+def test_removing_pending_pin_is_rejected(tmp_path: Path) -> None:
+    root, contract = _fixture_repo(tmp_path)
+    contract["pending_hashes"] = []
+
+    assert _errors_for(check_repo(root, contract), f"{PENDING_MIGRATION} has no pinned sha256")
+
+
+def test_applied_and_pending_sets_cannot_overlap(tmp_path: Path) -> None:
+    root, contract = _fixture_repo(tmp_path)
+    contract["pending_hashes"].insert(0, copy.deepcopy(contract["pinned_hashes"][-1]))
+
+    errors = check_repo(root, contract)
+
+    assert _errors_for(errors, "is pinned more than once")
+    assert _errors_for(errors, "pending migration must be newer than recorded production")
+
+
+def test_applied_migration_cannot_be_reclassified_as_pending(tmp_path: Path) -> None:
+    root, contract = _fixture_repo(tmp_path)
+    contract["pending_hashes"].insert(0, contract["pinned_hashes"].pop())
+
+    errors = check_repo(root, contract)
+
+    assert _errors_for(errors, "applied pin count disagrees with recorded production count")
+    assert _errors_for(errors, "applied pin maximum version disagrees")
+    assert _errors_for(errors, "pending migration must be newer than recorded production")
+
+
+def test_pending_migration_cannot_be_claimed_as_applied_without_new_evidence(tmp_path: Path) -> None:
+    root, contract = _fixture_repo(tmp_path)
+    contract["pinned_hashes"].extend(contract["pending_hashes"])
+    contract["pending_hashes"] = []
+
+    errors = check_repo(root, contract)
+
+    assert _errors_for(errors, "applied pin count disagrees with recorded production count")
+    assert _errors_for(errors, "applied pin maximum version disagrees")
+
+
+def test_applied_pin_reordering_is_rejected(tmp_path: Path) -> None:
+    root, contract = _fixture_repo(tmp_path)
+    contract["pinned_hashes"].reverse()
+
+    assert _errors_for(check_repo(root, contract), "full append-only canonical history")
+
+
+@pytest.mark.parametrize("key,value", [("count", 55), ("max_version", "20261011000100")])
+def test_recorded_production_drift_is_rejected(tmp_path: Path, key: str, value: object) -> None:
+    root, contract = _fixture_repo(tmp_path)
+    contract["recorded_production"][key] = value
+
+    assert any(error.startswith("C3 ") for error in check_repo(root, contract))
+
+
+@pytest.mark.parametrize(
+    "key,value", [("repo_count", 54), ("max_version", "20260923000300"), ("pending_count", 0)]
+)
+def test_documented_repository_ledger_drift_is_rejected(tmp_path: Path, key: str, value: object) -> None:
+    root, contract = _fixture_repo(tmp_path)
+    contract["documented_ledger"][key] = value
+
+    assert _errors_for(check_repo(root, contract), f"C5 documented_ledger.{key} disagrees")
 
 
 def test_removing_a_pinned_migration_is_rejected(tmp_path: Path) -> None:
@@ -152,13 +236,44 @@ def test_live_claim_ledger_count_drift_is_rejected(tmp_path: Path) -> None:
     root, contract = _fixture_repo(tmp_path)
     summary = root / "docs/release/2026-10-07-go-live-readiness-summary.md"
     summary.write_text(
-        summary.read_text(encoding="utf-8").replace("生产 **54 / 仓库 55**", "生产 **53 / 仓库 55**"),
+        summary.read_text(encoding="utf-8").replace("生产 **54 / 仓库 56**", "生产 **55 / 仓库 56**"),
         encoding="utf-8",
     )
 
     errors = check_repo(root, contract)
 
     assert any(error.startswith("C5 L1_go_live_readiness_summary: production=") for error in errors)
+
+
+@pytest.mark.parametrize(
+    "old,new,group",
+    [
+        ("仓库 56**", "仓库 54**", "repo"),
+        ("生产最高 `20260923000300`", "生产最高 `20261011000100`", "max_version"),
+        ("仓库最高 `20261011000200`", "仓库最高 `20260923000300`", "repo_max_version"),
+        ("待应用 2 条", "待应用 0 条", "pending"),
+    ],
+)
+def test_claims_distinguish_production_repo_and_pending(
+    tmp_path: Path, old: str, new: str, group: str
+) -> None:
+    root, contract = _fixture_repo(tmp_path)
+    summary = root / "docs/release/2026-10-07-go-live-readiness-summary.md"
+    text = summary.read_text(encoding="utf-8")
+    assert old in text
+    summary.write_text(text.replace(old, new), encoding="utf-8")
+
+    assert _errors_for(check_repo(root, contract), f"C5 L1_go_live_readiness_summary: {group}=")
+
+
+def test_claim_cannot_hide_pending_migrations(tmp_path: Path) -> None:
+    root, contract = _fixture_repo(tmp_path)
+    summary = root / "docs/release/2026-10-07-go-live-readiness-summary.md"
+    summary.write_text(
+        summary.read_text(encoding="utf-8").replace("待应用 2 条", "零缺口"), encoding="utf-8"
+    )
+
+    assert _errors_for(check_repo(root, contract), "contains 0 claim(s), expected 1")
 
 
 def test_live_claim_max_version_drift_is_rejected(tmp_path: Path) -> None:
@@ -182,7 +297,7 @@ def test_duplicated_live_claim_is_rejected(tmp_path: Path) -> None:
     root, contract = _fixture_repo(tmp_path)
     checklist = root / "docs/release/go-no-go-checklist-2026-10-07.md"
     text = checklist.read_text(encoding="utf-8")
-    claim_line = next(line for line in text.splitlines() if "生产已登记 54 条 / 仓库 55 条" in line)
+    claim_line = next(line for line in text.splitlines() if "生产已登记 54 条 / 仓库 56 条" in line)
     checklist.write_text(text + "\n" + claim_line + "\n", encoding="utf-8")
 
     errors = check_repo(root, contract)
@@ -266,6 +381,31 @@ def test_contract_structure_violations_are_rejected(tmp_path: Path) -> None:
     assert any(error.startswith("C7 live_ledger_claims[0].pattern") for error in errors)
 
 
+def test_claim_bindings_cannot_treat_repository_count_as_applied(tmp_path: Path) -> None:
+    root, contract = _fixture_repo(tmp_path)
+    contract["live_ledger_claims"][0]["bindings"]["production"] = "repo_count"
+
+    assert _errors_for(check_repo(root, contract), "C7 live_ledger_claims[0].bindings")
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("pending_hashes", None),
+        ("pending_hashes", [{"file": "../escape.sql", "sha256": "invalid"}]),
+        ("recorded_production", {"count": True, "max_version": "bad"}),
+        ("documented_ledger", {"repo_count": 55, "max_version": "20261011000100"}),
+    ],
+)
+def test_applied_pending_contract_structure_is_required(
+    tmp_path: Path, field: str, value: object
+) -> None:
+    root, contract = _fixture_repo(tmp_path)
+    contract[field] = value
+
+    assert _errors_for(check_repo(root, contract), f"C7 {field}")
+
+
 def test_cli_exit_codes_and_print_pins(tmp_path: Path) -> None:
     root, contract = _fixture_repo(tmp_path)
     assert main(["--root", str(root)]) == 0
@@ -286,11 +426,4 @@ def test_cli_exit_codes_and_print_pins(tmp_path: Path) -> None:
     )
     assert result.returncode == 0
     printed = json.loads(result.stdout)
-    assert [pin["file"] for pin in printed] == [pin["file"] for pin in contract["pinned_hashes"]]
-
-
-def test_pending_migration_does_not_claim_production_applied(tmp_path: Path) -> None:
-    root, contract = _fixture_repo(tmp_path)
-    summary = root / "docs/release/2026-10-07-go-live-readiness-summary.md"
-    summary.write_text(summary.read_text().replace("生产 **54 / 仓库 55**", "生产 **55 / 仓库 55**"))
-    assert _errors_for(check_repo(root, contract), "C5 L1_go_live_readiness_summary: production=")
+    assert printed == contract["pinned_hashes"] + contract["pending_hashes"]

@@ -119,7 +119,7 @@ run.addEventListener("click", async () => {
   try {
     const token = await getValidAccessToken();
     if (!token) { await loadLiveProject(); return; }
-    await runQueryJob(selectedQuery.id, token);
+    await runQueryJob(selectedQuery, token);
     await loadLiveProject();
   } catch {
     notice.textContent = "报告暂时无法生成，请重新读取状态后再试；如仍失败，请联系支持。";

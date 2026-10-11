@@ -13,7 +13,7 @@ async function setup(page, signedIn = false) {
   await page.route('https://ux-api.test/**', r => r.fulfill({json:[]}));
   await page.route('**/api/account/consent', r => r.fulfill({json:{accepted:true,privacy_policy_version:'privacy-2026-10',terms_version:'terms-2026-08'}}));
 }
-function query(status = 'failed') { return {id:ID,query_key:KEY,prefecture:'大阪府',city:'大阪市',ward:'北区',asset_type:'塔楼',status,generation_jobs:[{status,progress:42,error_message:status==='failed'?'资料处理暂时不可用':null,current_step:'等待处理'}]}; }
+function query(status = 'failed') { return {id:ID,query_key:KEY,prefecture:'大阪府',city:'大阪市',ward:'北区',asset_type:'塔楼',year:2026,month:9,status,generation_jobs:[{status,progress:42,error_message:status==='failed'?'资料处理暂时不可用':null,current_step:'等待处理'}]}; }
 for (const width of [1280,390]) test(`data home puts purpose and action before account at ${width}px`, async ({page}) => {
   await setup(page); await page.setViewportSize({width,height:844});await page.goto('/index.html');
   await expect(page.locator('body.auth-ready')).toBeVisible();
@@ -40,7 +40,7 @@ test('login returns to the same report and consumer brand stays in consumer spac
 test('failed projects open a real workspace, show job progress and retry existing API',async ({page})=>{
   await setup(page,true);let status='failed';let calls=0;
   await page.route('**/api/my/queries',r=>r.fulfill({json:[query(status)]}));
-  await page.route(`**/api/jobs/${ID}/run`,r=>{expect(r.request().method()).toBe('POST');expect(r.request().headers().authorization).toBe('Bearer ux-token');calls++;status='running';return r.fulfill({status:202,json:{status:'running'}})});
+  await page.route('**/api/query',r=>{expect(r.request().method()).toBe('POST');expect(r.request().headers().authorization).toBe('Bearer ux-token');expect(r.request().postDataJSON()).toEqual({prefecture:'大阪府',city:'大阪市',ward:'北区',asset_type:'塔楼',year:2026,month:9});calls++;status='running';return r.fulfill({status:202,json:{status:'running'}})});
   await page.goto('/projects.html');await expect(page.locator('#projectList')).toContainText('任务进度');await expect(page.locator('#projectList')).not.toContainText('资料完整度');
   await page.getByRole('link',{name:'查看项目'}).click();
   await expect(page.locator('#liveProject')).toBeVisible();await expect(page.locator('#liveProject')).toContainText('生成失败');await expect(page.locator('.workspace-page')).toBeHidden();

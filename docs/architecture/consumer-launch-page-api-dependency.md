@@ -151,3 +151,7 @@ None.  The one mixed-evidence item is explicitly labelled in table 2:
 them to be launch-critical, while the current page inventory only exposes the
 query form on B `data-query.html`.  This is a recorded contract exception,
 not an unclassified endpoint.
+
+Saved intake projects: `property-intake.js` routes to `project.html?property_id=...`; `project-live.js` calls `GET /api/intake/projects/{property_id}` through `api-client.js`. This consumer read route is included in `consumer_launch`; the existing server authentication, current-policy confirmation and immutable owner filter remain required. Project writes and business APIs remain excluded.
+
+The C project page retries through `POST /api/query` using only its persisted region, asset and period fields. It retains the authoritative quota/outbox path; the historical B-only `POST /api/jobs/{query_id}/run` stays blocked in `consumer_launch`.

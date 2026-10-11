@@ -1,0 +1,38 @@
+{
+  "base_commit": "306fcaa12eac37a1806f4024eef922cdfb735f55",
+  "scope": "independent local synthetic fixture testing; production unchanged",
+  "python": {
+    "passed": 1113,
+    "skipped": 0,
+    "status": "PASS"
+  },
+  "browser": {
+    "status": "PASS",
+    "passed": 156,
+    "skipped": 0
+  },
+  "real_intake_api": {
+    "auth_and_consent": "PASS",
+    "session_input_fields_preview": "PASS",
+    "convert_and_project_read": "PASS",
+    "project_isolation_anon401_owner200_other404": "PASS",
+    "external_report_worker": "NOT_EXECUTED",
+    "controlled_cleanup": "PASS"
+  },
+  "real_browser": {
+    "registration": 201,
+    "policy_confirmation": "PASS",
+    "project_read": "PASS",
+    "query_retry": 200,
+    "controlled_deletion": 202,
+    "page_errors": []
+  },
+  "release_ready": false,
+  "code_sha256": {
+    "backend/app/release_scope.py": "a3497504b3276777e30e46f3979599a61fb58bb6ec717df786d79ec1e485a2a0",
+    "web-source/js/api-client.js": "94a2bc8005e7299e2b2905689075f8fb8e35ad4218de2e3f445480dfcb919b49",
+    "web-source/js/project-live.js": "c2c020b7bef978a69d9d4826a838411426cc488f4082ffcf25d0032298f2c33a",
+    "web/js/api-client.js": "e54ff94dbc576b43137bb25cef637ceb1649a47d3597ed939fe8126417f7fe22",
+    "web/js/project-live.js": "2bf4b5608ea7271954468eee76dcfd65a30eecbdfe226029cdbcd0766610671c"
+  }
+}

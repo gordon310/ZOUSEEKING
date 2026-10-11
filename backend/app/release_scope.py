@@ -118,6 +118,7 @@ CONSUMER_LAUNCH_API_CONTRACT = (
     "POST /api/intake/sessions/{session_id}/convert",
     "POST /api/recognition",
     "GET /api/my/queries",
+    "GET /api/intake/projects/{property_id}",
     "POST /api/account/deletion-request",
     "GET /api/privacy",
     "GET /api/account/consent",

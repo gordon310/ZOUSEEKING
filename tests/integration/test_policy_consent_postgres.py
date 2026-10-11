@@ -40,6 +40,23 @@ async def test_current_consent_keeps_history_and_concurrent_retries_write_once(m
             assert current['occurred_at'].tzinfo is not None
             with pytest.raises(asyncpg.RaiseError, match="append-only"):
                 await conn.execute("update public.audit_events set summary='{}' where id=$1", old_id)
+            for statement in (
+                "update public.audit_events set actor_user_id=null where id=$1",
+                "update public.audit_events set action='changed' where id=$1",
+                "update public.audit_events set occurred_at=occurred_at+interval '1 second' where id=$1",
+                "delete from public.audit_events where id=$1",
+            ):
+                with pytest.raises(asyncpg.RaiseError, match="append-only"):
+                    await conn.execute(statement, old_id)
+            with pytest.raises(asyncpg.RaiseError, match="append-only"):
+                await conn.execute("truncate public.audit_events")
+            receipts = [dict(row) for row in await conn.fetch("select * from public.audit_events where actor_user_id=$1 order by id", owner)]
+            await conn.execute("delete from auth.users where id=$1", owner)
+            for original_receipt in receipts:
+                retained = dict(await conn.fetchrow("select * from public.audit_events where id=$1", original_receipt['id']))
+                assert retained == dict(original_receipt, actor_user_id=None)
+            assert not await store.status(owner)
+            assert await conn.fetchval("select count(*) from auth.users where id=$1", other) == 1
     finally:
         await pool.close()
         admin = await asyncpg.connect(base, database="postgres")

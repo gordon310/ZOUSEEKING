@@ -152,7 +152,7 @@ def test_live_claim_ledger_count_drift_is_rejected(tmp_path: Path) -> None:
     root, contract = _fixture_repo(tmp_path)
     summary = root / "docs/release/2026-10-07-go-live-readiness-summary.md"
     summary.write_text(
-        summary.read_text(encoding="utf-8").replace("生产 **54 / 仓库 54**", "生产 **53 / 仓库 54**"),
+        summary.read_text(encoding="utf-8").replace("生产 **54 / 仓库 55**", "生产 **53 / 仓库 55**"),
         encoding="utf-8",
     )
 
@@ -182,7 +182,7 @@ def test_duplicated_live_claim_is_rejected(tmp_path: Path) -> None:
     root, contract = _fixture_repo(tmp_path)
     checklist = root / "docs/release/go-no-go-checklist-2026-10-07.md"
     text = checklist.read_text(encoding="utf-8")
-    claim_line = next(line for line in text.splitlines() if "生产已登记 54 条 / 仓库 54 条" in line)
+    claim_line = next(line for line in text.splitlines() if "生产已登记 54 条 / 仓库 55 条" in line)
     checklist.write_text(text + "\n" + claim_line + "\n", encoding="utf-8")
 
     errors = check_repo(root, contract)
@@ -287,3 +287,10 @@ def test_cli_exit_codes_and_print_pins(tmp_path: Path) -> None:
     assert result.returncode == 0
     printed = json.loads(result.stdout)
     assert [pin["file"] for pin in printed] == [pin["file"] for pin in contract["pinned_hashes"]]
+
+
+def test_pending_migration_does_not_claim_production_applied(tmp_path: Path) -> None:
+    root, contract = _fixture_repo(tmp_path)
+    summary = root / "docs/release/2026-10-07-go-live-readiness-summary.md"
+    summary.write_text(summary.read_text().replace("生产 **54 / 仓库 55**", "生产 **55 / 仓库 55**"))
+    assert _errors_for(check_repo(root, contract), "C5 L1_go_live_readiness_summary: production=")

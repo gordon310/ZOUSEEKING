@@ -4,7 +4,7 @@
 This check proves only static, repository-local facts: that the canonical
 forward history is well-formed and append-only, that every already-applied
 migration still hashes to the bytes that were pinned and recorded, that the
-current documents claiming a zero-gap ledger still agree with the repository,
+current documents agree with the recorded production snapshot and repository,
 and that destructive SQL keywords only appear where they were registered.
 
 It does not read the real production or staging migration ledger, does not
@@ -38,7 +38,7 @@ REQUIRED_KEYS = (
     "destructive_statement_kinds",
     "destructive_statements",
 )
-BINDING_TARGETS = {"repo_count", "repo_max_version"}
+BINDING_TARGETS = {"repo_count", "repo_max_version", "production_count", "production_max_version"}
 
 
 def load_contract(path: Path) -> dict[str, Any]:
@@ -347,6 +347,14 @@ def _check_live_claims(root: Path, contract: dict[str, Any], files: list[str]) -
         "repo_count": str(len(files)),
         "repo_max_version": max(versions) if versions else "",
     }
+    recorded = contract.get("documented_ledger", {})
+    production_count = recorded.get("production_count")
+    production_max_version = recorded.get("production_max_version")
+    if not isinstance(production_count, int) or not 0 < production_count <= len(files):
+        return ["C5 documented production_count must be positive and at most the repository count"]
+    if production_max_version != sorted(versions)[production_count - 1]:
+        return ["C5 documented production_max_version must match the recorded applied prefix"]
+    actual.update(production_count=str(production_count), production_max_version=str(production_max_version))
     for claim in contract["live_ledger_claims"]:
         claim_id = claim.get("id", "<unnamed>")
         document = root / str(claim["document"])
@@ -420,7 +428,7 @@ CHECK_LABELS = (
     "C2 ownership manifest matches the canonical history",
     "C3 pinned sha256 for every applied migration",
     "C4 recorded production-line hashes still match",
-    "C5 current zero-gap ledger claims match the repository",
+    "C5 documented production snapshot and repository claims match",
     "C6 destructive statements are registered",
     "C7 contract structure",
 )

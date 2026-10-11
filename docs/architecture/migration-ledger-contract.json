@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "contract": "migration-ledger-contract/v1",
-  "purpose": "Offline gate for the G4 migration dimension of the 2026-10-07 countdown (D-7): the canonical forward history must be append-only, byte-stable for every already-applied migration, still matching every hash that was recorded on the production line, still matching the live documents that claim a zero-gap ledger, and free of unregistered destructive statements. It is offline and read-only: no network, no socket, no credentials, no environment variables, no database, no SQL execution. It never proves that production really holds these 54 versions and never replaces a live ledger read.",
+  "purpose": "Offline gate for the G4 migration dimension of the 2026-10-07 countdown (D-7): the canonical forward history must be append-only, byte-stable for every already-applied migration, still matching every hash that was recorded on the production line, still matching current documents against the recorded production snapshot and repository count, and free of unregistered destructive statements. It is offline and read-only: no network, no socket, no credentials, no environment variables, no database, no SQL execution. It never proves that production really holds these 54 versions and never replaces a live ledger read.",
   "canonical_history": "supabase/migrations",
   "migration_name_pattern": "^(?P<version>\\d{14})_[a-z0-9][a-z0-9_]*\\.sql$",
   "manifest": {
@@ -32,11 +32,11 @@
       "pattern": "生产\\s*\\*\\*(?P<production>\\d+)\\s*/\\s*仓库\\s*(?P<repo>\\d+)\\*\\*[^\\n]*?最高\\s*`(?P<max_version>\\d{14})`",
       "occurrences_required": 1,
       "bindings": {
-        "production": "repo_count",
+        "production": "production_count",
         "repo": "repo_count",
-        "max_version": "repo_max_version"
+        "max_version": "production_max_version"
       },
-      "note": "Release-artifact identity block; a fixed 54/54 zero-gap claim with a highest-version pointer."
+      "note": "Current documented production snapshot remains 54; repository contains 55, with the new forward migration awaiting explicit production authorization."
     },
     {
       "id": "L2_go_no_go_checklist_a1",
@@ -45,11 +45,11 @@
       "pattern": "生产已登记\\s*(?P<production>\\d+)\\s*条\\s*/\\s*仓库\\s*(?P<repo>\\d+)\\s*条[^\\n]*?最高登记\\s*`(?P<max_version>\\d{14})`",
       "occurrences_required": 1,
       "bindings": {
-        "production": "repo_count",
+        "production": "production_count",
         "repo": "repo_count",
-        "max_version": "repo_max_version"
+        "max_version": "production_max_version"
       },
-      "note": "Checklist §A row A1; the current production-ledger claim of record."
+      "note": "Current documented production snapshot remains 54; repository contains 55, with the new forward migration awaiting explicit production authorization."
     }
   ],
   "excluded_surfaces": [
@@ -61,7 +61,7 @@
     {
       "id": "live_production_ledger",
       "where": "supabase_migrations.schema_migrations (production)",
-      "reason": "Reading the real ledger needs production credentials, which this gate must not use. The 54/54 claim is therefore only checked for consistency with the repo, not for truth against production."
+      "reason": "Reading the real production ledger requires credentials. This gate checks documents against the recorded production snapshot and canonical repo history; it permits an explicitly pending forward migration but never proves live state or authorizes SQL execution."
     }
   ],
   "destructive_statement_kinds": {
@@ -343,11 +343,17 @@
     {
       "file": "supabase/migrations/20260923000300_shared_rate_limits.sql",
       "sha256": "27597f7f35f16deb096686ae66f8e2ac9337c1c75ec8fc90fb551b53cd37592a"
+    },
+    {
+      "file": "supabase/migrations/20261011000100_audit_events_anonymization_allowance.sql",
+      "sha256": "5b808ac9aebb2f29610df409e96a1431b8db434ea6be63411f1b4c98f19875a3"
     }
   ],
-  "pinned_hashes_note": "Byte-level SHA-256 of every already-applied migration. Adding a forward migration requires adding its hash in the same change; editing an applied migration in place fails C3. Regenerate with `python3 scripts/check_migration_ledger_offline.py --print-pins`.",
+  "pinned_hashes_note": "Byte-level SHA-256 of every canonical migration. Adding a forward migration requires adding its hash in the same change; editing an applied migration in place fails C3. Regenerate with `python3 scripts/check_migration_ledger_offline.py --print-pins`.",
   "documented_ledger": {
-    "repo_count": 54,
-    "max_version": "20260923000300"
+    "repo_count": 55,
+    "max_version": "20261011000100",
+    "production_count": 54,
+    "production_max_version": "20260923000300"
   }
 }

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "status": "candidate_verification_in_progress",
+  "authoritative_base": "main@54d0d4fb018ca0d3398c4dc5653aad7bea4bec40",
+  "candidate_branch": "codex/launch-closure",
+  "frontend_version": "20261010-r70",
+  "candidates": [
+    {"source": "codex/ux-simplification@b650d8ac0cd37c7429f859dfa96d80aeaab664e8", "disposition": "integrated", "scope": "r68 UX, contextual login return and cache handling"},
+    {"source": "codex/consumer-home-ja-auth@945f3dc", "disposition": "integrated", "scope": "Japanese-first C home authentication"},
+    {"source": "codex/consumer-home-ja-auth uncommitted consumer boundary patch", "disposition": "integrated", "scope": "C account/reset pages, route and navigation isolation; source checkout preserved untouched"},
+    {"source": "owner decisions 2026-10-10", "disposition": "integrated", "scope": "zero-cost actual offsite recovery gates and privacy-2026-10 explicit reconfirmation"}
+  ],
+  "excluded": ["production dump and secrets", "local config.js", "node_modules", "test-results", "original source dirty checkout changes outside C boundary", "main source data and user artifacts"],
+  "database_migrations": "none added or modified",
+  "production_release_ready": false
+}

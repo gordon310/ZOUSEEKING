@@ -1,0 +1,10 @@
+{
+  "status": "REVIEW_COMPLETED",
+  "scope": "candidate auth, policy consent, C routes and recovery claim boundaries",
+  "production_contacted": false,
+  "initial_findings": ["P1 cross-account checkbox/inflight consent attribution", "P2 account privacy validation input echo", "P2 decline session-event close race"],
+  "resolution": ["bind request/dialog to account ID and invalidate old generations", "fixed redacted account privacy validation response", "optional close after synchronous auth session event"],
+  "additional_fix": "preserve legacy stored session identity using existing fallback",
+  "final_review": "no new actual issue found",
+  "remaining_release_acceptance": ["frozen candidate CI", "real devices and transactions", "on-call response", "production observation"]
+}

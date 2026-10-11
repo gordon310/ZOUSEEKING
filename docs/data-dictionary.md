@@ -125,7 +125,7 @@ M-B3 只在既有 `service_tasks`、`task_applications`、`task_status_history`�
 | `account_deletion_requests.user_id` | 服务端从已验证 Auth 用户推导；每个用户保留一条可重入台账记录，不能由客户端写入。 |
 | `account_deletion_requests.status` | `pending` / `executing` / `completed` / `failed`；失败记录只保存可读、无堆栈和无 PII 的原因。 |
 | `account_deletion_requests.*_due` | 由服务端 `requested_at` 按 24 小时、24 小时、30 天、90 天 SLA 计算。 |
-| `account_deletion_requests.executed_at` | 受控删除完成时间；`auth.users` 行不硬删，`usage_events` 原样保留以维护 append-only 审计链。 |
+| `account_deletion_requests.executed_at` | 受控删除完成时间；执行器删除 Auth 身份，`usage_events` 与 `audit_events` 保留原有事件事实，仅通过外键将 `actor_user_id` 置空。 |
 | `account_deletion_requests.backup_expired_at` | sweeper 在 `backup_expiry_due` 到期后一次性记录的 UTC 事实时间；只记录到期，不直接修改 provider backup。可为空，服务端 worker-only 写入。 |
 
 ## 报告购买与会员额度
@@ -156,3 +156,13 @@ M-B3 只在既有 `service_tasks`、`task_applications`、`task_status_history`�
 | `pricing_regions` | `region_code`, `currency`, `active` | 账单地区到批准币种的服务端映射；不做客户端汇率换算。 |
 | `pricing_plans` | `plan_code`, `name`, `audience`, `monthly_query_limit`, `monthly_report_quota`, `subscription_slots`, `export_rows_monthly`, `plan_version` | 服务端套餐目录；`audience` 为 `c`/`b`，旧额度列仅作兼容回退。 |
 | `plan_entitlements` | `plan_code`, `metric`, `limit_units`, `period`, `active`, `effective_from`, `created_by` | 键值化权益；metric 为 query/report/stats_query/export_row/subscription_slot，period 为 day/month；active 唯一当前版本，历史版本保留。 |
+
+## 当前隐私版本确认审计 (privacy-2026-10)
+
+复用 `audit_events` 的 append-only 合同，不新增 schema。`action=privacy.policy.accepted`，`target_type=privacy_policy`，`target_id` 为政策版本；`actor_user_id` 来自服务器验证的 Auth UUID。`summary` 仅含 `privacy_policy_version` 与 `terms_version`；`occurred_at` 为数据库 UTC 时间。并发同版本重试只追加一次，不更新旧行，不记录邮箱、姓名、令牌或客户端时间。普通账户不可直接读写该账本；仅通过认证后的当前账户状态/确认 API。旧 Auth metadata 保留，不作当前重新确认凭据。账户删除入口不要求重新同意。`20261011000200_audit_events_anonymization_allowance.sql` 仅允许 Auth DELETE 外键触发的 `actor_user_id → NULL`，不允许直接更新、修改事件事实、删除或清空审计记录。
+
+### Report access boundary (2026-10-11)
+
+`property_reports` remains the worker-owned full report store. Authenticated browser roles receive column-level SELECT only for the existing basic preview metadata; premium text, row datasets, images, raw JSON and internal source locators cannot be selected directly. `member_property_reports` remains owner-scoped and security-invoker, preserves its existing restricted columns as typed NULLs, and adds `locked=true`, `unlocked=false`, and an `unlock_hint`. These constants are access metadata, not stored entitlement state. Paid/consumed full content is returned only by the authenticated API.
+
+A report credit is represented by a positive `usage_events` `consume` entry in `user:<owner_uuid>` / `report`, using `report:<query_key>`; verified historical `c-plus-report:<query_key>` entries remain recognized. A remaining quota balance or `usage_idempotency` row alone does not unlock a report. Existing quota amounts are unchanged. Query and intake preview share the live plan's configured query period; monthly report credits remain a distinct meter.

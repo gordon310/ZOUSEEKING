@@ -4,15 +4,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="注册或登录后提交日本物件资料，查看资料检查并保存分析项目。" />
-    <link rel="manifest" href="manifest.webmanifest?v=20260926-r67" />
-    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=20260926-r67" />
+    <link rel="manifest" href="manifest.webmanifest?v=20261010-r70" />
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=20261010-r70" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="小象" />
     <meta name="theme-color" content="#0b1020" />
     <title data-i18n-title="intake.pageTitle">分析一个日本物件｜小象避坑 ZOUBEACON</title>
-    <link rel="icon" href="assets/logoELE-beacon.svg?v=20260926-r67" />
-    <link rel="stylesheet" href="property-analysis.css?v=20260926-r67" />
+    <link rel="icon" href="assets/logoELE-beacon.svg?v=20261010-r70" />
+    <link rel="stylesheet" href="property-analysis.css?v=20261010-r70" />
+    <link rel="stylesheet" href="policy-consent.css?v=20261010-r70" />
   </head>
   <body>
     <main class="beacon-app">
@@ -29,36 +30,19 @@
                 <feComposite in="logo-color" in2="logo-mask" operator="in" />
               </filter>
             </defs>
-            <image href="assets/logoELE-beacon.svg?v=20260926-r67" width="1254" height="1254" preserveAspectRatio="none" />
+            <image href="assets/logoELE-beacon.svg?v=20261010-r70" width="1254" height="1254" preserveAspectRatio="none" />
           </svg>
           <span class="beacon-brand-copy">
             <strong>小象避坑</strong>
             <span>ZOUBEACON</span>
           </span>
         </a>
-        <button
-          id="menuToggle"
-          class="menu-toggle"
-          type="button"
-          aria-label="打开菜单"
-          data-i18n-aria-label="intake.openMenu"
-          aria-expanded="false"
-          aria-controls="beaconMenu"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="M4 6.5h16M4 12h16M4 17.5h16" />
-          </svg>
-        </button>
         <label class="locale-switcher">
           <span class="sr-only" data-i18n="locale.label">界面语言</span>
           <select data-locale-switcher data-i18n-aria-label="locale.label">
             <option value="zh-CN">简体中文</option><option value="zh-Hant">繁體中文</option><option value="en">English</option><option value="ja">日本語</option>
           </select>
         </label>
-        <nav id="beaconMenu" class="beacon-menu" aria-label="快捷导航" data-i18n-aria-label="intake.quickNav" hidden>
-          <a href="https://platform.zoubeacon.com/" data-i18n="intake.backToBusiness">回到小象数据</a>
-          <a id="reviewLink" href="ui-review.html" data-i18n="intake.reviewLink" hidden>前端流程评审</a>
-        </nav>
       </header>
 
       <div id="demoBanner" class="demo-banner" hidden>
@@ -68,11 +52,9 @@
 
       <div class="beacon-page">
         <ol class="intake-progress desktop-stepper" aria-label="分析步骤" data-i18n-aria-label="intake.stepsLabel">
-          <li data-stage="purpose" data-step="1"><span>1</span><span data-i18n="intake.stepPurpose">选择用途</span></li>
-          <li data-stage="submit" data-step="2" class="is-current" aria-current="step"><span>2</span><span data-i18n="intake.stepSubmit">提交资料</span></li>
-          <li data-stage="confirm" data-step="3"><span>3</span><span data-i18n="intake.stepConfirm">确认字段</span></li>
-          <li data-stage="preview" data-step="4"><span>4</span><span data-i18n="intake.stepPreview">资料检查</span></li>
-          <li data-stage="save" data-step="5"><span>5</span><span data-i18n="intake.stepSave">保存项目</span></li>
+          <li data-stage="submit" data-step="1" class="is-current" aria-current="step"><span>1</span><span data-i18n="intake.stepSubmit">提交资料</span></li>
+          <li data-stage="confirm" data-step="2"><span>2</span><span data-i18n="intake.stepConfirm">确认字段</span></li>
+          <li data-stage="preview" data-step="3"><span>3</span><span data-i18n="intake.stepCheckSave">资料检查与保存</span></li>
         </ol>
 
         <div class="intake-layout">
@@ -84,11 +66,9 @@
 
             <div class="flow-shell">
               <ol class="mobile-rail-stepper" aria-label="当前分析步骤" data-i18n-aria-label="intake.currentStepsLabel">
-                <li data-stage="purpose" data-step="1"><span>1</span><span data-i18n="intake.stepPurpose">选择用途</span></li>
-                <li data-stage="submit" data-step="2" class="is-current" aria-current="step"><span>2</span><span data-i18n="intake.stepSubmit">提交资料</span></li>
-                <li data-stage="confirm" data-step="3"><span>3</span><span data-i18n="intake.stepConfirm">确认字段</span></li>
-                <li data-stage="preview" data-step="4"><span>4</span><span data-i18n="intake.stepPreview">资料检查</span></li>
-                <li data-stage="save" data-step="5"><span>5</span><span data-i18n="intake.stepSave">保存项目</span></li>
+                <li data-stage="submit" data-step="1" class="is-current" aria-current="step"><span>1</span><span data-i18n="intake.stepSubmit">提交资料</span></li>
+                <li data-stage="confirm" data-step="2"><span>2</span><span data-i18n="intake.stepConfirm">确认字段</span></li>
+                <li data-stage="preview" data-step="3"><span>3</span><span data-i18n="intake.stepCheckSave">资料检查与保存</span></li>
               </ol>
 
               <div class="flow-content">
@@ -96,7 +76,7 @@
                   <p class="section-number">1.</p>
                   <h2 id="authGateHeading" data-i18n="intake.authGateTitle">注册或登录后开始分析</h2>
                   <p data-i18n="intake.authGateCopy">物件资料会绑定到你的账户，分析项目和报告只对所属账户可见。请先注册或登录，再提交资料。</p>
-                  <a class="primary-action" href="profile.html?role=consumer&amp;return_to=property-analysis.html#accountPanel" data-i18n="intake.authGateCta">注册 / 登录</a>
+                  <a class="primary-action" href="consumer-profile.html#accountPanel" data-i18n="intake.authGateCta">注册 / 登录</a>
                 </section>
 
                 <p id="intakeStatus" class="intake-status" role="alert" aria-live="assertive" tabindex="-1"></p>
@@ -159,7 +139,7 @@
                     <p class="field-help" data-i18n="intake.propertySourceHelp">暂时无法读取的链接，可以直接输入你合法持有的资料摘要。</p>
                     <p class="field-help" data-i18n="intake.propertySourceAddressHelp">也可以直接输入物件的具体地址。</p>
 
-                    <section class="attachments-section" aria-labelledby="attachmentsHeading">
+                    <details class="attachments-section"><summary data-i18n="intake.optionalMaterials">补充照片或文件（可选）</summary>
                       <div class="attachments-heading">
                         <h3 id="attachmentsHeading" data-i18n="intake.filesAndPhotos">资料文件与物件照片（可选）</h3>
                       </div>
@@ -203,7 +183,7 @@
                       </svg>
                       <span data-i18n="intake.privacyNote">资料仅用于本次分析，严格保密，不会对外泄露。</span>
                     </div>
-                  </section>
+                  </details>
 
                     <button id="submitButton" class="primary-action" type="submit" data-i18n="intake.submit">开始整理资料</button>
                     <p class="form-note">
@@ -220,7 +200,7 @@
                 <section id="confirmStep" class="intake-section" aria-labelledby="confirmHeading" hidden>
                   <div class="section-heading section-heading-with-status">
                     <div>
-                      <p class="section-number">3.</p>
+                      <p class="section-number">2.</p>
                       <h2 id="confirmHeading" data-i18n="intake.confirmTitle">确认字段</h2>
                     </div>
                     <span class="status-chip" data-i18n="intake.pendingConfirmation">待确认</span>
@@ -276,14 +256,14 @@
 
                 <section id="previewStep" class="intake-section preview-section-wrap" aria-labelledby="previewHeading" hidden>
                   <div class="section-heading">
-                    <p class="section-number">4.</p>
+                    <p class="section-number">3.</p>
                     <h2 id="previewHeading" data-i18n="intake.previewTitle">资料检查</h2>
                   </div>
                   <p class="section-description" data-i18n="intake.previewCopy">这是当前资料的可追溯整理结果，不是完整估价、税务意见或法律结论。</p>
                   <div id="previewContent"></div>
                   <a id="reportLink" class="primary-product-link hidden" data-i18n="report.viewReport">查看报告</a>
                   <section class="save-project" aria-labelledby="saveHeading">
-                    <p class="section-number">5.</p>
+
                     <h3 id="saveHeading" data-i18n="intake.saveTitle">保存这个项目</h3>
                     <p id="saveCopy" data-i18n="intake.saveCopy">确认后，项目会保存到你当前登录的账户。</p>
                     <label class="field-label" for="projectName" data-i18n="intake.projectName">调查记录名称</label>
@@ -297,13 +277,13 @@
             </div>
           </div>
 
-          <aside class="desktop-summary" aria-label="分析进度" data-i18n-aria-label="intake.progressLabel">
+          <aside class="desktop-summary" aria-label="填写进度" data-i18n-aria-label="intake.progressLabel">
             <section class="progress-summary">
-              <h2 data-i18n="intake.progressTitle">分析进度</h2>
+              <h2 data-i18n="intake.progressTitle">填写进度</h2>
               <div class="progress-overview">
                 <div id="progressRing" class="progress-ring" style="--progress: 17%">
                   <span id="completionPercent" class="progress-ring-value">17%</span>
-                  <span data-i18n="intake.completeness">资料完整度</span>
+                  <span data-i18n="intake.progressTitle">填写进度</span>
                 </div>
                 <div class="progress-copy">
                   <strong id="completion-count" data-testid="completion-count" data-i18n="intake.completedCount">已完成 1/6 项</strong>
@@ -345,23 +325,14 @@
           </aside>
         </div>
       </div>
-
-      <nav class="mobile-flow-nav" aria-label="流程导航" data-i18n-aria-label="intake.flowNav">
-        <ol>
-          <li data-stage="purpose" data-step="1"><span>1</span><span data-i18n="intake.stepPurpose">选择用途</span></li>
-          <li data-stage="submit" data-step="2" class="is-current" aria-current="step"><span>2</span><span data-i18n="intake.stepSubmit">提交资料</span></li>
-          <li data-stage="confirm" data-step="3"><span>3</span><span data-i18n="intake.stepConfirm">确认字段</span></li>
-          <li data-stage="preview" data-step="4"><span>4</span><span data-i18n="intake.stepPreview">资料检查</span></li>
-          <li data-stage="save" data-step="5"><span>5</span><span data-i18n="intake.stepSave">保存项目</span></li>
-        </ol>
-      </nav>
     </main>
 
-    <script src="config.js?v=20260926-r67"></script>
-    <script src="js/auth-session.js?v=20260926-r67"></script>
-    <script src="js/pwa.js?v=20260926-r67"></script>
-    <script src="js/i18n.js?v=20260926-r67"></script>
-    <script type="module" src="js/property-intake.js?v=20260926-r67"></script>
-    <script type="module" src="js/recognition.js?v=20260926-r67"></script>
+    <script src="config.js?v=20261010-r70"></script>
+    <script src="js/auth-session.js?v=20261010-r70"></script>
+    <script src="js/pwa.js?v=20261010-r70"></script>
+    <script src="js/i18n.js?v=20261010-r70"></script>
+    <script type="module" src="js/property-intake.js?v=20261010-r70"></script>
+    <script type="module" src="js/recognition.js?v=20261010-r70"></script>
+    <script src="js/policy-consent.js?v=20261010-r70" defer></script>
   </body>
 </html>

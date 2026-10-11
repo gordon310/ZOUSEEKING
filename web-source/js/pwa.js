@@ -2,6 +2,12 @@
 // The secure-context check keeps local file previews and insecure origins unchanged.
 const PWA_RELOAD_KEY = "zouseeking-pwa-auto-reload";
 const STALE_SW_DISTANCE = 2;
+let hasUnsavedFormChanges = false;
+for (const eventName of ["input", "change"]) {
+  document.addEventListener(eventName, (event) => {
+    if (event.target.closest("form")) hasUnsavedFormChanges = true;
+  }, true);
+}
 
 function releaseNumber(version) {
   const match = String(version || "").match(/(?:^|-)r(\d+)$/);
@@ -37,7 +43,7 @@ function isUserEditing() {
 }
 
 function reloadOnce() {
-  if (!navigator.onLine || hasReloadedThisSession()) return;
+  if (!navigator.onLine || hasReloadedThisSession() || hasUnsavedFormChanges) return;
   if (isUserEditing()) {
     const retryAfterEditing = () => {
       document.removeEventListener("focusout", retryAfterEditing, true);

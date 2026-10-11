@@ -58,7 +58,7 @@
       "function": "get_preview_quota.consume",
       "metric": "free_preview",
       "endpoints": ["POST /api/intake/sessions/{session_id}/preview"],
-      "note": "预览使用按日额度的 free_preview"
+      "note": "预览与查询使用相同方案周期的 query 额度（免费按日，Plus 按月）；额度数值由既有配置决定"
     }
   ],
   "edges": [

@@ -66,7 +66,7 @@ def test_legal_and_support_pages_are_static_and_do_not_contain_secrets_or_real_p
 
     for filename in ("privacy.html", "terms.html", "support.html"):
         text = (ROOT / "web" / filename).read_text(encoding="utf-8")
-        assert "privacy-2026-08" in text or "terms-2026-08" in text
+        assert "privacy-2026-10" in text or "terms-2026-08" in text
         assert set(email_pattern.findall(text)) <= allowed_contact_emails
         for pattern in secret_patterns:
             assert not re.search(pattern, text, re.IGNORECASE)
@@ -80,7 +80,7 @@ def test_setup_docs_record_the_offline_auth_and_deletion_boundary():
     supabase_setup = (ROOT / "docs" / "supabase-setup.md").read_text(encoding="utf-8")
 
     for text in (backend_readme, supabase_setup):
-        assert "privacy-2026-08" in text
+        assert "privacy-2026-10" in text
         assert "/api/account/deletion-request" in text
         assert "no account data was changed" in text
         assert "migration_baseline_status = canonical_staging_reconciled_production_reconciled" in text

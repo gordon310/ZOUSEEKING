@@ -119,6 +119,8 @@ def _validation_summary(exc: RequestValidationError) -> str:
 
 @app.exception_handler(RequestValidationError)
 async def scoped_validation_error(request: Request, exc: RequestValidationError):
+    if request.url.path in {"/api/account/consent", "/api/account/deletion-request"}:
+        return JSONResponse(status_code=422, content={"detail": "invalid account privacy request"})
     if request.url.path.startswith("/api/org/"):
         return JSONResponse(
             status_code=422,
@@ -307,7 +309,12 @@ def _current_month_key(now: Optional[datetime] = None) -> str:
 
 
 async def _has_report_unlock(conn: Any, user_id: Any, report_key: str) -> bool:
-    """Return whether this exact report is paid or covered by C Plus quota."""
+    """Read durable payment/consumption evidence; unused capacity is not access.
+
+    Both historical fingerprints are accepted only on a positive, server-owned
+    consume event scoped to this owner and this exact report. No backfill or
+    current balance is used to infer an unlock.
+    """
     row = await conn.fetchrow(
         """
         select 1
@@ -316,50 +323,84 @@ async def _has_report_unlock(conn: Any, user_id: Any, report_key: str) -> bool:
           and subject_id=$2 and status='paid'
         union all
         select 1
-        from public.subscriptions s
-        join public.usage_quotas uq
-          on uq.scope_key = 'user:' || s.user_id::text
-         and uq.usage_kind = 'report'
-         and uq.period_key = $3
-        where s.user_id=$1 and s.product_code='c_plus_monthly'
-          and s.status in ('active', 'trialing')
-          and (s.current_period_end is null or s.current_period_end > now())
-          and uq.consumed_units + uq.reserved_units < uq.limit_units
-        union all
-        select 1
         from public.usage_events ue
         where ue.scope_key = 'user:' || $1::text
           and ue.usage_kind = 'report'
-          and ue.operation = 'consume'
-          and ue.fingerprint = 'c-plus-report:' || $2
+          and ue.operation = 'consume' and ue.units > 0
+          and (ue.actor_user_id=$1 or ue.actor_user_id is null)
+          and ue.fingerprint in ('report:' || $2, 'c-plus-report:' || $2)
         limit 1
         """,
         user_id,
         report_key,
-        _current_month_key(),
     )
     return row is not None
 
 
 async def _consume_c_plus_report_quota(user_id: Any, report_key: str) -> bool:
-    """Consume the configured report entitlement once per generated report."""
+    """Unlock a generated full report once, without billing overage or reads.
+
+    A missing/expired entitlement or exhausted last credit leaves the report
+    available as a free preview; it must not turn successful generation into a
+    failed/retried job. Unexpected storage errors still propagate for retry.
+    """
     user = AuthUser(UUID(str(user_id)), "", "")
     async with get_pool().acquire() as conn:
-        async with conn.transaction():
-            profile = await conn.fetchrow(
-                "select membership_tier from public.user_profiles where user_id=$1", user.user_id
-            )
-            if not profile or profile["membership_tier"] != "c_plus":
-                return False
-            await consume_current_entitlement(
-                conn,
-                user=user,
-                metric="report",
-                units=1,
-                idempotency_key=f"report:{report_key}",
-                fingerprint=f"report:{report_key}",
-            )
-            return True
+        try:
+            async with conn.transaction():
+                await conn.execute(
+                    "select pg_advisory_xact_lock(hashtext($1))",
+                    f"report-unlock:{user.user_id}:{report_key}",
+                )
+                report = await conn.fetchrow(
+                    """select pr.report_status from public.property_reports pr
+                       join public.queries q on q.id=pr.query_id
+                       where pr.query_key=$1 and pr.owner_user_id=$2
+                         and q.owner_user_id=$2""",
+                    report_key, user.user_id,
+                )
+                if not report or report["report_status"] != "full_report":
+                    return False
+                if await _has_report_unlock(conn, user.user_id, report_key):
+                    return True
+                subscription = await conn.fetchrow(
+                    """select id from public.subscriptions
+                       where user_id=$1 and organization_id is null
+                         and product_code='c_plus_monthly'
+                         and status in ('active', 'trialing')
+                         and (current_period_start is null or current_period_start <= now())
+                         and current_period_end > now()
+                       limit 1""",
+                    user.user_id,
+                )
+                if not subscription:
+                    return False
+                await consume_current_entitlement(
+                    conn,
+                    user=user,
+                    metric="report",
+                    units=1,
+                    idempotency_key=f"report:{report_key}",
+                    fingerprint=f"report:{report_key}",
+                    scope_key=f"user:{user.user_id}",
+                )
+                return True
+        except QuotaExceeded:
+            return False
+
+
+async def authorized_report_from_row(
+    conn: Any, row: Any, user_id: Any, report_key: str,
+) -> dict[str, Any]:
+    """Apply the same non-consuming paywall to every report-bearing response."""
+    if (
+        user_id is not None
+        and str(_row_get(row, "owner_user_id")) == str(user_id)
+        and str(_row_get(row, "query_owner_user_id", _row_get(row, "owner_user_id"))) == str(user_id)
+        and await _has_report_unlock(conn, user_id, report_key)
+    ):
+        return row_to_report(row)
+    return public_report_from_row(row, report_key)
 
 
 def row_to_report(row: Any) -> dict[str, Any]:
@@ -756,16 +797,16 @@ async def create_or_get_query_job(
                     order by created_at desc
                     limit 1
                 ) gj on true
-                where q.query_key=$1
+                where q.query_key=$1 and q.owner_user_id=$2 and pr.owner_user_id=$2
                 """,
-                key,
+                key, UUID(str(user_id)),
             )
             if existing:
                 report_status = _row_get(existing, "report_status", "generating")
                 job_status = _row_get(existing, "existing_job_status")
                 action = cached_report_action(job_status, report_status)
                 if action == "cache":
-                    return {"query_key": key, "status": "completed", "cached": True, "title": title, "job_id": None, "report": row_to_report(existing)}
+                    return {"query_key": key, "status": "completed", "cached": True, "title": title, "job_id": None, "report": await authorized_report_from_row(conn, existing, UUID(str(user_id)), key)}
                 if action == "wait":
                     return {
                         "query_key": key,
@@ -1009,7 +1050,7 @@ async def get_job(job_id: str, user: AuthUser = Depends(require_user)) -> JobRes
                 user.user_id,
             )
             if row:
-                report = row_to_report(row)
+                report = await authorized_report_from_row(conn, row, user.user_id, str(job["query_key"]))
         return JobResponse(
             job_id=str(job["id"]),
             query_key=str(job["query_key"]) if job["query_key"] else None,
@@ -1068,7 +1109,8 @@ async def get_my_report(query_key: str, user: Optional[AuthUser] = Depends(optio
     async with get_pool().acquire() as conn:
         row = await conn.fetchrow(
             """
-            select pr.*, q.prefecture, q.city, q.ward, q.asset_type, q.year, q.month
+            select pr.*, q.owner_user_id as query_owner_user_id,
+                   q.prefecture, q.city, q.ward, q.asset_type, q.year, q.month
             from property_reports pr
             join queries q on q.id = pr.query_id
             where pr.query_key=$1
@@ -1078,16 +1120,9 @@ async def get_my_report(query_key: str, user: Optional[AuthUser] = Depends(optio
         )
         if not row:
             raise HTTPException(status_code=404, detail="report not found")
-        owner_user_id = _row_get(row, "owner_user_id")
-        unlocked = bool(
-            user
-            and owner_user_id is not None
-            and str(owner_user_id) == str(user.user_id)
-            and await _has_report_unlock(conn, user.user_id, query_key)
+        return await authorized_report_from_row(
+            conn, row, user.user_id if user else None, query_key,
         )
-    if not unlocked:
-        return public_report_from_row(row, query_key)
-    return row_to_report(row)
 
 
 @app.get("/api/reports/{query_key}/download")
@@ -1098,7 +1133,7 @@ async def download_my_report(query_key: str, user: AuthUser = Depends(require_us
             select pr.*
             from property_reports pr
             join queries q on q.id = pr.query_id
-            where pr.query_key=$1 and pr.owner_user_id=$2
+            where pr.query_key=$1 and pr.owner_user_id=$2 and q.owner_user_id=$2
             limit 1
             """,
             query_key,

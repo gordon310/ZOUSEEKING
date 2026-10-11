@@ -6,8 +6,8 @@ import {
   generatePreview,
   getValidAccessToken,
   uploadFiles,
-} from "./api-client.js?v=20260926-r67";
-import { extractPropertyFields } from "./property-intake-extraction.js?v=20260926-r67";
+} from "./api-client.js?v=20261010-r70";
+import { extractPropertyFields } from "./property-intake-extraction.js?v=20261010-r70";
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const INTAKE_SESSION_KEY = "zou_house_property_intake_session";
@@ -230,7 +230,7 @@ function setStatusWithLoginLink(message) {
   setStatus(message, "info");
   if (!elements.status) return;
   const link = document.createElement("a");
-  link.href = "profile.html?role=consumer#accountPanel";
+  link.href = "consumer-profile.html#accountPanel";
   link.textContent = ` ${t("auth.loginAgain", "前往登录")}`;
   elements.status.append(link);
 }
@@ -259,7 +259,7 @@ function setStage(stage) {
     if (section) section.hidden = name !== visibleStage || !authReady;
   });
   if (elements.authGate) elements.authGate.hidden = authReady;
-  const currentStep = { submit: 1, confirm: 3, preview: 4, save: 5 }[stage] || 1;
+  const currentStep = { submit: 1, confirm: 2, preview: 3, save: 3 }[stage] || 1;
   elements.progressItems.forEach((item) => {
     const itemStep = Number(item.dataset.step || 0);
     const isCurrent = itemStep === currentStep;
@@ -409,7 +409,7 @@ function updateProgressRail() {
   if (elements.completionCount) elements.completionCount.textContent = copy("intake.completedCountRuntime", "已完成 {completed}/6 项", { completed });
   if (elements.progressPercent) elements.progressPercent.textContent = `${percent}%`;
   elements.progressRing?.style.setProperty("--progress", `${percent}%`);
-  elements.progressRing?.setAttribute("aria-label", `资料完整度 ${percent}%`);
+  elements.progressRing?.setAttribute("aria-label", `${t("intake.progressTitle", "填写进度")} ${percent}%`);
   elements.completionChecklist?.querySelectorAll("[data-check]").forEach((item) => {
     item.classList.toggle("is-complete", Boolean(checks[item.dataset.check]));
   });
@@ -800,7 +800,7 @@ function renderPreview(preview) {
     comparison.append(createElement("p", t("intake.comparableUnavailable", "市场可比数据：尚未检查。完整报告、税费金额、自动提取和法律判断将在后续阶段提供。")));
   }
 
-  elements.previewContent.append(completeness, costs, risks, comparison);
+  elements.previewContent.append(risks, comparison, completeness, costs);
   const reportKey = preview?.query_key || state.session?.query_key || state.session?.queryKey || "";
   state.reportReady = preview?.report_status === "full_report";
   if (elements.reportLink) {
@@ -861,7 +861,7 @@ async function startIntake(event) {
         setStatusWithLoginLink(t("intake.authRequired", "请先注册或登录，再开始分析。"));
         return;
       }
-      const session = await createSession(purpose, "privacy-2026-08", accessToken);
+      const session = await createSession(purpose, "privacy-2026-10", accessToken);
       saveAnonymousSession({
         sessionId: session.session_id,
         rawToken: session.session_token,
@@ -996,7 +996,7 @@ async function saveProject() {
       setStatus(hadSupabaseSession
         ? t("auth.sessionRefreshFailed", "暂时无法续期登录状态，请稍后重试。")
         : t("intake.loginRequiredToSave", "请先注册或登录，再开始分析项目。"), "info");
-      if (!hadSupabaseSession) window.location.href = "profile.html?role=consumer#accountPanel";
+      if (!hadSupabaseSession) window.location.href = "consumer-profile.html#accountPanel";
     }
     return;
   }
@@ -1054,12 +1054,12 @@ async function saveProject() {
       elements.saveButton.disabled = !state.reportReady;
     }
     if (elements.savedProjectLink) {
-      const projectHref = reportKey && state.reportReady ? reportHref(reportKey) : "projects.html";
+      const projectHref = reportKey && state.reportReady ? reportHref(reportKey) : `project.html?property_id=${encodeURIComponent(result.property_id)}&key=${encodeURIComponent(reportKey)}`;
       elements.savedProjectLink.href = projectHref;
       elements.savedProjectLink.textContent = state.reportReady
         ? t("intake.viewSavedReport", "查看报告")
         : t("intake.viewSavedProject", "查看项目进度");
-      elements.savedProjectLink.classList.remove("hidden");
+      elements.savedProjectLink.classList.toggle("hidden", state.reportReady);
     }
     setStatus(copy("intake.projectSavedStatus", "项目已保存到你的账户（{propertyId}）。", { propertyId: result.property_id }), "success");
   } catch (error) {
@@ -1177,7 +1177,6 @@ async function initialize() {
   if (elements.status) elements.status.textContent = "";
   if (DEMO_MODE) {
     document.querySelector("#demoBanner")?.removeAttribute("hidden");
-    document.querySelector("#reviewLink")?.removeAttribute("hidden");
     setStatus(t("intake.demoModeEnabled", "界面演示已开启：可以依次体验提交、确认、预览和保存。"), "info");
   }
   updateSourceCount();

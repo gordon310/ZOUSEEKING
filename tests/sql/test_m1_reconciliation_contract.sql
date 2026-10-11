@@ -96,8 +96,10 @@ begin
   -- 20260918000100_rent_reference_stats.sql adds one more (SELECT on the new table).
   -- 20260920000200_member_read_security_invoker_views.sql adds SELECT on
   -- three member-read views. The 30 baseline is the CI disposable-reset value.
-  if authenticated_grant_count <> 30 then
-    raise exception 'authenticated public grant count %, expected 30', authenticated_grant_count;
+  -- 20261011000100 replaces the full property_reports table grant with
+  -- preview-column grants, which do not appear in role_table_grants.
+  if authenticated_grant_count <> 29 then
+    raise exception 'authenticated public grant count %, expected 29', authenticated_grant_count;
   end if;
   -- 20260915000300_account_deletion_requests.sql adds four service_role grants;
   -- 336 为手工 bootstrap 计数、360 为 CI disposable-reset 基线(以 CI 为准;

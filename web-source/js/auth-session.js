@@ -29,7 +29,7 @@
   function fromStored(data) {
     if (!data) return null;
     if (data.provider === "demo") return data;
-    return fromAuth(data);
+    return fromAuth(data, data);
   }
 
   function read() {

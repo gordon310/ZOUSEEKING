@@ -12,6 +12,9 @@ class MeterConnection:
     def __init__(self) -> None:
         self.statements: list[str] = []
 
+    def is_in_transaction(self):
+        return True
+
     async def execute(self, query, *args):
         self.statements.append(query)
 
@@ -21,8 +24,8 @@ class MeterConnection:
         if "organization_members" in query:
             return None
         if "plan_entitlements" in query:
-            return {"limit_units": 5}
-        if "usage_idempotency" in query:
+            return {"limit_units": 5, "period": "month"}
+        if "usage_idempotency" in query or "from public.usage_events" in query:
             return None
         if "from public.usage_quotas" in query:
             return {"consumed_units": 1, "reserved_units": 0, "limit_units": 5}

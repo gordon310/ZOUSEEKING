@@ -783,3 +783,11 @@ tbody td:last-child { color: var(--navy-soft); }
     min-height: 44px;
   }
 }
+
+.live-project { max-width: 900px; margin: 0 auto; padding: 28px 20px 72px; }
+.live-project h1, .live-project dd { overflow-wrap: anywhere; }
+.live-project section { margin: 24px 0; }
+.live-project .summary-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
+.live-project details { margin-top: 24px; }
+summary { cursor: pointer; }
+summary:focus-visible { outline: 3px solid #2f70ef; outline-offset: 3px; }

@@ -4,16 +4,17 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="小象避坑的物件分析项目列表。" />
-    <link rel="manifest" href="manifest.webmanifest?v=20260926-r67" />
-    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=20260926-r67" />
+    <link rel="manifest" href="manifest.webmanifest?v=20261010-r70" />
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=20261010-r70" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="小象" />
     <meta name="theme-color" content="#0b1020" />
     <title>我的项目｜小象避坑 ZOUBEACON</title>
-    <link rel="icon" href="assets/logoELE-beacon.svg?v=20260926-r67" />
-    <link rel="stylesheet" href="project-workspace.css?v=20260926-r67" />
-    <link rel="stylesheet" href="projects.css?v=20260926-r67" />
+    <link rel="icon" href="assets/logoELE-beacon.svg?v=20261010-r70" />
+    <link rel="stylesheet" href="project-workspace.css?v=20261010-r70" />
+    <link rel="stylesheet" href="projects.css?v=20261010-r70" />
+    <link rel="stylesheet" href="policy-consent.css?v=20261010-r70" />
   </head>
   <body>
     <main class="workspace-app">
@@ -27,14 +28,14 @@
                 <feFlood flood-color="#10284d" result="logo-color" /><feComposite in="logo-color" in2="logo-mask" operator="in" />
               </filter>
             </defs>
-            <image href="assets/logoELE-beacon.svg?v=20260926-r67" width="1254" height="1254" preserveAspectRatio="none" />
+            <image href="assets/logoELE-beacon.svg?v=20261010-r70" width="1254" height="1254" preserveAspectRatio="none" />
           </svg>
           <span><strong>小象避坑</strong><small>ZOUBEACON</small></span>
         </a>
         <nav class="workspace-nav" aria-label="项目导航">
           <a href="property-analysis.html">分析物件</a>
           <a href="projects.html" aria-current="page">我的项目</a>
-          <a href="profile.html?role=consumer">账户资料</a>
+          <a href="consumer-profile.html">账户资料</a>
         </nav>
         <button class="workspace-menu-toggle" id="projectsMenuToggle" type="button" aria-expanded="false" aria-controls="projectsMenu">菜单</button>
       </header>
@@ -42,13 +43,13 @@
       <nav class="workspace-menu" id="projectsMenu" aria-label="移动端项目导航" hidden>
         <a href="property-analysis.html">分析物件</a>
         <a href="projects.html">我的项目</a>
-        <a href="profile.html?role=consumer">账户资料</a>
+        <a href="consumer-profile.html">账户资料</a>
       </nav>
 
       <div class="projects-review-banner" id="projectsReviewBanner" hidden>
         <strong>界面评审模式</strong>
         <span>列表内容为合成示例数据演示，不代表真实项目或分析结论。</span>
-        <label>状态筛选<select id="statusFilter"><option value="all">全部状态</option><option value="draft">待处理</option><option value="running">生成中</option><option value="completed">完整报告</option><option value="failed">生成失败</option></select></label>
+
       </div>
 
       <div class="projects-page">
@@ -57,23 +58,25 @@
           <div>
             <p class="eyebrow">MY PROJECTS</p>
             <h1>我的项目</h1>
-            <p>保存过的物件资料、分析进度和报告版本，都从这里继续。</p>
+            <p>查看最近的查询与报告任务，继续生成或打开已有报告。</p>
           </div>
-          <a class="primary-button" href="property-analysis.html">分析一个新物件</a>
+          <a class="outline-button" href="property-analysis.html">分析一个新物件</a>
         </header>
 
         <div class="projects-notice" id="projectsNotice" role="status" aria-live="polite"></div>
+        <button id="projectsReload" class="outline-button" type="button" hidden>重新读取</button>
 
         <section class="projects-auth-state" id="projectsAuthState" hidden aria-labelledby="projectsAuthHeading">
           <h2 id="projectsAuthHeading">注册或登录后查看项目</h2>
           <p>项目资料和报告只对所属账户可见。请先进入账户页面完成注册或登录。</p>
-          <a class="primary-button" href="profile.html?role=consumer&amp;return_to=projects.html#accountPanel">注册 / 登录</a>
+          <a class="primary-button" href="consumer-profile.html#accountPanel">注册 / 登录</a>
         </section>
 
         <section class="project-list-shell" aria-labelledby="projectListHeading">
           <div class="project-list-heading">
             <div><h2 id="projectListHeading">全部项目</h2><p id="projectListDescription">按最近更新排序</p></div>
-            <span class="version-count" id="projectCount">5 个项目</span>
+                    <label>状态筛选<select id="statusFilter"><option value="all">全部状态</option><option value="draft">待处理</option><option value="running">生成中</option><option value="completed">完整报告</option><option value="failed">生成失败</option></select></label>
+            <span class="version-count" id="projectCount">0 个项目</span>
           </div>
           <div class="project-list" id="projectList"></div>
         </section>
@@ -85,13 +88,14 @@
           <a class="outline-button" href="property-analysis.html">开始分析</a>
         </section>
 
-        <footer class="projects-footer"><span>私有项目仅对所属账户可见。</span><a href="ui-review.html">返回前端流程评审</a></footer>
+        <footer class="projects-footer"><span>私有项目仅对所属账户可见。</span></footer>
       </div>
     </main>
-    <script src="config.js?v=20260926-r67"></script>
-    <script src="js/auth-session.js?v=20260926-r67"></script>
-    <script src="js/pwa.js?v=20260926-r67"></script>
-    <script src="js/i18n.js?v=20260926-r67"></script>
-    <script type="module" src="js/projects.js?v=20260926-r67"></script>
+    <script src="config.js?v=20261010-r70"></script>
+    <script src="js/auth-session.js?v=20261010-r70"></script>
+    <script src="js/pwa.js?v=20261010-r70"></script>
+    <script src="js/i18n.js?v=20261010-r70"></script>
+    <script type="module" src="js/projects.js?v=20261010-r70"></script>
+    <script src="js/policy-consent.js?v=20261010-r70" defer></script>
   </body>
 </html>

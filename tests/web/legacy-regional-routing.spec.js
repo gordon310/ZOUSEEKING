@@ -137,7 +137,7 @@ test("development compatibility profile runs a legacy regional job without calli
 
   await page.goto("/mypage.html");
   await expect(page.getByRole("heading", { name: "我的查询任务" })).toBeVisible();
-  await page.getByRole("button", { name: "手动执行 JPHOUSE" }).click();
+  await page.getByRole("button", { name: "生成报告" }).click();
 
   await expect.poll(() => runCount).toBe(1);
   expect(edgeCount).toBe(0);

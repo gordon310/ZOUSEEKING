@@ -1,0 +1,5 @@
+#policyConsentDialog { width: min(90vw, 32rem); max-height: 85vh; overflow: auto; padding: 24px; border: 1px solid #cbd5e1; border-radius: 16px; color: #172b4d; }
+#policyConsentDialog::backdrop { background: rgb(0 0 0 / 55%); }
+#policyConsentDialog form { display: grid; gap: 16px; }
+#policyConsentDialog label { display: flex; align-items: flex-start; gap: 12px; }
+#policyConsentDialog button { min-height: 44px; padding: 10px 16px; }

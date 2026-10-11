@@ -148,3 +148,15 @@ export async function getValidAccessToken() {
   if (sharedToken) return sharedToken;
   return getExistingAccessToken();
 }
+
+export function getProject(propertyId, accessToken) {
+  return request(`/api/intake/projects/${encodeURIComponent(propertyId)}`, { accessToken });
+}
+
+export function runQueryJob(query, accessToken) {
+  const { prefecture, city, ward, asset_type, year, month } = query;
+  return request("/api/query", {
+    method: "POST", accessToken,
+    body: { prefecture, city, ward, asset_type, year, month },
+  });
+}

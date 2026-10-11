@@ -1,11 +1,11 @@
-// C-side (consumer) registration on profile.html?role=consumer.
+// C-side (consumer) registration on consumer-profile.html.
 //
 // Regression guard for a real production defect: app.js read
 // $("#registerInviteCode").value unconditionally, but that element only
-// exists on index.html. On profile.html?role=consumer - the page the C-side
+// exists on index.html. On consumer-profile.html - the page the C-side
 // home page links to for sign-up - the read threw a TypeError before the
 // field validation ran, so the button appeared to do nothing: no request,
-// no message. This file deliberately drives profile.html (never index.html)
+// no message. This file deliberately drives consumer-profile.html (never index.html)
 // and asserts the invite-code element is absent, so the scenario cannot be
 // silently re-pointed at the page that happens to have the element.
 
@@ -17,10 +17,11 @@ async function openConsumerRegistration(page) {
   await page.addInitScript((apiBaseUrl) => {
     window.ZOUSEEKING_RELEASE_SCOPE = { phase: "development", businessOperations: true, adminOperations: true };
     window.ZOUSEEKING_API_BASE_URL = apiBaseUrl;
+    localStorage.setItem("zou_ui_locale", "zh-CN");
     window.ZOUSEEKING_SUPABASE_URL = "https://supabase.test";
     window.ZOUSEEKING_SUPABASE_ANON_KEY = "public-test-key";
   }, API_BASE_URL);
-  await page.goto("/profile.html?role=consumer");
+  await page.goto("/consumer-profile.html");
   await page.locator("#showRegister").click();
   await expect(page.locator("#registerForm")).toBeVisible();
 }

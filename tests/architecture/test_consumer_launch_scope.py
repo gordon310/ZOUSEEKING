@@ -29,6 +29,7 @@ C_REACHABLE_API_CONTRACT = (
     "POST /api/intake/sessions/{session_id}/convert",
     "POST /api/recognition",
     "GET /api/my/queries",
+    "GET /api/intake/projects/{property_id}",
     "POST /api/account/deletion-request",
     "POST /api/query",
     "GET /api/jobs/{job_id}",
@@ -223,3 +224,9 @@ def test_consumer_active_sample_is_unchanged(monkeypatch) -> None:
 
     assert release_scope.request_allowed("GET", "/api/org/region-stats")
     assert release_scope.request_allowed("POST", "/api/query")
+
+
+def test_consumer_launch_allows_saved_intake_project_read_only() -> None:
+    assert release_scope.request_allowed("GET", "/api/intake/projects/project-123")
+    assert not release_scope.request_allowed("POST", "/api/intake/projects/project-123")
+    assert not release_scope.request_allowed("DELETE", "/api/intake/projects/project-123")

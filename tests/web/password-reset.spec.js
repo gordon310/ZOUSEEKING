@@ -31,6 +31,23 @@ test("reset request uses current-origin destination and one neutral success copy
   expect(requestedRedirect).toBe("http://127.0.0.1:8787/reset-password.html");
 });
 
+test("consumer reset request stays on the dedicated C-end route", async ({ page }) => {
+  await page.addInitScript(UNREACHABLE_SUPABASE);
+  let requestedRedirect = "";
+  await page.route(/127\.0\.0\.1:8787\/supabase\/auth\/v1\/recover/, async (route) => {
+    requestedRedirect = new URL(route.request().url()).searchParams.get("redirect_to");
+    await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+  });
+  await page.addInitScript(() => localStorage.setItem("zou_ui_locale", "zh-CN"));
+  await page.goto("/consumer-profile.html");
+  await page.locator("#forgotPasswordLink").click();
+  await page.locator("#forgotPasswordEmail").fill("unknown@example.com");
+  await page.locator("#forgotPasswordForm button[type=submit]").click();
+
+  await expect(page.locator("#formMessage")).toContainText("如果该邮箱已注册");
+  expect(requestedRedirect).toBe("http://127.0.0.1:8787/consumer-reset-password.html");
+});
+
 test("reset page only shows the form for a valid recovery session", async ({ page }) => {
   await page.addInitScript(UNREACHABLE_SUPABASE);
   await page.route("**/auth/v1/user**", async (route) => {

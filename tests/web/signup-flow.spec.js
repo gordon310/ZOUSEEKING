@@ -34,7 +34,7 @@ test("开放注册允许空邀请码，并发送完整注册请求", async ({ pa
   await submitRegistration(page);
   await expect(page.locator("#formMessage")).toHaveText("注册成功，请直接登录。");
   await expect(page.locator("#loginForm")).toBeVisible();
-  expect(requestBody).toMatchObject({ email: "signup@example.com", password: "sixsix", username: "signup-user", invite_code: "", consent_version: "privacy-2026-08", terms_version: "terms-2026-08" });
+  expect(requestBody).toMatchObject({ email: "signup@example.com", password: "sixsix", username: "signup-user", invite_code: "", consent_version: "privacy-2026-10", terms_version: "terms-2026-08" });
 });
 
 test("带邀请码注册保留邀请码并发送完整注册请求", async ({ page }) => {
@@ -47,7 +47,7 @@ test("带邀请码注册保留邀请码并发送完整注册请求", async ({ pa
   await submitRegistration(page);
   await expect(page.locator("#formMessage")).toHaveText("注册成功，请直接登录。");
   await expect(page.locator("#loginForm")).toBeVisible();
-  expect(requestBody).toMatchObject({ email: "signup@example.com", password: "sixsix", username: "signup-user", invite_code: "valid-invite", consent_version: "privacy-2026-08", terms_version: "terms-2026-08" });
+  expect(requestBody).toMatchObject({ email: "signup@example.com", password: "sixsix", username: "signup-user", invite_code: "valid-invite", consent_version: "privacy-2026-10", terms_version: "terms-2026-08" });
 });
 
 for (const [label, status, code, message] of [

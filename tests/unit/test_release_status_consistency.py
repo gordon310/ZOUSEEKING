@@ -72,48 +72,44 @@ def failing_checks(result: dict, coordinates: list[str]) -> set[str]:
 def test_real_repo_has_no_undeclared_drift():
     result, undeclared = run(REPO_ROOT)
     assert undeclared == []
-    assert result["status"] == "open"
+    assert result["status"] == "pass"
     assert result["production_contacted"] is False
     assert result["network_used"] is False
 
 
-def test_real_repo_only_open_item_is_the_registered_d8_c04_scope_conflict():
+def test_real_repo_scope_decision_has_no_remaining_declared_items():
     result, _ = run(REPO_ROOT)
-    open_items = [item for item in result["declared_open_items"] if item["status"] == "open"]
-    assert [item["id"] for item in open_items] == ["RS1_d8_c04_scope"]
-    assert open_items[0]["coordinates"] == ["plan:D-8:C04:plan-open-checklist-closed"]
-    assert open_items[0]["owner"].strip().lower() not in {"", "tbd", "todo"}
-    assert open_items[0]["blocking"] is True
+    assert result["declared_open_items"] == []
 
 
 def test_real_repo_checks_are_the_registered_set():
     result, _ = run(REPO_ROOT)
     assert [check["id"] for check in result["checks"]] == list(CHECK_IDS)
     failing = [check["id"] for check in result["checks"] if not check["ok"]]
-    assert failing == ["C7_plan_vs_checklist_scope"]
+    assert failing == []
 
 
 def test_real_repo_cli_exit_code_is_open(capsys):
-    assert main(["--root", str(REPO_ROOT)]) == 2
+    assert main(["--root", str(REPO_ROOT)]) == 0
     out = capsys.readouterr().out
-    assert "release-status consistency: open" in out
-    assert "plan:D-8:C04:plan-open-checklist-closed" in out
+    assert "release-status consistency: pass" in out
+    assert "plan:D-8:C04:plan-open-checklist-closed" not in out
 
 
 def test_real_repo_cli_json_reports_offline_and_declared_items(capsys):
-    assert main(["--root", str(REPO_ROOT), "--json"]) == 2
+    assert main(["--root", str(REPO_ROOT), "--json"]) == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["production_contacted"] is False
     assert payload["network_used"] is False
     assert payload["errors"] == []
-    assert payload["declared_open_items"][0]["id"] == "RS1_d8_c04_scope"
+    assert payload["declared_open_items"] == []
 
 
 def test_staged_copy_reproduces_the_real_result(tmp_path):
     root = stage_repo(tmp_path)
     result, undeclared = run(root)
     assert undeclared == []
-    assert result["status"] == "open"
+    assert result["status"] == "pass"
 
 
 # --------------------------------------------------------------------------
@@ -288,12 +284,7 @@ def test_plan_row_claiming_a_partial_item_closed_is_caught(tmp_path):
 
 def test_resolved_declaration_is_reported_not_hidden(tmp_path):
     root = stage_repo(tmp_path)
-    replace_in(
-        root,
-        PLAN_RELATIVE,
-        "| **D-8** | 09-29 二 | **C04**(成本已批)",
-        "| **D-8** | 09-29 二 | ✅ **C04**(成本已批)",
-    )
+    rewrite_json(root, DEFAULT_CONTRACT, lambda contract: contract["declared_open_items"].append({"id": "resolved_fixture", "check": "C7_plan_vs_checklist_scope", "coordinate_contains": "plan:D-8:C04", "summary": "test stale declaration", "owner": "test", "target": "2026-10-10", "blocking": True}))
     result, undeclared = run(root)
     assert undeclared == []
     assert result["declared_open_items"][0]["status"] == "resolved"
@@ -339,7 +330,7 @@ def _write_contract(root: Path, contract: dict) -> None:
 def test_contract_without_owner_is_rejected(tmp_path):
     root = stage_repo(tmp_path)
     contract = _contract_of(root)
-    contract["declared_open_items"][0]["owner"] = "TBD"
+    contract["declared_open_items"].append({"id": "unowned_fixture", "check": "C7_plan_vs_checklist_scope", "coordinate_contains": "plan:D-8:C04", "summary": "test", "owner": "TBD", "target": "2026-10-10", "blocking": True})
     _write_contract(root, contract)
     with pytest.raises(ContractError):
         load_contract(root / DEFAULT_CONTRACT)

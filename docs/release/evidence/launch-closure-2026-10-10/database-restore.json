@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "source": "redownloaded_actual_R2_artifact",
+  "created_at": "2026-10-10T14:45:40+00:00",
+  "sha256": "667489b3c4b691d6f60463c2726011596cc13df74608f86eae5d89942869c8e0",
+  "migration_count": 54,
+  "table_counts": {
+    "mlit_transactions": 131982,
+    "property_reports": 7,
+    "queries": 6,
+    "rent_reference_stats": 16550,
+    "report_generation_outbox": 0,
+    "usage_events": 16,
+    "usage_quotas": 20
+  },
+  "elapsed_seconds": 4.58,
+  "isolation": "local Docker --network none",
+  "auth": "UUID stubs only; no Auth sessions recovered",
+  "acl": "not preserved; RLS fixture matrix separate"
+}

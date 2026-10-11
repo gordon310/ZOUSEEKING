@@ -46,17 +46,20 @@ def _report_row(owner_user_id=OWNER_ID):
 
 
 class FakeConnection:
-    def __init__(self, report_row: dict | None, paid: bool, paid_key: str | None = None, subscription_quota: bool = False):
+    def __init__(self, report_row: dict | None, paid: bool, paid_key: str | None = None, subscription_quota: bool = False, consumed_report: bool = False):
         self.report_row = report_row
         self.paid = paid
         self.paid_key = paid_key
         self.subscription_quota = subscription_quota
+        self.consumed_report = consumed_report
 
     async def fetchrow(self, query: str, *args):
         if "payment_orders" in query:
             if self.paid and (self.paid_key is None or args[1] == self.paid_key):
                 return {"unlocked": 1}
-            if self.subscription_quota:
+            if self.consumed_report and "usage_events" in query:
+                return {"unlocked": 1}
+            if self.subscription_quota and "public.subscriptions" in query:
                 return {"unlocked": 1}
             return None
         if "owner_user_id=$2" in query and self.report_row is not None:
@@ -172,8 +175,18 @@ def test_anonymous_report_gets_free_summary_without_locked_fields():
     assert "markdown" not in body
 
 
-def test_active_c_plus_quota_unlocks_report_without_single_purchase():
+def test_unused_c_plus_quota_does_not_unlock_report_without_consumption():
     client = _client(FakePool(FakeConnection(_report_row(), paid=False, subscription_quota=True)), AuthUser(OWNER_ID, "owner@example.com", "用户 A"))
+    try:
+        response = client.get(f"/api/reports/{QUERY_KEY}")
+    finally:
+        _cleanup()
+    assert response.status_code == 200
+    assert response.json()["locked"] is True
+
+
+def test_consumed_c_plus_credit_unlocks_report_after_quota_exhaustion():
+    client = _client(FakePool(FakeConnection(_report_row(), paid=False, consumed_report=True)), AuthUser(OWNER_ID, "owner@example.com", "用户 A"))
     try:
         response = client.get(f"/api/reports/{QUERY_KEY}")
     finally:

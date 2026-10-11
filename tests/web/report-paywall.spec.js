@@ -1,4 +1,9 @@
 const { test, expect } = require("@playwright/test");
+
+// These scenarios cover business flows after an already recorded policy acceptance.
+test.beforeEach(async ({ context }) => {
+  await context.route("**/api/account/consent", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ accepted: true, privacy_policy_version: "privacy-2026-10", terms_version: "terms-2026-08" }) }));
+});
 const path = require("node:path");
 
 const JOB_ID = "00000000-0000-0000-0000-000000000050";
@@ -49,6 +54,7 @@ test("locked report shows unlock card and never renders content", async ({ page 
   });
   await page.route("https://supabase.test/**", async (route) => {
     const url = new URL(route.request().url());
+    if (url.pathname === "/api/account/consent") return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ accepted: true, privacy_policy_version: "privacy-2026-10", terms_version: "terms-2026-08" }) });
     if (url.pathname.endsWith("/auth/v1/user")) {
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ id: "00000000-0000-0000-0000-000000000030", email: "owner@example.com", user_metadata: { username: "用户 A" } }) });
     }
@@ -56,6 +62,7 @@ test("locked report shows unlock card and never renders content", async ({ page 
   });
   await page.route("http://api.test/**", async (route) => {
     const url = new URL(route.request().url());
+    if (url.pathname === "/api/account/consent") return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ accepted: true, privacy_policy_version: "privacy-2026-10", terms_version: "terms-2026-08" }) });
     if (url.pathname === "/api/my/queries") {
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(completedTask()) });
     }
@@ -109,6 +116,36 @@ test("locked report shows unlock card and never renders content", async ({ page 
   await page.waitForURL(/checkout\.stripe\.test/);
 });
 
+test("anonymous report login remains on the consumer account route", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.ZOUSEEKING_RELEASE_SCOPE = { phase: "development", businessOperations: true, adminOperations: true };
+    window.ZOUSEEKING_API_BASE_URL = "http://api.test";
+  });
+  await page.route("http://api.test/**", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname === "/api/account/consent") return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ accepted: true, privacy_policy_version: "privacy-2026-10", terms_version: "terms-2026-08" }) });
+    if (url.pathname.includes("/api/reports/")) {
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          locked: true,
+          report_status: "full_report",
+          query_key: QUERY_KEY,
+          title: "东京都渋谷区塔楼成交参考",
+          data_sources: [],
+        }),
+      });
+    }
+    return route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ detail: "not found" }) });
+  });
+
+  await page.goto(`/report.html?key=${encodeURIComponent(QUERY_KEY)}`);
+
+  await expect(page.locator("#reportLoginButton")).toBeVisible();
+  await expect(page.locator("#reportLoginButton")).toHaveAttribute("href", `consumer-profile.html?return_to=${encodeURIComponent(`report.html?key=${encodeURIComponent(QUERY_KEY)}`)}#accountPanel`);
+});
+
 test("unlocked report renders full content (no paywall)", async ({ page }) => {
   await page.addInitScript(sessionInit());
   let downloadAuthorization = "";
@@ -120,6 +157,7 @@ test("unlocked report renders full content (no paywall)", async ({ page }) => {
   });
   await page.route("http://api.test/**", async (route) => {
     const url = new URL(route.request().url());
+    if (url.pathname === "/api/account/consent") return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ accepted: true, privacy_policy_version: "privacy-2026-10", terms_version: "terms-2026-08" }) });
     if (url.pathname === "/api/my/queries") {
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(completedTask()) });
     }
@@ -164,6 +202,7 @@ test("insufficient-data report has no payment entry point", async ({ page }) => 
   await page.addInitScript(sessionInit());
   await page.route("http://api.test/**", async (route) => {
     const url = new URL(route.request().url());
+    if (url.pathname === "/api/account/consent") return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ accepted: true, privacy_policy_version: "privacy-2026-10", terms_version: "terms-2026-08" }) });
     if (url.pathname.includes("/api/reports/")) {
       return route.fulfill({
         status: 200,

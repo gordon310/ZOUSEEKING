@@ -19,6 +19,10 @@ test("builds the recovery redirect from the current origin", () => {
     recovery.buildResetRedirectUrl("https://platform.zoubeacon.com"),
     "https://platform.zoubeacon.com/reset-password.html",
   );
+  assert.equal(
+    recovery.buildResetRedirectUrl("https://zoubeacon.app", "consumer-reset-password.html"),
+    "https://zoubeacon.app/consumer-reset-password.html",
+  );
 });
 
 test("selects one success message for both known and unknown emails", () => {

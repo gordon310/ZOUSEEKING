@@ -1,0 +1,1 @@
+#policyConsentDialog{color:#172b4d;border:1px solid #cbd5e1;border-radius:16px;width:min(90vw,32rem);max-height:85vh;padding:24px;overflow:auto}#policyConsentDialog::backdrop{background:#0000008c}#policyConsentDialog form{gap:16px;display:grid}#policyConsentDialog label{align-items:flex-start;gap:12px;display:flex}#policyConsentDialog button{min-height:44px;padding:10px 16px}

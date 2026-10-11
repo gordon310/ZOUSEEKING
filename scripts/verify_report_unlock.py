@@ -74,7 +74,7 @@ select json_build_object(
           and x.subject_id = coalesce(pr.query_key, q.query_key, po.subject_id)
           and x.status = 'paid'
       ),
-      'c_plus_quota_branch', exists (
+      'unused_c_plus_capacity_not_an_unlock', exists (
         select 1
         from public.subscriptions s
         join public.usage_quotas uq
@@ -91,8 +91,12 @@ select json_build_object(
         select 1 from public.usage_events ue
         where ue.scope_key = 'user:' || q.owner_user_id::text
           and ue.usage_kind = 'report'
-          and ue.operation = 'consume'
-          and ue.fingerprint = 'c-plus-report:' || coalesce(pr.query_key, q.query_key, po.subject_id)
+          and ue.operation = 'consume' and ue.units > 0
+          and (ue.actor_user_id=q.owner_user_id or ue.actor_user_id is null)
+          and ue.fingerprint in (
+            'report:' || coalesce(pr.query_key, q.query_key, po.subject_id),
+            'c-plus-report:' || coalesce(pr.query_key, q.query_key, po.subject_id)
+          )
       ),
       'report_owner_matches_requester', (
         coalesce(pr.owner_user_id, q.owner_user_id) is not null

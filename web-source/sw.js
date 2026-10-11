@@ -7,16 +7,14 @@
  * to the network - never cache member data, reports or auth responses.
  * Bump SW_VERSION to force an app-shell refresh after deploys.
  */
-const SW_VERSION = "20260926-r67";
+const SW_VERSION = "20261010-r70";
 const APP_SHELL_PAGES = [
-  "./index.html",
   "./consumer-home.html",
+  "./consumer-profile.html",
   "./property-analysis.html",
   "./report.html",
   "./project.html",
   "./projects.html",
-  "./mypage.html",
-  "./profile.html",
 ];
 const APP_SHELL_ASSETS = [
   "./config.js",
@@ -27,20 +25,22 @@ const APP_SHELL_ASSETS = [
   "./project-workspace.css",
   "./report-page.css",
   "./styles.css",
+  "./consumer-account.css",
+  "./policy-consent.css",
   "./js/auth-session.js",
   "./js/auth-recovery.js",
   "./js/api-client.js",
   "./js/i18n.js",
   "./js/pwa.js",
+  "./js/policy-consent.js",
   "./js/property-intake.js",
   "./js/property-intake-extraction.js",
   "./js/recognition.js",
   "./js/projects.js",
   "./js/project-workspace.js",
+  "./js/project-live.js",
   "./js/report-page.js",
-  "./js/business-api.js",
   "./js/record-location.js",
-  "./js/profile-role.js",
   "./app.js",
   "./assets/logoELE-beacon.svg",
   "./assets/apple-touch-icon.png",
@@ -87,10 +87,10 @@ function isVersionedAsset(url) {
 }
 
 function cacheAppShellFallback(pathname) {
-  const versionedPath = `${pathname.replace(/\/$/, "") || "/index.html"}?v=${SW_VERSION}`;
+  const versionedPath = `${pathname.replace(/\/$/, "") || "/consumer-home.html"}?v=${SW_VERSION}`;
   return caches.match(new URL(versionedPath, self.location)).then((cached) => {
     if (cached) return cached;
-    return caches.match(new URL(`./index.html?v=${SW_VERSION}`, self.location));
+    return caches.match(new URL(`./consumer-home.html?v=${SW_VERSION}`, self.location));
   });
 }
 
@@ -104,6 +104,7 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
   if (request.method !== "GET" || url.origin !== self.location.origin) return;
+  if (["/api/", "/rest/v1/", "/auth/v1/", "/functions/"].some((prefix) => url.pathname.startsWith(prefix))) return;
 
   if (request.mode === "navigate") {
     event.respondWith(

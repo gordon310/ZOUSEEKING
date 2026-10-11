@@ -4,15 +4,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="小象避坑项目工作台与物件分析报告。" />
-    <link rel="manifest" href="manifest.webmanifest?v=20260926-r67" />
-    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=20260926-r67" />
+    <link rel="manifest" href="manifest.webmanifest?v=20261010-r70" />
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=20261010-r70" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="小象" />
     <meta name="theme-color" content="#0b1020" />
     <title>项目工作台｜小象避坑 ZOUBEACON</title>
-    <link rel="icon" href="assets/logoELE-beacon.svg?v=20260926-r67" />
-    <link rel="stylesheet" href="project-workspace.css?v=20260926-r67" />
+    <link rel="icon" href="assets/logoELE-beacon.svg?v=20261010-r70" />
+    <link rel="stylesheet" href="project-workspace.css?v=20261010-r70" />
+    <link rel="stylesheet" href="policy-consent.css?v=20261010-r70" />
   </head>
   <body>
     <main class="workspace-app">
@@ -26,7 +27,7 @@
                 <feFlood flood-color="#10284d" result="logo-color" /><feComposite in="logo-color" in2="logo-mask" operator="in" />
               </filter>
             </defs>
-            <image href="assets/logoELE-beacon.svg?v=20260926-r67" width="1254" height="1254" preserveAspectRatio="none" />
+            <image href="assets/logoELE-beacon.svg?v=20261010-r70" width="1254" height="1254" preserveAspectRatio="none" />
           </svg>
           <span>
             <strong>小象避坑</strong>
@@ -36,7 +37,7 @@
         <nav class="workspace-nav" aria-label="项目导航">
           <a href="property-analysis.html">分析物件</a>
           <a href="projects.html">我的项目</a>
-          <a href="profile.html?role=consumer">账户资料</a>
+          <a href="consumer-profile.html">账户资料</a>
         </nav>
         <button class="workspace-menu-toggle" id="workspaceMenuToggle" type="button" aria-expanded="false" aria-controls="workspaceMenu">
           菜单
@@ -46,7 +47,7 @@
       <nav class="workspace-menu" id="workspaceMenu" aria-label="移动端项目导航" hidden>
         <a href="property-analysis.html">分析物件</a>
         <a href="projects.html">我的项目</a>
-        <a href="profile.html?role=consumer">账户资料</a>
+        <a href="consumer-profile.html">账户资料</a>
       </nav>
 
       <div class="review-toolbar" id="reviewToolbar" hidden>
@@ -71,7 +72,29 @@
         <p class="eyebrow">ZOUBEACON</p>
         <h1 id="workspaceAccessHeading">注册或登录后查看项目</h1>
         <p>项目资料和报告只对所属账户可见。请从账户页面完成注册或登录，再从“我的项目”进入。</p>
-        <a class="primary-button" href="profile.html?role=consumer&amp;return_to=project.html#accountPanel">注册 / 登录</a>
+        <a class="primary-button" href="consumer-profile.html#accountPanel">注册 / 登录</a>
+      </section>
+
+      <section id="liveProject" class="live-project" hidden aria-labelledby="liveProjectTitle">
+        <a class="outline-button" href="projects.html">返回我的项目</a>
+        <p class="eyebrow">PROJECT</p>
+        <h1 id="liveProjectTitle">正在读取项目</h1>
+        <p id="liveProjectNotice" role="status" aria-live="polite"></p>
+        <dl id="liveProjectFacts" class="summary-facts"></dl>
+        <section aria-labelledby="liveQueryHeading">
+          <h2 id="liveQueryHeading">报告生成状态</h2>
+          <p id="liveQueryContext"></p>
+          <p id="liveProjectStatus" role="status" aria-live="polite"></p>
+          <p id="liveProjectProgress"></p>
+          <a id="liveProjectReport" class="primary-button" hidden>查看报告</a>
+          <button id="liveProjectRun" class="primary-button" type="button" hidden>重新生成</button>
+          <button id="liveProjectReload" class="outline-button" type="button">刷新状态</button>
+        </section>
+        <p>资料完整度、市场来源、样本和限制以资料检查或报告的实际内容为准；任务进度不代表资料完整度。</p>
+        <details><summary>补充资料与人工协助</summary>
+          <p>当前已保存项目的在线资料修改尚未开放。请保留原项目，需要协助时联系支持；重新分析会创建新记录。</p>
+          <a href="support.html">联系支持</a>
+        </details>
       </section>
 
       <div class="workspace-page" hidden>
@@ -569,7 +592,11 @@
       </div>
     </main>
 
-    <script src="js/pwa.js?v=20260926-r67"></script>
-    <script type="module" src="js/project-workspace.js?v=20260926-r67"></script>
+    <script src="config.js?v=20261010-r70"></script>
+    <script src="js/auth-session.js?v=20261010-r70"></script>
+    <script src="js/i18n.js?v=20261010-r70"></script>
+    <script src="js/pwa.js?v=20261010-r70"></script>
+    <script type="module" src="js/project-workspace.js?v=20261010-r70"></script>
+    <script src="js/policy-consent.js?v=20261010-r70" defer></script>
   </body>
 </html>

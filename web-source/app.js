@@ -5,7 +5,7 @@ const SESSION_PROVIDERS = new Set(["supabase", "demo"]);
 const API_BASE_URL = (window.ZOUSEEKING_API_BASE_URL || localStorage.getItem("zou_house_api_base") || "").replace(/\/$/, "");
 const SUPABASE_URL = (window.ZOUSEEKING_SUPABASE_URL || localStorage.getItem("zou_house_supabase_url") || "").replace(/\/$/, "");
 const SUPABASE_ANON_KEY = window.ZOUSEEKING_SUPABASE_ANON_KEY || localStorage.getItem("zou_house_supabase_anon_key") || "";
-const PRIVACY_POLICY_VERSION = "privacy-2026-08";
+const PRIVACY_POLICY_VERSION = "privacy-2026-10";
 const TERMS_VERSION = "terms-2026-08";
 const ACCOUNT_DELETION_CONFIRMATION = "DELETE_ACCOUNT";
 const EMAIL_RESEND_COOLDOWN_SECONDS = 60;
@@ -477,7 +477,8 @@ function appRedirectUrl() {
 }
 
 function passwordResetRedirectUrl() {
-  return window.ZouAuthRecovery?.buildResetRedirectUrl?.(window.location.origin) || `${window.location.origin}/reset-password.html`;
+  const path = document.body.dataset.role === "consumer" ? "consumer-reset-password.html" : "reset-password.html";
+  return window.ZouAuthRecovery?.buildResetRedirectUrl?.(window.location.origin, path) || `${window.location.origin}/${path}`;
 }
 
 function passwordRecoveryApi() {
@@ -664,6 +665,28 @@ async function apiFetch(path, options = {}) {
 }
 
 function backendReportToRecord(options, report) {
+  if (report.locked === true || report.unlocked === false) {
+    return {
+      id: `locked::${report.query_key || report.slug}`,
+      locked: true,
+      unlocked: false,
+      query_key: report.query_key || "",
+      slug: report.slug || "",
+      prefecture: options.prefecture || "",
+      city: options.city || "",
+      ward: options.ward || "",
+      asset_type: options.assetType || "",
+      generated_at: report.generated_at || report.created_at || "",
+      report_status: report.report_status || "",
+      title: report.title || "深度报告",
+      publish_month: report.publish_month || "",
+      summary: report.summary || {},
+      data_sources: report.data_sources || [],
+      unlock_hint: report.unlock_hint || "完整报告尚未解锁。",
+      regions: [options.prefecture, options.city, options.ward].filter(Boolean),
+      layouts: [],
+    };
+  }
   const rental = report.rental || [];
   const sale = report.sale || [];
   const layouts = Array.from(new Set([...rental, ...sale].map((row) => row.layout).filter(Boolean))).sort();
@@ -695,6 +718,10 @@ function backendReportToRecord(options, report) {
 
 function supabaseReportToRecord(options, report) {
   return backendReportToRecord(options, {
+    locked: report.locked,
+    unlocked: report.unlocked,
+    query_key: report.query_key,
+    unlock_hint: report.unlock_hint,
     slug: report.slug,
     title: report.title,
     publish_month: report.publish_month,
@@ -1309,17 +1336,17 @@ async function loadAnalysis() {
 
 async function runJphouseFromMyPage(queryId) {
   if (!canUseAuthenticatedBackend()) {
-    setMessage("分析服务尚未配置(JPHOUSE API 未连接)，暂时无法生成新报告。", "error");
+    setMessage("分析服务尚未配置，暂时无法生成新报告。", "error");
     return;
   }
   try {
-    renderProgress("云端 JPHOUSE", 20, ["发送任务到 FastAPI", "后台生成数据报告"]);
+    renderProgress("报告生成", 20, ["提交生成任务", "后台生成数据报告"]);
     let result = await apiFetch(`/api/jobs/${encodeURIComponent(queryId)}/run`, { method: "POST" });
     for (let i = 0; i < 30 && result?.status !== "completed"; i += 1) {
       if (result?.status === "failed") throw jobError(result);
       await delay(900);
       result = await apiFetch(`/api/jobs/${encodeURIComponent(queryId)}`);
-      renderProgress("云端 JPHOUSE", result.progress || 20, [result.current_step || "生成中", `任务状态：${result.status}`]);
+      renderProgress("报告生成", result.progress || 20, [result.current_step || "生成中", `任务状态：${result.status}`]);
     }
     if (result?.status !== "completed") {
       if ($("#progressDialog").open) $("#progressDialog").close();
@@ -1328,15 +1355,15 @@ async function runJphouseFromMyPage(queryId) {
       render();
       return;
     }
-    renderProgress("云端 JPHOUSE", 100, ["任务完成", "报告已写入工作台"]);
+    renderProgress("报告生成", 100, ["任务完成", "报告已写入工作台"]);
     await delay(350);
     if ($("#progressDialog").open) $("#progressDialog").close();
     await loadMyPage();
-    setMessage("JPHOUSE API 执行完成，可以查看结果。", "success");
+    setMessage("报告已生成，可以查看结果。", "success");
     render();
   } catch (error) {
     if ($("#progressDialog").open) $("#progressDialog").close();
-    setMessage(`JPHOUSE API 执行失败：${backendErrorMessage(error)}`, "error");
+    setMessage(`报告生成失败：${backendErrorMessage(error)}`, "error");
     await loadMyPage();
     render();
   }
@@ -1348,23 +1375,14 @@ async function viewReportByQueryKey(key) {
       ? await apiFetch(`/api/reports/${encodeURIComponent(key)}`)
       : (await supabaseUserFetch(`/member_property_reports?select=*&query_key=eq.${encodeURIComponent(key)}&limit=1`))?.[0];
     if (!report) {
-      setMessage("这条还没有生成结果，先点手动执行 JPHOUSE。", "error");
+      setMessage("这条还没有生成结果，请先生成报告。", "error");
       return;
     }
     if (report.locked) {
       // D7 paywall: locked metadata response -> show the unlock card (no content).
-      state.records = state.records.filter((item) => item.id !== `locked::${key}`);
-      state.records.push({
-        id: `locked::${key}`,
-        locked: true,
-        query_key: key,
-        title: report.title || "深度报告",
-        publish_month: report.publish_month || "",
-        unlock_hint: report.unlock_hint || "",
-        regions: [],
-        layouts: [],
-      });
-      state.selectedId = `locked::${key}`;
+      const record = backendReportToRecord({}, { ...report, query_key: key });
+      upsertRuntimeRecord(record);
+      state.selectedId = record.id;
       renderView();
       return;
     }
@@ -1386,6 +1404,13 @@ async function startReportUnlock(queryKey) {
   const button = document.querySelector("[data-unlock-report]");
   if (button) button.disabled = true;
   try {
+    // Recheck server evidence immediately before checkout; another tab or a
+    // completed credit-consuming job may have unlocked this report already.
+    const currentReport = await apiFetch(`/api/reports/${encodeURIComponent(queryKey)}`);
+    if (currentReport.unlocked === true && currentReport.locked !== true) {
+      await viewReportByQueryKey(queryKey);
+      return;
+    }
     const checkout = await apiFetch("/api/billing/checkout", {
       method: "POST",
       body: JSON.stringify({
@@ -1415,11 +1440,12 @@ function renderAccount() {
   const taskCount = state.myTasks?.length || 0;
   const pendingCount = (state.myTasks || []).filter((task) => task.status !== "completed").length;
   const tier = state.profile?.membership_tier === "free" || !state.profile?.membership_tier ? uiText("account.freeTier", "免费版") : state.profile.membership_tier;
-  const loggedOutTitle = uiText(
+  const destination = window.ZouAuthRecovery?.buildAuthReturnUrl(window.location.href);
+  const loggedOutTitle = destination ? uiText("account.continueTitle", "登录后继续当前任务") : uiText(
     $("#accountTitle")?.dataset.loggedOutKey,
     $("#accountTitle")?.dataset.loggedOutTitle || "登录后可以查询",
   );
-  const loggedOutCopy = uiText(
+  const loggedOutCopy = destination ? uiText("account.continueCopy", "登录或注册成功后，会自动返回你刚才的任务。") : uiText(
     $("#accountCopy")?.dataset.loggedOutCopyKey,
     $("#accountCopy")?.dataset.loggedOutCopy || "未登录只能看最近 5 条数据。注册很简单，别紧张，不查户口。",
   );
@@ -1459,6 +1485,8 @@ function renderAccount() {
     const el = $(`#${id}`);
     if (el) el.disabled = !loggedIn;
   });
+  $("#queryLoginLink")?.toggleAttribute("hidden", loggedIn);
+  if ($("#queryButton")) $("#queryButton").hidden = !loggedIn;
   const hint = $("#queryHint");
   if (hint) {
     hint.textContent = loggedIn
@@ -1708,10 +1736,10 @@ function delay(ms) {
 
 async function showProgress(title, matchedCount) {
   const steps = [
-    "组合查询条件，生成 Markdown 标题",
+    "整理查询条件",
     "检查历史查询记录",
     matchedCount ? "命中已有数据，直接调取" : "未命中本地数据，准备备用数据源",
-    matchedCount ? "整理数据浏览页" : "保存待生成记录，等待 JPHOUSE 采集器接入",
+    matchedCount ? "整理数据浏览页" : "已保存查询，等待生成报告",
   ];
   $("#progressTitle").textContent = title;
   $("#progressSteps").innerHTML = steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("");
@@ -1734,7 +1762,7 @@ function renderProgress(title, progress, steps) {
 
 async function runBackendQuery(options) {
   const title = queryTitle(options);
-  renderProgress(title, 8, ["发送查询条件到后端", "检查 PostgreSQL 历史索引"]);
+  renderProgress(title, 8, ["提交查询条件", "检查已有记录"]);
   const payload = {
     prefecture: options.prefecture,
     city: options.city,
@@ -1949,7 +1977,19 @@ async function loadRegionStats(event) {
 
 window.ZouRegionStats = Object.freeze({ load: loadRegionStats });
 
+function renderQueryType() {
+  const type = $("#queryType");
+  if (!type) return;
+  const detail = isLoggedIn() && state.selectedId;
+  const transactions = $("#queryTypeTransactions").checked;
+  if ($("#queryLoginLink")) $("#queryLoginLink").href = `profile.html?return_to=${encodeURIComponent(transactions ? "data-query.html?type=transactions" : "data-query.html")}#accountPanel`;
+  $("#queryPanel").hidden = Boolean(detail || transactions);
+  $("#regionStatsPanel").hidden = Boolean(detail || !transactions);
+  type.hidden = Boolean(detail);
+}
+
 function renderView() {
+  renderQueryType();
   const detail = isLoggedIn() && state.selectedId;
   $("#detailPage")?.classList.toggle("hidden", !detail);
   $(".latest-panel")?.classList.toggle("hidden", detail);
@@ -2048,6 +2088,8 @@ async function register(event) {
         const session = sessionFromAuth(data, { email });
         if (session.accessToken && session.userId && session.email) {
           saveSession(session);
+          const destination = window.ZouAuthRecovery?.buildAuthReturnUrl(window.location.href);
+          if (destination) { window.location.assign(destination); return; }
           try {
             await ensureUserProfile();
             await loadMyPage();
@@ -2134,6 +2176,8 @@ async function login(event) {
       throw error;
     }
     saveSession(session);
+    const destination = window.ZouAuthRecovery?.buildAuthReturnUrl(window.location.href);
+    if (destination) { window.location.assign(destination); return; }
   } catch (error) {
     if (error?.code === "email_not_confirmed" || /email\s+not\s+confirmed|not\s+confirmed/i.test(error?.message || "")) {
       showEmailVerification(email, "login");
@@ -2203,10 +2247,18 @@ function renderDetail() {
     return;
   }
   if (record.locked) {
+    const previewSummary = typeof record.summary === "string"
+      ? record.summary
+      : [record.summary?.title, record.summary?.line, record.summary?.note].filter(Boolean).join(" · ");
+    const previewSources = (Array.isArray(record.data_sources) ? record.data_sources : [])
+      .map((source) => typeof source === "string" ? source : [source?.name, source?.period, source?.url].filter(Boolean).join(" · "))
+      .filter(Boolean);
     $("#detailContent").innerHTML = `
       <article class="detail-card">
         <h2>${escapeHtml(displayPropertyText(record.title))}</h2>
         <p class="meta"><span class="pill">${escapeHtml(record.publish_month || "")}</span></p>
+        ${previewSummary ? `<p class="report-preview-summary">${escapeHtml(previewSummary)}</p>` : ""}
+        ${previewSources.length ? `<ul class="report-preview-sources">${previewSources.map((source) => `<li>${escapeHtml(source)}</li>`).join("")}</ul>` : ""}
         <div class="locked-report" role="status">
           <p>🔒 ${escapeHtml(record.unlock_hint || "完整深度报告为付费权益。")}</p>
           <p class="locked-note">${escapeHtml(uiText("report.singleUnlockCopy", "购买后解锁本份深度报告"))}</p>
@@ -2262,8 +2314,13 @@ function renderDetail() {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-function openDetail(id) {
+async function openDetail(id) {
   if (!isLoggedIn()) return;
+  const record = state.records.find((item) => item.id === id);
+  if (record?.locked && record.query_key && canUseAuthenticatedBackend()) {
+    await viewReportByQueryKey(record.query_key);
+    return;
+  }
   state.selectedId = id;
   renderView();
 }
@@ -2286,6 +2343,7 @@ function closeImage() {
 }
 
 async function init() {
+  if ($("#queryTypeTransactions") && new URLSearchParams(window.location.search).get("type") === "transactions") $("#queryTypeTransactions").checked = true;
   ensureEmailVerificationPanel();
   window.addEventListener("zou-auth-session-changed", (event) => {
     state.session = event.detail || window.ZouAuthSession?.read?.() || null;
@@ -2367,6 +2425,7 @@ async function init() {
     if (confirmation) confirmation.checked = false;
   });
   on("#confirmDeleteAccountButton", "click", requestAccountDeletion);
+  on("#queryType", "change", renderQueryType);
   on("#analysisForm", "submit", (event) => {
     event.preventDefault();
     loadAnalysis();

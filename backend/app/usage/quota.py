@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable, Mapping, Optional
@@ -16,12 +15,12 @@ from .ledger import QuotaExceeded
 
 UTC_PLUS_8 = timezone(timedelta(hours=8), name="UTC+08:00")
 
-# ``free_preview`` is a product action, not a frozen database usage_kind.  It
-# uses the existing query entitlement/bucket while retaining its own stable
-# fingerprint, so no frozen CHECK constraint or column needs to change.
+# Preview and query share the plan's live query entitlement. The canonical
+# free consumer plan is daily, while Plus and business plans are monthly.
+# None means the active entitlement supplies the period, not the caller/UI.
 METER_MAP = {
-    "free_preview": ("query", "day"),
-    "query": ("query", "month"),
+    "free_preview": ("query", None),
+    "query": ("query", None),
     "report": ("report", "month"),
     "stats": ("stats_query", "month"),
     "stats_query": ("stats_query", "month"),
@@ -48,11 +47,15 @@ def current_period_key(value: datetime, period: str) -> str:
 
 
 def select_live_entitlement(
-    rows: Iterable[Mapping[str, Any]], metric: str, period: str
+    rows: Iterable[Mapping[str, Any]], metric: str, period: str,
+    *, now: Optional[datetime] = None,
 ) -> Optional[int]:
+    now = now or datetime.now(timezone.utc)
     candidates = [
         row for row in rows
-        if row.get("metric") == metric and row.get("period") == period and row.get("active", True)
+        if row.get("metric") == metric and row.get("period") == period
+        and row.get("active", True)
+        and (row.get("effective_from") is None or row["effective_from"] <= now)
     ]
     if not candidates:
         return None
@@ -106,26 +109,40 @@ async def consume_current_entitlement(
     fingerprint: str,
     scope_key: Optional[str] = None,
 ) -> QuotaConsumption:
-    """Consume live entitlement; caller must have opened the transaction."""
+    """Consume live entitlement; caller must have opened the transaction.
+
+    Replays refer to the original event, including its original calendar
+    period. In particular a report already consumed remains consumed after
+    month rollover or subscription expiry.
+    """
     if metric not in METER_MAP:
         raise ValueError("unsupported quota metric")
     if not isinstance(units, int) or isinstance(units, bool) or units <= 0:
         raise ValueError("units must be a positive integer")
     usage_kind, default_period = METER_MAP[metric]
-    period = period or default_period
-    if period != default_period:
+    if period is not None and (period not in {"day", "month"} or (default_period and period != default_period)):
         raise ValueError("period does not match quota metric")
     if not idempotency_key or not fingerprint:
         raise ValueError("idempotency_key and fingerprint are required")
+    if not conn.is_in_transaction():
+        raise ValueError("quota consumption requires an open transaction")
 
-    resolved_scope, plan_code = await _resolve_plan(conn, user.user_id)
+    if metric == "report":
+        # Personal report credits must never be redirected to an organization's
+        # quota, or granted from a stale user_profiles membership_tier alone.
+        resolved_scope, plan_code = _scope_key(user.user_id), "c_plus"
+        if scope_key is not None and scope_key != resolved_scope:
+            raise ValueError("report quota must use the authenticated user's scope")
+    else:
+        resolved_scope, plan_code = await _resolve_plan(conn, user.user_id)
     scope_key = scope_key or resolved_scope
-    period_key = current_period_key(datetime.now(timezone.utc), period)
 
-    # Serialise identical replays before either one reads or mutates the row.
+    # The ledger has independent unique constraints for key and fingerprint.
+    # Locking their concatenation would allow either constraint to race. One
+    # scope/kind lock also serializes replays across a day/month boundary.
     await conn.execute(
         "select pg_advisory_xact_lock(hashtext($1))",
-        f"quota:{scope_key}:{usage_kind}:{idempotency_key}:{fingerprint}",
+        f"quota:{scope_key}:{usage_kind}",
     )
     prior = await conn.fetchrow(
         """
@@ -134,29 +151,68 @@ async def consume_current_entitlement(
         """,
         scope_key, usage_kind, idempotency_key,
     )
-    if prior:
-        if prior["fingerprint"] != fingerprint:
-            raise ValueError("idempotency key was reused with different parameters")
+    if prior and prior["fingerprint"] != fingerprint:
+        raise ValueError("idempotency key was reused with different parameters")
+    event = await conn.fetchrow(
+        """
+        select period_key, units, actor_user_id from public.usage_events
+        where scope_key=$1 and usage_kind=$2 and operation='consume' and fingerprint=$3
+        """,
+        scope_key, usage_kind, fingerprint,
+    )
+    if event:
+        if int(event["units"]) != units or (
+            metric == "report" and event["actor_user_id"] not in (None, user.user_id)
+        ):
+            raise ValueError("fingerprint was reused with different parameters")
+        original_period_key = event["period_key"]
         quota = await conn.fetchrow(
-            """select consumed_units, limit_units from public.usage_quotas
+            """select consumed_units, reserved_units, limit_units from public.usage_quotas
                where scope_key=$1 and usage_kind=$2 and period_key=$3""",
-            scope_key, usage_kind, period_key,
+            scope_key, usage_kind, original_period_key,
         )
-        used = int(quota["consumed_units"]) if quota else 0
-        limit = int(quota["limit_units"]) if quota else 0
-        return QuotaConsumption("duplicate", metric, period_key, used, limit, max(0, limit - used))
+        used = int(quota["consumed_units"]) if quota else units
+        limit = int(quota["limit_units"]) if quota else units
+        reserved = int(quota["reserved_units"]) if quota else 0
+        return QuotaConsumption("duplicate", metric, original_period_key, used, limit, max(0, limit - used - reserved))
+    if prior:
+        # A registry entry alone is not proof of successful consumption.
+        raise ValueError("idempotency record has no matching usage event")
+
+    if metric == "report":
+        subscription = await conn.fetchrow(
+            """select id from public.subscriptions
+               where user_id=$1 and organization_id is null
+                 and product_code='c_plus_monthly'
+                 and status in ('active', 'trialing')
+                 and (current_period_start is null or current_period_start <= now())
+                 and current_period_end > now()
+               order by current_period_end desc limit 1 for share""",
+            user.user_id,
+        )
+        if subscription is None:
+            raise QuotaExceeded("active report subscription is required")
 
     entitlement = await conn.fetchrow(
         """
-        select limit_units from public.plan_entitlements
-        where plan_code=$1 and metric=$2 and period=$3 and active=true
-        order by effective_from desc nulls last, created_at desc limit 1
+        select limit_units, period from public.plan_entitlements
+        where plan_code=$1 and metric=$2 and active=true
+          and ($3::text is null or period=$3)
+          and (effective_from is null or effective_from <= now())
+        order by effective_from desc nulls last, created_at desc, period
+        limit 1 for share
         """,
-        plan_code, usage_kind, period,
+        plan_code, usage_kind, default_period,
     )
     if entitlement is None:
         raise QuotaExceeded("usage quota is not configured")
+    live_period = entitlement["period"]
+    if period is not None and period != live_period:
+        raise ValueError("period does not match the live plan entitlement")
+    period_key = current_period_key(datetime.now(timezone.utc), live_period)
     live_limit = max(0, int(entitlement["limit_units"]))
+    if units > live_limit:
+        raise QuotaExceeded("usage quota exceeded")
 
     await conn.execute(
         """insert into public.usage_quotas(scope_key, usage_kind, period_key, limit_units)
@@ -171,14 +227,13 @@ async def consume_current_entitlement(
     )
     if quota is None:
         raise QuotaExceeded("usage quota is not configured")
-    quota = await conn.fetchrow(
-        """update public.usage_quotas set limit_units=$4
-           where scope_key=$1 and usage_kind=$2 and period_key=$3
-           returning id, consumed_units, reserved_units, limit_units""",
-        scope_key, usage_kind, period_key, live_limit,
-    )
     if int(quota["consumed_units"]) + int(quota["reserved_units"]) + units > live_limit:
         raise QuotaExceeded("usage quota exceeded")
+    await conn.execute(
+        """update public.usage_quotas set limit_units=$4
+           where scope_key=$1 and usage_kind=$2 and period_key=$3""",
+        scope_key, usage_kind, period_key, live_limit,
+    )
 
     event_id = uuid4()
     await conn.execute(
@@ -196,10 +251,10 @@ async def consume_current_entitlement(
     updated = await conn.fetchrow(
         """update public.usage_quotas set consumed_units=consumed_units+$4
            where scope_key=$1 and usage_kind=$2 and period_key=$3
-           returning consumed_units, limit_units""",
+           returning consumed_units, reserved_units, limit_units""",
         scope_key, usage_kind, period_key, units,
     )
     used = int(updated["consumed_units"])
     limit = int(updated["limit_units"])
-    return QuotaConsumption("consumed", metric, period_key, used, limit, max(0, limit - used))
-
+    reserved = int(updated["reserved_units"])
+    return QuotaConsumption("consumed", metric, period_key, used, limit, max(0, limit - used - reserved))

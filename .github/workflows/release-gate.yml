@@ -144,7 +144,7 @@ jobs:
           python3 scripts/ci/release_evidence.py record
           --name node-syntax --output ci-results/node-syntax.json --
           bash -euo pipefail -c
-          'node tests/unit/auth-return.test.cjs && node tests/unit/pwa-reload.test.cjs && node --check web/app.js && node --check playwright.config.js && for file in web/js/*.js; do node --check "$file"; done'
+          'node tests/unit/auth-return.test.cjs && node tests/unit/pwa-reload.test.cjs && node --test tests/unit/report-response-paywall.test.cjs && node --check web/app.js && node --check playwright.config.js && for file in web/js/*.js; do node --check "$file"; done'
       - name: Run Edge authorization tests
         continue-on-error: true
         run: python3 scripts/ci/release_evidence.py record --name node-edge --output ci-results/node-edge.json -- node --test tests/edge/jphouse-run-authority.test.mjs

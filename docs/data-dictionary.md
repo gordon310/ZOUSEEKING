@@ -160,3 +160,9 @@ M-B3 只在既有 `service_tasks`、`task_applications`、`task_status_history`�
 ## 当前隐私版本确认审计 (privacy-2026-10)
 
 复用 `audit_events` 的 append-only 合同，不新增 schema。`action=privacy.policy.accepted`，`target_type=privacy_policy`，`target_id` 为政策版本；`actor_user_id` 来自服务器验证的 Auth UUID。`summary` 仅含 `privacy_policy_version` 与 `terms_version`；`occurred_at` 为数据库 UTC 时间。并发同版本重试只追加一次，不更新旧行，不记录邮箱、姓名、令牌或客户端时间。普通账户不可直接读写该账本；仅通过认证后的当前账户状态/确认 API。旧 Auth metadata 保留，不作当前重新确认凭据。账户删除入口不要求重新同意。
+
+### Report access boundary (2026-10-11)
+
+`property_reports` remains the worker-owned full report store. Authenticated browser roles receive column-level SELECT only for the existing basic preview metadata; premium text, row datasets, images, raw JSON and internal source locators cannot be selected directly. `member_property_reports` remains owner-scoped and security-invoker, preserves its existing restricted columns as typed NULLs, and adds `locked=true`, `unlocked=false`, and an `unlock_hint`. These constants are access metadata, not stored entitlement state. Paid/consumed full content is returned only by the authenticated API.
+
+A report credit is represented by a positive `usage_events` `consume` entry in `user:<owner_uuid>` / `report`, using `report:<query_key>`; verified historical `c-plus-report:<query_key>` entries remain recognized. A remaining quota balance or `usage_idempotency` row alone does not unlock a report. Existing quota amounts are unchanged. Query and intake preview share the live plan's configured query period; monthly report credits remain a distinct meter.

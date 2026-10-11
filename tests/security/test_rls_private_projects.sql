@@ -27,7 +27,13 @@ begin
        or has_table_privilege('authenticated', 'public.' || required_table, 'delete') then
       raise exception 'authenticated write privilege remains on %', required_table;
     end if;
-    if not has_table_privilege('authenticated', 'public.' || required_table, 'select') then
+    if required_table = 'property_reports' then
+      if has_table_privilege('authenticated', 'public.property_reports', 'select')
+         or has_column_privilege('authenticated', 'public.property_reports', 'markdown', 'select')
+         or not has_column_privilege('authenticated', 'public.property_reports', 'summary', 'select') then
+        raise exception 'authenticated report preview-only boundary is invalid';
+      end if;
+    elsif not has_table_privilege('authenticated', 'public.' || required_table, 'select') then
       raise exception 'authenticated read privilege is missing on %', required_table;
     end if;
   end loop;

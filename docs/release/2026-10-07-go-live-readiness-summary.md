@@ -11,7 +11,7 @@
 | 权威分支 | `main`(2026-09-04 决策:main 即唯一权威分支,不另建 release branch) |
 | 发布点 commit | `1ea7dd40560a08747daf8fdd03a34530383be886`(`1ea7dd4`) |
 | 前端资产版本 | `20260926-r67`(`deploy/frontend-version.txt`,源/产物/HTML 三方一致,`check:web-assets` exit 0) |
-| 迁移台账 | 生产 **54 / 仓库 54**,零缺口(最高 `20260923000300`) |
+| 迁移台账 | 生产 **54 / 仓库 55**（生产为 09-27 已记录结果，本轮未复查）；生产最高 `20260923000300`；仓库最高 `20261011000100`；待应用 1 条：报告预览边界安全迁移，尚未应用，须另行授权并验收 |
 | 生产 RELEASE_PHASE | `consumer_launch`(2026-09-26 切换,冒烟通过) |
 | 生产 ENVIRONMENT | `production` |
 | 生产 HEAD | `/opt/zouseeking` 已 `git pull` 至与 origin 同步 |

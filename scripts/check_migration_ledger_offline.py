@@ -4,8 +4,9 @@
 This check proves only static, repository-local facts: that the canonical
 forward history is well-formed and append-only, that every already-applied
 migration still hashes to the bytes that were pinned and recorded, that the
-current documents claiming a zero-gap ledger still agree with the repository,
-and that destructive SQL keywords only appear where they were registered.
+current documents distinguish recorded applied history from pending repository
+migrations and agree with both pinned sets, and that destructive SQL keywords
+only appear where they were registered.
 
 It does not read the real production or staging migration ledger, does not
 execute SQL, does not connect to any provider, and is not a substitute for the
@@ -23,8 +24,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
-EXPECTED_SCHEMA_VERSION = 1
-EXPECTED_CONTRACT = "migration-ledger-contract/v1"
+EXPECTED_SCHEMA_VERSION = 2
+EXPECTED_CONTRACT = "migration-ledger-contract/v2"
 DEFAULT_CONTRACT = Path("docs/architecture/migration-ledger-contract.json")
 REQUIRED_KEYS = (
     "schema_version",
@@ -33,12 +34,21 @@ REQUIRED_KEYS = (
     "migration_name_pattern",
     "manifest",
     "pinned_hashes",
+    "pending_hashes",
+    "recorded_production",
+    "documented_ledger",
     "recorded_artifacts",
     "live_ledger_claims",
     "destructive_statement_kinds",
     "destructive_statements",
 )
-BINDING_TARGETS = {"repo_count", "repo_max_version"}
+CLAIM_BINDINGS = {
+    "production": "production_count",
+    "repo": "repo_count",
+    "max_version": "production_max_version",
+    "repo_max_version": "repo_max_version",
+    "pending": "pending_count",
+}
 
 
 def load_contract(path: Path) -> dict[str, Any]:
@@ -144,14 +154,36 @@ def _check_structure(root: Path, contract: dict[str, Any]) -> list[str]:
     if not isinstance(manifest, dict) or _within_root(root, str(manifest.get("path"))) is None or not manifest.get("key"):
         errors.append("C7 manifest needs a repo-relative path and a key")
 
-    for index, pin in enumerate(contract.get("pinned_hashes", [])):
-        if not isinstance(pin, dict):
-            errors.append(f"C7 pinned_hashes[{index}] must be an object")
+    for field in ("pinned_hashes", "pending_hashes"):
+        pins = contract.get(field)
+        if not isinstance(pins, list):
+            errors.append(f"C7 {field} must be a list")
             continue
-        if _within_root(root, _relative(pin.get("file", ""))) is None:
-            errors.append(f"C7 pinned_hashes[{index}].file must be repo-relative")
-        if not re.fullmatch(r"[0-9a-f]{64}", str(pin.get("sha256", ""))):
-            errors.append(f"C7 pinned_hashes[{index}].sha256 must be a lowercase sha256")
+        for index, pin in enumerate(pins):
+            if not isinstance(pin, dict):
+                errors.append(f"C7 {field}[{index}] must be an object")
+                continue
+            if _within_root(root, _relative(pin.get("file", ""))) is None:
+                errors.append(f"C7 {field}[{index}].file must be repo-relative")
+            if not re.fullmatch(r"[0-9a-f]{64}", str(pin.get("sha256", ""))):
+                errors.append(f"C7 {field}[{index}].sha256 must be a lowercase sha256")
+
+    for field, count_key in (("recorded_production", "count"), ("documented_ledger", "repo_count")):
+        ledger = contract.get(field)
+        if not isinstance(ledger, dict):
+            errors.append(f"C7 {field} must be an object")
+            continue
+        count = ledger.get(count_key)
+        if type(count) is not int or count < 1:
+            errors.append(f"C7 {field}.{count_key} must be a positive integer")
+        version = ledger.get("max_version")
+        if not isinstance(version, str) or not re.fullmatch(r"[0-9]{14}", version):
+            errors.append(f"C7 {field}.max_version must be a 14-digit version")
+    documented = contract.get("documented_ledger")
+    if isinstance(documented, dict):
+        pending_count = documented.get("pending_count")
+        if type(pending_count) is not int or pending_count < 0:
+            errors.append("C7 documented_ledger.pending_count must be a non-negative integer")
 
     for index, artifact in enumerate(contract.get("recorded_artifacts", [])):
         if not isinstance(artifact, dict):
@@ -180,15 +212,15 @@ def _check_structure(root: Path, contract: dict[str, Any]) -> list[str]:
         except re.error as exc:
             errors.append(f"C7 live_ledger_claims[{index}].pattern does not compile: {exc}")
             continue
-        if set(compiled.groupindex) != {"production", "repo", "max_version"}:
+        if set(compiled.groupindex) != set(CLAIM_BINDINGS):
             errors.append(
-                f"C7 live_ledger_claims[{index}].pattern must name groups production, repo, max_version"
+                f"C7 live_ledger_claims[{index}].pattern must name groups {sorted(CLAIM_BINDINGS)}"
             )
         bindings = claim.get("bindings")
-        if not isinstance(bindings, dict) or set(bindings) != {"production", "repo", "max_version"}:
-            errors.append(f"C7 live_ledger_claims[{index}].bindings must cover the three groups")
-        elif any(target not in BINDING_TARGETS for target in bindings.values()):
-            errors.append(f"C7 live_ledger_claims[{index}].bindings must target {sorted(BINDING_TARGETS)}")
+        if bindings != CLAIM_BINDINGS:
+            errors.append(
+                f"C7 live_ledger_claims[{index}].bindings must distinguish recorded production, repository and pending values"
+            )
 
     kinds = contract.get("destructive_statement_kinds")
     if not isinstance(kinds, dict) or not kinds:
@@ -275,7 +307,8 @@ def _check_manifest(root: Path, contract: dict[str, Any], files: list[str]) -> l
 
 def _check_pins(root: Path, contract: dict[str, Any], files: list[str]) -> list[str]:
     errors: list[str] = []
-    pin_set = [str(pin.get("file", "")) if isinstance(pin, dict) else "" for pin in contract["pinned_hashes"]]
+    pins = contract["pinned_hashes"] + contract["pending_hashes"]
+    pin_set = [str(pin["file"]) for pin in pins]
     seen: set[str] = set()
     for relative in pin_set:
         if relative in seen:
@@ -287,7 +320,7 @@ def _check_pins(root: Path, contract: dict[str, Any], files: list[str]) -> list[
     for relative in pin_set:
         if relative and relative not in files:
             errors.append(f"C3 {relative} is pinned but not on disk")
-    for pin in contract["pinned_hashes"]:
+    for pin in pins:
         if not isinstance(pin, dict):
             continue
         relative = str(pin.get("file", ""))
@@ -298,6 +331,18 @@ def _check_pins(root: Path, contract: dict[str, Any], files: list[str]) -> list[
             errors.append(
                 f"C3 {relative}: sha256 drift, pinned {pin.get('sha256')}, on disk {actual}"
             )
+    if pin_set != files:
+        errors.append("C3 applied pins followed by pending pins must equal the full append-only canonical history")
+    applied = contract["pinned_hashes"]
+    recorded = contract["recorded_production"]
+    if len(applied) != recorded["count"]:
+        errors.append("C3 applied pin count disagrees with recorded production count")
+    applied_versions = [Path(pin["file"]).name[:14] for pin in applied]
+    if (max(applied_versions) if applied_versions else "") != recorded["max_version"]:
+        errors.append("C3 applied pin maximum version disagrees with recorded production maximum version")
+    for pin in contract["pending_hashes"]:
+        if Path(pin["file"]).name[:14] <= recorded["max_version"]:
+            errors.append(f"C3 {pin['file']}: pending migration must be newer than recorded production")
     return errors
 
 
@@ -346,7 +391,17 @@ def _check_live_claims(root: Path, contract: dict[str, Any], files: list[str]) -
     actual = {
         "repo_count": str(len(files)),
         "repo_max_version": max(versions) if versions else "",
+        "production_count": str(contract["recorded_production"]["count"]),
+        "production_max_version": contract["recorded_production"]["max_version"],
+        "pending_count": str(len(contract["pending_hashes"])),
     }
+    for key, target in (
+        ("repo_count", "repo_count"),
+        ("max_version", "repo_max_version"),
+        ("pending_count", "pending_count"),
+    ):
+        if str(contract["documented_ledger"][key]) != actual[target]:
+            errors.append(f"C5 documented_ledger.{key} disagrees with canonical history and pending pins")
     for claim in contract["live_ledger_claims"]:
         claim_id = claim.get("id", "<unnamed>")
         document = root / str(claim["document"])
@@ -362,12 +417,13 @@ def _check_live_claims(root: Path, contract: dict[str, Any], files: list[str]) -
                 f"C5 {claim_id}: {claim['document']} contains {len(matches)} claim(s), expected {required}"
             )
             continue
-        group = matches[0].groupdict()
-        for name, target in claim["bindings"].items():
-            if group.get(name) != actual[target]:
-                errors.append(
-                    f"C5 {claim_id}: {name}={group.get(name)!r} but the repository says {actual[target]!r}"
-                )
+        for match in matches:
+            group = match.groupdict()
+            for name, target in claim["bindings"].items():
+                if group.get(name) != actual[target]:
+                    errors.append(
+                        f"C5 {claim_id}: {name}={group.get(name)!r} but the pinned ledger says {actual[target]!r}"
+                    )
     return errors
 
 
@@ -418,9 +474,9 @@ def check_repo(root: Path, contract: dict[str, Any]) -> list[str]:
 CHECK_LABELS = (
     "C1 filename and version integrity",
     "C2 ownership manifest matches the canonical history",
-    "C3 pinned sha256 for every applied migration",
+    "C3 immutable applied hashes and explicit forward-only pending hashes",
     "C4 recorded production-line hashes still match",
-    "C5 current zero-gap ledger claims match the repository",
+    "C5 current claims distinguish recorded production from pending repository migrations",
     "C6 destructive statements are registered",
     "C7 contract structure",
 )

@@ -4,7 +4,7 @@
 
 独立本地 Supabase 上真实注册（201）、登录（200）、确认 privacy-2026-10（200）后，Auth Admin DELETE 返回 500。原因是 `audit_events.actor_user_id ON DELETE SET NULL` 的外键动作触发了拒绝全部 UPDATE 的审计触发器。该冲突也影响受控账户删除路径，因此在修补生效前保持 No-Go。
 
-前向迁移 `20261011000100_audit_events_anonymization_allowance.sql` 只替换现有触发器函数。只允许嵌套触发器执行时，已删除 Auth 身份的非空 actor UUID 变为空，且整行其他字段完全一致。直接更新 actor、更新事件事实、DELETE、TRUNCATE 继续拒绝；表权限与 RLS 不变。既有同意历史仍保留。
+前向迁移 `20261011000200_audit_events_anonymization_allowance.sql` 只替换现有触发器函数。只允许嵌套触发器执行时，已删除 Auth 身份的非空 actor UUID 变为空，且整行其他字段完全一致。直接更新 actor、更新事件事实、DELETE、TRUNCATE 继续拒绝；表权限与 RLS 不变。既有同意历史仍保留。
 
 ## 本地证据
 

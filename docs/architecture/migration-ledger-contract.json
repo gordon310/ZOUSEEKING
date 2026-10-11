@@ -345,7 +345,7 @@
       "sha256": "27597f7f35f16deb096686ae66f8e2ac9337c1c75ec8fc90fb551b53cd37592a"
     },
     {
-      "file": "supabase/migrations/20261011000100_audit_events_anonymization_allowance.sql",
+      "file": "supabase/migrations/20261011000200_audit_events_anonymization_allowance.sql",
       "sha256": "5b808ac9aebb2f29610df409e96a1431b8db434ea6be63411f1b4c98f19875a3"
     }
   ],

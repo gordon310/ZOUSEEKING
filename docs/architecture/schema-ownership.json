@@ -58,7 +58,7 @@
     "20260923000100_invite_only_consumer_gate.sql",
     "20260923000200_invite_reservation_error_states.sql",
     "20260923000300_shared_rate_limits.sql",
-    "20261011000100_audit_events_anonymization_allowance.sql"
+    "20261011000200_audit_events_anonymization_allowance.sql"
   ],
   "legacy_sql_files": [
     "backend/sql/001_foundation_data_contract.sql",

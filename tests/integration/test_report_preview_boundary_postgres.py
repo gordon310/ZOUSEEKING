@@ -17,6 +17,21 @@ ROOT = Path(__file__).resolve().parents[2]
 BASE_URL = configured_database_url("REPORT_PREVIEW_TEST_DATABASE_URL")
 
 
+async def grant_supabase_test_roles(conn: asyncpg.Connection) -> None:
+    capability_query = "select rolbypassrls from pg_roles where rolname = 'service_role'"
+    bypasses_rls = await conn.fetchval(capability_query)
+    if bypasses_rls is None:
+        raise RuntimeError("report preview fixture requires the service_role database role")
+    if not bypasses_rls:
+        # Plain PostgreSQL bootstrap creates an unprivileged role. Managed
+        # Supabase already enables BYPASSRLS and forbids altering this role.
+        # Let authorization errors fail setup rather than skip RLS assertions.
+        await conn.execute("alter role service_role bypassrls")
+        if await conn.fetchval(capability_query) is not True:
+            raise RuntimeError("report preview fixture requires service_role BYPASSRLS")
+    await conn.execute("grant usage on schema auth, public to anon, authenticated, service_role")
+
+
 @pytest.fixture(scope="module")
 def preview_database_url():
     asyncio.run(require_postgres_or_skip(BASE_URL))
@@ -24,16 +39,14 @@ def preview_database_url():
     asyncio.run(bootstrap_and_migrate(BASE_URL, name))
     url = database_url(BASE_URL, name)
 
-    async def grant_supabase_test_roles():
+    async def configure_test_roles():
         conn = await asyncpg.connect(url)
         try:
-            # Match managed Supabase role capabilities inside this local fixture.
-            await conn.execute("alter role service_role bypassrls")
-            await conn.execute("grant usage on schema auth, public to anon, authenticated, service_role")
+            await grant_supabase_test_roles(conn)
         finally:
             await conn.close()
 
-    asyncio.run(grant_supabase_test_roles())
+    asyncio.run(configure_test_roles())
     return url
 
 
